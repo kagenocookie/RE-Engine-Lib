@@ -598,9 +598,10 @@ namespace RszTool
                 Attributes.Clear();
                 for (int i = 0; i < attributeCount; i++)
                 {
-                    Attribute attribute = new();
-                    attribute.Read(handler);
-                    Attributes.Add(attribute);
+                    // TODO
+                    // Attribute attribute = new();
+                    // attribute.Read(handler);
+                    // Attributes.Add(attribute);
                 }
 
                 handler.Seek(Info.subStructEndOffs);

@@ -786,6 +786,23 @@ namespace RszTool
             return true;
         }
 
+        /// <summary>读取列表</summary>
+        public bool ReadList<T>(List<T> list, int count) where T : struct
+        {
+            for (int i = 0; i < count; i++)
+            {
+                list.Add(Read<T>());
+            }
+            return true;
+        }
+
+        /// <summary>读取数组</summary>
+        public bool ReadSpan<T>(Span<T> span) where T : struct
+        {
+            Stream.Write(MemoryMarshal.AsBytes(span));
+            return true;
+        }
+
         /// <summary>写入数组</summary>
         public bool WriteArray<T>(T[] array) where T : struct
         {
@@ -804,10 +821,13 @@ namespace RszTool
             return true;
         }
 
-        /// <summary>读取数组</summary>
-        public bool ReadSpan<T>(Span<T> span) where T : struct
+        /// <summary>写入列表</summary>
+        public bool WriteList<T>(List<T> list) where T : struct
         {
-            Stream.Write(MemoryMarshal.AsBytes(span));
+            for (int i = 0; i < list.Count; i++)
+            {
+                Write(list[i]);
+            }
             return true;
         }
 

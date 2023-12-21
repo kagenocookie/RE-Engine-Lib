@@ -113,6 +113,16 @@ namespace RszTool
             extension = Path.GetExtension(path[0..^version.Length]);
         }
 
+        public static int GetFileExtensionVersion(string path)
+        {
+            string? version = Path.GetExtension(path);
+            if (!string.IsNullOrEmpty(version))
+            {
+                return int.Parse(version[1..^1]);
+            }
+            return 0;
+        }
+
         public static FileType GetFileType(string path)
         {
             GetFileExtension(path, out string extension, out _);

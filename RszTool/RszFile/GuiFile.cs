@@ -501,8 +501,8 @@ namespace RszTool
                     handler.Read(ref ukn1);
                     handler.Read(ref ukn2);
                 }
-                Name = handler.ReadWString();
-                ClassName = handler.ReadAsciiString();
+                Name = handler.ReadWString(handler.ReadInt64());
+                ClassName = handler.ReadAsciiString(handler.ReadInt64());
                 handler.Read(ref subStructOffs);
                 handler.Read(ref subStructEndOffs);
                 handler.Read(ref padding);
@@ -552,15 +552,15 @@ namespace RszTool
                     handler.Read(ref B);
                     handler.Read(ref C);
                     handler.Read(ref D);
-                    sName1 = handler.ReadAsciiString();
+                    sName1 = handler.ReadAsciiString(handler.ReadInt64());
                     handler.Read(ref valueOffset);
                     handler.Read(ref E);
                     handler.Read(ref F);
-                    sName2 = handler.ReadAsciiString();
+                    sName2 = handler.ReadAsciiString(handler.ReadInt64());
                     handler.Read(ref G);
                     handler.Read(ref guid);
                     handler.Read(ref H);
-                    wName = handler.ReadWString();
+                    wName = handler.ReadWString(handler.ReadInt64());
                     return true;
                 }
 

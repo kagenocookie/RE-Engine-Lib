@@ -7,13 +7,14 @@ namespace RszTool.Test
         static void Main(string[] args)
         {
             // TestParseUser();
-            TestParseUserRead();
+            // TestParseUserRead();
             // TestParsePfb();
             // TestParsePfbRe2();
             // TestParsePfbRead();
             // TestParseScn();
             // TestParseScnRead();
             // TestScnExtractGameObjectToPfb();
+            TestParseRcolRead();
             // TestImportGameObject();
             // TestParseMdf();
             // TestMurMur3Hash();
@@ -193,6 +194,14 @@ namespace RszTool.Test
                 pfbFile.Write();
             }
             Console.WriteLine(success);
+        }
+
+        static void TestParseRcolRead()
+        {
+            string path = "test/wp5000.rcol.25";
+            RszFileOption option = new(GameName.re4);
+            RcolFile rcolFile = new(option, new FileHandler(path));
+            rcolFile.Read();
         }
 
         static void TestImportGameObject()

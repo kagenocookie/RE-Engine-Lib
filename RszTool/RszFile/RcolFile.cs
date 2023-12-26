@@ -550,8 +550,7 @@ namespace RszTool
                 }
             }
 
-            RSZ = new RSZFile(Option, FileHandler.WithOffset(header.dataOffset));
-            RSZ.Read(0, false);
+            RSZ = ReadRsz(header.dataOffset);
 
             if (header.numRequestSets > 0)
             {
@@ -628,9 +627,8 @@ namespace RszTool
 
             handler.Align(16);
             header.dataOffset = handler.Tell();
-            // 内部偏移是从0开始算的
-            RSZ!.WriteTo(FileHandler.WithOffset(header.dataOffset));
-            header.userDataSize = (int)RSZ.Size;
+            WriteRsz(RSZ!, header.dataOffset);
+            header.userDataSize = (int)RSZ!.Size;
 
             handler.Align(16);
             header.maxRequestSetId = 0;

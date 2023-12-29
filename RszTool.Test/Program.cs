@@ -15,7 +15,8 @@ namespace RszTool.Test
             // TestParseScnRead();
             // TestScnExtractGameObjectToPfb();
             // TestParseRcolRead();
-            TestParseMotbank();
+            // TestParseMotbank();
+            TestParseMsg();
             // TestImportGameObject();
             // TestParseMdf();
             // TestMurMur3Hash();
@@ -204,6 +205,25 @@ namespace RszTool.Test
             foreach (var item in newMotbankFile.MotlistItems)
             {
                 Console.WriteLine($"{item.BankID} {item.Path}");
+            }
+        }
+
+        static void TestParseMsg()
+        {
+            string path = "test/CH_Mes_Main_File_001.msg.22";
+            string newPath = "test/CH_Mes_Main_File_001_new.msg.22";
+            RszFileOption option = new(GameName.re4);
+            MsgFile msgFile = new(option, new FileHandler(path));
+            msgFile.Read();
+            using FileHandler newFileHandler = new(newPath, true);
+            msgFile.WriteTo(newFileHandler);
+
+            MsgFile newMsgFile = new(option, newFileHandler);
+            newMsgFile.Read();
+
+            foreach (var item in newMsgFile.SubEntryList)
+            {
+                Console.WriteLine($"{item}");
             }
         }
 

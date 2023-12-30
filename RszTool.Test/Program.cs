@@ -16,7 +16,8 @@ namespace RszTool.Test
             // TestScnExtractGameObjectToPfb();
             // TestParseRcolRead();
             // TestParseMotbank();
-            TestParseMsg();
+            TestParseMotlist();
+            // TestParseMsg();
             // TestImportGameObject();
             // TestParseMdf();
             // TestMurMur3Hash();
@@ -206,6 +207,14 @@ namespace RszTool.Test
             {
                 Console.WriteLine($"{item.BankID} {item.Path}");
             }
+        }
+
+        static void TestParseMotlist()
+        {
+            string path = "test/cha0_Ability.motlist.663";
+            RszFileOption option = new(GameName.re4);
+            MotlistFile motlistFile = new(option, new FileHandler(path));
+            motlistFile.Read();
         }
 
         static void TestParseMsg()

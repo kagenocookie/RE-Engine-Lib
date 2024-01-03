@@ -50,6 +50,49 @@ namespace RszTool.Bhvt
             throw new NotImplementedException();
         }
     }
+
+
+    public enum BHVTlvl
+    {
+        All = -1,
+        Actions = 0,
+        Selectors = 1,
+        SelectorCallers = 2,
+        Conditions = 3,
+        TransitionEvents = 4,
+        ExpressionTreeConditions = 5,
+        StaticActions = 6,
+        StaticSelectorCallers = 7,
+        StaticConditions = 8,
+        StaticTransitionEvents = 9,
+        StaticExpressionTreeConditions = 10,
+        Transition = 11,
+        Paths = 12,
+        Tags = 13,
+        NameHash = 14
+    }
+
+
+    public class TAGS : BaseModel
+    {
+        public int tagsCount;  // listSize=1
+        public List<uint> Tags { get; } = new();  // taghash list
+
+        protected override bool DoRead(FileHandler handler)
+        {
+            // if !finished
+            for (int i = 0; i < tagsCount; i++)
+            {
+                Tags.Add(handler.ReadUInt());
+            }
+            throw new NotImplementedException();
+        }
+
+        protected override bool DoWrite(FileHandler handler)
+        {
+            throw new NotImplementedException();
+        }
+    }
 }
 
 
@@ -73,8 +116,11 @@ namespace RszTool
         public RSZFile? StaticTransitionEventRsz { get; private set; }
         public RSZFile? StaticExpressionTreeConditionsRsz { get; private set; }
 
+        public List<UVarFile> ReferenceTrees { get; } = new();
+
         protected override bool DoRead()
         {
+            ReferenceTrees.Clear();
             var handler = FileHandler;
             var header = Header;
             if (!header.Read(handler)) return false;
@@ -94,6 +140,19 @@ namespace RszTool
             StaticConditionsRsz = ReadRsz(header.staticConditionsOffset);
             StaticTransitionEventRsz = ReadRsz(header.staticTransitionEventOffset);
             StaticExpressionTreeConditionsRsz = ReadRsz(header.staticExpressionTreeConditionsOffset);
+
+            handler.Seek(header.baseVariableOffset);
+            int mReferenceTreeCount = handler.ReadInt();
+            if (mReferenceTreeCount > 0)
+            {
+                for (int i = 0; i < mReferenceTreeCount; i++)
+                {
+                    long referenceTreeOffset = handler.ReadInt64();
+                    UVarFile uVarFile = new(Option, handler.WithOffset(referenceTreeOffset));
+                    uVarFile.Read();
+                    ReferenceTrees.Add(uVarFile);
+                }
+            }
 
             return true;
         }

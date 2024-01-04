@@ -178,12 +178,7 @@ namespace RszTool.Clip
         public uint reserved2;
         public object Value { get; set; } = null!;
 
-        public PropertyType PropertyType { get; }
-
-        public Key(PropertyType type)
-        {
-            PropertyType = type;
-        }
+        public PropertyType PropertyType { get; set; }
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -193,8 +188,12 @@ namespace RszTool.Clip
             handler.Read(ref instanceValue);
             handler.Read(ref reserved);
             handler.Read(ref reserved2);
+            if (PropertyType == PropertyType.Unknown)
+            {
+                Value = handler.Read<uint>();
+            }
             // Value
-            switch (PropertyType)
+            else switch (PropertyType)
             {
                 case PropertyType.Bool:
                     Value = handler.Read<bool>();
@@ -369,8 +368,8 @@ namespace RszTool.Clip
 
         private uint pad;
         private int uknRE7_1;
-        public float ValueA;  // Start
-        public float ValueB;  // End
+        public float startFrame;  // Start
+        public float endFrame;  // End
         private uint U32_1;
         private ulong U64_1;
 
@@ -381,6 +380,7 @@ namespace RszTool.Clip
         public short arrayIndex;
         public short speedPointNum;
         public PropertyType DataType;
+        public byte uknByte00;
         public byte uknByte;
         public long lastKeyOffset;
         public long speedPointOffset;
@@ -403,8 +403,8 @@ namespace RszTool.Clip
         {
             if (Version < ClipVersion.RE8) handler.Read(ref pad);
             if (Version == ClipVersion.RE7) handler.Read(ref uknRE7_1);
-            handler.Read(ref ValueA);
-            handler.Read(ref ValueB);
+            handler.Read(ref startFrame);
+            handler.Read(ref endFrame);
             if (Version == ClipVersion.RE7)
                 handler.Read(ref U32_1);
             else
@@ -416,12 +416,20 @@ namespace RszTool.Clip
                 handler.Read(ref ChildStartIndex);
                 handler.Read(ref ChildMembershipCount);
                 handler.Read(ref arrayIndex);
-                handler.Read(ref speedPointNum);
+                if (Version > ClipVersion.RE8)
+                    speedPointNum = handler.ReadByte();
+                else
+                    handler.Read(ref speedPointNum);
                 handler.Read(ref DataType);
+                if (Version > ClipVersion.RE8)
+                    handler.Read(ref uknByte00);
                 handler.Read(ref uknByte);
                 handler.Read(ref lastKeyOffset);
-                handler.Read(ref speedPointOffset);
-                handler.Read(ref clipPropertyOffset);
+                if (Version != ClipVersion.RE4)
+                {
+                    handler.Read(ref speedPointOffset);
+                    handler.Read(ref clipPropertyOffset);
+                }
             }
             else
             {
@@ -457,15 +465,6 @@ namespace RszTool.Clip
                     handler.Read(ref uknRE7_4);
                 }
             }
-
-            // TODO
-            // FSeek(clipHeader.namesOffsetExtra[1] + start + PropInfo.nameOffset[0]);
-            // string FunctionName  <hidden=false>;
-            // if (Version != 486 && PropInfo.nameOffset[1] > 0) {
-            //     FSeek(clipHeader.unicodeNamesOffs + start + PropInfo.nameOffset[1]*2);
-            //     wstring wFunctionName <hidden=false>;
-            // }
-            // FSeek(startof(this)+propSize);
             return true;
         }
 
@@ -481,6 +480,7 @@ namespace RszTool.Clip
         public PropertyInfo Info { get; }
         public List<Property>? ChildProperties { get; set; }
         public List<Key>? Keys { get; set; }
+        public string FunctionName { get; set; } = string.Empty;
 
         public Property(ClipVersion version)
         {
@@ -581,6 +581,10 @@ namespace RszTool.Clip
     }
 
 
+    /// <summary>
+    /// 这是Embedded Clip的结构，用在motlists和gui文件中，单独的clip结构不一样，多几个字段
+    /// 暂时没想好怎么做兼容
+    /// </summary>
     public class ClipHeader : BaseModel
     {
         public uint magic;
@@ -721,6 +725,10 @@ namespace RszTool.Clip
                 {
                     Property property = new(Version);
                     property.Info.Read(handler);
+                    if (clipHeader.namesOffsetExtra != null && clipHeader.namesOffsetExtra.Length > 1)
+                    {
+                        property.FunctionName = handler.ReadAsciiString(clipHeader.namesOffsetExtra[1] + property.Info.nameOffset);
+                    }
                     Properties.Add(property);
                 }
             }
@@ -730,7 +738,8 @@ namespace RszTool.Clip
                 handler.Seek(clipHeader.keysOffset);
                 for (int i = 0; i < clipHeader.numKeys; i++)
                 {
-                    Key key = new(Properties[i].Info!.DataType);
+                    Key key = new();
+                    
                     key.Read(handler);
                     ClipKeys.Add(key);
                 }

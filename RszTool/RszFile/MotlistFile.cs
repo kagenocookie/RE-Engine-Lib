@@ -1,3 +1,4 @@
+using RszTool.Mot;
 using RszTool.Motlist;
 
 namespace RszTool.Motlist
@@ -71,8 +72,7 @@ namespace RszTool.Motlist
 
     public class MotIndex : BaseModel
     {
-        public uint unk1;
-        public uint unk2;
+        public uint motClipOffset;  // may point to MotClip
         public ushort motNumber;
         public ushort Switch;
         uint[]? data;
@@ -88,8 +88,7 @@ namespace RszTool.Motlist
 
         protected override bool DoRead(FileHandler handler)
         {
-            handler.Read(ref unk1);
-            handler.Read(ref unk2);
+            handler.Read(ref motClipOffset);
             handler.Read(ref motNumber);
             handler.Read(ref Switch);
             int dataCount = DataCount;
@@ -102,8 +101,7 @@ namespace RszTool.Motlist
 
         protected override bool DoWrite(FileHandler handler)
         {
-            handler.Write(ref unk1);
-            handler.Write(ref unk2);
+            handler.Write(ref motClipOffset);
             handler.Write(ref motNumber);
             handler.Write(ref Switch);
             if (data != null)
@@ -142,14 +140,24 @@ namespace RszTool
             long[] motOffsets = handler.ReadArray<long>(header.numMots);
 
             HashSet<long> uniqueOffsets = new();
+            BoneHeaders? boneHeaders = null;
             for (int i = 0; i < motOffsets.Length; i++)
             {
                 if (uniqueOffsets.Add(motOffsets[i]))
                 {
-                    MotFile motFile = new(Option, handler.WithOffset(motOffsets[i]));
+                    MotFile motFile = new(Option, handler.WithOffset(motOffsets[i]), boneHeaders);
+                    boneHeaders ??= motFile.BoneHeaders;
                     motFile.Read();
                     MotFiles.Add(motFile);
                 }
+            }
+
+            handler.Seek(header.colOffset);
+            for (int i = 0; i < motOffsets.Length; i++)
+            {
+                MotIndex motIndex = new(header.Version);
+                motIndex.Read(handler);
+                MotIndices.Add(motIndex);
             }
             return true;
         }

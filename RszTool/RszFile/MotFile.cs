@@ -131,7 +131,7 @@ namespace RszTool.Mot
         public long boneHeaderOffset;
         public long boneHeaderCount;
 
-        public List<Bone> Bones { get; } = new();
+        public List<BoneHeader> Headers { get; } = new();
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -139,25 +139,24 @@ namespace RszTool.Mot
             handler.Read(ref boneHeaderCount);
 
             if (boneHeaderCount > 1000) throw new InvalidDataException($"boneHeaderCount {boneHeaderCount} > 1000");
-            Bones.Clear();
+            Headers.Clear();
             for (int i = 0; i < boneHeaderCount; i++)
             {
                 BoneHeader boneHeader = new();
-                Bone bone = new(boneHeader);
                 boneHeader.Read(handler);
-                Bones.Add(bone);
+                Headers.Add(boneHeader);
             }
             return true;
         }
 
         protected override bool DoWrite(FileHandler handler)
         {
-            boneHeaderCount = Bones.Count;
+            boneHeaderCount = Headers.Count;
             handler.Write(ref boneHeaderOffset);
             handler.Write(ref boneHeaderCount);
-            foreach (var bone in Bones)
+            foreach (var header in Headers)
             {
-                bone.Header.Write(handler);
+                header.Write(handler);
             }
             handler.StringTableFlush();
             return true;
@@ -827,18 +826,20 @@ namespace RszTool.Mot
 
 namespace RszTool
 {
-    public class MotFile(RszFileOption option, FileHandler fileHandler) : BaseRszFile(option, fileHandler)
+    public class MotFile(RszFileOption option, FileHandler fileHandler, BoneHeaders? boneHeaders = null)
+        : BaseRszFile(option, fileHandler)
     {
         public const uint Magic = 0x20746F6D;
         public const string Extension = ".mot";
 
         public MotHeader Header { get; } = new();
-        public BoneHeaders BoneHeaders { get; } = new();
-        public List<Bone> Bones => BoneHeaders.Bones;
+        public BoneHeaders BoneHeaders { get; } = boneHeaders ?? new();
+        public List<Bone> Bones { get; } = new();
         public List<MotClip> MotClips { get; } = new();
 
         protected override bool DoRead()
         {
+            Bones.Clear();
             MotClips.Clear();
             var handler = FileHandler;
             var header = Header;
@@ -852,6 +853,11 @@ namespace RszTool
             {
                 handler.Seek(header.boneHeaderOffsetStart);
                 BoneHeaders.Read(handler);
+            }
+
+            foreach (var boneHeader in BoneHeaders.Headers)
+            {
+                Bones.Add(new(boneHeader));
             }
 
             if (header.boneClipCount > 0)

@@ -710,7 +710,7 @@ namespace RszTool
         }
 
         /// <summary>
-        /// 获取start..end之间的数据，长度在2-128
+        /// 获取start..end之间的数据，长度在2-256
         /// 涉及unsafe操作，注意内存范围和对齐
         /// </summary>
         public static Span<byte> GetRangeSpan<TS, TE>(ref TS start, ref TE end) where TS : struct where TE : struct
@@ -720,16 +720,16 @@ namespace RszTool
                 var startPtr = (nint)Unsafe.AsPointer(ref start);
                 var endPtr = (nint)Unsafe.AsPointer(ref end) + Unsafe.SizeOf<TE>();
                 int size = (int)(endPtr - startPtr);
-                if (size < 2 || size > 128)
+                if (size < 2 || size > 256)
                 {
-                    throw new InvalidDataException($"Size {size} is out of range [2, 128]");
+                    throw new InvalidDataException($"Size {size} is out of range [2, 256]");
                 }
                 return new Span<byte>((void*)startPtr, size);
             }
         }
 
         /// <summary>
-        /// 读取数据到start..end，长度在2-128
+        /// 读取数据到start..end，长度在2-256
         /// 涉及unsafe操作，注意内存范围和对齐
         /// </summary>
         public int ReadRange<TS, TE>(ref TS start, ref TE end) where TS : struct where TE : struct
@@ -738,7 +738,7 @@ namespace RszTool
         }
 
         /// <summary>
-        /// 写入start..end范围内的数据，长度在2-128
+        /// 写入start..end范围内的数据，长度在2-256
         /// 涉及unsafe操作，注意内存范围和对齐
         /// </summary>
         public bool WriteRange<TS, TE>(ref TS start, ref TE end) where TS : struct where TE : struct
@@ -763,6 +763,7 @@ namespace RszTool
         /// <summary>读取数组</summary>
         public T[] ReadArray<T>(int length) where T : struct
         {
+            if (length == 0) return [];
             T[] array = new T[length];
             Stream.Read(MemoryMarshal.AsBytes((Span<T>)array));
             return array;
@@ -772,6 +773,14 @@ namespace RszTool
         public bool ReadArray<T>(T[] array) where T : struct
         {
             Stream.Read(MemoryMarshal.AsBytes((Span<T>)array));
+            return true;
+        }
+
+        /// <summary>读取数组</summary>
+        public bool ReadArray<T>(T[,] array) where T : struct
+        {
+            int length = array.GetLength(0) * array.GetLength(1);
+            Stream.Read(MemoryMarshal.AsBytes(MemoryUtils.CreateSpan(ref array[0, 0], length)));
             return true;
         }
 

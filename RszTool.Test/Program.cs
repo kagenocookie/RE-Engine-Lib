@@ -16,7 +16,8 @@ namespace RszTool.Test
             // TestScnExtractGameObjectToPfb();
             // TestParseRcolRead();
             // TestParseMotbank();
-            TestParseMotlist();
+            // TestParseMotlist();
+            TestParseMotfsn2();
             // TestParseMsg();
             // TestImportGameObject();
             // TestParseMdf();
@@ -215,6 +216,14 @@ namespace RszTool.Test
             RszFileOption option = new(GameName.re4);
             MotlistFile motlistFile = new(option, new FileHandler(path));
             motlistFile.Read();
+        }
+
+        static void TestParseMotfsn2()
+        {
+            string path = "test/ch0CommonUpperBodyAdd.motfsm2.43";
+            RszFileOption option = new(GameName.re4);
+            Motfsm2File file = new(option, new FileHandler(path));
+            file.Read();
         }
 
         static void TestParseMsg()

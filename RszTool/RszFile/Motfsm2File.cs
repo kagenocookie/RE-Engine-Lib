@@ -1,24 +1,24 @@
 using RszTool.Common;
-using RszTool.Mfs2;
+using RszTool.Motfsm2;
 
-namespace RszTool.Mfs2
+namespace RszTool.Motfsm2
 {
     public struct HeaderStruct
     {
         public uint version;
         public uint magic;
         public ulong skip;
-        public long treeData;
+        public long treeDataOffset;
         public long transitionMapOffset;
         public long transitionDataOffset;
         public long treeInfoPtr;
-        public uint transitionMapCount;
-        public uint transitionDataCount;
-        public uint startTransitionDataIndex;
+        public int transitionMapCount;
+        public int transitionDataCount;
+        public int startTransitionDataIndex;
     }
 
 
-    public struct TransitionMapInfo
+    public struct TransitionMap
     {
         public uint transitionId;
         public int dataIndex;
@@ -180,13 +180,14 @@ namespace RszTool.Mfs2
 
 namespace RszTool
 {
-    public class Mfs2File(RszFileOption option, FileHandler fileHandler) : BaseRszFile(option, fileHandler)
+    public class Motfsm2File(RszFileOption option, FileHandler fileHandler) : BaseRszFile(option, fileHandler)
     {
         public const uint Magic = 0x3273666d;
         public const string Extension2 = ".motfsm2";
 
         public StructModel<HeaderStruct> Header { get; } = new();
         private int treeDataSize;
+        public BhvtFile? BhvtFile { get; private set; }
 
         protected override bool DoRead()
         {
@@ -198,10 +199,23 @@ namespace RszTool
                 throw new InvalidDataException($"{handler.FilePath} Not a motfsm2 file");
             }
 
-            handler.Seek(header.treeInfoPtr);
-            handler.Read(ref treeDataSize);
+            handler.Seek(header.transitionMapOffset);
+            TransitionMap[] transitionMaps = handler.ReadArray<TransitionMap>(header.transitionMapCount);
 
-            throw new NotImplementedException();
+            handler.Seek(header.transitionDataOffset);
+            List<TransitionData> transitionDatas = new();
+            for (int i = 0; i < header.transitionDataCount; i++)
+            {
+                TransitionData transitionData = new(Option.Version);
+                transitionData.Read(handler);
+                transitionDatas.Add(transitionData);
+            }
+
+            handler.Read(header.treeInfoPtr, ref treeDataSize);
+            BhvtFile ??= new(Option, handler.WithOffset(header.treeDataOffset));
+            BhvtFile.Read();
+
+            return true;
         }
 
         protected override bool DoWrite()

@@ -546,6 +546,7 @@ namespace RszTool
 
         public int NodeCount;
         public List<BHVTNode> Nodes { get; } = new();
+        public UVarFile? Variable { get; set; }
         public List<UVarFile> ReferenceTrees { get; } = new();
 
         protected override bool DoRead()
@@ -580,6 +581,14 @@ namespace RszTool
             StaticTransitionEventRsz = ReadRsz(header.staticTransitionEventOffset);
             StaticExpressionTreeConditionsRsz = ReadRsz(header.staticExpressionTreeConditionsOffset);
 
+            // mNamePool
+            handler.Seek(header.stringOffset);
+            List<string> mNamePool = ReadStringPool();
+
+            handler.Seek(header.variableOffset);
+            Variable ??= new(Option, handler) { Embedded = true };
+            Variable.Read();
+
             handler.Seek(header.baseVariableOffset);
             int mReferenceTreeCount = handler.ReadInt();
             if (mReferenceTreeCount > 0)
@@ -594,6 +603,25 @@ namespace RszTool
             }
 
             return true;
+        }
+
+        private List<string> ReadStringPool()
+        {
+            var handler = FileHandler;
+            List<int> offsets = new();
+            List<string> stringPool = new();
+            int poolSize = handler.ReadInt();
+            long start = handler.Tell();
+            long end = start + poolSize * 2;
+            long current;
+            while ((current = handler.Tell()) < end)
+            {
+                offsets.Add((int)(current - start) / 2);
+                string text = handler.ReadWString(jumpBack: false);
+                stringPool.Add(text);
+                if (text.Length == 0) break;
+            }
+            return stringPool;
         }
 
         protected override bool DoWrite()

@@ -18,7 +18,7 @@ namespace RszTool.Test
             // TestParseMotbank();
             // TestParseMotlist();
             TestParseMotfsn2();
-            // TestParseUVars();
+            // TestParseUVarFile();
             // TestParseMsg();
             // TestImportGameObject();
             // TestParseMdf();

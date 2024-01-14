@@ -1,43 +1,35 @@
 using System.Runtime.InteropServices;
-using RszTool.Common;
 using RszTool.UVar;
 
 namespace RszTool.UVar
 {
-    public class HashProperty : BaseModel
+    public class UvarValue : BaseModel
     {
         public uint nameHash;
-        public uint ukn;
-        private long test;
+        public uint type;
         public long hashOffset;
         public Guid guid;
-        public float floatValue;
         public uint uintValue;
 
 
         protected override bool DoRead(FileHandler handler)
         {
             handler.Read(ref nameHash);
-            handler.Read(ref ukn);
-            handler.Read(ref test);
-            if (test > 0 && test < handler.FileSize() && test > handler.Tell())
+            handler.Read(ref type);
+            switch (type)
             {
-                handler.Read(ref hashOffset);
-                handler.Seek(hashOffset);
-                handler.Read(ref guid);
-                return true;
+                case 6:  // CallbackNode
+                case 7:  // LogicNode
+                    handler.Read(ref uintValue);
+                    handler.Skip(4);
+                    break;
+                case 20: // VariableReferenceNode
+                    handler.Read(ref hashOffset);
+                    handler.Read(hashOffset, ref guid);
+                    break;
+                default:
+                    break;
             }
-            else
-            {
-                Span<byte> bytes = stackalloc byte[4];
-                handler.ReadSpan(bytes);
-                if (!Utils.DetectFloat(bytes, out floatValue))
-                {
-                    uintValue = MemoryUtils.AsRef<uint>(bytes);
-                }
-            }
-
-            handler.Seek(Start + 16);
             return true;
         }
 
@@ -54,7 +46,7 @@ namespace RszTool.UVar
         public long offset1, offset2;
         public string? Name { get; set; }
 
-        HashProperty? HashProperty { get; set; }
+        UvarValue? HashProperty { get; set; }
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -91,21 +83,27 @@ namespace RszTool.UVar
     }
 
 
-    public class NODE : BaseModel
+    public class UvarNode : BaseModel
     {
         public long nameOffset;
         public long dataOffset;
         public string Name { get; set; } = string.Empty;
+        public short index;
+        public short valueCount;
+        public short uknCount1;
+        public short uknCount2;
 
-        HashProperty HashProperty { get; set; } = new();
+        List<UvarValue> Values { get; } = new();
 
         protected override bool DoRead(FileHandler handler)
         {
             handler.Read(ref nameOffset);
             handler.Read(ref dataOffset);
             Name = handler.ReadAsciiString(nameOffset);
-            HashProperty.Read(handler, dataOffset);
-            handler.Skip(16);
+            handler.Skip(8);
+            handler.ReadRange(ref index, ref uknCount2);
+            using var jumpBack = handler.SeekJumpBack(dataOffset);
+            Values.Read(handler, valueCount);
             return true;
         }
 
@@ -122,7 +120,7 @@ namespace RszTool.UVar
         public short countB;
         public short countC;
         public uint D;
-        public List<NODE> Nodes { get; set; } = new();
+        public List<UvarNode> Nodes { get; set; } = new();
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -131,11 +129,12 @@ namespace RszTool.UVar
             handler.Read(ref countC);
             handler.Read(ref D);
 
-            for (int i = 0; i < countA; i++)
+            // 在bhvt内嵌的uvar文件中，似乎对不上
+            /* for (int i = 0; i < countA; i++)
             {
                 if (handler.ReadUInt64(handler.Tell()) > 0)
                 {
-                    var node = new NODE();
+                    var node = new UvarNode();
                     node.Read(handler);
                     Nodes.Add(node);
                 }
@@ -146,7 +145,7 @@ namespace RszTool.UVar
                 {
                     handler.Skip(16);
                 }
-            }
+            } */
             return true;
         }
 
@@ -157,12 +156,12 @@ namespace RszTool.UVar
     }
 
 
-    public class PROP : BaseModel
+    public class UvarProp : BaseModel
     {
         public long nodesOffset;
         public long offset2;
-        public short propCount, B, C;
-        public List<NODE> Nodes { get; set; } = new();
+        public short propCount, ukn00, ukn01;
+        public List<UvarNode> Nodes { get; set; } = new();
         public OFFSET2_DATA? Offset2Data { get; set; }
 
         protected override bool DoRead(FileHandler handler)
@@ -170,8 +169,8 @@ namespace RszTool.UVar
             handler.Read(ref nodesOffset);
             handler.Read(ref offset2);
             handler.Read(ref propCount);
-            handler.Read(ref B);
-            handler.Read(ref C);
+            handler.Read(ref ukn00);
+            handler.Read(ref ukn01);
             if (propCount > 0)
             {
                 if (nodesOffset > 0)
@@ -181,7 +180,7 @@ namespace RszTool.UVar
                     {
                         for (int i = 0; i < propCount; i++)
                         {
-                            var node = new NODE();
+                            var node = new UvarNode();
                             node.Read(handler);
                             Nodes.Add(node);
                         }
@@ -189,7 +188,7 @@ namespace RszTool.UVar
                 }
                 if (offset2 > 0)
                 {
-                    handler.Seek(offset2);
+                    using var jumpBack = handler.SeekJumpBack(offset2);
                     if (handler.ReadInt64(handler.Tell()) < handler.FileSize())
                     {
                         Offset2Data ??= new();
@@ -228,7 +227,7 @@ namespace RszTool.UVar
         public long nameOffset;
         public string Name { get; set; } = string.Empty;
         public long valueOffset;
-        public long uknOffset;
+        public long propOffset;
         private uint type_numBits;
         public uint nameHash;
 
@@ -237,7 +236,7 @@ namespace RszTool.UVar
 
         public VariableValue Value;
 
-        public PROP? Prop { get; private set; }
+        public UvarProp? Prop { get; private set; }
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -245,7 +244,7 @@ namespace RszTool.UVar
             handler.Read(ref nameOffset);
             Name = handler.ReadWString(nameOffset);
             handler.Read(ref valueOffset);
-            handler.Read(ref uknOffset);
+            handler.Read(ref propOffset);
             handler.Read(ref type_numBits);
             handler.Read(ref nameHash);
 
@@ -253,10 +252,10 @@ namespace RszTool.UVar
             {
                 handler.Read(valueOffset, ref Value);
             }
-            if (uknOffset > 0)
+            if (propOffset > 0)
             {
                 Prop ??= new();
-                Prop.Read(handler, uknOffset);
+                Prop.Read(handler, propOffset);
             }
             return true;
         }

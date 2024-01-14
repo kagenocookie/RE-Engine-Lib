@@ -8,6 +8,7 @@ namespace RszTool
         public FileHandler FileHandler { get; set; }
         public RszParser RszParser => Option.RszParser;
         public virtual RSZFile? GetRSZ() => null;
+        public bool Embedded { get; set; }
         public bool Changed { get; protected set; }
         public bool StructChanged { get; protected set; }
 
@@ -42,7 +43,7 @@ namespace RszTool
         /// <returns></returns>
         public bool Read()
         {
-            FileHandler.Seek(0);
+            if (!Embedded) FileHandler.Seek(0);
             bool result = DoRead();
             Size = FileHandler.Tell();
             // Console.WriteLine($"{this} Start: {Start}, Read size: {Size}");
@@ -51,7 +52,7 @@ namespace RszTool
 
         public bool Write()
         {
-            FileHandler.Seek(0);
+            if (!Embedded) FileHandler.Seek(0);
             bool result = DoWrite();
             Size = FileHandler.Tell();
             // Console.WriteLine($"{this} Start: {Start}, Write size: {Size}");

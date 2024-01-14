@@ -18,6 +18,7 @@ namespace RszTool.Test
             // TestParseMotbank();
             // TestParseMotlist();
             TestParseMotfsn2();
+            // TestParseUVars();
             // TestParseMsg();
             // TestImportGameObject();
             // TestParseMdf();
@@ -223,6 +224,14 @@ namespace RszTool.Test
             string path = "test/ch0CommonUpperBodyAdd.motfsm2.43";
             RszFileOption option = new(GameName.re4);
             Motfsm2File file = new(option, new FileHandler(path));
+            file.Read();
+        }
+
+        static void TestParseUVarFile()
+        {
+            string path = "test/GlobalVariables.uvar.3";
+            RszFileOption option = new(GameName.re4);
+            UVarFile file = new(option, new FileHandler(path));
             file.Read();
         }
 

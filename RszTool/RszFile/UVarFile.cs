@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using RszTool.Common;
 using RszTool.UVar;
 
@@ -210,17 +211,31 @@ namespace RszTool.UVar
     }
 
 
+    [StructLayout(LayoutKind.Explicit, Size = 4)]
+    public struct VariableValue
+    {
+        [FieldOffset(0)]
+        public int IntValue;
+
+        [FieldOffset(0)]
+        public float FloatValue;
+    }
+
+
     public class Variable : BaseModel
     {
         public Guid guid;
         public long nameOffset;
         public string Name { get; set; } = string.Empty;
-        public long floatOffset, uknOffset;
+        public long valueOffset;
+        public long uknOffset;
         private uint type_numBits;
         public uint nameHash;
 
         public uint Type => type_numBits & 0x00FFFFFF;
         public uint NumBits => (type_numBits >> 24) & 0xFF;
+
+        public VariableValue Value;
 
         public PROP? Prop { get; private set; }
 
@@ -229,15 +244,14 @@ namespace RszTool.UVar
             handler.Read(ref guid);
             handler.Read(ref nameOffset);
             Name = handler.ReadWString(nameOffset);
-            handler.Read(ref floatOffset);
+            handler.Read(ref valueOffset);
             handler.Read(ref uknOffset);
             handler.Read(ref type_numBits);
             handler.Read(ref nameHash);
 
-            if (floatOffset > 0)
+            if (valueOffset > 0)
             {
-                handler.Seek(floatOffset);
-                // TODO value
+                handler.Read(valueOffset, ref Value);
             }
             if (uknOffset > 0)
             {
@@ -287,6 +301,15 @@ namespace RszTool.UVar
             return ReadWrite(new FileHandlerWrite(handler));
         }
     }
+
+
+    public class HashData
+    {
+        public Guid[]? Guids { get; set; }
+        public uint[]? GuidMap { get; set; }
+        public uint[]? NameHashes { get; set; }
+        public uint[]? NameHashMap { get; set; }
+    }
 }
 
 
@@ -301,6 +324,7 @@ namespace RszTool
         public List<Variable> Variables { get; set; } = new();
         public List<string> Strings { get; set; } = new();
         public List<UVarFile> EmbeddedUVARs { get; set; } = new();
+        public HashData HashData { get; } = new();
 
         protected override bool DoRead()
         {
@@ -330,8 +354,7 @@ namespace RszTool
             if (header.embedCount > 0 && header.embedsInfoOffset > 0)
             {
                 handler.Seek(header.embedsInfoOffset);
-                long[] embedOffsets = new long[header.embedCount];
-                handler.ReadArray(embedOffsets);
+                long[] embedOffsets = handler.ReadArray<long>(header.embedCount);
                 for (int i = 0; i < header.embedCount; i++)
                 {
                     UVarFile embedFile = new(Option, handler.WithOffset(embedOffsets[i]));
@@ -346,17 +369,13 @@ namespace RszTool
                 long[] hashDataOffsets = new long[4];
                 handler.ReadArray(hashDataOffsets);
                 handler.Seek(hashDataOffsets[0]);
-                Guid[] guids = new Guid[header.variableCount];
-                handler.ReadArray(guids);
+                HashData.Guids = handler.ReadArray<Guid>(header.variableCount);
                 handler.Seek(hashDataOffsets[1]);
-                uint[] guidMap = new uint[header.variableCount];
-                handler.ReadArray(guidMap);
+                HashData.GuidMap = handler.ReadArray<uint>(header.variableCount);
                 handler.Seek(hashDataOffsets[2]);
-                uint[] nameHashes = new uint[header.variableCount];
-                handler.ReadArray(nameHashes);
+                HashData.NameHashes = handler.ReadArray<uint>(header.variableCount);
                 handler.Seek(hashDataOffsets[3]);
-                uint[] nameHashMap = new uint[header.variableCount];
-                handler.ReadArray(nameHashMap);
+                HashData.NameHashMap = handler.ReadArray<uint>(header.variableCount);
             }
 
             return true;

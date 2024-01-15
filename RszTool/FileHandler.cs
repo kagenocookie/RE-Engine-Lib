@@ -13,6 +13,7 @@ namespace RszTool
         public long Offset { get; set; }
         public bool IsMemory => Stream is MemoryStream;
         private StringTable? StringTable;
+        private StringTable? AsciiStringTable;
         private OffsetContentTable? OffsetContentTable;
         private Sunday? searcher = new();
 
@@ -955,6 +956,12 @@ namespace RszTool
             text = ReadWString(offset);
         }
 
+        public void WriteOffsetAsciiString(string text)
+        {
+            AsciiStringTableAdd(text);
+            WriteInt64(0);
+        }
+
         public void WriteOffsetWString(string text)
         {
             StringTableAdd(text);
@@ -992,6 +999,39 @@ namespace RszTool
         public void StringTableFlushOffsets()
         {
             StringTable?.FlushOffsets(this);
+        }
+
+        public void AsciiStringTableAdd(string? text)
+        {
+            if (text != null)
+            {
+                AsciiStringTable ??= new();
+                AsciiStringTable.Add(text, Tell());
+            }
+        }
+
+        /// <summary>
+        /// 写入字符串表字符串和偏移
+        /// </summary>
+        public void AsciiStringTableFlush()
+        {
+            AsciiStringTable?.Flush(this);
+        }
+
+        /// <summary>
+        /// 写入字符串表的字符串
+        /// </summary>
+        public void AsciiStringTableWriteStrings()
+        {
+            AsciiStringTable?.WriteStrings(this);
+        }
+
+        /// <summary>
+        /// 写入字符串表的偏移，并清空数据
+        /// </summary>
+        public void AsciiStringTableFlushOffsets()
+        {
+            AsciiStringTable?.FlushOffsets(this);
         }
 
         public void OffsetContentTableAdd(Action<FileHandler> write)
@@ -1032,16 +1072,15 @@ namespace RszTool
         // 引用改字符串的偏移集合
         public HashSet<long> OffsetStart { get; } = new();
         public long TextStart { get; set; } = -1;
-        public bool IsAscii { get; set; }
 
         public StringTableItem(string text)
         {
             Text = text;
         }
 
-        public void Write(FileHandler handler)
+        public void Write(FileHandler handler, bool isAscii = false)
         {
-            if (IsAscii)
+            if (isAscii)
             {
                 handler.WriteAsciiString(Text);
             }
@@ -1060,7 +1099,7 @@ namespace RszTool
     {
         private List<StringTableItem> Items { get; } = new();
         private Dictionary<string, StringTableItem> StringMap { get; } = new();
-
+        public bool IsAscii { get; set; }
         public int Count => Items.Count;
 
         public void Clear()
@@ -1090,7 +1129,7 @@ namespace RszTool
                     handler.WriteInt64(offsetStart, item.TextStart);
                 }
                 handler.Seek(item.TextStart);
-                item.Write(handler);
+                item.Write(handler, IsAscii);
             }
             Clear();
         }
@@ -1101,7 +1140,7 @@ namespace RszTool
             foreach (var item in Items)
             {
                 item.TextStart = handler.Tell();
-                item.Write(handler);
+                item.Write(handler, IsAscii);
             }
         }
 

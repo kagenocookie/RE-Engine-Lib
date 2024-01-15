@@ -1,5 +1,6 @@
 using System.Numerics;
 using RszTool.Clip;
+using RszTool.Common;
 
 namespace RszTool.Clip
 {
@@ -179,6 +180,12 @@ namespace RszTool.Clip
         public object Value { get; set; } = null!;
 
         public PropertyType PropertyType { get; set; }
+        public WeakReference<ClipEntry> ClipFile { get; set; }
+
+        public Key(ClipEntry clipFile)
+        {
+            ClipFile = new(clipFile);
+        }
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -188,11 +195,20 @@ namespace RszTool.Clip
             handler.Read(ref instanceValue);
             handler.Read(ref reserved);
             handler.Read(ref reserved2);
+            handler.Seek(Start + ClipFile.GetTarget()!.KeySize);
+            return true;
+        }
+
+        public void ReadValue(FileHandler handler, Property property)
+        {
+            handler.Seek(Start + 16);
+            var clipFile = ClipFile.GetTarget()!;
+            PropertyType = property.Info.DataType;
+            // Value
             if (PropertyType == PropertyType.Unknown)
             {
                 Value = handler.Read<uint>();
             }
-            // Value
             else switch (PropertyType)
             {
                 case PropertyType.Bool:
@@ -232,8 +248,11 @@ namespace RszTool.Clip
                 case PropertyType.Enum:
                     {
                         long offset = handler.Read<long>();
-                        // clipHeader.namesOffsetExtra[1] + start + offset
-                        // Value = handler.ReadAsciiString(offset);
+                        if (clipFile.Header.namesOffsetExtra == null)
+                        {
+                            throw new Exception("namesOffsetExtra is null");
+                        }
+                        Value = handler.ReadAsciiString(clipFile.Header.namesOffsetExtra[1] + offset);
                     }
                     break;
                 case PropertyType.Str16:
@@ -241,111 +260,17 @@ namespace RszTool.Clip
                 case PropertyType.Guid:
                     {
                         long offset = handler.Read<long>();
+                        if (clipFile.Header.namesOffsetExtra == null)
+                        {
+                            throw new Exception("namesOffsetExtra is null");
+                        }
                         // clipHeader.unicodeNamesOffs + start + offset*2
-                        // Value = handler.ReadWString(offset);
+                        Value = handler.ReadWString(clipFile.Header.unicodeNamesOffset + offset);
                     }
                     break;
-                case PropertyType.Quaternion:
-                    Value = handler.Read<Quaternion>();
-                    break;
-                case PropertyType.Array:
-                case PropertyType.NativeArray:
-                case PropertyType.Class:
-                case PropertyType.NativeClass:
-                case PropertyType.Struct:
-                    throw new Exception($"Unsupported PropertyType: {PropertyType}");
-                case PropertyType.Vec2:
-                case PropertyType.Float2:
-                    Value = handler.Read<Vector2>();
-                    break;
-                case PropertyType.Vec3:
-                case PropertyType.Float3:
-                    Value = handler.Read<Vector3>();
-                    break;
-                case PropertyType.Vec4:
-                case PropertyType.Float4:
-                    Value = handler.Read<Vector4>();
-                    break;
-                case PropertyType.Color:
-                    Value = handler.Read<via.Color>();
-                    break;
-                case PropertyType.Range:
-                    Value = handler.Read<via.Range>();
-                    break;
-                case PropertyType.RangeI:
-                    Value = handler.Read<via.RangeI>();
-                    break;
-                case PropertyType.Point:
-                    Value = handler.Read<via.Point>();
-                    break;
-                case PropertyType.Size:
-                    Value = handler.Read<via.Size>();
-                    break;
-                case PropertyType.Action:
-                    throw new Exception($"Unsupported PropertyType: {PropertyType}");
-                case PropertyType.Uint2:
-                    Value = handler.Read<via.Uint2>();
-                    break;
-                case PropertyType.Uint3:
-                    Value = handler.Read<via.Uint3>();
-                    break;
-                case PropertyType.Uint4:
-                    Value = handler.Read<via.Uint4>();
-                    break;
-                case PropertyType.Int2:
-                    Value = handler.Read<via.Int2>();
-                    break;
-                case PropertyType.Int3:
-                    Value = handler.Read<via.Int3>();
-                    break;
-                case PropertyType.Int4:
-                    Value = handler.Read<via.Int4>();
-                    break;
-                case PropertyType.OBB:
-                    Value = handler.Read<via.OBB>();
-                    break;
-                case PropertyType.Mat4:
-                    Value = handler.Read<via.mat4>();
-                    break;
-                case PropertyType.Rect:
-                    Value = handler.Read<via.Rect>();
-                    break;
-                case PropertyType.PathPoint3D:
-                    throw new Exception($"Unsupported PropertyType: {PropertyType}");
-                case PropertyType.Plane:
-                    Value = handler.Read<via.Plane>();
-                    break;
-                case PropertyType.Sphere:
-                    Value = handler.Read<via.Sphere>();
-                    break;
-                case PropertyType.Capsule:
-                    Value = handler.Read<via.Capsule>();
-                    break;
-                case PropertyType.AABB:
-                    Value = handler.Read<via.AABB>();
-                    break;
-                case PropertyType.Nullable:
-                    throw new Exception($"Unsupported PropertyType: {PropertyType}");
-                case PropertyType.Sfix:
-                    Value = handler.Read<via.sfix>();
-                    break;
-                case PropertyType.Sfix2:
-                    Value = handler.Read<via.Sfix2>();
-                    break;
-                case PropertyType.Sfix3:
-                    Value = handler.Read<via.Sfix3>();
-                    break;
-                case PropertyType.Sfix4:
-                    Value = handler.Read<via.Sfix4>();
-                    break;
-                case PropertyType.AnimationCurve:
-                case PropertyType.KeyFrame:
-                case PropertyType.GameObjectRef:
-                    throw new Exception($"Unsupported PropertyType: {PropertyType}");
                 default:
-                    throw new Exception($"Unknown PropertyType: {PropertyType}");
+                    throw new Exception($"Unsupported PropertyType: {PropertyType}");
             }
-            return true;
         }
 
         protected override bool DoWrite(FileHandler handler)
@@ -738,8 +663,7 @@ namespace RszTool.Clip
                 handler.Seek(clipHeader.keysOffset);
                 for (int i = 0; i < clipHeader.numKeys; i++)
                 {
-                    Key key = new();
-                    
+                    Key key = new(this);
                     key.Read(handler);
                     ClipKeys.Add(key);
                 }
@@ -762,7 +686,9 @@ namespace RszTool.Clip
                     property.Keys ??= new();
                     for (long i = property.Info.ChildStartIndex; i < property.Info.ChildMembershipCount; i++)
                     {
-                        property.Keys.Add(ClipKeys[(int)i]);
+                        Key key = ClipKeys[(int)i];
+                        property.Keys.Add(key);
+                        key.ReadValue(handler, property);
                     }
                 }
             }

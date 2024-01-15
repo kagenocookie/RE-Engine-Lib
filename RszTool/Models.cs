@@ -146,6 +146,7 @@ namespace RszTool
         {
             handler.CheckRange();
             Start = handler.Tell();
+            // if (handler.Offset == 0) Console.WriteLine($"Read {this} at {Start}");
             bool result = DoRead(handler);
             Size = handler.Tell() - Start;
             return result;
@@ -154,6 +155,7 @@ namespace RszTool
         public bool Write(FileHandler handler)
         {
             Start = handler.Tell();
+            // if (handler.Offset == 0) Console.WriteLine($"Write {this} at {Start}");
             bool result = DoWrite(handler);
             Size = handler.Tell() - Start;
             return result;

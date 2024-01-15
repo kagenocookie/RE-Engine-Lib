@@ -538,6 +538,12 @@ namespace RszTool.Bhvt
             return true;
         }
 
+        public void ReadName(FileHandler handler, long namePoolStart)
+        {
+            // 前面4字节是pool长度
+            Name = handler.ReadWString(namePoolStart + 4 + nameOffset * 2);
+        }
+
         protected override bool DoWrite(FileHandler handler)
         {
             throw new NotImplementedException();
@@ -615,6 +621,7 @@ namespace RszTool
             {
                 BHVTNode node = new(header.Version);
                 if (!node.Read(handler)) return false;
+                node.ReadName(handler, header.stringOffset);
                 Nodes.Add(node);
             }
 
@@ -633,6 +640,11 @@ namespace RszTool
             // mNamePool
             handler.Seek(header.stringOffset);
             List<string> mNamePool = ReadStringPool();
+
+            // mPathNamePool
+            // handler.Seek(header.resourcePathsOffset);
+            // int numPaths = handler.ReadInt();
+            // List<string> mPathNamePool = ReadStringPool();
 
             handler.Seek(header.variableOffset);
             Variable ??= new(Option, handler) { Embedded = true };

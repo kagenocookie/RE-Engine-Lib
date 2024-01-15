@@ -152,6 +152,33 @@ namespace RszTool.Bhvt
     }
 
 
+    public abstract class TwoDimensionCountainer : BaseModel
+    {
+        public abstract int FieldCount { get; }
+        public int Count { get; set; }
+
+        protected override bool DoRead(FileHandler handler)
+        {
+            Count = handler.ReadInt();
+            if (Count <= 0) return true;
+            if (Count > 1024) throw new InvalidDataException($"{this}.{nameof(Count)} {Count} > 1024");
+            uint[,] data = new uint[FieldCount, Count];
+            handler.ReadArray(data);
+            return LoadData(data);
+        }
+
+        protected override bool DoWrite(FileHandler handler)
+        {
+            uint[,] data = DumpData();
+            handler.Write(Count);
+            return handler.WriteArray(data);
+        }
+
+        protected abstract bool LoadData(uint[,] data);
+        protected abstract uint[,] DumpData();
+    }
+
+
     public class NAction
     {
         public uint Action;
@@ -159,21 +186,15 @@ namespace RszTool.Bhvt
     }
 
 
-    public class NActions : BaseModel
+    public class NActions : TwoDimensionCountainer
     {
-        public const int FieldCount = 2;
-        public int actionCount;
+        public override int FieldCount => 2;
         public NAction[] Actions { get; set; } = [];
 
-        protected override bool DoRead(FileHandler handler)
+        protected override bool LoadData(uint[,] data)
         {
-            handler.Read(ref actionCount);
-            if (actionCount <= 0) return true;
-            if (actionCount > 1024) throw new InvalidDataException($"{nameof(actionCount)} {actionCount} > 1024");
-            uint[,] data = new uint[FieldCount, actionCount];
-            handler.ReadArray(data);
-            NAction[] actions = new NAction[actionCount];
-            for (int i = 0; i < actionCount; i++)
+            NAction[] actions = new NAction[Count];
+            for (int i = 0; i < Count; i++)
             {
                 actions[i] = new NAction
                 {
@@ -185,9 +206,16 @@ namespace RszTool.Bhvt
             return true;
         }
 
-        protected override bool DoWrite(FileHandler handler)
+        protected override uint[,] DumpData()
         {
-            throw new NotImplementedException();
+            Count = Actions.Length;
+            uint[,] data = new uint[FieldCount, Count];
+            for (int i = 0; i < Count; i++)
+            {
+                data[0, i] = Actions[i].Action;
+                data[1, i] = Actions[i].ActionEx;
+            }
+            return data;
         }
     }
 
@@ -200,21 +228,15 @@ namespace RszTool.Bhvt
     }
 
 
-    public class NChilds : BaseModel
+    public class NChilds : TwoDimensionCountainer
     {
-        public const int FieldCount = 3;
-        public int childCount;
+        public override int FieldCount => 3;
         public NChild[] Children { get; set; } = [];
 
-        protected override bool DoRead(FileHandler handler)
+        protected override bool LoadData(uint[,] data)
         {
-            handler.Read(ref childCount);
-            if (childCount <= 0) return true;
-            if (childCount > 1024) throw new InvalidDataException($"{nameof(childCount)} {childCount} > 1024");
-            uint[,] data = new uint[FieldCount, childCount];
-            handler.ReadArray(data);
-            NChild[] children = new NChild[childCount];
-            for (int i = 0; i < childCount; i++)
+            NChild[] children = new NChild[Count];
+            for (int i = 0; i < Count; i++)
             {
                 children[i] = new NChild
                 {
@@ -227,9 +249,18 @@ namespace RszTool.Bhvt
             return true;
         }
 
-        protected override bool DoWrite(FileHandler handler)
+        protected override uint[,] DumpData()
         {
-            throw new NotImplementedException();
+            Count = Children.Length;
+            uint[,] data = new uint[FieldCount, Count];
+            for (int i = 0; i < Count; i++)
+            {
+                var child = Children[i];
+                data[0, i] = child.ChildNode;
+                data[1, i] = child.ChildNodeEx;
+                data[2, i] = child.Conditions;
+            }
+            return data;
         }
     }
 
@@ -245,21 +276,15 @@ namespace RszTool.Bhvt
     }
 
 
-    public class NStates : BaseModel
+    public class NStates : TwoDimensionCountainer
     {
-        public const int FieldCount = 6;
-        public int stateCount;
+        public override int FieldCount => 6;
         public NState[] States { get; set; } = [];
 
-        protected override bool DoRead(FileHandler handler)
+        protected override bool LoadData(uint[,] data)
         {
-            handler.Read(ref stateCount);
-            if (stateCount <= 0) return true;
-            if (stateCount > 1024) throw new InvalidDataException($"{nameof(stateCount)} {stateCount} > 1024");
-            uint[,] data = new uint[FieldCount, stateCount];
-            handler.ReadArray(data);
-            NState[] states = new NState[stateCount];
-            for (int i = 0; i < stateCount; i++)
+            NState[] states = new NState[Count];
+            for (int i = 0; i < Count; i++)
             {
                 states[i] = new NState
                 {
@@ -275,9 +300,21 @@ namespace RszTool.Bhvt
             return true;
         }
 
-        protected override bool DoWrite(FileHandler handler)
+        protected override uint[,] DumpData()
         {
-            throw new NotImplementedException();
+            Count = States.Length;
+            uint[,] data = new uint[FieldCount, Count];
+            for (int i = 0; i < Count; i++)
+            {
+                var state = States[i];
+                data[0, i] = (uint)state.mStates;
+                data[1, i] = state.mTransitions;
+                data[2, i] = (uint)state.TransitionConditions;
+                data[3, i] = state.TransitionMaps;
+                data[4, i] = state.mTransitionAttributes;
+                data[5, i] = state.mStatesEx;
+            }
+            return data;
         }
     }
 
@@ -292,21 +329,15 @@ namespace RszTool.Bhvt
     }
 
 
-    public class NAllStates : BaseModel
+    public class NAllStates : TwoDimensionCountainer
     {
-        public const int FieldCount = 5;
-        public int stateCount;
+        public override int FieldCount => 5;
         public NAllState[] AllStates { get; set; } = [];
 
-        protected override bool DoRead(FileHandler handler)
+        protected override bool LoadData(uint[,] data)
         {
-            handler.Read(ref stateCount);
-            if (stateCount <= 0) return true;
-            if (stateCount > 1024) throw new InvalidDataException($"{nameof(stateCount)} {stateCount} > 1024");
-            uint[,] data = new uint[FieldCount, stateCount];
-            handler.ReadArray(data);
-            NAllState[] states = new NAllState[stateCount];
-            for (int i = 0; i < stateCount; i++)
+            NAllState[] states = new NAllState[Count];
+            for (int i = 0; i < Count; i++)
             {
                 states[i] = new NAllState
                 {
@@ -321,9 +352,20 @@ namespace RszTool.Bhvt
             return true;
         }
 
-        protected override bool DoWrite(FileHandler handler)
+        protected override uint[,] DumpData()
         {
-            throw new NotImplementedException();
+            Count = AllStates.Length;
+            uint[,] data = new uint[FieldCount, Count];
+            for (int i = 0; i < Count; i++)
+            {
+                var state = AllStates[i];
+                data[0, i] = state.mAllState;
+                data[1, i] = (uint)state.mAllTransition;
+                data[2, i] = state.mAllTransitionID;
+                data[3, i] = state.mAllStateEx;
+                data[4, i] = (uint)state.mAllTransitionAttributes;
+            }
+            return data;
         }
     }
 
@@ -337,14 +379,13 @@ namespace RszTool.Bhvt
     }
 
 
-    public class NTransitions(GameVersion version) : BaseModel
+    public class NTransitions(GameVersion version) : TwoDimensionCountainer
     {
-        public int transitionCount;
         public NTransition[] Transitions { get; set; } = [];
 
         public GameVersion Version { get; } = version;
 
-        public int FieldCount
+        public override int FieldCount
         {
             get
             {
@@ -360,19 +401,14 @@ namespace RszTool.Bhvt
             }
         }
 
-        protected override bool DoRead(FileHandler handler)
+        protected override bool LoadData(uint[,] data)
         {
-            handler.Read(ref transitionCount);
-            if (transitionCount <= 0) return true;
-            if (transitionCount > 1024) throw new InvalidDataException($"{nameof(transitionCount)} {transitionCount} > 1024");
-            uint[,] data = new uint[FieldCount, transitionCount];
-            handler.ReadArray(data);
-            NTransition[] transitions = new NTransition[transitionCount];
+            NTransition[] transitions = new NTransition[Count];
             if (Version == GameVersion.re8 || Version == GameVersion.mhrise)
             {
                 // TODO fakeStateList
             }
-            for (int i = 0; i < transitionCount; i++)
+            for (int i = 0; i < Count; i++)
             {
                 transitions[i] = new NTransition
                 {
@@ -389,9 +425,22 @@ namespace RszTool.Bhvt
             return true;
         }
 
-        protected override bool DoWrite(FileHandler handler)
+        protected override uint[,] DumpData()
         {
-            throw new NotImplementedException();
+            Count = Transitions.Length;
+            uint[,] data = new uint[FieldCount, Count];
+            for (int i = 0; i < Count; i++)
+            {
+                var transition = Transitions[i];
+                data[0, i] = transition.mStartTransitionEvent;
+                data[1, i] = transition.mStartState;
+                data[2, i] = (uint)transition.mStartStateTransition;
+                if (!(Version == GameVersion.re2 || Version == GameVersion.dmc5))
+                {
+                    data[3, i] = transition.mStartStateEx;
+                }
+            }
+            return data;
         }
     }
 

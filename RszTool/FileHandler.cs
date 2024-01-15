@@ -776,7 +776,7 @@ namespace RszTool
             return true;
         }
 
-        /// <summary>读取数组</summary>
+        /// <summary>读取二维数组</summary>
         public bool ReadArray<T>(T[,] array) where T : struct
         {
             int length = array.GetLength(0) * array.GetLength(1);
@@ -827,6 +827,14 @@ namespace RszTool
                 length = array.Length - start;
             }
             Stream.Write(MemoryMarshal.AsBytes(new ReadOnlySpan<T>(array, start, length)));
+            return true;
+        }
+
+        /// <summary>写入二维数组</summary>
+        public bool WriteArray<T>(T[,] array) where T : struct
+        {
+            int length = array.GetLength(0) * array.GetLength(1);
+            Stream.Write(MemoryMarshal.AsBytes(MemoryUtils.CreateSpan(ref array[0, 0], length)));
             return true;
         }
 

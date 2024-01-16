@@ -76,6 +76,7 @@ namespace RszTool.Motlist
         public ushort motNumber;
         public ushort Switch;
         uint[]? data;
+        public MotClip? MotClip { get; set; }
 
         public MotlistVersion Version { get; set; }
 
@@ -159,6 +160,19 @@ namespace RszTool
                 motIndex.Read(handler);
                 MotIndices.Add(motIndex);
             }
+
+            foreach (var motIndex in MotIndices)
+            {
+                if (motIndex.motClipOffset > 0)
+                {
+                    handler.Seek(motIndex.motClipOffset);
+                    long motClipOffset = handler.Read<long>();
+                    handler.Seek(motClipOffset);
+                    motIndex.MotClip = new();
+                    motIndex.MotClip.Read(handler);
+                }
+            }
+
             return true;
         }
 

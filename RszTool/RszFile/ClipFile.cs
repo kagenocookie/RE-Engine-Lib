@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using RszTool.Clip;
 using RszTool.Common;
 
@@ -199,15 +200,28 @@ namespace RszTool.Clip
             return true;
         }
 
+        protected override bool DoWrite(FileHandler handler)
+        {
+            handler.Write(frame);
+            handler.Write(rate);
+            handler.Write(interpolation);
+            handler.Write(instanceValue);
+            handler.Write(reserved);
+            handler.Write(reserved2);
+            // Value
+            WriteValue(handler);
+            handler.Seek(Start + ClipFile.GetTarget()!.KeySize);
+            return true;
+        }
+
         public void ReadValue(FileHandler handler, Property property)
         {
             handler.Seek(Start + 16);
             var clipFile = ClipFile.GetTarget()!;
             PropertyType = property.Info.DataType;
-            // Value
             if (PropertyType == PropertyType.Unknown)
             {
-                Value = handler.Read<uint>();
+                Value = handler.Read<long>();
             }
             else switch (PropertyType)
             {
@@ -273,21 +287,75 @@ namespace RszTool.Clip
             }
         }
 
-        protected override bool DoWrite(FileHandler handler)
+        public void WriteValue(FileHandler handler)
         {
-            handler.Write(frame);
-            handler.Write(rate);
-            handler.Write(interpolation);
-            handler.Write(instanceValue);
-            handler.Write(reserved);
-            handler.Write(reserved2);
-            // Value
-            return true;
+            handler.Seek(Start + 16);
+            if (PropertyType == PropertyType.Unknown)
+            {
+                handler.Write((long)Value);
+            }
+            else switch (PropertyType)
+            {
+                case PropertyType.Bool:
+                    handler.Write((bool)Value);
+                    break;
+                case PropertyType.S8:
+                    handler.Write((sbyte)Value);
+                    break;
+                case PropertyType.U8:
+                    handler.Write((byte)Value);
+                    break;
+                case PropertyType.S16:
+                    handler.Write((short)Value);
+                    break;
+                case PropertyType.U16:
+                    handler.Write((ushort)Value);
+                    break;
+                case PropertyType.S32:
+                    handler.Write((int)Value);
+                    break;
+                case PropertyType.U32:
+                    handler.Write((uint)Value);
+                    break;
+                case PropertyType.S64:
+                    handler.Write((long)Value);
+                    break;
+                case PropertyType.U64:
+                    handler.Write((ulong)Value);
+                    break;
+                case PropertyType.F32:
+                    handler.Write((float)Value);
+                    break;
+                case PropertyType.F64:
+                    handler.Write((double)Value);
+                    break;
+                case PropertyType.Str8:
+                case PropertyType.Enum:
+                    {
+                        string text = (string)Value;
+                        var stringItem = handler.AsciiStringTableAdd(text, false);
+                        long offset = stringItem!.TableOffset;
+                        handler.Write(offset);
+                    }
+                    break;
+                case PropertyType.Str16:
+                case PropertyType.Asset:
+                case PropertyType.Guid:
+                    {
+                        string text = (string)Value;
+                        var stringItem = handler.StringTableAdd(text, false);
+                        long offset = stringItem!.TableOffset;
+                        handler.Write(offset);
+                    }
+                    break;
+                default:
+                    throw new Exception($"Unsupported PropertyType: {PropertyType}");
+            }
         }
     }
 
 
-    public class PropertyInfo : BaseModel
+    public class PropertyInfo : ReadWriteModel
     {
         public ClipVersion Version { get; set; }
 
@@ -295,8 +363,8 @@ namespace RszTool.Clip
         private int uknRE7_1;
         public float startFrame;  // Start
         public float endFrame;  // End
-        private uint U32_1;
-        private ulong U64_1;
+        public uint nameHashRe7;
+        public ulong nameCombineHash;
 
         public long nameOffset;
         public long dataOffset;
@@ -317,6 +385,7 @@ namespace RszTool.Clip
         public ulong uknRE7_3;
         public ulong uknRE7_4;
         public long nameOffset2;
+        public string FunctionName { get; set; } = string.Empty;
 
 
         public PropertyInfo(ClipVersion version)
@@ -324,70 +393,70 @@ namespace RszTool.Clip
             Version = version;
         }
 
-        protected override bool DoRead(FileHandler handler)
+        protected override bool ReadWrite(IFileHandlerAction action)
         {
-            if (Version < ClipVersion.RE8) handler.Read(ref pad);
-            if (Version == ClipVersion.RE7) handler.Read(ref uknRE7_1);
-            handler.Read(ref startFrame);
-            handler.Read(ref endFrame);
+            if (Version < ClipVersion.RE8) action.Do(ref pad);
+            if (Version == ClipVersion.RE7) action.Do(ref uknRE7_1);
+            action.Do(ref startFrame);
+            action.Do(ref endFrame);
             if (Version == ClipVersion.RE7)
-                handler.Read(ref U32_1);
+                action.Do(ref nameHashRe7);
             else
-                handler.Read(ref U64_1);
+                action.Do(ref nameCombineHash);
             if (Version >= ClipVersion.RE8)
             {
-                handler.Read(ref nameOffset);
-                handler.Read(ref dataOffset);
-                handler.Read(ref ChildStartIndex);
-                handler.Read(ref ChildMembershipCount);
-                handler.Read(ref arrayIndex);
+                action.Do(ref nameOffset);
+                action.Do(ref dataOffset);
+                action.Do(ref ChildStartIndex);
+                action.Do(ref ChildMembershipCount);
+                action.Do(ref arrayIndex);
                 if (Version > ClipVersion.RE8)
-                    speedPointNum = handler.ReadByte();
+                    action.Do(ref Unsafe.As<short, byte>(ref speedPointNum));
                 else
-                    handler.Read(ref speedPointNum);
-                handler.Read(ref DataType);
+                    action.Do(ref speedPointNum);
+                action.Do(ref DataType);
                 if (Version > ClipVersion.RE8)
-                    handler.Read(ref uknByte00);
-                handler.Read(ref uknByte);
-                handler.Read(ref lastKeyOffset);
+                    action.Do(ref uknByte00);
+                action.Do(ref uknByte);
+                action.Do(ref lastKeyOffset);
                 if (Version != ClipVersion.RE4)
                 {
-                    handler.Read(ref speedPointOffset);
-                    handler.Read(ref clipPropertyOffset);
+                    action.Do(ref speedPointOffset);
+                    action.Do(ref clipPropertyOffset);
                 }
             }
             else
             {
-                handler.Read(ref DataType);
-                handler.Read(ref uknCount);
-                handler.Skip(2);
+                action.Do(ref DataType);
+                action.Do(ref uknCount);
+                action.Skip(2);
                 if (Version == ClipVersion.RE3)
-                    handler.Read(ref RE3hash);
+                    action.Do(ref RE3hash);
                 else
-                    handler.Skip(8);
+                    action.Skip(8);
                 if (Version == ClipVersion.RE7)
                 {
-                    handler.Skip(8);
-                    handler.Read(ref uknRE7_2);
+                    action.Skip(8);
+                    action.Do(ref uknRE7_2);
                 }
-                handler.Read(ref nameOffset);
-                handler.Read(ref nameOffset2);  // why?
+                action.Do(ref nameOffset);
+                action.Do(ref nameOffset2);  // why?
                 if (Version == ClipVersion.RE7)
                 {
-                    handler.Read(ref uknRE7_3);
-                    handler.Skip(8);
+                    action.Do(ref uknRE7_3);
+                    action.Skip(8);
                 }
-                handler.Skip(8);
+                action.Skip(8);
                 if (Version == ClipVersion.RE7)
                 {
-                    handler.Skip(16);
+                    action.Skip(16);
                 }
-                handler.Read(ref ChildStartIndex);
-                handler.Read(ref ChildMembershipCount);
+                action.Do(ref ChildStartIndex);
+                action.Do(ref ChildMembershipCount);
                 if (Version == ClipVersion.RE7)
                 {
-                    handler.Skip(8);
-                    handler.Read(ref uknRE7_4);
+                    action.Skip(8);
+                    action.Do(ref uknRE7_4);
                 }
             }
             return true;
@@ -395,7 +464,15 @@ namespace RszTool.Clip
 
         protected override bool DoWrite(FileHandler handler)
         {
-            throw new NotImplementedException();
+            if (Version == ClipVersion.RE7)
+            {
+                nameHashRe7 = MurMur3HashUtils.GetHash(FunctionName);
+            }
+            else
+            {
+                nameCombineHash = MurMur3HashUtils.GetCombineHash(FunctionName);
+            }
+            return base.DoWrite(handler);
         }
     }
 
@@ -405,7 +482,6 @@ namespace RszTool.Clip
         public PropertyInfo Info { get; }
         public List<Property>? ChildProperties { get; set; }
         public List<Key>? Keys { get; set; }
-        public string FunctionName { get; set; } = string.Empty;
 
         public Property(ClipVersion version)
         {
@@ -446,7 +522,7 @@ namespace RszTool.Clip
     }
 
 
-    public class CTRACKS : BaseModel
+    public class CTrack : ReadWriteModel
     {
         public int nodeCount;
         public int propCount;
@@ -457,51 +533,79 @@ namespace RszTool.Clip
 
         public byte nodeType;
 
-        public ulong hash;
+        public ulong nameHash;
         public long nameOffset;
         public long nameOffset2;
         public long firstPropIdx;
 
         public ClipVersion Version { get; set; }
+        public string Name { get; set; } = string.Empty;
 
-        public CTRACKS(ClipVersion version)
+        public CTrack(ClipVersion version)
         {
             Version = version;
         }
 
-        protected override bool DoRead(FileHandler handler)
+        protected override bool ReadWrite(IFileHandlerAction action)
         {
             if (Version >= ClipVersion.RE8)
             {
-                nodeCount = handler.ReadShort();
-                propCount = handler.ReadShort();
-                handler.Read(ref nodeType);
-                handler.Skip(3);
+                action.Do(ref Unsafe.As<int, short>(ref nodeCount));
+                action.Do(ref Unsafe.As<int, short>(ref propCount));
+                action.Do(ref nodeType);
+                action.Skip(3);
             }
             else
             {
-                handler.Read(ref nodeCount);
-                handler.Read(ref propCount);
-                handler.Read(ref Start_Frame);
-                handler.Read(ref End_Frame);
-                handler.Read(ref guid1);
-                handler.Read(ref guid2);
-                handler.Skip(8);
+                action.Do(ref nodeCount);
+                action.Do(ref propCount);
+                action.Do(ref Start_Frame);
+                action.Do(ref End_Frame);
+                action.Do(ref guid1);
+                action.Do(ref guid2);
+                action.Skip(8);
             }
-            handler.Read(ref hash);
-            handler.Read(ref nameOffset);
-            handler.Read(ref nameOffset2);
-            handler.Read(ref firstPropIdx);
+            action.Do(ref nameHash);
+            action.Do(ref nameOffset);
+            action.Do(ref nameOffset2);
+            action.Do(ref firstPropIdx);
             if (Version == ClipVersion.RE2_DMC5)
             {
-                handler.Read(ref firstPropIdx);  // need check
+                action.Do(ref firstPropIdx);  // need check
             }
             return true;
         }
 
         protected override bool DoWrite(FileHandler handler)
         {
-            throw new NotImplementedException();
+            nameHash = MurMur3HashUtils.GetCombineHash(Name);
+            return base.DoWrite(handler);
+        }
+
+        public void ReadName(FileHandler handler, ClipHeader header)
+        {
+            if (Version >= ClipVersion.RE3)
+            {
+                Name = handler.ReadWString(header.unicodeNamesOffset + nameOffset);
+            }
+            else if (header.namesOffsetExtra != null)
+            {
+                Name = handler.ReadAsciiString(header.namesOffsetExtra[1] + nameOffset);
+            }
+        }
+
+        public void WriteName(FileHandler handler, ClipHeader header)
+        {
+            if (Version >= ClipVersion.RE3)
+            {
+                var stringItem = handler.StringTableAdd(Name, false);
+                nameOffset = stringItem!.TableOffset;
+            }
+            else if (header.namesOffsetExtra != null)
+            {
+                var stringItem = handler.AsciiStringTableAdd(Name, false);
+                nameOffset = stringItem!.TableOffset;
+            }
         }
     }
 
@@ -514,7 +618,7 @@ namespace RszTool.Clip
     {
         public uint magic;
         public ClipVersion version;
-        public float NumFrames;
+        public float numFrames;
         public int numNodes;
         public int numProperties;
         public int numKeys;
@@ -537,7 +641,7 @@ namespace RszTool.Clip
         {
             handler.Read(ref magic);
             handler.Read(ref version);
-            handler.Read(ref NumFrames);
+            handler.Read(ref numFrames);
             handler.Read(ref numNodes);
             handler.Read(ref numProperties);
             handler.Read(ref numKeys);
@@ -570,7 +674,32 @@ namespace RszTool.Clip
 
         protected override bool DoWrite(FileHandler handler)
         {
-            throw new NotImplementedException();
+            handler.Write(magic);
+            handler.Write(ref version);
+            handler.Write(ref numFrames);
+            handler.Write(ref numNodes);
+            handler.Write(ref numProperties);
+            handler.Write(ref numKeys);
+            if (version != ClipVersion.RE3 && version < ClipVersion.RE8)
+            {
+                handler.Write(ref guid);
+            }
+            handler.Write(ref clipDataOffset);
+            handler.Write(ref propertiesOffset);
+            handler.Write(ref keysOffset);
+            handler.Write(ref namesOffset);
+            if (version == ClipVersion.RE2_DMC5)
+            {
+                handler.Write(ref namesOffset2);
+            }
+            handler.WriteArray(namesOffsetExtra!);
+            handler.Write(ref unicodeNamesOffset);
+            handler.Write(ref endClipStructsOffset1);
+            if (version <= ClipVersion.RE4)
+            {
+                handler.Write(ref endClipStructsOffset2);
+            }
+            return true;
         }
     }
 
@@ -588,12 +717,10 @@ namespace RszTool.Clip
         public ClipHeader Header { get; } = new();
         public long endClipOffset;
         public long lastUnicodeNameOffset;
-        public List<CTRACKS> CTracksList { get; } = new();
+        public List<CTrack> CTrackList { get; } = new();
         public List<Property> Properties { get; } = new();
         public List<Key> ClipKeys { get; } = new();
         public float[]? Unknown_Floats { get; set; }
-        public List<string> Names { get; } = new();
-        public List<string> UnicodeNames { get; } = new();
         public EndClipStruct[]? EndClipStructs { get; set; }
 
         public const uint Magic = 0x50494C43;
@@ -620,12 +747,9 @@ namespace RszTool.Clip
 
         protected override bool DoRead(FileHandler handler)
         {
-            CTracksList.Clear();
+            CTrackList.Clear();
             Properties.Clear();
             ClipKeys.Clear();
-            Names.Clear();
-            UnicodeNames.Clear();
-            // TODO check isEndOfClip
             var clipHeader = Header;
             if (!clipHeader.Read(handler)) return false;
             if (clipHeader.magic != Magic)
@@ -637,9 +761,10 @@ namespace RszTool.Clip
                 handler.Seek(clipHeader.clipDataOffset);
                 for (int i = 0; i < clipHeader.numNodes; i++)
                 {
-                    CTRACKS cTrack = new(Version);
+                    CTrack cTrack = new(Version);
                     cTrack.Read(handler);
-                    CTracksList.Add(cTrack);
+                    cTrack.ReadName(handler, clipHeader);
+                    CTrackList.Add(cTrack);
                 }
             }
 
@@ -652,7 +777,7 @@ namespace RszTool.Clip
                     property.Info.Read(handler);
                     if (clipHeader.namesOffsetExtra != null && clipHeader.namesOffsetExtra.Length > 1)
                     {
-                        property.FunctionName = handler.ReadAsciiString(clipHeader.namesOffsetExtra[1] + property.Info.nameOffset);
+                        property.Info.FunctionName = handler.ReadAsciiString(clipHeader.namesOffsetExtra[1] + property.Info.nameOffset);
                     }
                     Properties.Add(property);
                 }
@@ -710,10 +835,9 @@ namespace RszTool.Clip
 
             if (Version != ClipVersion.RE7 && clipHeader.numNodes > 1)
             {
-                handler.Seek(clipHeader.endClipStructsOffset1);
-                {
-                    EndClipStructs = handler.ReadArray<EndClipStruct>(clipHeader.numNodes - 1);
-                }
+                long endClipStructsRelocation = handler.ReadInt64(clipHeader.endClipStructsOffset1 + 8);
+                handler.Seek(endClipStructsRelocation);
+                EndClipStructs = handler.ReadArray<EndClipStruct>(clipHeader.numNodes - 1);
             }
 
             return true;
@@ -721,7 +845,69 @@ namespace RszTool.Clip
 
         protected override bool DoWrite(FileHandler handler)
         {
-            throw new NotImplementedException();
+            long start = Start;
+            var clipHeader = Header;
+            clipHeader.magic = Magic;
+            handler.Seek(start + clipHeader.Size);
+
+            clipHeader.numNodes = CTrackList.Count;
+            clipHeader.clipDataOffset = handler.Tell();
+            foreach (var cTrack in CTrackList)
+            {
+                cTrack.WriteName(handler, clipHeader);
+                cTrack.Write(handler);
+            }
+
+            handler.Align(16);
+            clipHeader.numProperties = Properties.Count;
+            clipHeader.propertiesOffset = handler.Tell();
+            foreach (var property in Properties)
+            {
+                var stringItem = handler.AsciiStringTableAdd(property.Info.FunctionName, false);
+                property.Info.nameOffset = stringItem!.TableOffset;
+                property.Info.Write(handler);
+            }
+
+            handler.Align(16);
+            clipHeader.numKeys = ClipKeys.Count;
+            clipHeader.keysOffset = handler.Tell();
+            foreach (var key in ClipKeys)
+            {
+                key.Write(handler);
+            }
+
+            // TODO: check namesOffset2?
+            clipHeader.namesOffset = handler.Tell();
+            if (Unknown_Floats != null)
+            {
+                handler.WriteArray(Unknown_Floats);
+            }
+            if (clipHeader.namesOffsetExtra != null)
+            {
+                Array.Fill(clipHeader.namesOffsetExtra, handler.Tell());
+            }
+            handler.AsciiStringTableFlush();
+
+            handler.Align(8);
+            clipHeader.unicodeNamesOffset = handler.Tell();
+            handler.StringTableFlush();
+
+            handler.Align(16);
+            
+
+            handler.Align(16);
+            clipHeader.endClipStructsOffset1 = handler.Tell();
+            clipHeader.endClipStructsOffset2 = clipHeader.endClipStructsOffset1;
+            if (Version != ClipVersion.RE7 && clipHeader.numNodes > 1 && EndClipStructs != null)
+            {
+                handler.WriteInt64(0);
+                // endClipStructsRelocation
+                handler.WriteInt64(handler.Tell() + 8);
+                handler.WriteArray(EndClipStructs);
+            }
+
+            clipHeader.Write(handler, start);
+            return true;
         }
     }
 }
@@ -735,13 +921,12 @@ namespace RszTool
 
         protected override bool DoRead()
         {
-            var handler = FileHandler;
-            return ClipEntry.Read(handler);
+            return ClipEntry.Read(FileHandler);
         }
 
         protected override bool DoWrite()
         {
-            throw new NotImplementedException();
+            return ClipEntry.Write(FileHandler);
         }
     }
 }

@@ -66,5 +66,15 @@ namespace RszTool.Common
         {
             return MurMur3Hash(Encoding.ASCII.GetBytes(text));
         }
+
+        /// <summary>
+        /// 低32位是Ascii的hash，高32位是Unicode的hash
+        /// </summary>
+        /// <param name="text"></param>
+        /// <returns></returns>
+        public static ulong GetCombineHash(string text)
+        {
+            return GetAsciiHash(text) | ((ulong)GetHash(text) << 32);
+        }
     }
 }

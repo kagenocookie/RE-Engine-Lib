@@ -12,9 +12,9 @@ namespace RszTool
         public Stream Stream { get; private set; }
         public long Offset { get; set; }
         public bool IsMemory => Stream is MemoryStream;
-        private StringTable? StringTable;
-        private StringTable? AsciiStringTable;
-        private OffsetContentTable? OffsetContentTable;
+        public StringTable? StringTable { get; private set; }
+        public StringTable? AsciiStringTable { get; private set; }
+        public OffsetContentTable? OffsetContentTable { get; private set; }
         private Sunday? searcher = new();
 
         public long Position => Stream.Position;
@@ -968,13 +968,14 @@ namespace RszTool
             WriteInt64(0);
         }
 
-        public void StringTableAdd(string? text)
+        public StringTableItem? StringTableAdd(string? text, bool addOffset = true)
         {
             if (text != null)
             {
                 StringTable ??= new();
-                StringTable.Add(text, Tell());
+                return StringTable.Add(text, addOffset ? Tell() : -1);
             }
+            return null;
         }
 
         /// <summary>
@@ -1001,13 +1002,14 @@ namespace RszTool
             StringTable?.FlushOffsets(this);
         }
 
-        public void AsciiStringTableAdd(string? text)
+        public StringTableItem? AsciiStringTableAdd(string? text, bool addOffset = true)
         {
             if (text != null)
             {
-                AsciiStringTable ??= new();
-                AsciiStringTable.Add(text, Tell());
+                AsciiStringTable ??= new() { IsAscii = true };
+                return AsciiStringTable.Add(text, addOffset ? Tell() : -1);
             }
+            return null;
         }
 
         /// <summary>
@@ -1034,10 +1036,10 @@ namespace RszTool
             AsciiStringTable?.FlushOffsets(this);
         }
 
-        public void OffsetContentTableAdd(Action<FileHandler> write)
+        public OffsetContent OffsetContentTableAdd(Action<FileHandler> write)
         {
             OffsetContentTable ??= new();
-            OffsetContentTable.Add(write, Tell());
+            return OffsetContentTable.Add(write, Tell());
         }
 
         /// <summary>
@@ -1069,9 +1071,18 @@ namespace RszTool
     public class StringTableItem
     {
         public string Text { get; }
-        // 引用改字符串的偏移集合
+        /// <summary>
+        /// 引用改字符串的偏移集合
+        /// </summary>
         public HashSet<long> OffsetStart { get; } = new();
+        /// <summary>
+        /// 字符串在整个文件中的偏移
+        /// </summary>
         public long TextStart { get; set; } = -1;
+        /// <summary>
+        /// 在字符串表中的偏移，约定按字符长度，而不是字节长度
+        /// </summary>
+        public int TableOffset { get; set; }
 
         public StringTableItem(string text)
         {
@@ -1098,24 +1109,31 @@ namespace RszTool
     public class StringTable : IEnumerable<StringTableItem>
     {
         private List<StringTableItem> Items { get; } = new();
-        private Dictionary<string, StringTableItem> StringMap { get; } = new();
-        public bool IsAscii { get; set; }
+        public Dictionary<string, StringTableItem> StringMap { get; } = new();
+        public bool IsAscii { get; init; }
         public int Count => Items.Count;
+        public int LastTableOffset { get; set; }
 
         public void Clear()
         {
             Items.Clear();
             StringMap.Clear();
+            LastTableOffset = 0;
         }
 
-        public void Add(string text, long offset)
+        public StringTableItem Add(string text, long offset)
         {
             if (!StringMap.TryGetValue(text, out var item))
             {
-                StringMap[text] = item = new(text);
+                StringMap[text] = item = new(text) { TableOffset = LastTableOffset };
                 Items.Add(item);
+                LastTableOffset += text.Length + 1;
             }
-            item.OffsetStart.Add(offset);
+            if (offset != -1)
+            {
+                item.OffsetStart.Add(offset);
+            }
+            return item;
         }
 
         public void Flush(FileHandler handler)
@@ -1190,13 +1208,14 @@ namespace RszTool
             Items.Clear();
         }
 
-        public void Add(Action<FileHandler> write, long offset)
+        public OffsetContent Add(Action<FileHandler> write, long offset)
         {
             var item = new OffsetContent(write)
             {
                 OffsetStart = offset
             };
             Items.Add(item);
+            return item;
         }
 
         public void Flush(FileHandler handler)
@@ -1252,6 +1271,23 @@ namespace RszTool
 
     public static class IFileHandlerActionExtension
     {
+        public static IFileHandlerAction Do<T>(this IFileHandlerAction action, ref T value) where T : struct
+        {
+            action.Handle(ref value);
+            return action;
+        }
+
+        public static IFileHandlerAction Do<T>(this IFileHandlerAction action, bool condition, ref T value) where T : struct
+        {
+            return condition ? action.Do(ref value) : action;
+        }
+
+        public static IFileHandlerAction Skip(this IFileHandlerAction action, long skip)
+        {
+            action.Handler.Skip(skip);
+            return action;
+        }
+
         public static IFileHandlerAction? Then<T>(this IFileHandlerAction action, ref T value) where T : struct
         {
             if (action.Handle(ref value))
@@ -1264,12 +1300,6 @@ namespace RszTool
         public static IFileHandlerAction? Then<T>(this IFileHandlerAction action, bool condition, ref T value) where T : struct
         {
             return condition ? action.Then(ref value) : action;
-        }
-
-        public static IFileHandlerAction? Skip(this IFileHandlerAction action, long skip)
-        {
-            action.Handler.Skip(skip);
-            return action;
         }
     }
 

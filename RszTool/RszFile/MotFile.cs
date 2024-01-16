@@ -796,12 +796,6 @@ namespace RszTool.Mot
         public uint uknIntB;
         public byte[] uknBytes1C = new byte[0x1C];
         public ClipEntry ClipEntry { get; set; } = new();
-        public RszFileOption Option { get; }
-
-        public MotClip(RszFileOption option)
-        {
-            Option = option;
-        }
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -883,6 +877,11 @@ namespace RszTool
                 }
             }
 
+            if (header.jmapOffset > 0)
+            {
+                throw new NotImplementedException("Jmap not supported yet");
+            }
+
             if (header.clipFileOffset > 0 && header.clipCount > 0)
             {
                 handler.Seek(header.clipFileOffset);
@@ -890,7 +889,7 @@ namespace RszTool
                 for (int i = 0; i < header.clipCount; i++)
                 {
                     handler.Seek(clipOffset[i]);
-                    MotClip motClip = new(Option);
+                    MotClip motClip = new();
                     motClip.Read(handler);
                     MotClips.Add(motClip);
                 }

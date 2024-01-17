@@ -280,6 +280,15 @@ namespace RszTool.Mot
         public ushort X;
         public ushort Y;
         public ushort Z;
+
+        public PackedVector3() {}
+
+        public PackedVector3(ushort x, ushort y, ushort z)
+        {
+            X = x;
+            Y = y;
+            Z = z;
+        }
     }
 
 
@@ -299,17 +308,34 @@ namespace RszTool.Mot
         public Vector3[]? translations;
         public Quaternion[]? rotations;
 
-        public MotVersion MotVersion { get; set; }
+        private long offsetStart;
 
-        public Track(MotVersion motVersion)
+        public MotVersion MotVersion { get; set; }
+        public TrackFlag TrackFlag { get; set; }
+
+        public Track(MotVersion motVersion, TrackFlag trackFlag)
         {
             MotVersion = motVersion;
+            TrackFlag = trackFlag;
         }
 
-        public byte CompressionType => (byte)(flags >> 20);
-        public uint KeyFrameDataType => flags & 0xF00000;
-        public uint Compression => flags & 0xFF000;
-        public uint UnkFlag => flags & 0xFFF;
+        public byte FrameIndexType
+        {
+            get => (byte)(flags >> 20);
+            set => flags = (flags & 0xFFFFF) | (uint)(value << 20);
+        }
+
+        public uint Compression
+        {
+            get => flags & 0xFF000;
+            set => flags = (flags & 0xFFF00FFF) | (value & 0xFF000);
+        }
+
+        public uint UnkFlag
+        {
+            get => flags & 0xFFF;
+            set => flags = (flags & 0xFFFFF000) | (value & 0xFFF);
+        }
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -330,11 +356,12 @@ namespace RszTool.Mot
                 handler.Read(ref unpackDataOffset);
             }
 
-            using (var frameIndexSeek = handler.SeekJumpBack(frameIndexOffset))
+            if (frameIndexOffset > 0)
             {
+                using var frameIndexSeek = handler.SeekJumpBack(frameIndexOffset);
                 frameIndexs = new int[keyCount];
                 handler.Seek(frameIndexOffset);
-                switch (CompressionType)
+                switch (FrameIndexType)
                 {
                     case 2:
                         for (int i = 0; i < keyCount; i++) frameIndexs[i] = handler.ReadByte();
@@ -346,11 +373,12 @@ namespace RszTool.Mot
                         for (int i = 0; i < keyCount; i++) frameIndexs[i] = handler.ReadInt();
                         break;
                     default:
-                        throw new InvalidDataException($"Unknown track compression type {CompressionType}");
+                        throw new InvalidDataException($"Unknown track compression type {FrameIndexType}");
                 }
             }
-            using (var unpackDataSeek = handler.SeekJumpBack(unpackDataOffset))
+            if (unpackDataOffset > 0)
             {
+                using var unpackDataSeek = handler.SeekJumpBack(unpackDataOffset);
                 handler.ReadArray(unpackData);
             }
             return true;
@@ -358,7 +386,89 @@ namespace RszTool.Mot
 
         protected override bool DoWrite(FileHandler handler)
         {
-            throw new NotImplementedException();
+            handler.Write(ref flags);
+            handler.Write(ref keyCount);
+            if (MotVersion >= MotVersion.RE3)
+            {
+                handler.WriteUInt((uint)frameIndexOffset);
+                handler.WriteUInt((uint)frameDataOffset);
+                handler.WriteUInt((uint)unpackDataOffset);
+            }
+            else
+            {
+                handler.Write(ref frameRate);
+                handler.Write(ref maxFrame);
+                offsetStart = handler.Tell();
+                handler.Write(ref frameIndexOffset);
+                handler.Write(ref frameDataOffset);
+                handler.Write(ref unpackDataOffset);
+            }
+
+            if (frameIndexOffset > 0)
+            {
+                using var frameIndexSeek = handler.SeekJumpBack(frameIndexOffset);
+                frameIndexs = new int[keyCount];
+                handler.Seek(frameIndexOffset);
+                switch (FrameIndexType)
+                {
+                    case 2:
+                        for (int i = 0; i < keyCount; i++) frameIndexs[i] = handler.ReadByte();
+                        break;
+                    case 4:
+                        for (int i = 0; i < keyCount; i++) frameIndexs[i] = handler.ReadShort();
+                        break;
+                    case 5:
+                        for (int i = 0; i < keyCount; i++) frameIndexs[i] = handler.ReadInt();
+                        break;
+                    default:
+                        throw new InvalidDataException($"Unknown track compression type {FrameIndexType}");
+                }
+            }
+            if (unpackDataOffset > 0)
+            {
+                using var unpackDataSeek = handler.SeekJumpBack(unpackDataOffset);
+                handler.ReadArray(unpackData);
+            }
+            return true;
+        }
+
+        public void WriteOffsetContents(FileHandler handler)
+        {
+            // FrameIndex
+            if (frameIndexs == null) return;
+            handler.WriteInt64(offsetStart, handler.Tell());
+            switch (FrameIndexType)
+            {
+                case 2:
+                    for (int i = 0; i < keyCount; i++) handler.WriteByte((byte)frameIndexs[i]);
+                    break;
+                case 4:
+                    for (int i = 0; i < keyCount; i++) handler.WriteShort((short)frameIndexs[i]);
+                    break;
+                case 5:
+                    for (int i = 0; i < keyCount; i++) handler.WriteInt(frameIndexs[i]);
+                    break;
+                default:
+                    throw new InvalidDataException($"Unknown track compression type {FrameIndexType}");
+            }
+
+            // FrameData
+            handler.WriteInt64(offsetStart + 8, handler.Tell());
+            if (TrackFlag == TrackFlag.Translation || TrackFlag == TrackFlag.Scale)
+            {
+                WriteFrameDataTranslation(handler);
+            }
+            else if (TrackFlag == TrackFlag.Rotation)
+            {
+                WriteFrameDataRotation(handler);
+            }
+
+            // UnpackData
+            if (unpackData != null)
+            {
+                handler.WriteInt64(offsetStart + 16, handler.Tell());
+                handler.WriteArray(unpackData);
+            }
         }
 
         public Vector3Decompression TranslationDecompression
@@ -485,7 +595,6 @@ namespace RszTool.Mot
 
         public void ReadFrameDataTranslation(FileHandler handler)
         {
-            if (frameIndexs == null) throw new NullReferenceException($"{nameof(frameIndexs)} is null");
             using var defer = handler.SeekJumpBack(frameDataOffset);
             Vector3Decompression type = TranslationDecompression;
             translations = new Vector3[keyCount];
@@ -609,9 +718,128 @@ namespace RszTool.Mot
             }
         }
 
+        public void WriteFrameDataTranslation(FileHandler handler)
+        {
+            if (translations == null) throw new NullReferenceException($"{nameof(translations)} is null");
+            Vector3Decompression type = TranslationDecompression;
+            for (int i = 0; i < keyCount; i++)
+            {
+                Vector3 translation = translations[i];
+                switch (type)
+                {
+                    case Vector3Decompression.LoadVector3sFull:
+                        handler.Write(translation);
+                        break;
+                    case Vector3Decompression.LoadVector3s5BitA:
+                        {
+                            ushort data = (ushort)(
+                                ((ushort)((translation.X - unpackData[4]) / unpackData[0] * 31.0f) << 00) |
+                                ((ushort)((translation.Y - unpackData[5]) / unpackData[1] * 31.0f) << 05) |
+                                ((ushort)((translation.Z - unpackData[6]) / unpackData[2] * 31.0f) << 10));
+                            handler.Write(data);
+                            break;
+                        }
+                    case Vector3Decompression.LoadVector3s5BitB:
+                        {
+                            ushort data = (ushort)(
+                                ((ushort)((translation.X - unpackData[3]) / unpackData[0] * 31.0f) << 00) |
+                                ((ushort)((translation.Y - unpackData[4]) / unpackData[1] * 31.0f) << 05) |
+                                ((ushort)((translation.Z - unpackData[5]) / unpackData[2] * 31.0f) << 10));
+                            handler.Write(data);
+                            break;
+                        }
+                    case Vector3Decompression.LoadScalesXYZ:
+                        handler.Write(translation.X);
+                        break;
+                    case Vector3Decompression.LoadVector3s10BitA:
+                        {
+                            uint data =
+                                ((uint)((translation.X - unpackData[4]) / unpackData[0] * 0x3FF) << 00) |
+                                ((uint)((translation.Y - unpackData[5]) / unpackData[1] * 0x3FF) << 10) |
+                                ((uint)((translation.Z - unpackData[6]) / unpackData[2] * 0x3FF) << 20);
+                            handler.Write(data);
+                            break;
+                        }
+                    case Vector3Decompression.LoadVector3s10BitB:
+                        {
+                            uint data = (
+                                ((uint)((translation.X - unpackData[3]) / unpackData[0] * 0x3FF) << 00) |
+                                ((uint)((translation.Y - unpackData[4]) / unpackData[1] * 0x3FF) << 10) |
+                                ((uint)((translation.Z - unpackData[5]) / unpackData[2] * 0x3FF) << 20)
+                            );
+                            handler.Write(data);
+                            break;
+                        }
+                    case Vector3Decompression.LoadVector3s21BitA:
+                        {
+                            ulong data =
+                                ((ulong)((translation.X - unpackData[4]) / unpackData[0] * 2097151.0f) << 00) |
+                                ((ulong)((translation.Y - unpackData[5]) / unpackData[1] * 2097151.0f) << 21) |
+                                ((ulong)((translation.Z - unpackData[6]) / unpackData[2] * 2097151.0f) << 42);
+                            handler.Write(data);
+                            break;
+                        }
+                    case Vector3Decompression.LoadVector3s21BitB:
+                        {
+                            var data =
+                                ((int)((translation.X - unpackData[3]) / unpackData[0]) & 0x1FFFFF) << 00 |
+                                ((int)((translation.Y - unpackData[4]) / unpackData[1]) & 0x1FFFFF) << 21 |
+                                ((int)((translation.Z - unpackData[5]) / unpackData[2]) & 0x1FFFFF) << 42;
+                            handler.Write((ulong)data);
+                            break;
+                        }
+                    case Vector3Decompression.LoadVector3sXAxis:
+                        {
+                            handler.Write(translation.X);
+                            break;
+                        }
+                    case Vector3Decompression.LoadVector3sYAxis:
+                        {
+                            handler.Write(translation.Y);
+                            break;
+                        }
+                    case Vector3Decompression.LoadVector3sZAxis:
+                        {
+                            handler.Write(translation.Z);
+                            break;
+                        }
+                    case Vector3Decompression.LoadVector3sXAxis16Bit:
+                        {
+                            var data = (ushort)((translation.X - unpackData[1]) / unpackData[0] * 65535);
+                            handler.Write(data);
+                            break;
+                        }
+                    case Vector3Decompression.LoadVector3sYAxis16Bit:
+                        {
+                            var data = (ushort)((translation.Y - unpackData[2]) / unpackData[0] * 65535);
+                            handler.Write(data);
+                            break;
+                        }
+                    case Vector3Decompression.LoadVector3sZAxis16Bit:
+                        {
+                            var data = (ushort)((translation.Z - unpackData[3]) / unpackData[0] * 65535);
+                            handler.Write(data);
+                            break;
+                        }
+                    case Vector3Decompression.LoadVector3sXYZAxis16Bit:
+                        {
+                            var data = (ushort)((translation.X - unpackData[3]) / unpackData[0] * 65535);
+                            handler.Write(data);
+                            break;
+                        }
+                    case Vector3Decompression.LoadVector3sXYZAxis:
+                        {
+                            handler.Write(translation.X);
+                            break;
+                        }
+                    default:
+                        throw new InvalidOperationException($"Invalid type {type}");
+                }
+            }
+        }
+
         public void ReadFrameDataRotation(FileHandler handler)
         {
-            if (frameIndexs == null) throw new NullReferenceException($"{nameof(frameIndexs)} is null");
             using var defer = handler.SeekJumpBack(frameDataOffset);
             QuaternionDecompression type = RotationDecompression;
             rotations = new Quaternion[keyCount];
@@ -735,6 +963,131 @@ namespace RszTool.Mot
             }
         }
 
+        public void WriteFrameDataRotation(FileHandler handler)
+        {
+            if (rotations == null) throw new NullReferenceException($"{nameof(rotations)} is null");
+            QuaternionDecompression type = RotationDecompression;
+            for (int i = 0; i < keyCount; i++)
+            {
+                Quaternion quaternion = rotations[i];
+                switch (type)
+                {
+                    case QuaternionDecompression.LoadQuaternionsFull:
+                        handler.Write(quaternion);
+                        break;
+                    case QuaternionDecompression.LoadQuaternions3Component:
+                        {
+                            Vector3 vector = new(quaternion.X, quaternion.Y, quaternion.Z);
+                            handler.Write(vector);
+                            break;
+                        }
+                    case QuaternionDecompression.LoadQuaternions5Bit:
+                        {
+                            ushort data = (ushort)(
+                                (ushort)((quaternion.X - unpackData[4]) / unpackData[0] * 0x1F) << 00 |
+                                (ushort)((quaternion.Y - unpackData[5]) / unpackData[1] * 0x1F) << 05 |
+                                (ushort)((quaternion.Z - unpackData[6]) / unpackData[2] * 0x1F) << 10);
+                            handler.Write(data);
+                            break;
+                        }
+                    case QuaternionDecompression.LoadQuaternions8Bit:
+                        {
+                            byte x = (byte)((quaternion.X - unpackData[4]) / unpackData[0] * (1 / 0.000015259022f));
+                            byte y = (byte)((quaternion.Y - unpackData[5]) / unpackData[1] * (1 / 0.000015259022f));
+                            byte z = (byte)((quaternion.Z - unpackData[6]) / unpackData[2] * (1 / 0.000015259022f));
+                            handler.Write(x);
+                            handler.Write(y);
+                            handler.Write(z);
+                            break;
+                        }
+                    case QuaternionDecompression.LoadQuaternions10Bit:
+                        {
+                            uint data =
+                                (uint)((quaternion.X - unpackData[4]) / unpackData[0] * 1023.0f) << 00 |
+                                (uint)((quaternion.Y - unpackData[5]) / unpackData[1] * 1023.0f) << 10 |
+                                (uint)((quaternion.Z - unpackData[6]) / unpackData[2] * 1023.0f) << 20;
+                            handler.Write(data);
+                            break;
+                        }
+                    case QuaternionDecompression.LoadQuaternions13Bit:
+                        {
+                            ulong val =
+                                (ulong)((quaternion.X - unpackData[4]) / unpackData[0] * (1 / 0.00012208521f)) << 00 |
+                                (ulong)((quaternion.Y - unpackData[5]) / unpackData[1] * (1 / 0.00012208521f)) << 13 |
+                                (ulong)((quaternion.Z - unpackData[6]) / unpackData[2] * (1 / 0.00012208521f)) << 26;
+                            byte[] data = new byte[5];
+                            for (int j = 0; j < 5; j++)
+                            {
+                                data[j] = (byte)(val & 0xFF);
+                                val >>= 8;
+                            }
+                            handler.WriteBytes(data);
+                            break;
+                        }
+                    case QuaternionDecompression.LoadQuaternions16Bit:
+                        {
+                            var data = new PackedVector3(
+                                (ushort)((quaternion.X - unpackData[4]) / unpackData[0] * 65535.0f),
+                                (ushort)((quaternion.Y - unpackData[5]) / unpackData[1] * 65535.0f),
+                                (ushort)((quaternion.Z - unpackData[6]) / unpackData[2] * 65535.0f)
+                            );
+                            handler.Write(data);
+                            break;
+                        }
+                    case QuaternionDecompression.LoadQuaternions18Bit:
+                        {
+                            ulong val = (((ulong)((quaternion.X - unpackData[4]) / unpackData[0] * 8191.0f) & 0x1FFF) << 00) |
+                                        (((ulong)((quaternion.Y - unpackData[5]) / unpackData[1] * 8191.0f) & 0x1FFF) << 13) |
+                                        (((ulong)((quaternion.Z - unpackData[6]) / unpackData[2] * 8191.0f) & 0x1FFF) << 26);
+                            byte[] data = new byte[7];
+                            for (int j = 0; j < 7; j++)
+                            {
+                                data[j] = (byte)((val >> (8 * j)) & 0xFF);
+                            }
+                            handler.WriteBytes(data);
+                            break;
+                        }
+                    case QuaternionDecompression.LoadQuaternions21Bit:
+                        {
+                            ulong val = (((ulong)((quaternion.X - unpackData[4]) / unpackData[0] * 1048575.0f) & 0x1FFFFF) << 00) |
+                                        (((ulong)((quaternion.Y - unpackData[5]) / unpackData[1] * 1048575.0f) & 0x1FFFFF) << 21) |
+                                        (((ulong)((quaternion.Z - unpackData[6]) / unpackData[2] * 1048575.0f) & 0x1FFFFF) << 42);
+                            handler.Write(val);
+                            break;
+                        }
+                    case QuaternionDecompression.LoadQuaternionsXAxis16Bit:
+                        {
+                            float data = (quaternion.X - unpackData[1]) / unpackData[0] * 65535.0f;
+                            handler.Write(data);
+                            break;
+                        }
+                    case QuaternionDecompression.LoadQuaternionsYAxis16Bit:
+                        {
+                            float data = (quaternion.Y - unpackData[1]) / unpackData[0] * 65535.0f;
+                            handler.Write(data);
+                            break;
+                        }
+                    case QuaternionDecompression.LoadQuaternionsZAxis16Bit:
+                        {
+                            float data = (quaternion.Z - unpackData[1]) / unpackData[0] * 65535.0f;
+                            handler.Write(data);
+                            break;
+                        }
+                    case QuaternionDecompression.LoadQuaternionsXAxis:
+                        handler.Write(quaternion.X);
+                        break;
+                    case QuaternionDecompression.LoadQuaternionsYAxis:
+                        handler.Write(quaternion.Y);
+                        break;
+                    case QuaternionDecompression.LoadQuaternionsZAxis:
+                        handler.Write(quaternion.Z);
+                        break;
+                    default:
+                        throw new InvalidOperationException($"Invalid type {type}");
+                }
+            }
+        }
+
         public static void SetRotationW(ref Quaternion quaternion)
         {
             float w = 1.0f - (quaternion.X * quaternion.X + quaternion.Y * quaternion.Y + quaternion.Z * quaternion.Z);
@@ -762,17 +1115,17 @@ namespace RszTool.Mot
             handler.Seek(header.trackHeaderOffset);
             if (header.trackFlags.HasFlag(TrackFlag.Translation))
             {
-                Translation = new(header.MotVersion);
+                Translation = new(header.MotVersion, TrackFlag.Translation);
                 Translation.Read(handler);
             }
             if (header.trackFlags.HasFlag(TrackFlag.Rotation))
             {
-                Rotation = new(header.MotVersion);
+                Rotation = new(header.MotVersion, TrackFlag.Rotation);
                 Rotation.Read(handler);
             }
             if (header.trackFlags.HasFlag(TrackFlag.Scale))
             {
-                Scale = new(header.MotVersion);
+                Scale = new(header.MotVersion, TrackFlag.Scale);
                 Scale.Read(handler);
             }
             Translation?.ReadFrameDataTranslation(handler);
@@ -783,7 +1136,17 @@ namespace RszTool.Mot
 
         protected override bool DoWrite(FileHandler handler)
         {
-            throw new NotImplementedException();
+            Translation?.Write(handler);
+            Rotation?.Write(handler);
+            Scale?.Write(handler);
+            return true;
+        }
+
+        public void WriteOffsetContents(FileHandler handler)
+        {
+            Translation?.WriteOffsetContents(handler);
+            Rotation?.WriteOffsetContents(handler);
+            Scale?.WriteOffsetContents(handler);
         }
     }
 
@@ -812,7 +1175,54 @@ namespace RszTool.Mot
 
         protected override bool DoWrite(FileHandler handler)
         {
-            throw new NotImplementedException();
+            handler.Skip(8);
+            handler.Write(ref clipOffset);
+            handler.Write(ref endClipStructsRelocation);
+            handler.Skip(4);
+            handler.Write(ref uknIntA);
+            handler.Write(ref uknIntB);
+            handler.WriteBytes(uknBytes1C);
+
+            clipOffset = handler.Tell();
+            ClipEntry.Write(handler);
+            endClipStructsRelocation = ClipEntry.Header.endClipStructsOffset1;
+            handler.Write(Start + 8, clipOffset);
+            handler.Write(Start + 16, endClipStructsRelocation);
+            return true;
+        }
+    }
+
+
+    public class ExtraDataHeader(MotVersion version) : BaseModel
+    {
+        public uint unknown;
+
+        public MotVersion Version { get; set; } = version;
+
+        protected override bool DoRead(FileHandler handler)
+        {
+            if (Version > MotVersion.MHR_DEMO)
+            {
+                handler.Read(ref unknown);
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
+            return true;
+        }
+
+        protected override bool DoWrite(FileHandler handler)
+        {
+            if (Version > MotVersion.MHR_DEMO)
+            {
+                handler.Write(ref unknown);
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
+            return true;
         }
     }
 }
@@ -893,13 +1303,38 @@ namespace RszTool
                     motClip.Read(handler);
                     MotClips.Add(motClip);
                 }
+                ExtraDataHeader extraDataHeader = new(header.version);
+                extraDataHeader.Read(handler);
             }
             return true;
         }
 
         protected override bool DoWrite()
         {
-            throw new NotImplementedException();
+            FileHandler handler = FileHandler;
+            handler.Clear();
+            var header = Header;
+            handler.Seek(Header.Size);
+            handler.Align(16);
+
+            foreach (var bone in Bones)
+            {
+                // BoneHeaders
+                // ClipHeader
+                // Tracks
+            }
+
+            foreach (var bone in Bones)
+            {
+                bone.Tracks?.Write(handler);
+            }
+            foreach (var bone in Bones)
+            {
+                bone.Tracks?.WriteOffsetContents(handler);
+            }
+
+            Header.Write(handler, 0);
+            return true;
         }
     }
 }

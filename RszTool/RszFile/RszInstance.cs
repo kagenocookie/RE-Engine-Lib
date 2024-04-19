@@ -147,7 +147,7 @@ namespace RszTool
             {
                 int intValue = BitConverter.ToInt32((byte[])data, 0);
                 // 检测Object
-                if (intValue < Index && intValue > 3 && intValue > Index - 101)
+                if (intValue < Index && intValue > 2 && intValue > Index - 101)
                 {
                     field.type = RszFieldType.Object;
                     field.IsTypeInferred = true;

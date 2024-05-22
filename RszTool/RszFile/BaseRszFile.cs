@@ -71,19 +71,11 @@ namespace RszTool
             }
             // save as new file
             bool result;
-            try
+            FileHandler = handler;
+            result = Write();
+            if (result && saveFile)
             {
-                FileHandler = handler;
-                result = Write();
-                if (result && saveFile)
-                {
-                    handler.Save();
-                }
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-                result = false;
+                handler.Save();
             }
             FileHandler = originHandler;
             return result;
@@ -121,7 +113,7 @@ namespace RszTool
         protected bool WriteRsz(RSZFile rsz, long offset)
         {
             // 内部偏移是从0开始算的
-            return rsz.WriteTo(FileHandler.WithOffset(offset));
+            return rsz.WriteTo(FileHandler.WithOffset(offset), false);
         }
     }
 }

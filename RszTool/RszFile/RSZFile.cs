@@ -193,7 +193,7 @@ namespace RszTool
                     var item = (RSZUserDataInfo_TDB_LE_67)RSZUserDataInfoList[i];
                     item.RSZOffset = handler.Tell();
                     var embeddedRSZ = EmbeddedRSZFileList[i];
-                    embeddedRSZ.WriteTo(handler.WithOffset(item.RSZOffset));
+                    embeddedRSZ.WriteTo(handler.WithOffset(item.RSZOffset), false);
                     // rewrite
                     item.dataSize = (uint)embeddedRSZ.Size;
                     item.Rewrite(handler);

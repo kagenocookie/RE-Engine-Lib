@@ -8,8 +8,6 @@
         xmlns:viewmodels="clr-namespace:RszTool.App.ViewModels"
         xmlns:res="clr-namespace:RszTool.App.Resources"
         xmlns:rsztool="clr-namespace:RszTool;assembly=RszTool"
-        xmlns:dragablz="clr-namespace:Dragablz;assembly=Dragablz"
-        xmlns:dockablz="clr-namespace:Dragablz.Dockablz;assembly=Dragablz"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=viewmodels:MainWindowModel}"
         Title="RszTool" Height="960" Width="1280"
@@ -17,37 +15,8 @@
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="pack://application:,,,/Dragablz;component/Themes/Generic.xaml" />
                 <ResourceDictionary Source="Views/TreeViewStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
-            <DataTemplate DataType="{x:Type dragablz:HeaderedItemViewModel}">
-                <ContentControl Content="{Binding Content}" Margin="4 4 4 4" FontSize="14" />
-            </DataTemplate>
-
-            <dragablz:DragablzIcon Width="24" Height="24" Margin="0 -8 0 0"
-                                   x:Key="WindowIcon" x:Shared="False"
-                                   ToolTip="Added via the HeaderPrefixContent property"
-                                   />
-
-            <Style TargetType="{x:Type dragablz:TabablzControl}" x:Key="TabablzControlStyle">
-                <Setter Property="ItemsSource" Value="{Binding Items}" />
-                <Setter Property="SelectedItem" Value="{Binding SelectedTabItem}" />
-                <Setter Property="ClosingItemCallback" Value="{Binding ClosingTabItemHandler}" />
-                <Setter Property="ShowDefaultAddButton" Value="False" />
-                <Setter Property="ShowDefaultCloseButton" Value="True" />
-                <Setter Property="AdjacentHeaderItemOffset" Value="-10" />
-                <Setter Property="ItemContainerStyle" Value="{StaticResource TrapezoidDragableTabItemStyle}" />
-                <Setter Property="HeaderMemberPath" Value="Header" />
-                <Setter Property="Margin" Value="0 8 0 0" />
-                <Setter Property="Background" Value="{DynamicResource PrimaryBackground}" />
-                <Setter Property="Foreground" Value="{DynamicResource PrimaryForeground}" />
-                <Setter Property="BorderBrush" Value="{DynamicResource PrimaryForeground}" />
-                <Style.Triggers>
-                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=(dockablz:Layout.IsTopLeftItem)}" Value="True">
-                        <Setter Property="HeaderPrefixContent" Value="{StaticResource WindowIcon}" />
-                    </DataTrigger>
-                </Style.Triggers>
-            </Style>
 
             <Style TargetType="TextBlock" x:Key="UsageHint">
                 <Setter Property="Visibility" Value="Collapsed" />
@@ -151,33 +120,33 @@
             <ComboBox ItemsSource="{x:Static rsztool:RszDefines.GameNames}" Grid.Column="1" SelectedValue="{Binding SaveData.GameName}" />
             <ToggleButton Content="{res:Text Dark}" Grid.Column="3" IsChecked="{Binding IsDarkTheme}" />
         </Grid>
-        <!-- <dockablz:Layout Grid.Row="2" Margin="8">
-            <dockablz:Layout.BranchTemplate>
-                <DataTemplate>
-                    <dragablz:TabablzControl Style="{StaticResource TabablzControlStyle}" />
-                </DataTemplate>
-            </dockablz:Layout.BranchTemplate>
-            <dragablz:TabablzControl Style="{StaticResource TabablzControlStyle}">
-                <TabItem Header="Tab No. 1" IsSelected="True">
-                    <views:RszTestView/>
-                </TabItem>
-            </dragablz:TabablzControl>
-        </dockablz:Layout> -->
-        <Grid Grid.Row="2" Cursor="">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="200" MinWidth="200" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-            <views:FileExplorerTree DataContext="{Binding FileExplorerViewModel}" Margin="6 6 3 6" HorizontalAlignment="Stretch" />
-            <GridSplitter Grid.Column="1" Width="3" VerticalAlignment="Stretch" HorizontalAlignment="Center" Background="Transparent" Cursor="SizeWE" />
-            <dragablz:TabablzControl Grid.Column="2" Margin="3 5 5 5" Style="{StaticResource TabablzControlStyle}">
-                <dragablz:TabablzControl.InterTabController>
-                    <dragablz:InterTabController InterTabClient="{Binding InterTabClient}" />
-                </dragablz:TabablzControl.InterTabController>
-            </dragablz:TabablzControl>
-            <TextBlock Text="{res:Text UsageHint}" TextAlignment="Center"
-                    Style="{StaticResource UsageHint}" FontSize="18" VerticalAlignment="Center" Grid.Column="2" />
-        </Grid>
+        <DockingManager x:Name="dockManager"
+                        Grid.Row="2"
+                        AllowMixedOrientation="True"
+                        AutoWindowSizeWhenOpened="True"
+                        DocumentClosing="DockManager_DocumentClosing"
+                        IsVirtualizingAnchorable="True"
+                        IsVirtualizingDocument="True"
+                        Theme="{Binding DockingTheme}">
+
+            <LayoutRoot PropertyChanged="OnLayoutRootPropertyChanged">
+                <LayoutPanel Orientation="Horizontal">
+                    <LayoutAnchorablePaneGroup DockWidth="300">
+                        <LayoutAnchorablePane>
+                            <LayoutAnchorable Title="File Explorer" ContentId="toolWindow1">
+                                <views:FileExplorerTree DataContext="{Binding FileExplorerViewModel}" HorizontalAlignment="Stretch" />
+                            </LayoutAnchorable>
+                        </LayoutAnchorablePane>
+                    </LayoutAnchorablePaneGroup>
+
+                    <LayoutDocumentPaneGroup>
+                        <LayoutDocumentPane x:Name="LayoutDocumentPane">
+                        </LayoutDocumentPane>
+                    </LayoutDocumentPaneGroup>
+                </LayoutPanel>
+            </LayoutRoot>
+        </DockingManager>
+        <!--<TextBlock Text="{res:Text UsageHint}" TextAlignment="Center"
+                    Style="{StaticResource UsageHint}" FontSize="18" VerticalAlignment="Center" Grid.Column="2" />-->
     </Grid>
 </Window>

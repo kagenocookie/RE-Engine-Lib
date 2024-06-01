@@ -6,7 +6,8 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows;
 using System.Windows.Controls;
-using Dragablz;
+using AvalonDock.Layout;
+using AvalonDock.Themes;
 using Microsoft.Win32;
 using RszTool.App.Common;
 using RszTool.App.Resources;
@@ -18,9 +19,10 @@ namespace RszTool.App.ViewModels
     public class MainWindowModel : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler? PropertyChanged;
-        public ObservableCollection<HeaderedItemViewModel> Items { get; } = new();
-        public HeaderedItemViewModel? SelectedTabItem { get; set; }
+        public LayoutDocumentPane? LayoutDocumentPane { get; set; }
+        public LayoutDocument? SelectedTabItem { get; set; }
         public FileExplorerViewModel FileExplorerViewModel { get; } = new();
+        public AvalonDock.Themes.Theme DockingTheme { get; set; }
 
         private BaseRszFileViewModel? CurrentFile =>
             SelectedTabItem is FileTabItemViewModel fileTabItemViewModel ?
@@ -33,10 +35,10 @@ namespace RszTool.App.ViewModels
             {
                 SaveData.IsDarkTheme = value;
                 ThemeManager.Instance.IsDarkTheme = value;
+                DockingTheme = value ? new Vs2013DarkTheme() : new Vs2013LightTheme();
             }
         }
 
-        public CustomInterTabClient InterTabClient { get; } = new();
         public static SaveData SaveData => App.Instance.SaveData;
 
         public RelayCommand OpenCommand => new(OnOpen);
@@ -50,8 +52,6 @@ namespace RszTool.App.ViewModels
         public RelayCommand OpenRecentFile => new(OnOpenRecentFile);
         public RelayCommand OpenAbout => new(OnOpenAbout);
 
-        public ItemActionCallback ClosingTabItemHandler => ClosingTabItemHandlerImpl;
-
         public MainWindowModel()
         {
             foreach (var path in SaveData.OpenedFolders)
@@ -63,6 +63,7 @@ namespace RszTool.App.ViewModels
                 FileExplorerViewModel.Folders.Add(new(Directory.GetCurrentDirectory()));
             }
             FileExplorerViewModel.OnFileSelected += f => OpenFile(f.Path);
+            DockingTheme = IsDarkTheme ? new Vs2013DarkTheme() : new Vs2013LightTheme();
         }
 
         /// <summary>
@@ -72,13 +73,13 @@ namespace RszTool.App.ViewModels
         public void OpenFile(string path)
         {
             // check file opened
-            foreach (var item in Items)
+            foreach (var item in LayoutDocumentPane!.Children)
             {
                 if (item is FileTabItemViewModel fileTab)
                 {
                     if (fileTab.FileViewModel.FilePath == path)
                     {
-                        SelectedTabItem = item;
+                        SelectedTabItem = fileTab;
                         return;
                     }
                 }
@@ -135,9 +136,9 @@ namespace RszTool.App.ViewModels
                     return;
                 }
                 content.DataContext = fileViewModel;
-                HeaderedItemViewModel header = new FileTabItemViewModel(fileViewModel, content);
-                Items.Add(header);
-                SelectedTabItem = header;
+                LayoutDocument document = new FileTabItemViewModel(fileViewModel, content);
+                LayoutDocumentPane!.Children.Add(document);
+                SelectedTabItem = document;
 
                 SaveData.AddRecentFile(path);
             }
@@ -158,18 +159,6 @@ namespace RszTool.App.ViewModels
             {
                 string file = files[i];
                 TryOpenFile(file);
-            }
-        }
-
-        /// <summary>
-        /// Callback to handle tab closing.
-        /// </summary>
-        private void ClosingTabItemHandlerImpl(ItemActionCallbackArgs<TabablzControl> args)
-        {
-            if (args.DragablzItem.DataContext is not FileTabItemViewModel fileTab) return;
-            if (!OnTabClose(fileTab))
-            {
-                args.Cancel();
             }
         }
 
@@ -231,7 +220,7 @@ namespace RszTool.App.ViewModels
             AppUtils.TryAction(() => CurrentFile?.Reopen());
         }
 
-        private static bool OnTabClose(FileTabItemViewModel fileTab)
+        public static bool OnTabClose(FileTabItemViewModel fileTab)
         {
             if (fileTab.FileViewModel.Changed)
             {
@@ -251,7 +240,7 @@ namespace RszTool.App.ViewModels
         {
             if (SelectedTabItem is FileTabItemViewModel fileTab && OnTabClose(fileTab))
             {
-                Items.Remove(fileTab);
+                LayoutDocumentPane!.Children.Remove(fileTab);
             }
         }
 
@@ -287,7 +276,7 @@ namespace RszTool.App.ViewModels
 
         public bool OnExit()
         {
-            foreach (var item in Items)
+            foreach (var item in LayoutDocumentPane!.Children)
             {
                 if (item is FileTabItemViewModel fileTab)
                 {
@@ -305,11 +294,13 @@ namespace RszTool.App.ViewModels
     }
 
 
-    public class FileTabItemViewModel : HeaderedItemViewModel
+    public class FileTabItemViewModel : LayoutDocument
     {
         public FileTabItemViewModel(BaseRszFileViewModel fileViewModel, object content, bool isSelected = false)
-            : base(fileViewModel.FileName!, content, isSelected)
         {
+            Title = fileViewModel.FileName!;
+            Content = content;
+            IsSelected = isSelected;
             FileViewModel = fileViewModel;
             fileViewModel.HeaderChanged += UpdateHeader;
         }
@@ -318,7 +309,7 @@ namespace RszTool.App.ViewModels
 
         public void UpdateHeader()
         {
-            Header = FileViewModel.FileName + (FileViewModel.Changed ? "*" : "");
+            Title = FileViewModel.FileName + (FileViewModel.Changed ? "*" : "");
         }
     }
 }

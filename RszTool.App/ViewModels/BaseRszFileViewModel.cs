@@ -448,9 +448,9 @@ namespace RszTool.App.ViewModels
     }
 
 
-    public class GameObejctComponentViewModel(IGameObjectData gameObject, RszInstance instance) : BaseViewModel
+    public class GameObejctComponentViewModel(IGameObject gameObject, RszInstance instance) : BaseViewModel
     {
-        public IGameObjectData GameObject { get; } = gameObject;
+        public IGameObject GameObject { get; } = gameObject;
         public RszInstance Instance { get; } = instance;
 
         public string Name => Instance.Name;
@@ -466,7 +466,7 @@ namespace RszTool.App.ViewModels
             return Instance.Name;
         }
 
-        public static ObservableCollection<GameObejctComponentViewModel> MakeList(IGameObjectData gameObject)
+        public static ObservableCollection<GameObejctComponentViewModel> MakeList(IGameObject gameObject)
         {
             ObservableCollection<GameObejctComponentViewModel> list = new();
             foreach (var item in gameObject.Components)

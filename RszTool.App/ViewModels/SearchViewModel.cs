@@ -180,7 +180,7 @@ namespace RszTool.App.ViewModels
             componentFilter = new(args.ComponentSearch);
         }
 
-        public bool IsMatch(IGameObjectData gameObject)
+        public bool IsMatch(IGameObject gameObject)
         {
             if (gameObjectNameMatcher.Enable &&
                 (gameObject.Name == null || !gameObjectNameMatcher.IsMatch(gameObject.Name)))

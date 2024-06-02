@@ -9,6 +9,7 @@
              xmlns:viewmodels="clr-namespace:RszTool.App.ViewModels"
              xmlns:res="clr-namespace:RszTool.App.Resources"
              xmlns:rsztool="clr-namespace:RszTool;assembly=RszTool"
+             xmlns:rsztool_scn="clr-namespace:RszTool.Scn;assembly=RszTool"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=viewmodels:ScnFileViewModel}"
              d:DesignHeight="450" d:DesignWidth="800">
@@ -21,7 +22,7 @@
             </ResourceDictionary.MergedDictionaries>
 
             <converters:ScnFolderDataSubItemsConverter x:Key="ScnFolderDataSubItemsConverter"/>
-            <converters:ScnGameObjectDataSubItemsConverter x:Key="ScnGameObjectDataSubItemsConverter"/>
+            <converters:ScnGameObjectSubItemsConverter x:Key="ScnGameObjectSubItemsConverter"/>
             <common:BindingProxy x:Key="ParentData" Data="{Binding}" />
 
             <HierarchicalDataTemplate DataType="{x:Type viewmodels:FoldersHeader}" ItemsSource="{Binding Items}">
@@ -44,7 +45,7 @@
                 </TextBlock>
             </HierarchicalDataTemplate>
 
-            <HierarchicalDataTemplate DataType="{x:Type rsztool:ScnFile+FolderData}"
+            <HierarchicalDataTemplate DataType="{x:Type rsztool_scn:ScnFolderData}"
                                       ItemsSource="{Binding ., Converter={StaticResource ScnFolderDataSubItemsConverter}}"
                                       ItemContainerStyle="{StaticResource TreeViewItemHideIfEmpty}">
                 <TextBlock Text="{Binding Name}">
@@ -58,8 +59,8 @@
                 </TextBlock>
             </HierarchicalDataTemplate>
 
-            <HierarchicalDataTemplate DataType="{x:Type rsztool:ScnFile+GameObjectData}"
-                                      ItemsSource="{Binding ., Converter={StaticResource ScnGameObjectDataSubItemsConverter}}"
+            <HierarchicalDataTemplate DataType="{x:Type rsztool_scn:ScnGameObject}"
+                                      ItemsSource="{Binding ., Converter={StaticResource ScnGameObjectSubItemsConverter}}"
                                       ItemContainerStyle="{StaticResource TreeViewItemHideIfEmpty}">
                 <TextBlock Text="{Binding Name}">
                     <TextBlock.ContextMenu>
@@ -75,7 +76,7 @@
                 </TextBlock>
             </HierarchicalDataTemplate>
 
-            <DataTemplate DataType="{x:Type rsztool:ScnFile+PrefabInfo}">
+            <DataTemplate DataType="{x:Type rsztool_scn:ScnPrefabInfo}">
                 <TextBlock Text="{Binding Path}"/>
             </DataTemplate>
         </ResourceDictionary>

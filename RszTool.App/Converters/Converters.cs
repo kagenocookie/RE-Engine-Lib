@@ -2,6 +2,8 @@ using System.Collections.ObjectModel;
 using System.Windows.Data;
 using RszTool.App.Common;
 using RszTool.App.ViewModels;
+using RszTool.Pfb;
+using RszTool.Scn;
 
 namespace RszTool.App.Converters
 {
@@ -53,10 +55,10 @@ namespace RszTool.App.Converters
     }
 
 
-    [ValueConversion(typeof(ScnFile.GameObjectData), typeof(IEnumerable<object>))]
-    public class ScnGameObjectDataSubItemsConverter : IValueConverter
+    [ValueConversion(typeof(ScnGameObject), typeof(IEnumerable<object>))]
+    public class ScnGameObjectSubItemsConverter : IValueConverter
     {
-        public static IEnumerable<object> Convert(ScnFile.GameObjectData gameObject)
+        public static IEnumerable<object> Convert(ScnGameObject gameObject)
         {
             if (gameObject.Instance != null)
             {
@@ -74,7 +76,7 @@ namespace RszTool.App.Converters
 
         public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
         {
-            var gameObject = (ScnFile.GameObjectData)value;
+            var gameObject = (ScnGameObject)value;
             return Convert(gameObject);
         }
 
@@ -85,10 +87,10 @@ namespace RszTool.App.Converters
     }
 
 
-    [ValueConversion(typeof(ScnFile.FolderData), typeof(IEnumerable<object>))]
+    [ValueConversion(typeof(ScnFolderData), typeof(IEnumerable<object>))]
     public class ScnFolderDataSubItemsConverter : IValueConverter
     {
-        public static IEnumerable<object> Convert(ScnFile.FolderData folder)
+        public static IEnumerable<object> Convert(ScnFolderData folder)
         {
             if (folder.Instance != null)
             {
@@ -101,7 +103,7 @@ namespace RszTool.App.Converters
 
         public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
         {
-            var folder = (ScnFile.FolderData)value;
+            var folder = (ScnFolderData)value;
             return Convert(folder);
         }
 
@@ -112,10 +114,10 @@ namespace RszTool.App.Converters
     }
 
 
-    [ValueConversion(typeof(PfbFile.GameObjectData), typeof(IEnumerable<object>))]
-    public class PfbGameObjectDataSubItemsConverter : IValueConverter
+    [ValueConversion(typeof(PfbGameObject), typeof(IEnumerable<object>))]
+    public class PfbGameObjectSubItemsConverter : IValueConverter
     {
-        public static IEnumerable<object> Convert(PfbFile.GameObjectData gameObject)
+        public static IEnumerable<object> Convert(PfbGameObject gameObject)
         {
             if (gameObject.Instance != null)
             {
@@ -128,7 +130,7 @@ namespace RszTool.App.Converters
 
         public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
         {
-            var gameObject = (PfbFile.GameObjectData)value;
+            var gameObject = (PfbGameObject)value;
             return Convert(gameObject);
         }
 

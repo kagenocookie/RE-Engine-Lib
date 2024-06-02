@@ -8,7 +8,7 @@
              xmlns:converters="clr-namespace:RszTool.App.Converters"
              xmlns:viewmodels="clr-namespace:RszTool.App.ViewModels"
              xmlns:res="clr-namespace:RszTool.App.Resources"
-             xmlns:rsztool="clr-namespace:RszTool;assembly=RszTool"
+             xmlns:rsztool_pfb="clr-namespace:RszTool.Pfb;assembly=RszTool"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=viewmodels:PfbFileViewModel}"
              d:DesignHeight="450" d:DesignWidth="800">
@@ -20,7 +20,7 @@
                 <ResourceDictionary Source="TreeViewTemplate.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
-            <converters:PfbGameObjectDataSubItemsConverter x:Key="PfbGameObjectDataSubItemsConverter"/>
+            <converters:PfbGameObjectSubItemsConverter x:Key="PfbGameObjectSubItemsConverter"/>
             <common:BindingProxy x:Key="ParentData" Data="{Binding}" />
 
             <HierarchicalDataTemplate DataType="{x:Type viewmodels:GameObjectsHeader}" ItemsSource="{Binding Items}">
@@ -33,8 +33,8 @@
                 </TextBlock>
             </HierarchicalDataTemplate>
 
-            <HierarchicalDataTemplate DataType="{x:Type rsztool:PfbFile+GameObjectData}"
-                                      ItemsSource="{Binding ., Converter={StaticResource PfbGameObjectDataSubItemsConverter}}"
+            <HierarchicalDataTemplate DataType="{x:Type rsztool_pfb:PfbGameObject}"
+                                      ItemsSource="{Binding ., Converter={StaticResource PfbGameObjectSubItemsConverter}}"
                                       ItemContainerStyle="{StaticResource TreeViewItemHideIfEmpty}">
                 <TextBlock Text="{Binding Name}">
                     <TextBlock.ContextMenu>

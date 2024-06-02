@@ -1,18 +1,25 @@
+using RszTool.User;
+
+
+namespace RszTool.User
+{
+    public struct UserHeaderStruct {
+        public uint magic;
+        public int resourceCount;
+        public int userdataCount;
+        public int infoCount;
+        public long resourceInfoOffset;
+        public long userdataInfoOffset;
+        public long dataOffset;
+    };
+}
+
+
 namespace RszTool
 {
     public class UserFile : BaseRszFile
     {
-        public struct HeaderStruct {
-            public uint magic;
-            public int resourceCount;
-            public int userdataCount;
-            public int infoCount;
-            public long resourceInfoOffset;
-            public long userdataInfoOffset;
-            public long dataOffset;
-        };
-
-        public StructModel<HeaderStruct> Header { get; } = new();
+        public StructModel<UserHeaderStruct> Header { get; } = new();
         public List<ResourceInfo> ResourceInfoList { get; } = new();
         public List<UserdataInfo> UserdataInfoList { get; } = new();
         public RSZFile? RSZ { get; private set; }

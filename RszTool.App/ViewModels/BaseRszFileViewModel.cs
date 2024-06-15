@@ -454,7 +454,8 @@ namespace RszTool.App.ViewModels
         public RszInstance Instance { get; } = instance;
 
         public string Name => Instance.Name;
-        public IEnumerable<object> Items => Converters.RszInstanceFieldsConverter.GetItems(Instance);
+        private object[]? items;
+        public IEnumerable<object> Items => items ??= Converters.RszInstanceFieldsConverter.GetItems(Instance).ToArray();
 
         public void NotifyItemsChanged()
         {

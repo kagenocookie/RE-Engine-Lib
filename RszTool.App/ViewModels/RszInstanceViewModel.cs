@@ -75,7 +75,8 @@ namespace RszTool.App.ViewModels
     {
         public RszInstance Instance => (RszInstance)instance.Values[Index];
         public override string Name => $"{Field.name} : {Instance.Name}";
-        public IEnumerable<object> Items => RszInstanceFieldsConverter.GetItems(Instance);
+        private object[]? items;
+        public IEnumerable<object> Items => items ??= RszInstanceFieldsConverter.GetItems(Instance).ToArray();
 
         public void NotifyItemsChanged()
         {
@@ -110,7 +111,8 @@ namespace RszTool.App.ViewModels
             }
         }
 
-        public IEnumerable<object> Items => GetItems();
+        private object[]? items;
+        public IEnumerable<object> Items => items ??= GetItems().ToArray();
 
         public void NotifyItemsChanged()
         {
@@ -190,7 +192,8 @@ namespace RszTool.App.ViewModels
     {
         public RszInstance Instance => (RszInstance)Values[Index];
         public override string Name => $"{Index}: {Instance.Name}";
-        public IEnumerable<object> Items => RszInstanceFieldsConverter.GetItems(Instance);
+        private object[]? items;
+        public IEnumerable<object> Items => items ??= RszInstanceFieldsConverter.GetItems(Instance).ToArray();
 
         public void NotifyItemsChanged()
         {

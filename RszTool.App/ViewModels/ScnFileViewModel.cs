@@ -27,13 +27,16 @@ namespace RszTool.App.ViewModels
             ScnFile.SetupGameObjects();
         }
 
+        private TreeItemViewModel[]? treeViewItems;
         public override IEnumerable<object> TreeViewItems
         {
             get
             {
-                yield return new TreeItemViewModel("Resources", ScnFile.ResourceInfoList);
-                yield return new FoldersHeader("Folders", Folders);
-                yield return new GameObjectsHeader("GameObjects", GameObjects);
+                return treeViewItems ??= [
+                    new TreeItemViewModel("Resources", ScnFile.ResourceInfoList),
+                    new FoldersHeader("Folders", Folders),
+                    new GameObjectsHeader("GameObjects", GameObjects),
+                ];
             }
         }
 

@@ -14,7 +14,8 @@ namespace RszTool.Test
             // TestParseScn();
             // TestParseScnRead();
             // TestScnExtractGameObjectToPfb();
-            TestParseRcolRead();
+            // TestParseRcolRead();
+            TestParseMotbank();
             // TestImportGameObject();
             // TestParseMdf();
             // TestMurMur3Hash();
@@ -179,6 +180,51 @@ namespace RszTool.Test
             }
         }
 
+        static void TestParseRcolRead()
+        {
+            string path = "test/wp5000.rcol.25";
+            RszFileOption option = new(GameName.re4);
+            RcolFile rcolFile = new(option, new FileHandler(path));
+            rcolFile.Read();
+        }
+
+        static void TestParseMotbank()
+        {
+            string path = "test/cha0.motbank.3";
+            string newPath = "test/cha0_new.motbank.3";
+            RszFileOption option = new(GameName.re4);
+            MotbankFile motbankFile = new(option, new FileHandler(path));
+            motbankFile.Read();
+            using FileHandler newFileHandler = new(newPath, true);
+            motbankFile.WriteTo(newFileHandler);
+
+            MotbankFile newMotbankFile = new(option, newFileHandler);
+            newMotbankFile.Read();
+
+            foreach (var item in newMotbankFile.MotlistItems)
+            {
+                Console.WriteLine($"{item.BankID} {item.Path}");
+            }
+        }
+
+        static void TestScnExtractGameObjectRSZ()
+        {
+            string path = "test/gimmick_st66_101.scn.20";
+            RszFileOption option = new(GameName.re4);
+            ScnFile scnFile = new(option, new FileHandler(path));
+            scnFile.Read();
+
+            if (scnFile.RSZ != null)
+            {
+                // Console.WriteLine(scnFile.RSZ.ObjectsStringify());
+                scnFile.SetupGameObjects();
+                FileHandler newFileHandler = new("test/gimmick_st66_101_new.rsz");
+                RSZFile newRSZ = new(option, newFileHandler);
+                bool success = scnFile.ExtractGameObjectRSZ("設置機銃砦１", newRSZ);
+                Console.WriteLine(success);
+            }
+        }
+
         static void TestScnExtractGameObjectToPfb()
         {
             string path = "test/gimmick_st66_101.scn.20";
@@ -194,14 +240,6 @@ namespace RszTool.Test
                 pfbFile.Write();
             }
             Console.WriteLine(success);
-        }
-
-        static void TestParseRcolRead()
-        {
-            string path = "test/wp5000.rcol.25";
-            RszFileOption option = new(GameName.re4);
-            RcolFile rcolFile = new(option, new FileHandler(path));
-            rcolFile.Read();
         }
 
         static void TestImportGameObject()

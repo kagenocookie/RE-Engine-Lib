@@ -335,7 +335,7 @@ namespace RszTool
                 for (int i = 0; i < header.embedCount; i++)
                 {
                     UVarFile embedFile = new(Option, handler.WithOffset(embedOffsets[i]));
-                    embedFile.Read(0, false);
+                    embedFile.Read();
                     EmbeddedUVARs.Add(embedFile);
                 }
             }

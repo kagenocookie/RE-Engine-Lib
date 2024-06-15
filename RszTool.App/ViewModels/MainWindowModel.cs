@@ -20,7 +20,7 @@ namespace RszTool.App.ViewModels
     {
         public event PropertyChangedEventHandler? PropertyChanged;
         public LayoutDocumentPane? LayoutDocumentPane { get; set; }
-        public LayoutDocument? SelectedTabItem { get; set; }
+        public LayoutContent? SelectedTabItem => LayoutDocumentPane?.SelectedContent;
         public FileExplorerViewModel FileExplorerViewModel { get; } = new();
         public AvalonDock.Themes.Theme DockingTheme { get; set; }
 
@@ -79,7 +79,6 @@ namespace RszTool.App.ViewModels
                 {
                     if (fileTab.FileViewModel.FilePath == path)
                     {
-                        SelectedTabItem = fileTab;
                         return;
                     }
                 }
@@ -136,9 +135,11 @@ namespace RszTool.App.ViewModels
                     return;
                 }
                 content.DataContext = fileViewModel;
-                LayoutDocument document = new FileTabItemViewModel(fileViewModel, content);
+                LayoutDocument document = new FileTabItemViewModel(fileViewModel, content)
+                {
+                    IsSelected = true
+                };
                 LayoutDocumentPane!.Children.Add(document);
-                SelectedTabItem = document;
 
                 SaveData.AddRecentFile(path);
             }
@@ -157,8 +158,15 @@ namespace RszTool.App.ViewModels
         {
             for (int i = 0; i < files.Length; i++)
             {
-                string file = files[i];
-                TryOpenFile(file);
+                string path = files[i];
+                if (Directory.Exists(path))
+                {
+                    FileExplorerViewModel.AddFolder(path);
+                }
+                else
+                {
+                    TryOpenFile(path);
+                }
             }
         }
 

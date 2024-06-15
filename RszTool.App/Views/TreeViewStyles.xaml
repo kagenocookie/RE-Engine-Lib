@@ -42,6 +42,14 @@
         </Setter>
     </Style>
 
+    <Style TargetType="VirtualizingStackPanel">
+       <Setter Property="UseLayoutRounding" Value="False"/>
+    </Style>
+
+    <Style TargetType="local:MyVirtualizingStackPanel">
+       <Setter Property="UseLayoutRounding" Value="False"/>
+    </Style>
+
     <Style TargetType="TreeViewItem">
         <Setter Property="Template">
             <Setter.Value>

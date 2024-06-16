@@ -884,7 +884,7 @@ namespace RszTool.Clip
             }
             if (clipHeader.namesOffsetExtra != null)
             {
-                Array.Fill(clipHeader.namesOffsetExtra, handler.Tell());
+                ((Span<long>)clipHeader.namesOffsetExtra).Fill(handler.Tell());
             }
             handler.AsciiStringTableFlush();
 
@@ -893,7 +893,7 @@ namespace RszTool.Clip
             handler.StringTableFlush();
 
             handler.Align(16);
-            
+
 
             handler.Align(16);
             clipHeader.endClipStructsOffset1 = handler.Tell();

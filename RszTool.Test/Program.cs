@@ -12,12 +12,12 @@ namespace RszTool.Test
             // TestParsePfbRe2();
             // TestParsePfbRead();
             // TestParseScn();
-            // TestParseScnRead();
+            TestParseScnRead();
             // TestScnExtractGameObjectToPfb();
             // TestParseRcolRead();
             // TestParseMotbank();
             // TestParseMotlist();
-            TestParseMotfsn2();
+            // TestParseMotfsn2();
             // TestParseUVarFile();
             // TestParseMsg();
             // TestImportGameObject();
@@ -165,22 +165,22 @@ namespace RszTool.Test
 
         static void TestParseScnRead()
         {
-            string path = "test/gimmick_st66_101.scn.20";
-            RszFileOption option = new(GameName.re4);
+            string path = @"C:\Users\An\Documents\Hack\Re\re4\RETool\re2\re_chunk_000\natives\x64\objectroot\scene\contents\main\catalog_1st.scn.19";
+            RszFileOption option = new(GameName.re2);
             ScnFile scnFile = new(option, new FileHandler(path));
             scnFile.Read();
 
             if (scnFile.RSZ != null)
             {
                 // Console.WriteLine(scnFile.RSZ.ObjectsStringify());
-                scnFile.SetupGameObjects();
-                if (scnFile.GameObjectDatas != null)
-                {
-                    foreach (var item in scnFile.GameObjectDatas)
-                    {
-                        Console.WriteLine(item.Name);
-                    }
-                }
+                // scnFile.SetupGameObjects();
+                // if (scnFile.GameObjects != null)
+                // {
+                //     foreach (var item in scnFile.GameObjects)
+                //     {
+                //         Console.WriteLine(item.Name);
+                //     }
+                // }
             }
         }
 
@@ -251,24 +251,6 @@ namespace RszTool.Test
             foreach (var item in newMsgFile.SubEntryList)
             {
                 Console.WriteLine($"{item}");
-            }
-        }
-
-        static void TestScnExtractGameObjectRSZ()
-        {
-            string path = "test/gimmick_st66_101.scn.20";
-            RszFileOption option = new(GameName.re4);
-            ScnFile scnFile = new(option, new FileHandler(path));
-            scnFile.Read();
-
-            if (scnFile.RSZ != null)
-            {
-                // Console.WriteLine(scnFile.RSZ.ObjectsStringify());
-                scnFile.SetupGameObjects();
-                FileHandler newFileHandler = new("test/gimmick_st66_101_new.rsz");
-                RSZFile newRSZ = new(option, newFileHandler);
-                bool success = scnFile.ExtractGameObjectRSZ("設置機銃砦１", newRSZ);
-                Console.WriteLine(success);
             }
         }
 

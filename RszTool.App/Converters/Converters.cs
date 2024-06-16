@@ -16,6 +16,18 @@ namespace RszTool.App.Converters
             {
                 yield return new ClassViewModel("UserDataInfo", userDataInfo, ["Path"]);
             }
+            else if (instance.RSZUserData is RSZUserDataInfo_TDB_LE_67 userDataInfo_TDB_LE_67)
+            {
+                var embeddedRSZ = userDataInfo_TDB_LE_67.EmbeddedRSZ;
+                if (embeddedRSZ != null &&
+                    embeddedRSZ.ObjectList.Count > 0)
+                {
+                    foreach (var item in GetItems(embeddedRSZ.ObjectList[0]))
+                    {
+                        yield return item;
+                    }
+                }
+            }
             else
             {
                 for (int i = 0; i < instance.Values.Length; i++)

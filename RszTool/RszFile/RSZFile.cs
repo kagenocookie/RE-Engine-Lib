@@ -97,6 +97,7 @@ namespace RszTool
                         RSZFile embeddedRSZFile = new(Option, handler.WithOffset(rszUserDataInfo.RSZOffset));
                         embeddedRSZFile.Read();
                         EmbeddedRSZFileList.Add(embeddedRSZFile);
+                        rszUserDataInfo.EmbeddedRSZ = embeddedRSZFile;
                         handler.Seek(pos);
                     }
                 }
@@ -663,6 +664,7 @@ namespace RszTool
         public int InstanceId { get => instanceId; set => instanceId = value; }
         public uint TypeId => typeId;
         public string? ClassName { get; set; }
+        public RSZFile? EmbeddedRSZ { get; set; }
 
         protected override bool DoRead(FileHandler handler)
         {

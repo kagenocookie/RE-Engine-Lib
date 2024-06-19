@@ -26,7 +26,7 @@ namespace RszTool.App
             Closing += OnClosing;
             if (DataContext is MainWindowModel mainWindowModel)
             {
-                mainWindowModel.LayoutDocumentPane = LayoutDocumentPane;
+                mainWindowModel.LayoutDocumentPaneGroup = LayoutDocumentPaneGroup;
             }
         }
 
@@ -91,7 +91,7 @@ namespace RszTool.App
             var activeContent = ((LayoutRoot)sender).ActiveContent;
             if (activeContent != null)
             {
-                
+
             }
         }
     }

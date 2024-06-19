@@ -139,7 +139,7 @@
                         </LayoutAnchorablePane>
                     </LayoutAnchorablePaneGroup>
 
-                    <LayoutDocumentPaneGroup>
+                    <LayoutDocumentPaneGroup x:Name="LayoutDocumentPaneGroup">
                         <LayoutDocumentPane x:Name="LayoutDocumentPane">
                         </LayoutDocumentPane>
                     </LayoutDocumentPaneGroup>

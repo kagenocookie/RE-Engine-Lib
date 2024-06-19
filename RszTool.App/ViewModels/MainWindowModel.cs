@@ -19,8 +19,51 @@ namespace RszTool.App.ViewModels
     public class MainWindowModel : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler? PropertyChanged;
-        public LayoutDocumentPane? LayoutDocumentPane { get; set; }
-        public LayoutContent? SelectedTabItem => LayoutDocumentPane?.SelectedContent;
+        public LayoutDocumentPaneGroup? LayoutDocumentPaneGroup { get; set; }
+        public LayoutContent? SelectedTabItem
+        {
+            get
+            {
+                foreach (var pane in GetLayoutDocumentPanes())
+                {
+                    if (pane.SelectedContent is LayoutContent content &&
+                        content.IsActive)
+                    {
+                        return content;
+                    }
+                }
+                if (LayoutDocumentPaneGroup?.Root?.ActiveContent is
+                    FileTabItemViewModel fileTabItemViewModel)
+                {
+                    return fileTabItemViewModel;
+                }
+                return null;
+            }
+        }
+
+        private static IEnumerable<LayoutDocumentPane> GetLayoutDocumentPanes(LayoutDocumentPaneGroup group)
+        {
+            foreach (var child in group.Children)
+            {
+                if (child is LayoutDocumentPane pane)
+                {
+                    yield return pane;
+                }
+                else if (child is LayoutDocumentPaneGroup subGroup)
+                {
+                    foreach (var item in GetLayoutDocumentPanes(subGroup))
+                    {
+                        yield return item;
+                    }
+                }
+            }
+        }
+
+        public IEnumerable<LayoutDocumentPane> GetLayoutDocumentPanes()
+        {
+            return GetLayoutDocumentPanes(LayoutDocumentPaneGroup!);
+        }
+
         public FileExplorerViewModel FileExplorerViewModel { get; } = new();
         public AvalonDock.Themes.Theme DockingTheme { get; set; }
 
@@ -73,13 +116,16 @@ namespace RszTool.App.ViewModels
         public void OpenFile(string path)
         {
             // check file opened
-            foreach (var item in LayoutDocumentPane!.Children)
+            foreach (var pane in GetLayoutDocumentPanes())
             {
-                if (item is FileTabItemViewModel fileTab)
+                foreach (var item in pane.Children)
                 {
-                    if (fileTab.FileViewModel.FilePath == path)
+                    if (item is FileTabItemViewModel fileTab)
                     {
-                        return;
+                        if (fileTab.FileViewModel.FilePath == path)
+                        {
+                            return;
+                        }
                     }
                 }
             }
@@ -139,7 +185,14 @@ namespace RszTool.App.ViewModels
                 {
                     IsSelected = true
                 };
-                LayoutDocumentPane!.Children.Add(document);
+                if (GetLayoutDocumentPanes().FirstOrDefault() is LayoutDocumentPane pane)
+                {
+                    pane.Children.Add(document);
+                }
+                else
+                {
+                    throw new InvalidOperationException("No LayoutDocumentPaneGroup");
+                }
 
                 SaveData.AddRecentFile(path);
             }
@@ -248,7 +301,7 @@ namespace RszTool.App.ViewModels
         {
             if (SelectedTabItem is FileTabItemViewModel fileTab && OnTabClose(fileTab))
             {
-                LayoutDocumentPane!.Children.Remove(fileTab);
+                fileTab.Close();
             }
         }
 
@@ -284,11 +337,14 @@ namespace RszTool.App.ViewModels
 
         public bool OnExit()
         {
-            foreach (var item in LayoutDocumentPane!.Children)
+            foreach (var pane in GetLayoutDocumentPanes())
             {
-                if (item is FileTabItemViewModel fileTab)
+                foreach (var item in pane.Children)
                 {
-                    if (!OnTabClose(fileTab)) return false;
+                    if (item is FileTabItemViewModel fileTab)
+                    {
+                        if (!OnTabClose(fileTab)) return false;
+                    }
                 }
             }
             return true;

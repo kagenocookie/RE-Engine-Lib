@@ -226,6 +226,9 @@ Currently, user, scn, pfb files are supported</value>
   <data name="ClearRecentFilesHistory" xml:space="preserve">
     <value>Clear recent files history</value>
   </data>
+  <data name="RemoveNonExistedRecentFilesHistory" xml:space="preserve">
+    <value>Remove non-existed recent files history</value>
+  </data>
   <data name="Help" xml:space="preserve">
     <value>Help</value>
   </data>

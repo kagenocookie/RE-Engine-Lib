@@ -64,6 +64,7 @@
                             <CollectionContainer Collection="{Binding Source={StaticResource RecentFiles}}" />
                             <Separator/>
                             <MenuItem Header="{res:Text ClearRecentFilesHistory}" Command="{Binding ClearRecentFilesHistory}" />
+                            <MenuItem Header="{res:Text RemoveNonExistedRecentFilesHistory}" Command="{Binding RemoveNonExistedRecentFilesHistory}" />
                         </CompositeCollection>
                     </MenuItem.ItemsSource>
                     <MenuItem.ItemContainerStyle>

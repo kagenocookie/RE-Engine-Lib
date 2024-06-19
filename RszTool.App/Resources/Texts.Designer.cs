@@ -115,6 +115,15 @@ namespace RszTool.App.Resources {
         }
 
         /// <summary>
+        ///   查找类似 Remove non-existed recent files history 的本地化字符串。
+        /// </summary>
+        internal static string RemoveNonExistedRecentFilesHistory {
+            get {
+                return ResourceManager.GetString("RemoveNonExistedRecentFilesHistory", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   查找类似 Close 的本地化字符串。
         /// </summary>
         internal static string Close {

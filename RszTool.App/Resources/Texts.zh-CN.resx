@@ -224,7 +224,10 @@
     <value>打开最近的文件</value>
   </data>
   <data name="ClearRecentFilesHistory" xml:space="preserve">
-    <value>清除最近打开记录</value>
+    <value>清除最近打开文件记录</value>
+  </data>
+  <data name="RemoveNonExistedRecentFilesHistory" xml:space="preserve">
+    <value>清除不存在的文件记录</value>
   </data>
   <data name="Help" xml:space="preserve">
     <value>帮助</value>

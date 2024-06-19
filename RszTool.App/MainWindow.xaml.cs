@@ -27,6 +27,7 @@ namespace RszTool.App
             if (DataContext is MainWindowModel mainWindowModel)
             {
                 mainWindowModel.LayoutDocumentPaneGroup = LayoutDocumentPaneGroup;
+                mainWindowModel.PostInit();
             }
         }
 

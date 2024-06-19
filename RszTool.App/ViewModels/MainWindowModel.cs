@@ -7,6 +7,7 @@ using System.Text.Json.Serialization;
 using System.Windows;
 using System.Windows.Controls;
 using AvalonDock.Layout;
+using AvalonDock.Layout.Serialization;
 using AvalonDock.Themes;
 using Microsoft.Win32;
 using RszTool.App.Common;
@@ -18,6 +19,7 @@ namespace RszTool.App.ViewModels
 {
     public class MainWindowModel : INotifyPropertyChanged
     {
+        private const string LayoutConfigFileName = "RszTool.App.Layout.config";
         public event PropertyChangedEventHandler? PropertyChanged;
         public LayoutDocumentPaneGroup? LayoutDocumentPaneGroup { get; set; }
         public LayoutContent? SelectedTabItem
@@ -92,6 +94,7 @@ namespace RszTool.App.ViewModels
         public RelayCommand CloseCommand => new(OnClose);
         public RelayCommand QuitCommand => new(OnQuit);
         public RelayCommand ClearRecentFilesHistory => new(OnClearRecentFilesHistory);
+        public RelayCommand RemoveNonExistedRecentFilesHistory => new(OnRemoveNonExistedRecentFilesHistory);
         public RelayCommand OpenRecentFile => new(OnOpenRecentFile);
         public RelayCommand OpenAbout => new(OnOpenAbout);
 
@@ -107,6 +110,31 @@ namespace RszTool.App.ViewModels
             }
             FileExplorerViewModel.OnFileSelected += f => OpenFile(f.Path);
             DockingTheme = IsDarkTheme ? new Vs2013DarkTheme() : new Vs2013LightTheme();
+        }
+
+        public void PostInit()
+        {
+            if (SaveData.OpenedFiles.Count > 0)
+            {
+                List<string> files = SaveData.OpenedFiles;
+                SaveData.OpenedFiles = new();
+                foreach (var path in files)
+                {
+                    OpenFile(path);
+                }
+            }
+            /* if (File.Exists(LayoutConfigFileName))
+            {
+                try
+                {
+                    var serializer = new XmlLayoutSerializer(LayoutDocumentPaneGroup!.Root.Manager);
+                    using var stream = new StreamReader(LayoutConfigFileName);
+                    serializer.Deserialize(stream);
+                }
+                catch (Exception)
+                {
+                }
+            } */
         }
 
         /// <summary>
@@ -195,6 +223,7 @@ namespace RszTool.App.ViewModels
                 }
 
                 SaveData.AddRecentFile(path);
+                SaveData.OpenedFiles.Add(path);
             }
             else
             {
@@ -302,6 +331,7 @@ namespace RszTool.App.ViewModels
             if (SelectedTabItem is FileTabItemViewModel fileTab && OnTabClose(fileTab))
             {
                 fileTab.Close();
+                SaveData.OpenedFiles.Remove(fileTab.FileViewModel.FilePath!);
             }
         }
 
@@ -316,6 +346,19 @@ namespace RszTool.App.ViewModels
         private void OnClearRecentFilesHistory(object arg)
         {
             SaveData.RecentFiles.Clear();
+        }
+
+        private void OnRemoveNonExistedRecentFilesHistory(object arg)
+        {
+            List<string> newList = new();
+            foreach (var item in SaveData.RecentFiles)
+            {
+                if (File.Exists(item))
+                {
+                    newList.Add(item);
+                }
+            }
+            SaveData.RecentFiles = new(newList);
         }
 
         private void OnOpenRecentFile(object arg)
@@ -347,6 +390,9 @@ namespace RszTool.App.ViewModels
                     }
                 }
             }
+            /* var serializer = new XmlLayoutSerializer(LayoutDocumentPaneGroup!.Root.Manager);
+            using var stream = new StreamWriter(LayoutConfigFileName);
+            serializer.Serialize(stream); */
             return true;
         }
 

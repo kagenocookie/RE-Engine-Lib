@@ -94,6 +94,17 @@ namespace RszTool.App.ViewModels
 
         public bool Save()
         {
+            string? filePath = FilePath;
+            if (System.IO.File.Exists(filePath))
+            {
+                string bak1 = filePath + ".bak1";
+                string bak2 = filePath + ".bak2";
+                if (System.IO.File.Exists(bak1))
+                {
+                    System.IO.File.Copy(bak1, bak2, true);
+                }
+                System.IO.File.Copy(filePath, bak1, true);
+            }
             bool result = File.Save();
             if (result)
             {
@@ -112,6 +123,15 @@ namespace RszTool.App.ViewModels
                 OnPropertyChanged(nameof(FilePath));
             }
             return result;
+        }
+
+        public static void RestoreFile(string filePath, int slot)
+        {
+            string bak = $"{filePath}.bak{slot}";
+            if (System.IO.File.Exists(bak))
+            {
+                System.IO.File.Copy(bak, filePath, true);
+            }
         }
 
         public bool Reopen()

@@ -220,6 +220,9 @@ Currently, user, scn, pfb files are supported</value>
   <data name="FileChangedPrompt" xml:space="preserve">
     <value>File is changed, do you want to save it?</value>
   </data>
+  <data name="FileNotExists" xml:space="preserve">
+    <value>File not exists</value>
+  </data>
   <data name="OpenRecentFiles" xml:space="preserve">
     <value>Open recent files</value>
   </data>

@@ -134,15 +134,14 @@
                 <LayoutPanel Orientation="Horizontal">
                     <LayoutAnchorablePaneGroup DockWidth="300">
                         <LayoutAnchorablePane>
-                            <LayoutAnchorable Title="File Explorer" ContentId="toolWindow1">
+                            <LayoutAnchorable Title="File Explorer" ContentId="FileExplorerWindow">
                                 <views:FileExplorerTree DataContext="{Binding FileExplorerViewModel}" HorizontalAlignment="Stretch" />
                             </LayoutAnchorable>
                         </LayoutAnchorablePane>
                     </LayoutAnchorablePaneGroup>
 
-                    <LayoutDocumentPaneGroup x:Name="LayoutDocumentPaneGroup">
-                        <LayoutDocumentPane x:Name="LayoutDocumentPane">
-                        </LayoutDocumentPane>
+                    <LayoutDocumentPaneGroup>
+                        <LayoutDocumentPane />
                     </LayoutDocumentPaneGroup>
                 </LayoutPanel>
             </LayoutRoot>

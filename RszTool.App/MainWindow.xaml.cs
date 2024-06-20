@@ -26,7 +26,7 @@ namespace RszTool.App
             Closing += OnClosing;
             if (DataContext is MainWindowModel mainWindowModel)
             {
-                mainWindowModel.LayoutDocumentPaneGroup = LayoutDocumentPaneGroup;
+                mainWindowModel.DockingManager = dockManager;
                 mainWindowModel.PostInit();
             }
         }

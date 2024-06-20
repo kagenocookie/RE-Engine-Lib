@@ -1,11 +1,7 @@
-using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.IO;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Windows;
-using System.Windows.Controls;
+using AvalonDock;
 using AvalonDock.Layout;
 using AvalonDock.Layout.Serialization;
 using AvalonDock.Themes;
@@ -13,7 +9,6 @@ using Microsoft.Win32;
 using RszTool.App.Common;
 using RszTool.App.Resources;
 using RszTool.App.Views;
-using RszTool.Common;
 
 namespace RszTool.App.ViewModels
 {
@@ -21,53 +16,21 @@ namespace RszTool.App.ViewModels
     {
         private const string LayoutConfigFileName = "RszTool.App.Layout.config";
         public event PropertyChangedEventHandler? PropertyChanged;
-        public LayoutDocumentPaneGroup? LayoutDocumentPaneGroup { get; set; }
-        public LayoutContent? SelectedTabItem
-        {
-            get
-            {
-                foreach (var pane in GetLayoutDocumentPanes())
-                {
-                    if (pane.SelectedContent is LayoutContent content &&
-                        content.IsActive)
-                    {
-                        return content;
-                    }
-                }
-                if (LayoutDocumentPaneGroup?.Root?.ActiveContent is
-                    FileTabItemViewModel fileTabItemViewModel)
-                {
-                    return fileTabItemViewModel;
-                }
-                return null;
-            }
-        }
-
-        private static IEnumerable<LayoutDocumentPane> GetLayoutDocumentPanes(LayoutDocumentPaneGroup group)
-        {
-            foreach (var child in group.Children)
-            {
-                if (child is LayoutDocumentPane pane)
-                {
-                    yield return pane;
-                }
-                else if (child is LayoutDocumentPaneGroup subGroup)
-                {
-                    foreach (var item in GetLayoutDocumentPanes(subGroup))
-                    {
-                        yield return item;
-                    }
-                }
-            }
-        }
+        public DockingManager? DockingManager { get; set; }
+        public LayoutContent? SelectedTabItem => DockingManager!.Layout.ActiveContent;
 
         public IEnumerable<LayoutDocumentPane> GetLayoutDocumentPanes()
         {
-            return GetLayoutDocumentPanes(LayoutDocumentPaneGroup!);
+            return DockingManager!.Layout.Descendents().OfType<LayoutDocumentPane>();
+        }
+
+        public IEnumerable<FileTabItemViewModel> GetFileTabs()
+        {
+            return DockingManager!.Layout.Descendents().OfType<FileTabItemViewModel>();
         }
 
         public FileExplorerViewModel FileExplorerViewModel { get; } = new();
-        public AvalonDock.Themes.Theme DockingTheme { get; set; }
+        public Theme DockingTheme { get; set; }
 
         private BaseRszFileViewModel? CurrentFile =>
             SelectedTabItem is FileTabItemViewModel fileTabItemViewModel ?
@@ -120,41 +83,45 @@ namespace RszTool.App.ViewModels
                 SaveData.OpenedFiles = new();
                 foreach (var path in files)
                 {
-                    OpenFile(path);
+                    if (File.Exists(path))
+                    {
+                        OpenFile(path);
+                    }
                 }
             }
-            /* if (File.Exists(LayoutConfigFileName))
+            if (File.Exists(LayoutConfigFileName))
             {
                 try
                 {
-                    var serializer = new XmlLayoutSerializer(LayoutDocumentPaneGroup!.Root.Manager);
+                    var serializer = new XmlLayoutSerializer(DockingManager);
                     using var stream = new StreamReader(LayoutConfigFileName);
                     serializer.Deserialize(stream);
+
+                    SaveData.OpenedFiles.Clear();
+                    foreach (var fileTab in GetFileTabs())
+                    {
+                        SaveData.OpenedFiles.Add(fileTab.FileViewModel.FilePath!);
+                    }
                 }
                 catch (Exception)
                 {
                 }
-            } */
+            }
         }
 
         /// <summary>
         /// 打开文件
         /// </summary>
         /// <param name="path"></param>
-        public void OpenFile(string path)
+        public bool OpenFile(string path)
         {
+            if (!File.Exists(path)) return false;
             // check file opened
-            foreach (var pane in GetLayoutDocumentPanes())
+            foreach (var fileTab in GetFileTabs())
             {
-                foreach (var item in pane.Children)
+                if (fileTab.FileViewModel.FilePath == path)
                 {
-                    if (item is FileTabItemViewModel fileTab)
-                    {
-                        if (fileTab.FileViewModel.FilePath == path)
-                        {
-                            return;
-                        }
-                    }
+                    return true;
                 }
             }
 
@@ -162,54 +129,13 @@ namespace RszTool.App.ViewModels
             if (!File.Exists(rszJsonFile))
             {
                 MessageBoxUtils.Warning(string.Format(Texts.RszJsonNotFound, rszJsonFile));
-                return;
+                return false;
             }
 
-            BaseRszFileViewModel? fileViewModel = null;
-            ContentControl? content = null;
-            RszFileOption option = new(SaveData.GameName);
-            switch (RszUtils.GetFileType(path))
+            var content = RszFileViewFactory.Create(SaveData.GameName, path);
+            if (content != null)
             {
-                case FileType.user:
-                    fileViewModel = new UserFileViewModel(new(option, new(path)));
-                    content = new RszUserFileView();
-                    break;
-                case FileType.pfb:
-                    fileViewModel = new PfbFileViewModel(new(option, new(path)));
-                    content = new RszPfbFileView();
-                    break;
-                case FileType.scn:
-                    fileViewModel = new ScnFileViewModel(new(option, new(path)));
-                    content = new RszScnFileView();
-                    break;
-            }
-            if (fileViewModel != null && content != null)
-            {
-                bool readSuccess = false;
-                for (int tryCount = 0; tryCount < 5; tryCount++)
-                {
-                    try
-                    {
-                        readSuccess = fileViewModel.Read();
-                        break;
-                    }
-                    catch (RszRetryOpenException e)
-                    {
-                        fileViewModel.File.FileHandler.Seek(0);
-                        MessageBoxUtils.Info(string.Format(Texts.TryReopen, e.Message));
-                    }
-                    catch (Exception)
-                    {
-                        throw;
-                    }
-                }
-                if (!readSuccess)
-                {
-                    MessageBoxUtils.Error(Texts.ReadFailed);
-                    return;
-                }
-                content.DataContext = fileViewModel;
-                LayoutDocument document = new FileTabItemViewModel(fileViewModel, content)
+                LayoutDocument document = new FileTabItemViewModel(content)
                 {
                     IsSelected = true
                 };
@@ -224,11 +150,13 @@ namespace RszTool.App.ViewModels
 
                 SaveData.AddRecentFile(path);
                 SaveData.OpenedFiles.Add(path);
+                return true;
             }
             else
             {
                 MessageBoxUtils.Info(Texts.NotSupportedFormat);
             }
+            return false;
         }
 
         public void TryOpenFile(string path)
@@ -330,8 +258,8 @@ namespace RszTool.App.ViewModels
         {
             if (SelectedTabItem is FileTabItemViewModel fileTab && OnTabClose(fileTab))
             {
-                fileTab.Close();
                 SaveData.OpenedFiles.Remove(fileTab.FileViewModel.FilePath!);
+                fileTab.Close();
             }
         }
 
@@ -380,19 +308,13 @@ namespace RszTool.App.ViewModels
 
         public bool OnExit()
         {
-            foreach (var pane in GetLayoutDocumentPanes())
+            foreach (var fileTab in GetFileTabs())
             {
-                foreach (var item in pane.Children)
-                {
-                    if (item is FileTabItemViewModel fileTab)
-                    {
-                        if (!OnTabClose(fileTab)) return false;
-                    }
-                }
+                if (!OnTabClose(fileTab)) return false;
             }
-            /* var serializer = new XmlLayoutSerializer(LayoutDocumentPaneGroup!.Root.Manager);
+            var serializer = new XmlLayoutSerializer(DockingManager);
             using var stream = new StreamWriter(LayoutConfigFileName);
-            serializer.Serialize(stream); */
+            serializer.Serialize(stream);
             return true;
         }
 
@@ -406,20 +328,80 @@ namespace RszTool.App.ViewModels
 
     public class FileTabItemViewModel : LayoutDocument
     {
-        public FileTabItemViewModel(BaseRszFileViewModel fileViewModel, object content, bool isSelected = false)
+        public FileTabItemViewModel()
         {
-            Title = fileViewModel.FileName!;
-            Content = content;
-            IsSelected = isSelected;
-            FileViewModel = fileViewModel;
-            fileViewModel.HeaderChanged += UpdateHeader;
         }
 
-        public BaseRszFileViewModel FileViewModel { get; set; }
+        public FileTabItemViewModel(FrameworkElement content)
+        {
+            Content = content;
+            var fileViewModel = FileViewModel;
+            fileViewModel.HeaderChanged += UpdateHeader;
+            Title = fileViewModel.FileName;
+            ContentId = fileViewModel.FilePath;
+        }
+
+        public BaseRszFileViewModel FileViewModel => (BaseRszFileViewModel)((FrameworkElement)Content).DataContext;
 
         public void UpdateHeader()
         {
-            Title = FileViewModel.FileName + (FileViewModel.Changed ? "*" : "");
+            var fileViewModel = FileViewModel;
+            Title = fileViewModel.FileName + (fileViewModel.Changed ? "*" : "");
+        }
+    }
+
+
+    public class RszFileViewFactory
+    {
+        public static FrameworkElement? Create(GameName gameName, string path)
+        {
+            BaseRszFileViewModel? fileViewModel = null;
+            RszFileOption option = new(gameName);
+            FrameworkElement? content = null;
+            switch (RszUtils.GetFileType(path))
+            {
+                case FileType.user:
+                    fileViewModel = new UserFileViewModel(new(option, new(path)));
+                    content = new RszUserFileView();
+                    break;
+                case FileType.pfb:
+                    fileViewModel = new PfbFileViewModel(new(option, new(path)));
+                    content = new RszPfbFileView();
+                    break;
+                case FileType.scn:
+                    fileViewModel = new ScnFileViewModel(new(option, new(path)));
+                    content = new RszScnFileView();
+                    break;
+            }
+            if (fileViewModel != null && content != null)
+            {
+                bool readSuccess = false;
+                for (int tryCount = 0; tryCount < 5; tryCount++)
+                {
+                    try
+                    {
+                        readSuccess = fileViewModel.Read();
+                        break;
+                    }
+                    catch (RszRetryOpenException e)
+                    {
+                        fileViewModel.File.FileHandler.Seek(0);
+                        MessageBoxUtils.Info(string.Format(Texts.TryReopen, e.Message));
+                    }
+                    catch (Exception)
+                    {
+                        throw;
+                    }
+                }
+                if (!readSuccess)
+                {
+                    MessageBoxUtils.Error(Texts.ReadFailed);
+                    return null;
+                }
+                content.DataContext = fileViewModel;
+                return content;
+            }
+            return null;
         }
     }
 }

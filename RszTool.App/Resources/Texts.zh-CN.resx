@@ -220,6 +220,9 @@
   <data name="FileChangedPrompt" xml:space="preserve">
     <value>文件已修改，是否保存？</value>
   </data>
+  <data name="FileNotExists" xml:space="preserve">
+    <value>文件不存在</value>
+  </data>
   <data name="OpenRecentFiles" xml:space="preserve">
     <value>打开最近的文件</value>
   </data>

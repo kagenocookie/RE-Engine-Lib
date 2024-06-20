@@ -205,6 +205,15 @@ namespace RszTool.App.Resources {
         }
 
         /// <summary>
+        ///   查找类似 File not exists 的本地化字符串。
+        /// </summary>
+        internal static string FileNotExists {
+            get {
+                return ResourceManager.GetString("FileNotExists", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   查找类似 Find GameObjects 的本地化字符串。
         /// </summary>
         internal static string FindGameObjects {

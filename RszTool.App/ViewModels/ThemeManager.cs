@@ -28,11 +28,18 @@ namespace RszTool.App.ViewModels
             {
                 isDarkTheme = value;
                 var mergedDictionaries = Application.Current.Resources.MergedDictionaries;
-                mergedDictionaries.Clear();
-                mergedDictionaries.Add(new ResourceDictionary()
+                var resourceDictionary = new ResourceDictionary()
                 {
                     Source = new Uri(isDarkTheme ? "Themes/DarkTheme.xaml" : "Themes/LightTheme.xaml", UriKind.Relative)
-                });
+                };
+                if (mergedDictionaries.Count == 0)
+                {
+                    mergedDictionaries.Add(resourceDictionary);
+                }
+                else
+                {
+                    mergedDictionaries[0] = resourceDictionary;
+                }
                 PropertyChanged?.Invoke(this, new(nameof(IsDarkTheme)));
             }
         }

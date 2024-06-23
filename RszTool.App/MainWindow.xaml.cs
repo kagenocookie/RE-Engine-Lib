@@ -27,7 +27,7 @@ namespace RszTool.App
             if (DataContext is MainWindowModel mainWindowModel)
             {
                 mainWindowModel.DockingManager = dockManager;
-                mainWindowModel.PostInit();
+                Common.AppUtils.TryAction(mainWindowModel.PostInit);
             }
         }
 

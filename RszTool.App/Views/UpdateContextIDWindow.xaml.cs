@@ -13,6 +13,11 @@ namespace RszTool.App.Views
             InitializeComponent();
         }
 
-        public IEnumerable<GameObjectContextID> TreeViewItems { get; set; } = Array.Empty<GameObjectContextID>();
+        public GameObjectContextID[] TreeViewItems { get; set; } = [];
+
+        private void OnApplyOffset(object sender, RoutedEventArgs e)
+        {
+            GameObjectCopyHelper.AutoIncreaseIndex(TreeViewItems);
+        }
     }
 }

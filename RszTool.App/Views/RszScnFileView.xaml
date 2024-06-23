@@ -17,7 +17,6 @@
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="TreeViewStyles.xaml" />
                 <ResourceDictionary Source="TreeViewTemplate.xaml" />
             </ResourceDictionary.MergedDictionaries>
 

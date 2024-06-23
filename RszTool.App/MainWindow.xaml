@@ -36,6 +36,7 @@
         <KeyBinding Command="{Binding AddFolderCommand}" Modifiers="Control+Shift" Key="O" />
         <KeyBinding Command="{Binding CloseCommand}" Modifiers="Control" Key="W" />
         <KeyBinding Command="{Binding QuitCommand}" Modifiers="Control" Key="Q" />
+        <KeyBinding Command="{Binding PreferenceCommand}" Modifiers="Control" Key="OemComma" />
     </Window.InputBindings>
     <Window.DataContext>
         <viewmodels:MainWindowModel />
@@ -80,6 +81,8 @@
                 <MenuItem Header="{res:Text Reopen}" Command="{Binding ReopenCommand}" InputGestureText="Ctrl+R" />
                 <MenuItem Header="{res:Text AddFolder}" Command="{Binding AddFolderCommand}" InputGestureText="Ctrl+Shift+O" />
                 <MenuItem Header="{res:Text Close}" Command="{Binding CloseCommand}" InputGestureText="Ctrl+W" />
+                <Separator />
+                <MenuItem Header="{res:Text Preference}" Command="{Binding PreferenceCommand}" InputGestureText="Ctrl+," />
                 <Separator />
                 <MenuItem Header="{res:Text Quit}" Command="{Binding QuitCommand}" InputGestureText="Ctrl+Q" />
             </MenuItem>

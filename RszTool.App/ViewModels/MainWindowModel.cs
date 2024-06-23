@@ -56,6 +56,7 @@ namespace RszTool.App.ViewModels
         public RelayCommand AddFolderCommand => new(OnAddFolder);
         public RelayCommand CloseCommand => new(OnClose);
         public RelayCommand QuitCommand => new(OnQuit);
+        public RelayCommand PreferenceCommand => new(OnPreference);
         public RelayCommand ClearRecentFilesHistory => new(OnClearRecentFilesHistory);
         public RelayCommand RemoveNonExistedRecentFilesHistory => new(OnRemoveNonExistedRecentFilesHistory);
         public RelayCommand OpenRecentFile => new(OnOpenRecentFile);
@@ -100,6 +101,7 @@ namespace RszTool.App.ViewModels
                     SaveData.OpenedFiles.Clear();
                     foreach (var fileTab in GetFileTabs())
                     {
+                        fileTab.PostInit();
                         SaveData.OpenedFiles.Add(fileTab.FileViewModel.FilePath!);
                     }
                 }
@@ -251,14 +253,14 @@ namespace RszTool.App.ViewModels
                 }
                 else if (result == MessageBoxResult.Cancel) return false;
             }
+            SaveData.OpenedFiles.Remove(fileTab.FileViewModel.FilePath!);
             return true;
         }
 
         private void OnClose(object arg)
         {
-            if (SelectedTabItem is FileTabItemViewModel fileTab && OnTabClose(fileTab))
+            if (SelectedTabItem is FileTabItemViewModel fileTab)
             {
-                SaveData.OpenedFiles.Remove(fileTab.FileViewModel.FilePath!);
                 fileTab.Close();
             }
         }
@@ -269,6 +271,13 @@ namespace RszTool.App.ViewModels
             {
                 Application.Current.Shutdown();
             }
+        }
+
+        private void OnPreference(object arg)
+        {
+            PreferenceWindow preferenceWindow = new();
+            preferenceWindow.DataContext = SaveData;
+            preferenceWindow.ShowDialog();
         }
 
         private void OnClearRecentFilesHistory(object arg)
@@ -335,6 +344,11 @@ namespace RszTool.App.ViewModels
         public FileTabItemViewModel(FrameworkElement content)
         {
             Content = content;
+            PostInit();
+        }
+
+        public void PostInit()
+        {
             var fileViewModel = FileViewModel;
             fileViewModel.HeaderChanged += UpdateHeader;
             Title = fileViewModel.FileName;

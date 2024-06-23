@@ -266,7 +266,7 @@ Currently, user, scn, pfb files are supported</value>
     <value>Paste instance as component</value>
   </data>
   <data name="ReadFailed" xml:space="preserve">
-    <value>Read failed.</value>
+    <value>Read failed</value>
   </data>
   <data name="TryReopen" xml:space="preserve">
     <value>Will try reopen, because {0}, better reopen other opened file manually.</value>
@@ -282,5 +282,14 @@ Currently, user, scn, pfb files are supported</value>
   </data>
   <data name="OpenInExplorer" xml:space="preserve">
     <value>Open in explorer</value>
+  </data>
+  <data name="ContextIDIndexIncrementOffset" xml:space="preserve">
+    <value>ContextID Index Increment Offset</value>
+  </data>
+  <data name="Preference" xml:space="preserve">
+    <value>Preference</value>
+  </data>
+  <data name="ApplyOffset" xml:space="preserve">
+    <value>Apply offset</value>
   </data>
 </root>

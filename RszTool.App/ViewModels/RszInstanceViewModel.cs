@@ -80,6 +80,7 @@ namespace RszTool.App.ViewModels
 
         public void NotifyItemsChanged()
         {
+            items = null;
             OnPropertyChanged(nameof(Items));
         }
 
@@ -116,6 +117,7 @@ namespace RszTool.App.ViewModels
 
         public void NotifyItemsChanged()
         {
+            items = null;
             OnPropertyChanged(nameof(Items));
         }
 
@@ -197,6 +199,7 @@ namespace RszTool.App.ViewModels
 
         public void NotifyItemsChanged()
         {
+            items = null;
             OnPropertyChanged(nameof(Items));
         }
 

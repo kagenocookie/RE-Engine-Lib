@@ -52,6 +52,7 @@ namespace RszTool.App.ViewModels
         public RelayCommand AddComponent => new(OnAddComponent);
         public RelayCommand PasteInstanceAsComponent => new(OnPasteInstanceAsComponent);
         public RelayCommand RemoveComponent => new(OnRemoveComponent);
+        public RelayCommand ParseTransformClipboard => new(OnParseTransformClipboard);
 
         /// <summary>
         /// Update re4 chainsaw.ContextID
@@ -229,6 +230,15 @@ namespace RszTool.App.ViewModels
         {
             var item = (GameObejctComponentViewModel)arg;
             if (ScnFile.RemoveComponent(item.GameObject, item.Instance))
+            {
+                Changed = true;
+            }
+        }
+
+        private void OnParseTransformClipboard(object arg)
+        {
+            var item = (GameObejctComponentViewModel)arg;
+            if (item.ParseTransformClipboard())
             {
                 Changed = true;
             }

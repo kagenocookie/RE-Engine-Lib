@@ -31,6 +31,7 @@ namespace RszTool.App.ViewModels
         public RelayCommand AddComponent => new(OnAddComponent);
         public RelayCommand PasteInstanceAsComponent => new(OnPasteInstanceAsComponent);
         public RelayCommand RemoveComponent => new(OnRemoveComponent);
+        public RelayCommand ParseTransformClipboard => new(OnParseTransformClipboard);
 
         public override void PostRead()
         {
@@ -166,6 +167,15 @@ namespace RszTool.App.ViewModels
             var gameObject = item.GameObject;
             PfbFile.RemoveComponent(gameObject, item.Instance);
             Changed = true;
+        }
+
+        private void OnParseTransformClipboard(object arg)
+        {
+            var item = (GameObejctComponentViewModel)arg;
+            if (item.ParseTransformClipboard())
+            {
+                Changed = true;
+            }
         }
     }
 }

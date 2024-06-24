@@ -292,4 +292,7 @@ Currently, user, scn, pfb files are supported</value>
   <data name="ApplyOffset" xml:space="preserve">
     <value>Apply offset</value>
   </data>
+  <data name="ParseTransformClipboard" xml:space="preserve">
+    <value>Parse Transform From Clipboard</value>
+  </data>
 </root>

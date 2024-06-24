@@ -292,4 +292,7 @@
   <data name="ApplyOffset" xml:space="preserve">
     <value>应用偏移</value>
   </data>
+  <data name="ParseTransformClipboard" xml:space="preserve">
+    <value>从剪贴板读取Transform数据</value>
+  </data>
 </root>

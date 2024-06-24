@@ -1,8 +1,9 @@
 using System.Collections.ObjectModel;
-using System.Collections.Specialized;
 using System.ComponentModel;
 using System.IO;
+using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using System.Windows;
 using RszTool.App.Common;
 using RszTool.App.Resources;
@@ -479,6 +480,7 @@ namespace RszTool.App.ViewModels
 
         public void NotifyItemsChanged()
         {
+            items = null;
             OnPropertyChanged(nameof(Items));
         }
 
@@ -500,6 +502,52 @@ namespace RszTool.App.ViewModels
                     obj => new GameObejctComponentViewModel(gameObject, (RszInstance)obj), e);
             };
             return list;
+        }
+
+        public bool ParseTransformClipboard()
+        {
+            if (Instance.RszClass.name == "via.Transform")
+            {
+                var text = Clipboard.GetText();
+                bool success = false;
+                if (text.StartsWith('{') && text.EndsWith('}'))
+                {
+                    var json = JsonDocument.Parse(text);
+                    if (json.RootElement.TryGetProperty("pos", out var pos))
+                    {
+                        Vector4 vec = new()
+                        {
+                            X = pos[0].GetSingle(),
+                            Y = pos[1].GetSingle(),
+                            Z = pos[2].GetSingle(),
+                        };
+                        Instance.SetFieldValue("v0", vec);
+                        success = true;
+                    }
+                    if (json.RootElement.TryGetProperty("rot", out var rot))
+                    {
+                        Vector4 vec = new()
+                        {
+                            X = rot[0].GetSingle(),
+                            Y = rot[1].GetSingle(),
+                            Z = rot[2].GetSingle(),
+                            W = rot[3].GetSingle(),
+                        };
+                        Instance.SetFieldValue("v1", vec);
+                        success = true;
+                    }
+                }
+                if (success)
+                {
+                    NotifyItemsChanged();
+                }
+                else
+                {
+                    MessageBoxUtils.Warning("Failed to parse transform, data should be {\"pos\": [x, y, z], \"rot\": [x, y, z, w]}");
+                }
+                return success;
+            }
+            return false;
         }
     }
 }

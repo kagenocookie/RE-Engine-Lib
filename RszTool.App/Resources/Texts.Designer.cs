@@ -376,6 +376,15 @@ namespace RszTool.App.Resources {
         }
         
         /// <summary>
+        ///   查找类似 Parse Transform From Clipboard 的本地化字符串。
+        /// </summary>
+        internal static string ParseTransformClipboard {
+            get {
+                return ResourceManager.GetString("ParseTransformClipboard", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Paste 的本地化字符串。
         /// </summary>
         internal static string Paste {

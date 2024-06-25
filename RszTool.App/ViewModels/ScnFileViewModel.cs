@@ -194,15 +194,16 @@ namespace RszTool.App.ViewModels
         private void OnAddComponent(object arg)
         {
             var gameObject = (ScnGameObject)arg;
-            Views.InputDialog dialog = new()
+            Views.ListBoxDialog dialog = new()
             {
                 Title = Texts.NewItem,
                 Message = Texts.InputClassName,
                 InputText = lastInputClassName,
+                ItemsSource = File.RszParser.NonGenericClassNames,
                 Owner = Application.Current.MainWindow,
             };
             if (dialog.ShowDialog() != true) return;
-            lastInputClassName = dialog.InputText;
+            lastInputClassName = dialog.SelectedItem as string ?? "";
             if (string.IsNullOrWhiteSpace(lastInputClassName))
             {
                 MessageBoxUtils.Error("ClassName is empty");

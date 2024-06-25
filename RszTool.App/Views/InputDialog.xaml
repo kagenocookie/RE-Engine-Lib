@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:RszTool.App.Views"
+        xmlns:res="clr-namespace:RszTool.App.Resources"
         mc:Ignorable="d"
         Title="InputDialog" Height="160" Width="320">
     <Grid VerticalAlignment="Center">
@@ -16,8 +17,8 @@
         <TextBox Text="{Binding InputText, RelativeSource={RelativeSource AncestorType=Window}}" Margin="50 5 50 5" Grid.Row="1"
                  PreviewKeyDown="OnTextBoxPreviewKeyDown" />
         <StackPanel Orientation="Horizontal" Grid.Row="2" HorizontalAlignment="Center">
-            <Button Content="OK" Width="60" Margin="5" Click="OKButton_Click"/>
-            <Button Content="Cancel" Width="60" Margin="5" Click="CancelButton_Click"/>
+            <Button Content="{res:Text OK}" Width="60" Margin="5" Click="OKButton_Click"/>
+            <Button Content="{res:Text Cancel}" Width="60" Margin="5" Click="CancelButton_Click"/>
         </StackPanel>
     </Grid>
 </Window>

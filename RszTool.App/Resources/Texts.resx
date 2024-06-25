@@ -318,6 +318,7 @@ vec:x y z w</value>
    and copying data starting with "vec:",
    where 3 values are considered as the position x, y, z,
    and 4 values are considered as the rotation x, y, z, w.
+8. AddComponent support search
 
 2023/04/12 0.3.0
 1. Add DarkTheme
@@ -377,5 +378,11 @@ vec:x y z w</value>
   </data>
   <data name="ChangeLog" xml:space="preserve">
     <value>Change Log</value>
+  </data>
+  <data name="OK" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancel</value>
   </data>
 </root>

@@ -26,6 +26,27 @@ namespace RszTool
         private readonly Dictionary<string, RszClass> classNameDict;
 
         public Dictionary<uint, RszClass> ClassDict => classDict;
+        public string[]? nonGenericClassNames;
+        public string[] NonGenericClassNames
+        {
+            get
+            {
+                if (nonGenericClassNames == null)
+                {
+                    List<string> list = new();
+                    foreach (var name in classNameDict.Keys)
+                    {
+                        if (name.Length > 0 && !name.Contains('<') && !name.Contains('`') && !name.Contains('[') && !name.Contains('!'))
+                        {
+                            list.Add(name);
+                        }
+                    }
+                    list.Sort();
+                    nonGenericClassNames = list.ToArray();
+                }
+                return nonGenericClassNames;
+            }
+        }
 
         public RszParser(string jsonPath)
         {

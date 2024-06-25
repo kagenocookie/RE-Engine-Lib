@@ -106,6 +106,15 @@ namespace RszTool.App.Resources {
         }
         
         /// <summary>
+        ///   查找类似 Cancel 的本地化字符串。
+        /// </summary>
+        internal static string Cancel {
+            get {
+                return ResourceManager.GetString("Cancel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Change Log 的本地化字符串。
         /// </summary>
         internal static string ChangeLog {
@@ -371,6 +380,15 @@ namespace RszTool.App.Resources {
         internal static string NotSupportedFormat {
             get {
                 return ResourceManager.GetString("NotSupportedFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 OK 的本地化字符串。
+        /// </summary>
+        internal static string OK {
+            get {
+                return ResourceManager.GetString("OK", resourceCulture);
             }
         }
         

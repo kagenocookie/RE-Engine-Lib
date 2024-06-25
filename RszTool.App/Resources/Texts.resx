@@ -308,11 +308,12 @@ vec:x y z w</value>
 
 2023/06/25 0.3.2
 1. Optimize the performance of opening files with a large number of items, and improve items rendering.
-2. Utilize AvalonDock to support more advanced layouts, support reopening files that were not closed last time, and support layout recording.
-3. A warning will pop up when the writing of Rsz data fails.
-4. The ContextID correction window supports manual input of offset and batch updating of Index.
-5. Support parsing the current player's position and rotation copied from DebugInfo (copied in the Script Generated UI).
-6. Support parsing the position and rotation copied from the Emv Engine,
+2. Use AvalonDock to support more advanced layouts, support reopening files that were not closed last time, and support layout recording.
+3. Support drop folder to add to FileExplorer
+4. A warning will pop up when the writing of Rsz data fails.
+5. The ContextID correction window supports manual input of offset and batch updating of Index.
+6. Support parsing the current player's position and rotation copied from DebugInfo (copied in the Script Generated UI).
+7. Support parsing the position and rotation copied from the Emv Engine,
    by clicking the "+" to the left of the vector field corresponding to the Emv Engine,
    and copying data starting with "vec:",
    where 3 values are considered as the position x, y, z,

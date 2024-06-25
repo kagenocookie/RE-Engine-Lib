@@ -309,10 +309,11 @@ vec:x y z w</value>
 2023/06/25 0.3.2
 1. 优化打开项目数量较多的文件的性能，优化项目渲染
 2. 使用AvalonDock，支持更高级的布局，支持重新打开上次未关闭的文件，支持记录布局
-3. 写入Rsz数据失败时会弹出警告
-4. ContextID修正窗口支持手动输入偏移量，批量更新Index
-5. 支持解析从DebugInfo复制的当前玩家的位置和旋转（在Script Generated UI中复制）
-6. 支持解析从Emv Engine中复制的位置和旋转，
+3. 支持拖入文件夹来加到文件浏览窗口
+4. 写入Rsz数据失败时会弹出警告
+5. ContextID修正窗口支持手动输入偏移量，批量更新Index
+6. 支持解析从DebugInfo复制的当前玩家的位置和旋转（在Script Generated UI中复制）
+7. 支持解析从Emv Engine中复制的位置和旋转，
    点Emv Engine对应的向量字段左边的+，复制vec:开头的数据，
    3个值当成位置x,y,z，4个值当成旋转x,y,z,w
 

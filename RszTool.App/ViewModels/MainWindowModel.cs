@@ -43,7 +43,7 @@ namespace RszTool.App.ViewModels
             {
                 SaveData.IsDarkTheme = value;
                 ThemeManager.Instance.IsDarkTheme = value;
-                DockingTheme = value ? new Vs2013DarkTheme() : new Vs2013LightTheme();
+                DockingTheme = value ? new MyVs2013DarkTheme() : new MyVs2013LightTheme();
             }
         }
 
@@ -74,7 +74,7 @@ namespace RszTool.App.ViewModels
                 FileExplorerViewModel.Folders.Add(new(Directory.GetCurrentDirectory()));
             }
             FileExplorerViewModel.OnFileSelected += f => OpenFile(f.Path);
-            DockingTheme = IsDarkTheme ? new Vs2013DarkTheme() : new Vs2013LightTheme();
+            DockingTheme = IsDarkTheme ? new MyVs2013DarkTheme() : new MyVs2013LightTheme();
         }
 
         public void PostInit()
@@ -427,6 +427,32 @@ namespace RszTool.App.ViewModels
                 return content;
             }
             return null;
+        }
+    }
+
+
+    public class MyVs2013DarkTheme : Theme
+    {
+        public override Uri GetResourceUri()
+        {
+            if (typeof(Vs2013DarkTheme).Assembly.GetName().Name != "AvalonDock.Themes.VS2013")
+            {
+                return new Uri($"pack://application:,,,/{GetType().Assembly.GetName().Name};component/avalondock.themes.vs2013/DarkTheme.xaml");
+            }
+            return new Vs2013DarkTheme().GetResourceUri();
+        }
+    }
+
+
+    public class MyVs2013LightTheme : Theme
+    {
+        public override Uri GetResourceUri()
+        {
+            if (typeof(Vs2013LightTheme).Assembly.GetName().Name != "AvalonDock.Themes.VS2013")
+            {
+                return new Uri($"pack://application:,,,/{GetType().Assembly.GetName().Name};component/avalondock.themes.vs2013/LightTheme.xaml");
+            }
+            return new Vs2013LightTheme().GetResourceUri();
         }
     }
 }

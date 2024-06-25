@@ -119,10 +119,11 @@ namespace RszTool.App.Resources {
         ///
         ///2023/06/25 0.3.2
         ///1. Optimize the performance of opening files with a large number of items, and improve items rendering.
-        ///2. Utilize AvalonDock to support more advanced layouts, support reopening files that were not closed last time, and support layout recording.
-        ///3. A warning will pop up when the writing of Rsz data fails.
-        ///4. The ContextID correction window supports manual input of offset and batch updating of Index.
-        ///5. Support parsing the current player&apos;s position and rotation  [字符串的其余部分被截断]&quot;; 的本地化字符串。
+        ///2. Use AvalonDock to support more advanced layouts, support reopening files that were not closed last time, and support layout recording.
+        ///3. Support drop folder to add to FileExplorer
+        ///4. A warning will pop up when the writing of Rsz data fails.
+        ///5. The ContextID correction window supports manual input of offset and batch updating of Index.
+        ///6. Support parsing  [字符串的其余部分被截断]&quot;; 的本地化字符串。
         /// </summary>
         internal static string ChangeLogContent {
             get {

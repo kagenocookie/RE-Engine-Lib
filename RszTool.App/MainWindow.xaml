@@ -111,6 +111,7 @@
             </MenuItem>
             <MenuItem Header="{res:Text Help}">
                 <MenuItem Header="{res:Text About}" Command="{Binding OpenAbout}" />
+                <MenuItem Header="{res:Text ChangeLog}" Command="{Binding OpenChangeLog}" />
             </MenuItem>
         </Menu>
         <Grid Grid.Row="1" Margin="5">

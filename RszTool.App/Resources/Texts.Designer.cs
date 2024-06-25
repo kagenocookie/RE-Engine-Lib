@@ -106,6 +106,31 @@ namespace RszTool.App.Resources {
         }
         
         /// <summary>
+        ///   查找类似 Change Log 的本地化字符串。
+        /// </summary>
+        internal static string ChangeLog {
+            get {
+                return ResourceManager.GetString("ChangeLog", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 ChangeLog for RszTool
+        ///
+        ///2023/06/25 0.3.2
+        ///1. Optimize the performance of opening files with a large number of items, and improve items rendering.
+        ///2. Utilize AvalonDock to support more advanced layouts, support reopening files that were not closed last time, and support layout recording.
+        ///3. A warning will pop up when the writing of Rsz data fails.
+        ///4. The ContextID correction window supports manual input of offset and batch updating of Index.
+        ///5. Support parsing the current player&apos;s position and rotation  [字符串的其余部分被截断]&quot;; 的本地化字符串。
+        /// </summary>
+        internal static string ChangeLogContent {
+            get {
+                return ResourceManager.GetString("ChangeLogContent", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   查找类似 Clear recent files history 的本地化字符串。
         /// </summary>
         internal static string ClearRecentFilesHistory {
@@ -381,6 +406,20 @@ namespace RszTool.App.Resources {
         internal static string ParseTransformClipboard {
             get {
                 return ResourceManager.GetString("ParseTransformClipboard", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Failed to parse transform, data should be
+        ///1. for DebugInfo
+        ///{&quot;pos&quot;: [x, y, z], &quot;rot&quot;: [x, y, z, w]}
+        ///2. for Emv Engine, pos and rot
+        ///vec:x y z
+        ///vec:x y z w 的本地化字符串。
+        /// </summary>
+        internal static string ParseTransformClipboardHint {
+            get {
+                return ResourceManager.GetString("ParseTransformClipboardHint", resourceCulture);
             }
         }
         

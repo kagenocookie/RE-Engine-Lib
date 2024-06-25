@@ -295,4 +295,86 @@ Currently, user, scn, pfb files are supported</value>
   <data name="ParseTransformClipboard" xml:space="preserve">
     <value>Parse Transform From Clipboard</value>
   </data>
+  <data name="ParseTransformClipboardHint" xml:space="preserve">
+    <value>Failed to parse transform, data should be
+1. for DebugInfo
+{"pos": [x, y, z], "rot": [x, y, z, w]}
+2. for Emv Engine, pos and rot
+vec:x y z
+vec:x y z w</value>
+  </data>
+  <data name="ChangeLogContent" xml:space="preserve">
+    <value>ChangeLog for RszTool
+
+2023/06/25 0.3.2
+1. Optimize the performance of opening files with a large number of items, and improve items rendering.
+2. Utilize AvalonDock to support more advanced layouts, support reopening files that were not closed last time, and support layout recording.
+3. A warning will pop up when the writing of Rsz data fails.
+4. The ContextID correction window supports manual input of offset and batch updating of Index.
+5. Support parsing the current player's position and rotation copied from DebugInfo (copied in the Script Generated UI).
+6. Support parsing the position and rotation copied from the Emv Engine,
+   by clicking the "+" to the left of the vector field corresponding to the Emv Engine,
+   and copying data starting with "vec:",
+   where 3 values are considered as the position x, y, z,
+   and 4 values are considered as the rotation x, y, z, w.
+
+2023/04/12 0.3.0
+1. Add DarkTheme
+2. Fix Quaternion edit
+3. Fix Folder parent assign
+4. Add file explorer
+5. ScnFile support AddFolder
+6. ResourceInfos will be rebulid when instance path field changed
+7. Support edit resource path manually
+8. Dragons Dogma 2 support
+
+2024/01/09 0.2.3
+1. The search bar directly performs a search when the Enter key is pressed in the input box.
+2. Fix the bug in the judgment when removing components in Pfb.
+3. Fix the issue where the resource loading list is not updated after modifying the resource path field under certain circumstances.
+
+2023/12/23 0.2.2
+1. Enable paste pfb and scn game object to each other
+2. RE4 enable combobox select enum value for field
+3. RE4 update ContextID after paste game object and instance
+
+2023/12/13 0.2.1
+1. Pfb game object support copy/paste
+2. Add self check on field detected as Object type which original type is "Data"
+3. Fix repeated NULL in dmc5 which will let 010 Editor throws an error
+4. Fix pfb reopen bug
+5. Fix recent files menu display
+6. Fix RszInstance.RSZUserData.InstanceId when rebulid info
+7. Scn object and instance index is more like origin when rebulid info
+8. Check resource path when rebulid info
+
+2023/12/12 0.2.0
+1. Enable remove game object component
+2. Support Int2, Int3, Int4, Uint2, Uint3, Uint4 typpe
+
+2023/12/11 0.1.9
+1. Enable instance and field copy and paste
+2. Enable GameObject add component
+3. Fix UserFile resourceInfo read
+
+2023/12/10 0.1.8
+1. Fix search instances by value
+2. CheckBox will set file changed status
+3. Normal field array support Duplicate/Remove
+4. Auto fix ObjectRef to new guid when copy GameObject
+5. Refreash view after Reopen
+
+2023/12/09 0.1.7
+1. Fix dmc5 read
+2. Fix Add array item
+
+2023/12/09 0.1.6
+1. Show external Instance UserData path
+2. Show GameObjectInfo Guid
+3. Add recent files history
+4. Some command will set file changed state</value>
+  </data>
+  <data name="ChangeLog" xml:space="preserve">
+    <value>Change Log</value>
+  </data>
 </root>

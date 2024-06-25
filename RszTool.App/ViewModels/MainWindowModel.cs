@@ -61,6 +61,7 @@ namespace RszTool.App.ViewModels
         public RelayCommand RemoveNonExistedRecentFilesHistory => new(OnRemoveNonExistedRecentFilesHistory);
         public RelayCommand OpenRecentFile => new(OnOpenRecentFile);
         public RelayCommand OpenAbout => new(OnOpenAbout);
+        public RelayCommand OpenChangeLog => new(OnOpenChangeLog);
 
         public MainWindowModel()
         {
@@ -331,6 +332,16 @@ namespace RszTool.App.ViewModels
         {
             var about = new AboutWindow();
             about.ShowDialog();
+        }
+
+        private void OnOpenChangeLog(object arg)
+        {
+            var window = new LongTextWindow
+            {
+                Title = Texts.ChangeLog,
+                Text = Texts.ChangeLogContent
+            };
+            window.ShowDialog();
         }
     }
 

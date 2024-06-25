@@ -510,6 +510,8 @@ namespace RszTool.App.ViewModels
             {
                 var text = Clipboard.GetText();
                 bool success = false;
+                // v0 is pos
+                // v1 is rot
                 if (text.StartsWith('{') && text.EndsWith('}'))
                 {
                     var json = JsonDocument.Parse(text);
@@ -537,13 +539,41 @@ namespace RszTool.App.ViewModels
                         success = true;
                     }
                 }
+                else if (text.StartsWith("vec:"))
+                {
+                    // for emv
+                    string[] data = text.Substring(4).Split(' ');
+                    if (data.Length == 3)
+                    {
+                        Vector4 vec = new()
+                        {
+                            X = float.Parse(data[0]),
+                            Y = float.Parse(data[1]),
+                            Z = float.Parse(data[2]),
+                        };
+                        Instance.SetFieldValue("v0", vec);
+                        success = true;
+                    }
+                    else if (data.Length == 4)
+                    {
+                        Vector4 vec = new()
+                        {
+                            X = float.Parse(data[0]),
+                            Y = float.Parse(data[1]),
+                            Z = float.Parse(data[2]),
+                            W = float.Parse(data[3]),
+                        };
+                        Instance.SetFieldValue("v1", vec);
+                        success = true;
+                    }
+                }
                 if (success)
                 {
                     NotifyItemsChanged();
                 }
                 else
                 {
-                    MessageBoxUtils.Warning("Failed to parse transform, data should be {\"pos\": [x, y, z], \"rot\": [x, y, z, w]}");
+                    MessageBoxUtils.Warning(Texts.ParseTransformClipboardHint);
                 }
                 return success;
             }

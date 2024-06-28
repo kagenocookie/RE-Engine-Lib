@@ -38,16 +38,12 @@ namespace RszTool.App.ViewModels
             PfbFile.SetupGameObjects();
         }
 
-        private TreeItemViewModel[]? treeViewItems;
-        public override IEnumerable<object> TreeViewItems
+        public override IEnumerable<object> GetTreeViewItems()
         {
-            get
-            {
-                return treeViewItems ??= [
-                    new TreeItemViewModel("Resources", PfbFile.ResourceInfoList),
-                    new GameObjectsHeader("GameObjects", GameObjects)
-                ];
-            }
+            return [
+                new TreeItemViewModel("Resources", PfbFile.ResourceInfoList),
+                new GameObjectsHeader("GameObjects", GameObjects)
+            ];
         }
 
         /// <summary>

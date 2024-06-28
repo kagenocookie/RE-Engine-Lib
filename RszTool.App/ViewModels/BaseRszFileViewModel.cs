@@ -140,6 +140,7 @@ namespace RszTool.App.ViewModels
             // TODO check Changed
             File.FileHandler.Reopen();
             bool result = Read();
+            treeViewItems = null;
             OnPropertyChanged(nameof(TreeViewItems));
             return result;
         }
@@ -465,7 +466,16 @@ namespace RszTool.App.ViewModels
             }
         }
 
-        public abstract IEnumerable<object> TreeViewItems { get; }
+        private IEnumerable<object>? treeViewItems;
+        public IEnumerable<object> TreeViewItems
+        {
+            get
+            {
+                return treeViewItems ??= GetTreeViewItems();
+            }
+        }
+
+        public abstract IEnumerable<object> GetTreeViewItems();
     }
 
 

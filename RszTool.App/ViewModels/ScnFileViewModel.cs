@@ -27,17 +27,13 @@ namespace RszTool.App.ViewModels
             ScnFile.SetupGameObjects();
         }
 
-        private TreeItemViewModel[]? treeViewItems;
-        public override IEnumerable<object> TreeViewItems
+        public override IEnumerable<object> GetTreeViewItems()
         {
-            get
-            {
-                return treeViewItems ??= [
-                    new TreeItemViewModel("Resources", ScnFile.ResourceInfoList),
-                    new FoldersHeader("Folders", Folders),
-                    new GameObjectsHeader("GameObjects", GameObjects),
-                ];
-            }
+            return [
+                new TreeItemViewModel("Resources", ScnFile.ResourceInfoList),
+                new FoldersHeader("Folders", Folders),
+                new GameObjectsHeader("GameObjects", GameObjects),
+            ];
         }
 
         public RelayCommand CopyGameObject => new(OnCopyGameObject);

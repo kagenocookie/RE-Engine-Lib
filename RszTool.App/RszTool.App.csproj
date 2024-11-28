@@ -9,7 +9,7 @@
     <UseWPF>true</UseWPF>
     <NoWarn>$(NoWarn);CS0067</NoWarn>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <AssemblyVersion>0.3.2.1</AssemblyVersion>
+    <AssemblyVersion>0.3.3.0</AssemblyVersion>
   </PropertyGroup>
 
   <ItemGroup>

@@ -108,7 +108,7 @@ namespace RszTool
                 {
                     throw new InvalidDataException($"{field.name} count {count} < 0");
                 }
-                if (count > 2048)
+                if (count > 4096)
                 {
                     throw new InvalidDataException($"{field.name} count {count} too large");
                 }
@@ -202,7 +202,7 @@ namespace RszTool
                     RszFieldType.Data => handler.ReadBytes(field.size),
                     RszFieldType.Mat4 => handler.Read<via.mat4>(),
                     RszFieldType.Vec2 or RszFieldType.Float2 or RszFieldType.Point => handler.Read<Vector2>(),
-                    RszFieldType.Vec3 or RszFieldType.Float3 => handler.Read<Vector3>(),
+                    RszFieldType.Vec3 or RszFieldType.Float3 or RszFieldType.Position => handler.Read<Vector3>(),
                     RszFieldType.Vec4 or RszFieldType.Float4 => handler.Read<Vector4>(),
                     RszFieldType.Int2 => handler.Read<via.Int2>(),
                     RszFieldType.Int3 => handler.Read<via.Int3>(),

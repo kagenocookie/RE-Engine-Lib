@@ -180,6 +180,7 @@ namespace RszTool
                 GameName.dmc5 =>".16",
                 GameName.mhrise => ".17",
                 GameName.sf6 => ".17",
+                GameName.dd2 => ".17",
                 _ => null
             };
         }

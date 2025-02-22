@@ -74,6 +74,10 @@ GeneratedArtifacts
 *.xap
 ModelManifest.xml
 
+# Godot generated files
+*.cs.uid
+*.png.import
+
 #Backup file
 *.bak
 

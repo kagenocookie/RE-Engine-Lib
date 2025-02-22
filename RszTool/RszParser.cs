@@ -51,18 +51,19 @@ namespace RszTool
                     }
                 }
 
-                ReadPatch(jsonPath);
+
+                string patchJsonPath = Path.Combine(
+                    "Data", "RszPatch",
+                    Path.GetFileNameWithoutExtension(jsonPath) + "_patch.json"); ;
+                ReadPatch(patchJsonPath);
             }
         }
 
         /// <summary>
         /// Read patch json
         /// </summary>
-        private void ReadPatch(string originalJsonPath)
+        public void ReadPatch(string patchJsonPath)
         {
-            string patchJsonPath = Path.Combine(
-                "Data", "RszPatch",
-                Path.GetFileNameWithoutExtension(originalJsonPath) + "_patch.json");
             if (!File.Exists(patchJsonPath)) return;
             using FileStream fileStream = File.OpenRead(patchJsonPath);
             var dict = JsonSerializer.Deserialize<Dictionary<string, RszClassPatch>>(fileStream);

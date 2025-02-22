@@ -7,7 +7,7 @@ namespace RszTool
         public RszParser RszParser { get; set; }
         public EnumParser EnumParser { get; set; }
 
-        public RszFileOption(GameName gameName)
+        public RszFileOption(GameName gameName, string? rszJsonFilepath = null)
         {
             GameName = gameName;
             Version = gameName switch
@@ -26,7 +26,7 @@ namespace RszTool
                 GameName.dd2 => GameVersion.dd2,
                 _ => GameVersion.unknown,
             };
-            RszParser = RszParser.GetInstance($"rsz{gameName}.json");
+            RszParser = RszParser.GetInstance(rszJsonFilepath ?? $"rsz{gameName}.json");
             EnumParser = EnumParser.GetInstance($"Data\\Enums\\{gameName}_enum.json");
         }
     }

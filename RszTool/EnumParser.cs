@@ -35,6 +35,11 @@ namespace RszTool
 
             // read in culture specific json
             string cultureJsonPath = Path.ChangeExtension(jsonPath, $".{Thread.CurrentThread.CurrentCulture}.json");
+            ReadOverrides(cultureJsonPath);
+        }
+
+        public void ReadOverrides(string cultureJsonPath)
+        {
             if (File.Exists(cultureJsonPath))
             {
                 using FileStream fileStream = File.OpenRead(cultureJsonPath);

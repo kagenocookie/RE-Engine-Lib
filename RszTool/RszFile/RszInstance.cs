@@ -183,6 +183,12 @@ namespace RszTool
                 // TODO checkOpenResource
                 return value;
             }
+            else if (field.type == RszFieldType.RuntimeType)
+            {
+                var count = (int)handler.ReadUInt();
+                var str = handler.ReadAsciiString(-1, count, false);
+                return str;
+            }
             else
             {
                 long startPos = handler.Tell();
@@ -263,6 +269,11 @@ namespace RszTool
             else if (field.type == RszFieldType.Object || field.type == RszFieldType.UserData)
             {
                 return handler.Write(value is RszInstance instance ? instance.Index : (int)value);
+            }
+            else if (field.type == RszFieldType.RuntimeType)
+            {
+                string valueStr = (string)value;
+                return handler.Write(valueStr.Length + 1) && handler.WriteAsciiString(valueStr);
             }
             else
             {
@@ -388,6 +399,7 @@ namespace RszTool
                 RszFieldType.Sfix2 => typeof(via.Sfix2),
                 RszFieldType.Sfix3 => typeof(via.Sfix3),
                 RszFieldType.Sfix4 => typeof(via.Sfix4),
+                RszFieldType.RuntimeType => typeof(string),
                 _ => throw new NotSupportedException($"Not support type {type}"),
             };
         }

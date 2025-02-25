@@ -294,7 +294,7 @@ namespace RszTool
                     RszFieldType.Data => handler.WriteBytes((byte[])value),
                     RszFieldType.Mat4 => handler.Write((via.mat4)value),
                     RszFieldType.Vec2 or RszFieldType.Float2 or RszFieldType.Point => handler.Write((Vector2)value),
-                    RszFieldType.Vec3 or RszFieldType.Float3 => handler.Write((Vector3)value),
+                    RszFieldType.Vec3 or RszFieldType.Float3 or RszFieldType.Position => handler.Write((Vector3)value),
                     RszFieldType.Vec4 or RszFieldType.Float4 => handler.Write((Vector4)value),
                     RszFieldType.Int2 => handler.Write((via.Int2)value),
                     RszFieldType.Int3 => handler.Write((via.Int3)value),

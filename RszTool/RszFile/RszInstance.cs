@@ -360,7 +360,7 @@ namespace RszTool
                 RszFieldType.Data => typeof(byte[]),
                 RszFieldType.Mat4 => typeof(via.mat4),
                 RszFieldType.Vec2 or RszFieldType.Float2 or RszFieldType.Point => typeof(Vector2),
-                RszFieldType.Vec3 or RszFieldType.Float3 => typeof(Vector3),
+                RszFieldType.Vec3 or RszFieldType.Float3 or RszFieldType.Position => typeof(Vector3),
                 RszFieldType.Vec4 or RszFieldType.Float4 => typeof(Vector4),
                 RszFieldType.Int2 => typeof(via.Int2),
                 RszFieldType.Int3 => typeof(via.Int3),

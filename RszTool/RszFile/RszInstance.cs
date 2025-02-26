@@ -502,7 +502,7 @@ namespace RszTool
             // Console.WriteLine($"    write at: {handler.Position:X} {field.original_type} {field.name}");
             if (field.array)
             {
-                List<object> list = (List<object>)Values[index];
+                IList<object> list = (IList<object>)Values[index];
                 handler.Write(list.Count);
                 if (list.Count > 0)
                 {

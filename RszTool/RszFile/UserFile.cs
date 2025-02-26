@@ -15,7 +15,7 @@ namespace RszTool
         public StructModel<HeaderStruct> Header { get; } = new();
         public List<ResourceInfo> ResourceInfoList { get; } = new();
         public List<UserdataInfo> UserdataInfoList { get; } = new();
-        public RSZFile? RSZ { get; private set; }
+        public RSZFile RSZ { get; }
         public bool ResourceChanged { get; set; } = false;
 
 
@@ -25,6 +25,7 @@ namespace RszTool
             {
                 RszUtils.CheckFileExtension(fileHandler.FilePath, Extension2, GetVersionExt());
             }
+            RSZ = new RSZFile(option, fileHandler);
         }
 
         public const uint Magic = 0x525355;
@@ -60,7 +61,7 @@ namespace RszTool
             handler.Seek(header.userdataInfoOffset);
             UserdataInfoList.Read(handler, header.userdataCount);
 
-            RSZ = ReadRsz(header.dataOffset);
+            ReadRsz(RSZ, header.dataOffset);
             return true;
         }
 

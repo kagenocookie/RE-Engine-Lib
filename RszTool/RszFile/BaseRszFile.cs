@@ -111,11 +111,10 @@ namespace RszTool
             return result;
         }
 
-        protected RSZFile ReadRsz(long offset)
+        protected void ReadRsz(RSZFile rsz, long offset)
         {
-            RSZFile rsz = new(Option, FileHandler.WithOffset(offset));
+            rsz.FileHandler = FileHandler.WithOffset(offset);
             rsz.Read();
-            return rsz;
         }
 
         protected bool WriteRsz(RSZFile rsz, long offset)

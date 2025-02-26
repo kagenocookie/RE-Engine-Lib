@@ -150,13 +150,14 @@ namespace RszTool
         public List<GameObjectRefInfoModel> GameObjectRefInfoList { get; } = new();
         public List<ResourceInfo> ResourceInfoList { get; } = new();
         public List<UserdataInfo> UserdataInfoList { get; } = new();
-        public RSZFile? RSZ { get; private set; }
+        public RSZFile RSZ { get; }
         public ObservableCollection<GameObjectData>? GameObjectDatas { get; set; }
         public bool ResourceChanged { get; set; } = false;
 
         public PfbFile(RszFileOption option, FileHandler fileHandler) : base(option, fileHandler)
         {
             Header = new(option.Version);
+            RSZ = new RSZFile(option, fileHandler);
             if (fileHandler.FilePath != null)
             {
                 RszUtils.CheckFileExtension(fileHandler.FilePath, Extension2, GetVersionExt());
@@ -212,8 +213,7 @@ namespace RszTool
             // ResourceInfoList.Read(handler, header.resourceCount);
             for (int i = 0; i < header.resourceCount; i++)
             {
-                ResourceInfo item = new();
-                if (Option.Version <= GameVersion.re2) item.HasOffset = false;
+                ResourceInfo item = new(Option.Version);
                 if (!item.Read(handler)) return false;
                 ResourceInfoList.Add(item);
             }
@@ -224,7 +224,7 @@ namespace RszTool
                 UserdataInfoList.Read(handler, (int)header.userdataCount);
             }
 
-            RSZ = ReadRsz(header.dataOffset);
+            ReadRsz(RSZ, header.dataOffset);
             return true;
         }
 
@@ -242,10 +242,14 @@ namespace RszTool
             FileHandler handler = FileHandler;
             handler.Clear();
             var header = Header;
-            handler.Seek(header.Size);
+            if (header.Size == 0) {
+                header.Write(handler);
+            } else {
+                handler.Seek(header.Size);
+            }
             GameObjectInfoList.Write(handler);
 
-            if (header.gameObjectRefInfoCount > 0)
+            if (GameObjectRefInfoList.Count > 0)
             {
                 // handler.Align(16);
                 header.gameObjectRefInfoOffset = handler.Tell();
@@ -390,8 +394,6 @@ namespace RszTool
         /// </summary>
         public void RebuildInfoTable()
         {
-            RSZ ??= new(Option, FileHandler);
-
             // 重新生成实例表
             List<RszInstance> rszInstances = new() { RszInstance.NULL };
             if (GameObjectDatas != null)

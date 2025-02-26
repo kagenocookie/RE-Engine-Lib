@@ -42,6 +42,7 @@ namespace RszTool
 
         public RSZFile(RszFileOption option, FileHandler fileHandler) : base(option, fileHandler)
         {
+            Header.Data.version = 16;
         }
 
         public const uint Magic = 0x5a5352;
@@ -218,6 +219,7 @@ namespace RszTool
         {
             InstanceList.Clear();
             InstanceList.Add(RszInstance.NULL);
+            InstanceInfoList.Add(new InstanceInfo());
         }
 
         public void ClearObjects()

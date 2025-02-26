@@ -8,6 +8,15 @@ namespace RszTool
         public string? Path { get; set; }
         public bool HasOffset { get; set; } = true;
 
+        public ResourceInfo()
+        {
+        }
+
+        public ResourceInfo(GameVersion version)
+        {
+            HasOffset = version > GameVersion.re2;
+        }
+
         protected override bool DoRead(FileHandler handler)
         {
             if (HasOffset)
@@ -35,6 +44,8 @@ namespace RszTool
             }
             return true;
         }
+
+        public override string ToString() => Path ?? base.ToString()!;
     }
 
 
@@ -62,6 +73,8 @@ namespace RszTool
             handler.Write(ref pathOffset);
             return true;
         }
+
+        public override string ToString() => Path ?? CRC.ToString();
     }
 
 

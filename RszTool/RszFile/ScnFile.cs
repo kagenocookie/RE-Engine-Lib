@@ -268,7 +268,7 @@ namespace RszTool
         public List<ResourceInfo> ResourceInfoList { get; } = new();
         public List<PrefabInfo> PrefabInfoList { get; } = new();
         public List<UserdataInfo> UserdataInfoList { get; } = new();
-        public RSZFile? RSZ { get; private set; }
+        public RSZFile RSZ { get; }
 
         public ObservableCollection<FolderData>? FolderDatas { get; set; }
         public ObservableCollection<GameObjectData>? GameObjectDatas { get; set; }
@@ -277,6 +277,7 @@ namespace RszTool
         public ScnFile(RszFileOption option, FileHandler fileHandler) : base(option, fileHandler)
         {
             Header = new(option.Version);
+            RSZ = new RSZFile(option, fileHandler);
             if (fileHandler.FilePath != null)
             {
                 RszUtils.CheckFileExtension(fileHandler.FilePath, Extension2, GetVersionExt());
@@ -339,7 +340,7 @@ namespace RszTool
             handler.Seek(header.userdataInfoOffset);
             UserdataInfoList.Read(handler, header.userdataCount);
 
-            RSZ = ReadRsz(header.dataOffset);
+            ReadRsz(RSZ, header.dataOffset);
 
             return true;
         }

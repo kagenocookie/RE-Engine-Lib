@@ -93,7 +93,7 @@ namespace RszTool
                                     {
                                         rszField.original_type = fieldPatch.OriginalType!;
                                     }
-                                    if (fieldPatch.Type != RszFieldType.ukn_error)
+                                    if (fieldPatch.Type != RszFieldType.ukn_error && fieldPatch.Type != rszField.type)
                                     {
                                         if (rszField.type != RszFieldType.Data)
                                         {
@@ -288,6 +288,7 @@ namespace RszTool
             if (type != RszFieldType.Data) return;
             type = size switch
             {
+                80 => RszFieldType.OBB,
                 64 => RszFieldType.Mat4,
                 16 => align == 8 ? RszFieldType.Guid : RszFieldType.Vec4,
                 8 => align == 8 ? RszFieldType.U64 : RszFieldType.Vec2,

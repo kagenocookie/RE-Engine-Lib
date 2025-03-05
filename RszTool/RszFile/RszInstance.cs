@@ -368,6 +368,7 @@ namespace RszTool
                 RszFieldType.Uint2 => typeof(via.Uint2),
                 RszFieldType.Uint3 => typeof(via.Uint3),
                 RszFieldType.Uint4 => typeof(via.Uint4),
+                RszFieldType.OBB => typeof(via.OBB),
                 RszFieldType.AABB => typeof(via.AABB),
                 RszFieldType.Guid or RszFieldType.GameObjectRef or RszFieldType.Uri => typeof(Guid),
                 RszFieldType.Color => typeof(via.Color),

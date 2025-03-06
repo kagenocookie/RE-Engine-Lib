@@ -133,6 +133,7 @@ namespace RszTool
         mhrise,
         sf6,
         dd2,
+        mhwilds,
     }
 
 
@@ -151,6 +152,7 @@ namespace RszTool
         re4 = 7,
         dd2 = re4,
         sf6 = 8,
+        mhwilds = 9,
     }
 
 

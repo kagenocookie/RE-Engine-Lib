@@ -48,7 +48,7 @@
             if (end == -1) end = target.Length;
             if (end > target.Length)
             {
-                throw new ArgumentOutOfRangeException($"{nameof(end)} must <= {nameof(target)}.Length");
+                throw new ArgumentOutOfRangeException(nameof(end), $"{nameof(end)} must <= {nameof(target)}.Length");
             }
             if (end < pattern.Length)
             {

@@ -302,6 +302,7 @@ namespace RszTool
                 GameName.mhrise => ".20",
                 GameName.sf6 => ".20",
                 GameName.dd2 => ".20",
+                GameName.mhwilds => ".21",
                 _ => null
             };
         }

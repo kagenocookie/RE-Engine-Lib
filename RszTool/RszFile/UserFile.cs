@@ -23,20 +23,20 @@ namespace RszTool
         {
             if (fileHandler.FilePath != null)
             {
-                RszUtils.CheckFileExtension(fileHandler.FilePath, Extension2, GetVersionExt());
+                RszUtils.CheckFileExtension(fileHandler.FilePath, Extension, GetVersionExt());
             }
             RSZ = new RSZFile(option, fileHandler);
         }
 
         public const uint Magic = 0x525355;
-        public const string Extension = ".2";
-        public const string Extension2 = ".user";
+        public const string Extension = ".user";
 
         public string? GetVersionExt()
         {
             return Option.GameName switch
             {
-                _ => Extension
+                GameName.mhwilds => ".3",
+                _ => ".2",
             };
         }
 

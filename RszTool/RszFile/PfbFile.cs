@@ -182,6 +182,7 @@ namespace RszTool
                 GameName.mhrise => ".17",
                 GameName.sf6 => ".17",
                 GameName.dd2 => ".17",
+                GameName.mhwilds => ".18",
                 _ => null
             };
         }

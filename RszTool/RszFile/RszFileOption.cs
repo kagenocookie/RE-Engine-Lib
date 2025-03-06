@@ -24,6 +24,7 @@ namespace RszTool
                 GameName.mhrise => GameVersion.mhrise,
                 GameName.sf6 => GameVersion.sf6,
                 GameName.dd2 => GameVersion.dd2,
+                GameName.mhwilds => GameVersion.mhwilds,
                 _ => GameVersion.unknown,
             };
             RszParser = RszParser.GetInstance(rszJsonFilepath ?? $"rsz{gameName}.json");

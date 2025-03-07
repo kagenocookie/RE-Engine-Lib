@@ -361,7 +361,7 @@ namespace RszTool
             FileHandler handler = FileHandler;
             handler.Clear();
             var header = Header;
-            handler.Seek(header.Size);
+            header.Write(handler);
             GameObjectInfoList.Write(handler);
 
             if (FolderInfoList.Count > 0)

@@ -138,6 +138,58 @@ namespace RszTool.App.Converters
         }
     }
 
+    [ValueConversion(typeof(RcolFile.RcolGroupInfo), typeof(ObservableCollection<object>))]
+    public class RcolInfoFieldsConverter : IValueConverter
+    {
+        public static IEnumerable<object> GetItems(RcolFile.RcolGroupInfo instance)
+        {
+            yield return new ClassViewModel("Info", instance, ["name", "guid", "layerGuid", "layerIndex", "maskBits"]);
+        }
+
+        public static ObservableCollection<object> Convert(RcolFile.RcolGroupInfo instance)
+        {
+            ObservableCollection<object> list = new(GetItems(instance));
+            // instance.ValuesChanged += sender => {
+            //     list.Clear();
+            //     foreach (var item in GetItems(sender))
+            //     {
+            //         list.Add(item);
+            //     }
+            // };
+            return list;
+        }
+
+        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        {
+            return Convert((RcolFile.RcolGroupInfo)value);
+        }
+
+        public object? ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        {
+            return null;
+        }
+    }
+
+    [ValueConversion(typeof(RcolFile.RcolGroup), typeof(IEnumerable<object>))]
+    public class RcolGroupShapesConverter : IValueConverter
+    {
+        public static IEnumerable<object> Convert(RcolFile.RcolGroup group)
+        {
+            yield return new ClassViewModel("Info", group.Info, ["Name", "Guid", "LayerIndex", "MaskBits", "LayerGuid"]);
+            yield return new TreeItemViewModel("Shapes", RcolShapeViewModel.MakeList(group));
+        }
+
+        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        {
+            var gameObject = (RcolFile.RcolGroup)value;
+            return Convert(gameObject);
+        }
+
+        public object? ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        {
+            return null;
+        }
+    }
 
     [ValueConversion(typeof(via.Color), typeof(string))]
     public class ColorConverter : IValueConverter

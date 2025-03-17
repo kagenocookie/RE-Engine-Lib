@@ -115,6 +115,7 @@ namespace RszTool
         pfb,
         mdf2,
         gui,
+        rcol,
     }
 
 

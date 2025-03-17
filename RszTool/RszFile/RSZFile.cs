@@ -371,7 +371,7 @@ namespace RszTool
                     }
                     else if (instance.Values[i] is int instanceId)
                     {
-                        if (instanceId >= instance.Index && field.IsTypeInferred)
+                        if ((instanceId < 0 || instanceId >= instance.Index) && field.IsTypeInferred)
                         {
                             // TODO: may detect error, should roll back
                             field.type = RszFieldType.S32;

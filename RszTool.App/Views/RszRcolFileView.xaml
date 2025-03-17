@@ -1,0 +1,65 @@
+﻿<UserControl x:Class="RszTool.App.Views.RszRcolFileView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:RszTool.App.Views"
+             xmlns:converters="clr-namespace:RszTool.App.Converters"
+             xmlns:viewmodels="clr-namespace:RszTool.App.ViewModels"
+             xmlns:res="clr-namespace:RszTool.App.Resources"
+             xmlns:rsztool="clr-namespace:RszTool;assembly=RszTool"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=viewmodels:RcolFileViewModel}"
+             d:DesignHeight="450" d:DesignWidth="800">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="TreeViewStyles.xaml" />
+                <ResourceDictionary Source="TreeViewTemplate.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <converters:RcolInfoFieldsConverter x:Key="RcolInfoFieldsConverter"/>
+            <converters:RcolGroupShapesConverter x:Key="RcolGroupShapesConverter"/>
+
+            <HierarchicalDataTemplate DataType="{x:Type rsztool:RcolFile+RcolGroupInfo}"
+                                    ItemsSource="{Binding ., Converter={StaticResource RcolInfoFieldsConverter}}">
+                <TextBlock Text="{Binding Name}">
+                </TextBlock>
+            </HierarchicalDataTemplate>
+
+            <HierarchicalDataTemplate DataType="{x:Type rsztool:RcolFile+RcolGroup}"
+                                      ItemsSource="{Binding ., Converter={StaticResource RcolGroupShapesConverter}}"
+                                      ItemContainerStyle="{StaticResource TreeViewItemHideIfEmpty}">
+
+                <TextBlock Text="{Binding Name}">
+                    <!-- <TextBlock.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="{res:Text Copy}" Command="{common:ParentBinding CopyGameObject}" CommandParameter="{Binding}" />
+                            <MenuItem Header="{res:Text Remove}" Command="{common:ParentBinding RemoveGameObject}" CommandParameter="{Binding}" />
+                            <MenuItem Header="{res:Text Duplicate}" Command="{common:ParentBinding DuplicateGameObject}" CommandParameter="{Binding}" />
+                            <MenuItem Header="{res:Text PasteGameobjectAsChild}" Command="{common:ParentBinding PasteGameobjectAsChild}" CommandParameter="{Binding}" />
+                            <MenuItem Header="{res:Text AddComponent}" Command="{common:ParentBinding AddComponent}" CommandParameter="{Binding}" />
+                            <MenuItem Header="{res:Text PasteInstanceAsComponent}" Command="{common:ParentBinding PasteInstanceAsComponent}" CommandParameter="{Binding}" />
+                        </ContextMenu>
+                    </TextBlock.ContextMenu> -->
+                </TextBlock>
+            </HierarchicalDataTemplate>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid local:FieldValueInput.ValueChanged="OnValueChanged"
+          local:FieldValueInput.ResourceChanged="OnResourceChanged">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto" MaxHeight="{Binding ActualHeight, RelativeSource={RelativeSource FindAncestor, AncestorType=ContentPresenter}}" />
+        </Grid.RowDefinitions>
+        <local:RszFileView Grid.Row="0" />
+        <GridSplitter Grid.Row="1" Height="3" HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="0,5,0,0" />
+        <local:SearchInstanceView Grid.Row="2" Margin="5" />
+    </Grid>
+</UserControl>

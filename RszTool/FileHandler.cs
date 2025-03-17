@@ -15,6 +15,15 @@ namespace RszTool
         private StringTable? StringTable;
         private OffsetContentTable? OffsetContentTable;
         private Sunday? searcher = new();
+        private int fileVersion = -1;
+
+        public int FileVersion {
+            get {
+                if (fileVersion != -1) return fileVersion;
+                if (FilePath == null) return 0;
+                return fileVersion = RszUtils.GetFileVersion(FilePath);
+            }
+        }
 
         public long Position => Stream.Position;
 
@@ -921,6 +930,11 @@ namespace RszTool
         public void WriteOffsetWString(string text)
         {
             StringTableAdd(text);
+            WriteInt64(0);
+        }
+        public void WriteOffsetGuidArray(Guid[] guids)
+        {
+            OffsetContentTableAdd((handler) => handler.WriteArray(guids));
             WriteInt64(0);
         }
 

@@ -113,6 +113,16 @@ namespace RszTool
             extension = Path.GetExtension(path[0..^version.Length]);
         }
 
+        public static int GetFileVersion(ReadOnlySpan<char> path)
+        {
+            var versionStr = Path.GetExtension(path);
+            if (!versionStr.IsEmpty)
+            {
+                versionStr = versionStr.Slice(1);
+            }
+            return int.TryParse(versionStr, out var version) ? version : 0;
+        }
+
         public static FileType GetFileType(string path)
         {
             GetFileExtension(path, out string extension, out _);
@@ -121,6 +131,7 @@ namespace RszTool
                 ".pfb" => FileType.pfb,
                 ".scn" => FileType.scn,
                 ".mdf2" => FileType.mdf2,
+                ".rcol" => FileType.rcol,
                 _ => FileType.unknown,
             };
         }

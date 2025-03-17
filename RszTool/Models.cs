@@ -74,6 +74,20 @@ namespace RszTool
             return true;
         }
 
+        public static bool Read<T>(this List<T> list, FileHandler handler, int count, GameVersion version) where T : VersionedBaseModel, new()
+        {
+            for (int i = 0; i < count; i++)
+            {
+                T item = new()
+                {
+                    Version = version
+                };
+                if (!item.Read(handler)) return false;
+                list.Add(item);
+            }
+            return true;
+        }
+
         public static bool Write(this IModel model, FileHandler handler, long start, bool jumpBack = true)
         {
             long pos = handler.Tell();
@@ -169,6 +183,10 @@ namespace RszTool
         }
     }
 
+    public abstract class VersionedBaseModel : BaseModel
+    {
+        public GameVersion Version { get; set; }
+    }
 
     public abstract class ReadWriteModel : BaseModel
     {

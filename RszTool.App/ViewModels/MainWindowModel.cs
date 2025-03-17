@@ -108,6 +108,10 @@ namespace RszTool.App.ViewModels
                     fileViewModel = new ScnFileViewModel(new(option, new(path)));
                     content = new RszScnFileView();
                     break;
+                case FileType.rcol:
+                    fileViewModel = new RcolFileViewModel(new(option, new(path)));
+                    content = new RszRcolFileView();
+                    break;
             }
             if (fileViewModel != null && content != null)
             {

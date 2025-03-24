@@ -1,4 +1,5 @@
 using RszTool.Common;
+using System.Buffers;
 using System.Collections;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -708,6 +709,64 @@ namespace RszTool
             bool result = Write(ref value);
             if (jumpBack) Seek(pos);
             return result;
+        }
+
+        public unsafe object ReadObject(Type type)
+        {
+            if (type == typeof(bool))
+            {
+                return ReadBoolean();
+            }
+            else if (type == typeof(byte))
+            {
+                return ReadByte();
+            }
+            else if (type == typeof(sbyte))
+            {
+                return ReadSByte();
+            }
+            int size = Marshal.SizeOf(type);
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(size);
+            try
+            {
+                Stream.Read(buffer, 0, size);
+                fixed (byte* p = buffer)
+                {
+                    return Marshal.PtrToStructure((IntPtr)p, type);
+                }
+            }
+            finally { ArrayPool<byte>.Shared.Return(buffer); }
+        }
+
+        public unsafe bool WriteObject(object obj)
+        {
+            if (obj is bool boolValue)
+            {
+                WriteBoolean(boolValue);
+                return true;
+            }
+            else if (obj is byte byteValue)
+            {
+                WriteByte(byteValue);
+                return true;
+            }
+            else if (obj is sbyte sbyteValue)
+            {
+                WriteSByte(sbyteValue);
+                return true;
+            }
+            int size = Marshal.SizeOf(obj);
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(size);
+            try
+            {
+                fixed (byte* p = buffer)
+                {
+                    Marshal.StructureToPtr(obj, (IntPtr)p, false);
+                }
+                Stream.Write(buffer, 0, size);
+                return true;
+            }
+            finally { ArrayPool<byte>.Shared.Return(buffer); }
         }
 
         /// <summary>

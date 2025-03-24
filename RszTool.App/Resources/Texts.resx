@@ -309,6 +309,9 @@ vec:x y z w</value>
   <data name="ChangeLogContent" xml:space="preserve">
     <value>ChangeLog for RszTool
 
+2025/03/24 0.3.4
+1. MHWilds support
+
 2024/11/25 0.3.3
 1. Auto detect OBB type
 

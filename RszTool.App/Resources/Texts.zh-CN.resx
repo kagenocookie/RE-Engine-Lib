@@ -309,6 +309,9 @@ vec:x y z w</value>
   <data name="ChangeLogContent" xml:space="preserve">
     <value>RszTool更新记录
 
+2025/03/04 0.3.4
+1. 支持怪物猎人：荒野
+
 2024/11/25 0.3.3
 1. 支持自动检测OBB类型
 

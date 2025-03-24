@@ -133,6 +133,10 @@ namespace RszTool
         mhrise,
         sf6,
         dd2,
+        gtrick,
+        apollo,
+        drdr,
+        mhwilds,
     }
 
 
@@ -150,7 +154,11 @@ namespace RszTool
         re7rt = re2rt,
         re4 = 7,
         dd2 = re4,
+        rszmhwilds = re4,
         sf6 = 8,
+        gtrick,
+        apollo,
+        drdr,
     }
 
 

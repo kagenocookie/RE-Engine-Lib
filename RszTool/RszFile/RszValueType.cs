@@ -704,4 +704,15 @@ namespace RszTool.via
         public sfix z;
         public sfix w;
     }
+
+    [StructLayout(LayoutKind.Explicit, Size = 48)]
+    public struct Transform
+    {
+        [FieldOffset(0)]
+        public Vector3 pos;
+        [FieldOffset(16)]
+        public Quaternion rot;
+        [FieldOffset(32)]
+        public Vector3 scale;
+    }
 }

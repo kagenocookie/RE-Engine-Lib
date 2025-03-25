@@ -971,10 +971,22 @@ namespace RszTool
             StringTable?.FlushOffsets(this);
         }
 
+        public void WriteOffsetContent(Action<FileHandler> write)
+        {
+            OffsetContentTableAdd(write);
+            Skip(sizeof(long));
+        }
+
         public void OffsetContentTableAdd(Action<FileHandler> write)
         {
             OffsetContentTable ??= new();
             OffsetContentTable.Add(write, Tell());
+        }
+
+        public void OffsetContentTableAddAlign(int align)
+        {
+            OffsetContentTable ??= new();
+            OffsetContentTable.Add((handler) => handler.Align(align), -1);
         }
 
         /// <summary>
@@ -1142,9 +1154,16 @@ namespace RszTool
             if (Count == 0) return;
             foreach (var item in Items)
             {
-                item.Offset = handler.Tell();
-                handler.WriteInt64(item.OffsetStart, item.Offset);
-                item.Write(handler);
+                if (item.OffsetStart == -1)
+                {
+                    item.Write(handler);
+                }
+                else
+                {
+                    item.Offset = handler.Tell();
+                    handler.WriteInt64(item.OffsetStart, item.Offset);
+                    item.Write(handler);
+                }
             }
             Clear();
         }

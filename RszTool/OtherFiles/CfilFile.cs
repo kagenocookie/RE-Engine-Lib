@@ -3,7 +3,7 @@ using System.Collections.ObjectModel;
 
 namespace RszTool
 {
-    public class CfilFile : BaseModel
+    public class CfilFile : BaseFile
     {
         public int count;
         public int ukn1;
@@ -19,8 +19,13 @@ namespace RszTool
 
         private const int Magic = 0x4c494643;
 
-        protected override bool DoRead(FileHandler handler)
+        public CfilFile(FileHandler fileHandler) : base(fileHandler)
         {
+        }
+
+        protected override bool DoRead()
+        {
+            var handler = FileHandler;
             handler.Read<int>();
             handler.Read(ref count);
             handler.Read(ref ukn1);
@@ -40,8 +45,9 @@ namespace RszTool
             return true;
         }
 
-        protected override bool DoWrite(FileHandler handler)
+        protected override bool DoWrite()
         {
+            var handler = FileHandler;
             handler.Write(Magic);
             count = Guids?.Length ?? 0;
             handler.Write(ref count);

@@ -113,6 +113,7 @@ namespace RszTool
             extension = Path.GetExtension(path[0..^version.Length]);
         }
 
+#if NET8_0_OR_GREATER
         public static int GetFileVersion(ReadOnlySpan<char> path)
         {
             var versionStr = Path.GetExtension(path);
@@ -122,6 +123,17 @@ namespace RszTool
             }
             return int.TryParse(versionStr, out var version) ? version : 0;
         }
+#else
+        public static int GetFileVersion(string path)
+        {
+            var versionStr = Path.GetExtension(path);
+            if (!string.IsNullOrEmpty(versionStr))
+            {
+                versionStr = versionStr.Substring(1);
+            }
+            return int.TryParse(versionStr, out var version) ? version : 0;
+        }
+#endif
 
         public static FileType GetFileType(string path)
         {

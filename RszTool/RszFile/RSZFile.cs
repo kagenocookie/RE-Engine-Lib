@@ -42,7 +42,7 @@ namespace RszTool
 
         public RSZFile(RszFileOption option, FileHandler fileHandler) : base(option, fileHandler)
         {
-            Header.Data.version = 16;
+            Header.Data.version = option.Version <= GameVersion.re2 ? 8u : 16u;
         }
 
         public const uint Magic = 0x5a5352;

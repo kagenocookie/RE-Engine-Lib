@@ -42,7 +42,8 @@ namespace RszTool
         {
             return Option.GameName switch
             {
-                _ => Extension
+                GameName.mhwilds => ".3",
+                _ => ".2"
             };
         }
 

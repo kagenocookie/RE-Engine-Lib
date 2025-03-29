@@ -313,7 +313,7 @@ namespace RszTool
 
         public static Type RszFieldTypeToCSharpType(RszFieldType fieldType)
         {
-            if (!RszFieldTypeToCSharpTypeDict.TryGetValue(fieldType, out Type type))
+            if (!RszFieldTypeToCSharpTypeDict.TryGetValue(fieldType, out Type? type))
             {
                 throw new NotSupportedException($"Not support type {fieldType}");
             }

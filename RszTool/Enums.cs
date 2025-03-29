@@ -154,7 +154,7 @@ namespace RszTool
         re7rt = re2rt,
         re4 = 7,
         dd2 = re4,
-        rszmhwilds = re4,
+        mhwilds = re4,
         sf6 = 8,
         gtrick,
         apollo,

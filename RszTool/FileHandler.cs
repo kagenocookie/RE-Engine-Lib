@@ -732,7 +732,7 @@ namespace RszTool
                 Stream.Read(buffer, 0, size);
                 fixed (byte* p = buffer)
                 {
-                    return Marshal.PtrToStructure((IntPtr)p, type);
+                    return Marshal.PtrToStructure((IntPtr)p, type)!;
                 }
             }
             finally { ArrayPool<byte>.Shared.Return(buffer); }

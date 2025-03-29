@@ -15,7 +15,7 @@ namespace RszTool
     }
 
 
-    public struct OffsetField<T> : IOffsetField where T : struct
+    public struct OffsetField<T> : IOffsetField where T : unmanaged
     {
         public OffsetField()
         {
@@ -111,7 +111,7 @@ namespace RszTool
     }
 
 
-    public class StructModel<T> : ICloneable, IModel where T : struct
+    public class StructModel<T> : ICloneable, IModel where T : unmanaged
     {
         public T Data = default;
         public long Start { get; set; } = -1;

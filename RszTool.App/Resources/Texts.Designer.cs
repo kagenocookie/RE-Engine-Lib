@@ -126,6 +126,9 @@ namespace RszTool.App.Resources {
         /// <summary>
         ///   查找类似 ChangeLog for RszTool
         ///
+        ///2025/03/29 0.3.5
+        ///1. Fix MHWilds read
+        ///
         ///2025/03/24 0.3.4
         ///1. MHWilds support
         ///
@@ -136,8 +139,7 @@ namespace RszTool.App.Resources {
         ///1. Optimize the performance of opening files with a large number of items, and improve items rendering.
         ///2. Use AvalonDock to support more advanced layouts, support reopening files that were not closed last time, and support layout recording.
         ///3. Support drop folder to add to FileExplorer
-        ///4. A warning will pop up when the writing of Rsz data fails.
-        ///5. The ContextID correction win [字符串的其余部分被截断]&quot;; 的本地化字符串。
+        ///4. A warning will pop up when the writing of Rsz dat [字符串的其余部分被截断]&quot;; 的本地化字符串。
         /// </summary>
         internal static string ChangeLogContent {
             get {

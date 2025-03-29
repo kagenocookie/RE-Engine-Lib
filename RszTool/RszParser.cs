@@ -95,12 +95,6 @@ namespace RszTool
                                     }
                                     if (fieldPatch.Type != RszFieldType.ukn_error && fieldPatch.Type != rszField.type)
                                     {
-                                        if (rszField.type != RszFieldType.Data)
-                                        {
-                                            Console.WriteLine(
-                                                $"Warning: {classPatch.Name}.{fieldPatch.Name} change type " +
-                                                $"from {rszField.type} to {fieldPatch.Type}");
-                                        }
                                         rszField.type = fieldPatch.Type;
                                         rszField.IsTypeInferred = true;
                                     }

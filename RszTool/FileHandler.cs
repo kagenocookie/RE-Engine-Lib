@@ -23,6 +23,7 @@ namespace RszTool
                 if (FilePath == null) return 0;
                 return fileVersion = RszUtils.GetFileVersion(FilePath);
             }
+            set => fileVersion = value;
         }
 
         public long Position => Stream.Position;

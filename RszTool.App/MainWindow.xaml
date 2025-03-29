@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:RszTool.App"
         xmlns:views="clr-namespace:RszTool.App.Views"
+        xmlns:controls="clr-namespace:RszTool.App.Controls"
         xmlns:viewmodels="clr-namespace:RszTool.App.ViewModels"
         xmlns:res="clr-namespace:RszTool.App.Resources"
         xmlns:rsztool="clr-namespace:RszTool;assembly=RszTool"
@@ -135,18 +136,24 @@
                         Theme="{Binding DockingTheme}">
 
             <LayoutRoot PropertyChanged="OnLayoutRootPropertyChanged">
-                <LayoutPanel Orientation="Horizontal">
-                    <LayoutAnchorablePaneGroup DockWidth="300">
-                        <LayoutAnchorablePane>
+                <LayoutPanel Orientation="Vertical">
+                    <LayoutPanel Orientation="Horizontal">
+                        <LayoutAnchorablePane DockWidth="300">
                             <LayoutAnchorable Title="File Explorer" ContentId="FileExplorerWindow">
                                 <views:FileExplorerTree DataContext="{Binding FileExplorerViewModel}" HorizontalAlignment="Stretch" />
                             </LayoutAnchorable>
                         </LayoutAnchorablePane>
-                    </LayoutAnchorablePaneGroup>
 
-                    <LayoutDocumentPaneGroup>
-                        <LayoutDocumentPane />
-                    </LayoutDocumentPaneGroup>
+                        <LayoutDocumentPaneGroup>
+                            <LayoutDocumentPane />
+                        </LayoutDocumentPaneGroup>
+                    </LayoutPanel>
+
+                    <LayoutAnchorablePane DockHeight="150">
+                        <LayoutAnchorable Title="{res:Text ConsoleLog}" ContentId="ConsoleBox">
+                            <controls:ConsoleBox />
+                        </LayoutAnchorable>
+                    </LayoutAnchorablePane>
                 </LayoutPanel>
             </LayoutRoot>
         </DockingManager>

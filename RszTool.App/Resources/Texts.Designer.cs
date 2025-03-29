@@ -126,17 +126,31 @@ namespace RszTool.App.Resources {
         /// <summary>
         ///   查找类似 ChangeLog for RszTool
         ///
-        ///2023/06/25 0.3.2
+        ///2025/03/24 0.3.4
+        ///1. MHWilds support
+        ///
+        ///2024/11/25 0.3.3
+        ///1. Auto detect OBB type
+        ///
+        ///2024/06/25 0.3.2
         ///1. Optimize the performance of opening files with a large number of items, and improve items rendering.
         ///2. Use AvalonDock to support more advanced layouts, support reopening files that were not closed last time, and support layout recording.
         ///3. Support drop folder to add to FileExplorer
         ///4. A warning will pop up when the writing of Rsz data fails.
-        ///5. The ContextID correction window supports manual input of offset and batch updating of Index.
-        ///6. Support parsing  [字符串的其余部分被截断]&quot;; 的本地化字符串。
+        ///5. The ContextID correction win [字符串的其余部分被截断]&quot;; 的本地化字符串。
         /// </summary>
         internal static string ChangeLogContent {
             get {
                 return ResourceManager.GetString("ChangeLogContent", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Clear 的本地化字符串。
+        /// </summary>
+        internal static string Clear {
+            get {
+                return ResourceManager.GetString("Clear", resourceCulture);
             }
         }
         
@@ -164,6 +178,15 @@ namespace RszTool.App.Resources {
         internal static string Component {
             get {
                 return ResourceManager.GetString("Component", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Log 的本地化字符串。
+        /// </summary>
+        internal static string ConsoleLog {
+            get {
+                return ResourceManager.GetString("ConsoleLog", resourceCulture);
             }
         }
         

@@ -13,6 +13,10 @@ namespace RszTool.App.ViewModels
             Application.Current.Resources["LightForeground"] as SolidColorBrush ?? Brushes.Black;
         public readonly SolidColorBrush DarkForeground =
             Application.Current.Resources["DarkForeground"] as SolidColorBrush ?? Brushes.White;
+        public readonly SolidColorBrush LightErrorBrush =
+            Application.Current.Resources["LightErrorBrush"] as SolidColorBrush ?? Brushes.Red;
+        public readonly SolidColorBrush DarkErrorBrush =
+            Application.Current.Resources["DarkErrorBrush"] as SolidColorBrush ?? Brushes.Red;
 
         public static ThemeManager Instance
         {

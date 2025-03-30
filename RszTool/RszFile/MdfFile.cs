@@ -22,7 +22,8 @@ namespace RszTool
             public int paramCount; // 4
             public int texCount; // 5
             // tdbVersion >= 69, RE8+
-            public ulong skip;
+            public int gpbfNameCount;
+            public int gpbfDataCount;
             public uint shaderType; // 6
             // tdbVersion >= 71, SF6+
             public uint ukn;
@@ -33,8 +34,7 @@ namespace RszTool
             public long paramHeaderOffset; // 8
             public long texHeaderOffset; // 9
             // tdbVersion >= 69, RE8+
-            public long firstMaterialNameOffset;
-            public string? firstMaterialName;
+            public long gpbfOffset;
             public long paramsOffset; // 10
             public long mmtrPathOffset; // 11
             public string? mmtrPath;
@@ -58,7 +58,15 @@ namespace RszTool
                 handler.Read(ref paramsSize);
                 handler.Read(ref paramCount);
                 handler.Read(ref texCount);
-                if (Version >= GameVersion.re8) handler.Read(ref skip);
+                if (Version >= GameVersion.re8)
+                {
+                    handler.Read(ref gpbfNameCount);
+                    handler.Read(ref gpbfDataCount);
+                    if (gpbfNameCount != gpbfDataCount)
+                    {
+                        throw new Exception("GPBF Count mismatch!");
+                    }
+                }
                 handler.Read(ref shaderType);
                 if (Version >= GameVersion.re4) handler.Read(ref ukn);
                 handler.Read(ref alphaFlags);
@@ -67,8 +75,7 @@ namespace RszTool
                 handler.Read(ref texHeaderOffset);
                 if (Version >= GameVersion.re8)
                 {
-                    handler.Read(ref firstMaterialNameOffset);
-                    // firstMaterialName = handler.ReadWString(firstMaterialNameOffset);
+                    handler.Read(ref gpbfOffset);
                 }
                 handler.Read(ref paramsOffset);
                 handler.Read(ref mmtrPathOffset);
@@ -90,7 +97,10 @@ namespace RszTool
                 handler.Write(ref paramsSize);
                 handler.Write(ref paramCount);
                 handler.Write(ref texCount);
-                if (Version >= GameVersion.re8) handler.Write(ref skip);
+                if (Version >= GameVersion.re8) {
+                    handler.Write(ref gpbfNameCount);
+                    handler.Write(ref gpbfDataCount);
+                }
                 handler.Write(ref shaderType);
                 if (Version >= GameVersion.re4) handler.Write(ref ukn);
                 handler.Write(ref alphaFlags);
@@ -99,8 +109,7 @@ namespace RszTool
                 handler.Write(ref texHeaderOffset);
                 if (Version >= GameVersion.re8)
                 {
-                    // handler.AddStringToWrite(firstMaterialName);
-                    handler.Write(ref firstMaterialNameOffset);
+                    handler.Write(ref gpbfOffset);
                 }
                 handler.Write(ref paramsOffset);
                 handler.StringTableAdd(mmtrPath);
@@ -224,6 +233,43 @@ namespace RszTool
             }
         }
 
+        public class GpbfHeader : BaseModel
+        {
+            public long nameOffset;
+            public string? name;
+            public uint utf16Hash;
+            public uint asciiHash;
+
+            public GpbfHeader()
+            {
+            }
+
+            public GpbfHeader(string name)
+            {
+                this.name = name;
+                asciiHash = MurMur3HashUtils.GetAsciiHash(name);
+                utf16Hash = MurMur3HashUtils.GetHash(name);
+            }
+
+            protected override bool DoRead(FileHandler handler)
+            {
+                handler.Read(ref nameOffset);
+                name = handler.ReadWString(nameOffset);
+                handler.Read(ref utf16Hash);
+                handler.Read(ref asciiHash);
+                return true;
+            }
+
+            protected override bool DoWrite(FileHandler handler)
+            {
+                nameOffset = handler.Tell();
+                handler.WriteOffsetWString(name ?? string.Empty);
+                handler.Write(ref utf16Hash);
+                handler.Write(ref asciiHash);
+                return true;
+            }
+        }
+
         public class MatData
         {
             public MatData(MatHeader matHeader)
@@ -234,6 +280,7 @@ namespace RszTool
             public MatHeader Header;
             public List<TexHeader> TexHeaders = new();
             public List<ParamHeader> ParamHeaders = new();
+            public List<(GpbfHeader name, GpbfHeader data)> GpbfHeaders = new();
         }
 
         public MdfFile(RszFileOption option, FileHandler fileHandler) : base(option, fileHandler)
@@ -326,6 +373,18 @@ namespace RszTool
                     }
                     matData.ParamHeaders.Add(paramHeader);
                 }
+
+                matData.GpbfHeaders = new();
+                var tell = handler.Tell();
+                handler.Seek(matData.Header.gpbfOffset);
+                for (int i = 0; i < matData.Header.gpbfNameCount; ++i) {
+                    var name = new GpbfHeader();
+                    var data = new GpbfHeader();
+                    name.Read(handler);
+                    data.Read(handler);
+                    matData.GpbfHeaders.Add((name, data));
+                }
+                handler.Seek(tell);
             }
 
             return true;
@@ -356,15 +415,28 @@ namespace RszTool
                 matData.ParamHeaders.Write(handler);
             }
 
-            // handler.Align(16);
+            handler.Align(16);
+
+            foreach (var matData in MatDatas)
+            {
+                matData.Header.gpbfOffset = handler.Tell();
+                matData.Header.gpbfNameCount = matData.Header.gpbfDataCount = matData.GpbfHeaders.Count;
+                foreach (var gpbf in matData.GpbfHeaders) {
+                    gpbf.name.Write(handler);
+                    gpbf.data.Write(handler);
+                }
+            }
+
             handler.StringTableWriteStrings();
 
             handler.Align(16);
             foreach (var matData in MatDatas)
             {
+                int size = 0;
                 matData.Header.paramsOffset = handler.Tell();
                 foreach (var paramHeader in matData.ParamHeaders)
                 {
+                    size += paramHeader.componentCount * 4;
                     if (paramHeader.gapSize > 0)
                     {
                         handler.FillBytes(0, paramHeader.gapSize);
@@ -380,6 +452,7 @@ namespace RszTool
                     }
                     paramHeader.Rewrite(handler);
                 }
+                matData.Header.paramsSize = size;
                 handler.FillBytes(0, (int)(matData.Header.paramsOffset + matData.Header.paramsSize - handler.Tell()));
                 matData.Header.Rewrite(handler);
             }

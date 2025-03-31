@@ -26,7 +26,7 @@ namespace RszTool
             }
             else
             {
-                Path = handler.ReadWString();
+                Path = handler.ReadWString(-1, -1, false);
             }
             return true;
         }

@@ -98,7 +98,7 @@ namespace RszTool
 
         public FileHandler WithOffset(long offset)
         {
-            return new FileHandler(Stream) { Offset = Offset + offset };
+            return new FileHandler(Stream) { Offset = Offset + offset, FileVersion = FileVersion };
         }
 
         public void Save(string? path = null)

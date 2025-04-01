@@ -85,7 +85,8 @@ namespace RszTool
 
         public bool WriteTo(string path)
         {
-            return WriteTo(new FileHandler(path, true));
+            using var handler = new FileHandler(path, true);
+            return WriteTo(handler);
         }
 
         public bool Save()

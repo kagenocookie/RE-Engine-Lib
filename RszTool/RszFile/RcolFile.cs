@@ -367,18 +367,17 @@ namespace RszTool
                 }
 
                 var tell = handler.Tell();
-                shape = shapeType switch
-                {
-                    ShapeType.Aabb => handler.Write(tell, (via.AABB)shape!),
-                    ShapeType.Sphere => handler.Write(tell, (via.Sphere)shape!),
-                    ShapeType.Capsule => handler.Write(tell, (via.Capsule)shape!),
-                    ShapeType.Box => handler.Write(tell, (via.OBB)shape!),
-                    ShapeType.Area => handler.Write(tell, (via.Area)shape!),
-                    ShapeType.Triangle => handler.Write(tell, (via.Triangle)shape!),
-                    ShapeType.Cylinder => handler.Write(tell, (via.Cylinder)shape!),
-                    ShapeType.ContinuousSphere => handler.Write(tell, (via.Sphere)shape!),
-                    ShapeType.ContinuousCapsule => handler.Write(tell, (via.Capsule)shape!),
-                    _ => throw new Exception("Unsupported RCOL shape type " + shapeType),
+                switch(shapeType) {
+                    case ShapeType.Aabb: handler.Write(tell, (via.AABB)shape!); break;
+                    case ShapeType.Sphere: handler.Write(tell, (via.Sphere)shape!); break;
+                    case ShapeType.Capsule: handler.Write(tell, (via.Capsule)shape!); break;
+                    case ShapeType.Box: handler.Write(tell, (via.OBB)shape!); break;
+                    case ShapeType.Area: handler.Write(tell, (via.Area)shape!); break;
+                    case ShapeType.Triangle: handler.Write(tell, (via.Triangle)shape!); break;
+                    case ShapeType.Cylinder: handler.Write(tell, (via.Cylinder)shape!); break;
+                    case ShapeType.ContinuousSphere: handler.Write(tell, (via.Sphere)shape!); break;
+                    case ShapeType.ContinuousCapsule: handler.Write(tell, (via.Capsule)shape!); break;
+                    default: throw new Exception("Unsupported RCOL shape type " + shapeType);
                 };
                 handler.Skip(sizeof(float) * 4 * 5);
                 return true;

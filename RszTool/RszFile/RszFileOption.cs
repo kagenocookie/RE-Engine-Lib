@@ -10,23 +10,11 @@ namespace RszTool
         public RszFileOption(GameName gameName, string? rszJsonFilepath = null)
         {
             GameName = gameName;
-            Version = gameName switch
+            if (!Enum.TryParse(gameName.ToString(), out GameVersion version))
             {
-                GameName.re4 => GameVersion.re4,
-                GameName.re2 => GameVersion.re2,
-                GameName.re2rt => GameVersion.re2rt,
-                GameName.re3 => GameVersion.re3,
-                GameName.re3rt => GameVersion.re3rt,
-                GameName.re7 => GameVersion.re7,
-                GameName.re7rt => GameVersion.re7rt,
-                GameName.re8 => GameVersion.re8,
-                GameName.dmc5 => GameVersion.dmc5,
-                GameName.mhrise => GameVersion.mhrise,
-                GameName.sf6 => GameVersion.sf6,
-                GameName.dd2 => GameVersion.dd2,
-                GameName.mhwilds => GameVersion.mhwilds,
-                _ => GameVersion.unknown,
-            };
+                throw new Exception($"GameVersion {GameName} not found.");
+            }
+            Version = version;
             RszParser = RszParser.GetInstance(rszJsonFilepath ?? $"rsz{gameName}.json");
             EnumParser = EnumParser.GetInstance($"Data\\Enums\\{gameName}_enum.json");
         }

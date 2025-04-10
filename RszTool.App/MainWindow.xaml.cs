@@ -8,6 +8,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using AvalonDock.Layout;
 using RszTool.App.ViewModels;
 
 namespace RszTool.App
@@ -22,8 +23,12 @@ namespace RszTool.App
             InitializeComponent();
             Version version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version!;
             Title = $"{Title} v{version.Major}.{version.Minor}.{version.Build} - By chenstack";
-
             Closing += OnClosing;
+            if (DataContext is MainWindowModel mainWindowModel)
+            {
+                mainWindowModel.DockingManager = dockManager;
+                Common.AppUtils.TryAction(mainWindowModel.PostInit);
+            }
         }
 
         public void OnDragOver(object sender, DragEventArgs e)
@@ -68,6 +73,26 @@ namespace RszTool.App
                 {
                     treeViewItem.Foreground = ellipse.Fill;
                 }
+            }
+        }
+
+        private void DockManager_DocumentClosing(object sender, AvalonDock.DocumentClosingEventArgs e)
+        {
+            if (e.Document is FileTabItemViewModel fileTab)
+            {
+                if (!MainWindowModel.OnTabClose(fileTab))
+                {
+                    e.Cancel = true;
+                }
+            }
+        }
+
+        private void OnLayoutRootPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            var activeContent = ((LayoutRoot)sender).ActiveContent;
+            if (activeContent != null)
+            {
+
             }
         }
     }

@@ -13,14 +13,13 @@ namespace RszTool.App.ViewModels
 
         public RszViewModel RszViewModel => new(UserFile.RSZ!);
 
-        public override IEnumerable<object> TreeViewItems
+        public override IEnumerable<object> GetTreeViewItems()
         {
-            get
-            {
-                yield return new TreeItemViewModel("Resources", UserFile.ResourceInfoList);
-                yield return new TreeItemViewModel("Instances", RszViewModel.Instances);
-                yield return new TreeItemViewModel("Objects", RszViewModel.Objects);
-            }
+            return [
+                new TreeItemViewModel("Resources", UserFile.ResourceInfoList),
+                new TreeItemViewModel("Instances", RszViewModel.Instances),
+                new TreeItemViewModel("Objects", RszViewModel.Objects),
+            ];
         }
     }
 }

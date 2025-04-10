@@ -429,7 +429,7 @@ namespace RszTool.via
     }
 
 
-    public struct Postion
+    public struct Position
     {
         public double x;
         public double y;

@@ -92,7 +92,7 @@ namespace RszTool.Common
     }
 
 
-    public class EnumJsonConverter<T> : JsonConverter<T> where T : struct
+    public class EnumJsonConverter<T> : JsonConverter<T> where T : unmanaged
     {
         public override bool CanConvert(Type typeToConvert)
         {

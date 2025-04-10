@@ -1,38 +1,55 @@
 using RszTool.App.Views;
+using RszTool.Pfb;
+using RszTool.Scn;
 
 namespace RszTool.App.ViewModels
 {
     public static class GameObjectCopyHelper
     {
-        private static PfbFile.GameObjectData? CopiedPfbGameObject { get; set; }
-        private static ScnFile.GameObjectData? CopiedScnGameObject { get; set; }
+        private static PfbGameObject? CopiedPfbGameObject { get; set; }
+        private static ScnGameObject? CopiedScnGameObject { get; set; }
 
-        public static void CopyGameObject(PfbFile.GameObjectData gameObject)
+        public static void CopyGameObject(PfbGameObject gameObject)
         {
             CopiedPfbGameObject = gameObject;
             CopiedScnGameObject = null;
         }
 
-        public static void CopyGameObject(ScnFile.GameObjectData gameObject)
+        public static void CopyGameObject(ScnGameObject gameObject)
         {
             CopiedScnGameObject = gameObject;
             CopiedPfbGameObject = null;
         }
 
-        public static PfbFile.GameObjectData? GetCopiedPfbGameObject()
+        public static PfbGameObject? GetCopiedPfbGameObject()
         {
             if (CopiedPfbGameObject != null) return CopiedPfbGameObject;
             if (CopiedScnGameObject != null)
-                return PfbFile.GameObjectData.FromScnGameObject(CopiedScnGameObject);
+                return PfbGameObject.FromScnGameObject(CopiedScnGameObject);
             return null;
         }
 
-        public static ScnFile.GameObjectData? GetCopiedScnGameObject()
+        public static ScnGameObject? GetCopiedScnGameObject()
         {
             if (CopiedScnGameObject != null) return CopiedScnGameObject;
             if (CopiedPfbGameObject != null)
-                return ScnFile.GameObjectData.FromPfbGameObject(CopiedPfbGameObject);
+                return ScnGameObject.FromPfbGameObject(CopiedPfbGameObject);
             return null;
+        }
+
+        public static void AutoIncreaseIndex(GameObjectContextID[] contextIDs)
+        {
+            int indexIncrementOffset = App.Instance.SaveData.ContextIDIndexIncrementOffset;
+            if (indexIncrementOffset > 0)
+            {
+                foreach (var item in contextIDs)
+                {
+                    if ((int)item.IndexViewModel.Value > 0)
+                    {
+                        item.IndexViewModel.Value = (int)item.IndexViewModel.Value + indexIncrementOffset;
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -40,7 +57,7 @@ namespace RszTool.App.ViewModels
         /// </summary>
         /// <param name="fileOption"></param>
         /// <param name="gameObjectData"></param>
-        public static void UpdateContextID(RszFileOption fileOption, IGameObjectData gameObjectData)
+        public static void UpdateContextID(RszFileOption fileOption, IGameObject gameObjectData)
         {
             if (fileOption.GameName == GameName.re4)
             {
@@ -82,7 +99,7 @@ namespace RszTool.App.ViewModels
         /// </summary>
         /// <param name="gameObject"></param>
         /// <returns></returns>
-        public static IEnumerable<GameObjectContextID> IterGameObjectContextID(IGameObjectData gameObject)
+        public static IEnumerable<GameObjectContextID> IterGameObjectContextID(IGameObject gameObject)
         {
             foreach (var component in gameObject.Components)
             {
@@ -146,22 +163,25 @@ namespace RszTool.App.ViewModels
             }
             int groupIndex = instance.RszClass.IndexOfField("_Group");
             int indexIndex = instance.RszClass.IndexOfField("_Index");
-            RszFieldNormalViewModel groupViewModel = new(instance, groupIndex);
-            RszFieldNormalViewModel indexViewModel = new(instance, indexIndex);
+            GroupViewModel = new(instance, groupIndex);
+            IndexViewModel = new(instance, indexIndex);
             Items = [
-                groupViewModel,
-                indexViewModel,
+                GroupViewModel,
+                IndexViewModel,
             ];
 
-            groupViewModel.PropertyChanged += (o, e) => {
-                App.Instance.SaveData.LastContextID.Group = (int)groupViewModel.Value;
+            GroupViewModel.PropertyChanged += (o, e) => {
+                App.Instance.SaveData.LastContextID.Group = (int)GroupViewModel.Value;
             };
-            indexViewModel.PropertyChanged += (o, e) => {
-                App.Instance.SaveData.LastContextID.Index = (int)indexViewModel.Value;
+            IndexViewModel.PropertyChanged += (o, e) => {
+                App.Instance.SaveData.LastContextID.Index = (int)IndexViewModel.Value;
             };
         }
 
         public string Name { get; set; }
         public RszFieldNormalViewModel[] Items { get; set; }
+
+        public RszFieldNormalViewModel GroupViewModel { get; }
+        public RszFieldNormalViewModel IndexViewModel { get; }
     }
 }

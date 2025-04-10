@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Windows;
 using RszTool.App.Common;
 using RszTool.App.Resources;
+using RszTool.Pfb;
 
 
 namespace RszTool.App.ViewModels
@@ -11,9 +12,9 @@ namespace RszTool.App.ViewModels
         public override BaseRszFile File => PfbFile;
         public PfbFile PfbFile { get; } = file;
         public RszViewModel RszViewModel => new(PfbFile.RSZ!);
-        public IEnumerable<PfbFile.GameObjectData>? GameObjects => PfbFile.GameObjectDatas;
+        public IEnumerable<PfbGameObject>? GameObjects => PfbFile.GameObjects;
         public GameObjectSearchViewModel GameObjectSearchViewModel { get; } = new() { IncludeChildren = true };
-        public ObservableCollection<PfbFile.GameObjectData>? SearchGameObjectList { get; set; }
+        public ObservableCollection<PfbGameObject>? SearchGameObjectList { get; set; }
 
         public bool ResourceChanged
         {
@@ -30,19 +31,19 @@ namespace RszTool.App.ViewModels
         public RelayCommand AddComponent => new(OnAddComponent);
         public RelayCommand PasteInstanceAsComponent => new(OnPasteInstanceAsComponent);
         public RelayCommand RemoveComponent => new(OnRemoveComponent);
+        public RelayCommand ParseTransformClipboard => new(OnParseTransformClipboard);
 
         public override void PostRead()
         {
             PfbFile.SetupGameObjects();
         }
 
-        public override IEnumerable<object> TreeViewItems
+        public override IEnumerable<object> GetTreeViewItems()
         {
-            get
-            {
-                yield return new TreeItemViewModel("Resources", PfbFile.ResourceInfoList);
-                yield return new GameObjectsHeader("GameObjects", GameObjects);
-            }
+            return [
+                new TreeItemViewModel("Resources", PfbFile.ResourceInfoList),
+                new GameObjectsHeader("GameObjects", GameObjects)
+            ];
         }
 
         /// <summary>
@@ -51,7 +52,7 @@ namespace RszTool.App.ViewModels
         /// <param name="arg"></param>
         private static void OnCopyGameObject(object arg)
         {
-            GameObjectCopyHelper.CopyGameObject((PfbFile.GameObjectData)arg);
+            GameObjectCopyHelper.CopyGameObject((PfbGameObject)arg);
         }
 
         /// <summary>
@@ -60,7 +61,7 @@ namespace RszTool.App.ViewModels
         /// <param name="arg"></param>
         private void OnRemoveGameObject(object arg)
         {
-            PfbFile.RemoveGameObject((PfbFile.GameObjectData)arg);
+            PfbFile.RemoveGameObject((PfbGameObject)arg);
             Changed = true;
         }
 
@@ -70,7 +71,7 @@ namespace RszTool.App.ViewModels
         /// <param name="arg"></param>
         private void OnDuplicateGameObject(object arg)
         {
-            PfbFile.DuplicateGameObject((PfbFile.GameObjectData)arg);
+            PfbFile.DuplicateGameObject((PfbGameObject)arg);
             Changed = true;
         }
 
@@ -98,7 +99,7 @@ namespace RszTool.App.ViewModels
             var gameObject = GameObjectCopyHelper.GetCopiedPfbGameObject();
             if (gameObject != null)
             {
-                var parent = (PfbFile.GameObjectData)arg;
+                var parent = (PfbGameObject)arg;
                 PfbFile.ImportGameObject(gameObject, parent: parent);
                 Changed = true;
             }
@@ -110,7 +111,7 @@ namespace RszTool.App.ViewModels
             SearchGameObjectList.Clear();
             GameObjectFilter filter = new(GameObjectSearchViewModel);
             if (!filter.Enable) return;
-            if (PfbFile.GameObjectDatas == null) return;
+            if (PfbFile.GameObjects == null) return;
             foreach (var gameObject in PfbFile.IterAllGameObjects(GameObjectSearchViewModel.IncludeChildren))
             {
                 if (filter.IsMatch(gameObject))
@@ -123,16 +124,17 @@ namespace RszTool.App.ViewModels
         private string lastInputClassName = "";
         private void OnAddComponent(object arg)
         {
-            var gameObject = (PfbFile.GameObjectData)arg;
-            Views.InputDialog dialog = new()
+            var gameObject = (PfbGameObject)arg;
+            Views.ListBoxDialog dialog = new()
             {
                 Title = Texts.NewItem,
                 Message = Texts.InputClassName,
                 InputText = lastInputClassName,
+                ItemsSource = File.RszParser.NonGenericClassNames,
                 Owner = Application.Current.MainWindow,
             };
             if (dialog.ShowDialog() != true) return;
-            lastInputClassName = dialog.InputText;
+            lastInputClassName = dialog.SelectedItem as string ?? "";
             if (string.IsNullOrWhiteSpace(lastInputClassName))
             {
                 MessageBoxUtils.Error("ClassName is empty");
@@ -147,7 +149,7 @@ namespace RszTool.App.ViewModels
 
         private void OnPasteInstanceAsComponent(object arg)
         {
-            var gameObject = (PfbFile.GameObjectData)arg;
+            var gameObject = (PfbGameObject)arg;
             if (CopiedInstance != null && File.GetRSZ() is RSZFile rsz)
             {
                 RszInstance component = rsz.CloneInstance(CopiedInstance);
@@ -162,6 +164,15 @@ namespace RszTool.App.ViewModels
             var gameObject = item.GameObject;
             PfbFile.RemoveComponent(gameObject, item.Instance);
             Changed = true;
+        }
+
+        private void OnParseTransformClipboard(object arg)
+        {
+            var item = (GameObejctComponentViewModel)arg;
+            if (item.ParseTransformClipboard())
+            {
+                Changed = true;
+            }
         }
     }
 }

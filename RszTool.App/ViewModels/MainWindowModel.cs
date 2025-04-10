@@ -1,26 +1,36 @@
-using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.IO;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Windows;
-using System.Windows.Controls;
-using Dragablz;
+using AvalonDock;
+using AvalonDock.Layout;
+using AvalonDock.Layout.Serialization;
+using AvalonDock.Themes;
 using Microsoft.Win32;
 using RszTool.App.Common;
 using RszTool.App.Resources;
 using RszTool.App.Views;
-using RszTool.Common;
 
 namespace RszTool.App.ViewModels
 {
     public class MainWindowModel : INotifyPropertyChanged
     {
+        private const string LayoutConfigFileName = "RszTool.App.Layout.config";
         public event PropertyChangedEventHandler? PropertyChanged;
-        public ObservableCollection<HeaderedItemViewModel> Items { get; } = new();
-        public HeaderedItemViewModel? SelectedTabItem { get; set; }
+        public DockingManager? DockingManager { get; set; }
+        public LayoutContent? SelectedTabItem => DockingManager!.Layout.ActiveContent;
+
+        public IEnumerable<LayoutDocumentPane> GetLayoutDocumentPanes()
+        {
+            return DockingManager!.Layout.Descendents().OfType<LayoutDocumentPane>();
+        }
+
+        public IEnumerable<FileTabItemViewModel> GetFileTabs()
+        {
+            return DockingManager!.Layout.Descendents().OfType<FileTabItemViewModel>();
+        }
+
         public FileExplorerViewModel FileExplorerViewModel { get; } = new();
+        public Theme DockingTheme { get; set; }
 
         private BaseRszFileViewModel? CurrentFile =>
             SelectedTabItem is FileTabItemViewModel fileTabItemViewModel ?
@@ -33,10 +43,10 @@ namespace RszTool.App.ViewModels
             {
                 SaveData.IsDarkTheme = value;
                 ThemeManager.Instance.IsDarkTheme = value;
+                DockingTheme = value ? new MyVs2013DarkTheme() : new MyVs2013LightTheme();
             }
         }
 
-        public CustomInterTabClient InterTabClient { get; } = new();
         public static SaveData SaveData => App.Instance.SaveData;
 
         public RelayCommand OpenCommand => new(OnOpen);
@@ -46,11 +56,12 @@ namespace RszTool.App.ViewModels
         public RelayCommand AddFolderCommand => new(OnAddFolder);
         public RelayCommand CloseCommand => new(OnClose);
         public RelayCommand QuitCommand => new(OnQuit);
+        public RelayCommand PreferenceCommand => new(OnPreference);
         public RelayCommand ClearRecentFilesHistory => new(OnClearRecentFilesHistory);
+        public RelayCommand RemoveNonExistedRecentFilesHistory => new(OnRemoveNonExistedRecentFilesHistory);
         public RelayCommand OpenRecentFile => new(OnOpenRecentFile);
         public RelayCommand OpenAbout => new(OnOpenAbout);
-
-        public ItemActionCallback ClosingTabItemHandler => ClosingTabItemHandlerImpl;
+        public RelayCommand OpenChangeLog => new(OnOpenChangeLog);
 
         public MainWindowModel()
         {
@@ -63,24 +74,57 @@ namespace RszTool.App.ViewModels
                 FileExplorerViewModel.Folders.Add(new(Directory.GetCurrentDirectory()));
             }
             FileExplorerViewModel.OnFileSelected += f => OpenFile(f.Path);
+            DockingTheme = IsDarkTheme ? new MyVs2013DarkTheme() : new MyVs2013LightTheme();
+        }
+
+        public void PostInit()
+        {
+            if (SaveData.OpenedFiles.Count > 0)
+            {
+                List<string> files = SaveData.OpenedFiles;
+                SaveData.OpenedFiles = new();
+                foreach (var path in files)
+                {
+                    if (File.Exists(path))
+                    {
+                        OpenFile(path);
+                    }
+                }
+            }
+            if (File.Exists(LayoutConfigFileName))
+            {
+                try
+                {
+                    var serializer = new XmlLayoutSerializer(DockingManager);
+                    using var stream = new StreamReader(LayoutConfigFileName);
+                    serializer.Deserialize(stream);
+
+                    SaveData.OpenedFiles.Clear();
+                    foreach (var fileTab in GetFileTabs())
+                    {
+                        fileTab.PostInit();
+                        SaveData.OpenedFiles.Add(fileTab.FileViewModel.FilePath!);
+                    }
+                }
+                catch (Exception)
+                {
+                }
+            }
         }
 
         /// <summary>
         /// 打开文件
         /// </summary>
         /// <param name="path"></param>
-        public void OpenFile(string path)
+        public bool OpenFile(string path)
         {
+            if (!File.Exists(path)) return false;
             // check file opened
-            foreach (var item in Items)
+            foreach (var fileTab in GetFileTabs())
             {
-                if (item is FileTabItemViewModel fileTab)
+                if (fileTab.FileViewModel.FilePath == path)
                 {
-                    if (fileTab.FileViewModel.FilePath == path)
-                    {
-                        SelectedTabItem = item;
-                        return;
-                    }
+                    return true;
                 }
             }
 
@@ -88,67 +132,34 @@ namespace RszTool.App.ViewModels
             if (!File.Exists(rszJsonFile))
             {
                 MessageBoxUtils.Warning(string.Format(Texts.RszJsonNotFound, rszJsonFile));
-                return;
+                return false;
             }
 
-            BaseRszFileViewModel? fileViewModel = null;
-            ContentControl? content = null;
-            RszFileOption option = new(SaveData.GameName);
-            switch (RszUtils.GetFileType(path))
+            var content = RszFileViewFactory.Create(SaveData.GameName, path);
+            if (content != null)
             {
-                case FileType.user:
-                    fileViewModel = new UserFileViewModel(new(option, new(path)));
-                    content = new RszUserFileView();
-                    break;
-                case FileType.pfb:
-                    fileViewModel = new PfbFileViewModel(new(option, new(path)));
-                    content = new RszPfbFileView();
-                    break;
-                case FileType.scn:
-                    fileViewModel = new ScnFileViewModel(new(option, new(path)));
-                    content = new RszScnFileView();
-                    break;
-                case FileType.rcol:
-                    fileViewModel = new RcolFileViewModel(new(option, new(path)));
-                    content = new RszRcolFileView();
-                    break;
-            }
-            if (fileViewModel != null && content != null)
-            {
-                bool readSuccess = false;
-                for (int tryCount = 0; tryCount < 5; tryCount++)
+                LayoutDocument document = new FileTabItemViewModel(content)
                 {
-                    try
-                    {
-                        readSuccess = fileViewModel.Read();
-                        break;
-                    }
-                    catch (RszRetryOpenException e)
-                    {
-                        fileViewModel.File.FileHandler.Seek(0);
-                        MessageBoxUtils.Info(string.Format(Texts.TryReopen, e.Message));
-                    }
-                    catch (Exception)
-                    {
-                        throw;
-                    }
-                }
-                if (!readSuccess)
+                    IsSelected = true
+                };
+                if (GetLayoutDocumentPanes().FirstOrDefault() is LayoutDocumentPane pane)
                 {
-                    MessageBoxUtils.Error(Texts.ReadFailed);
-                    return;
+                    pane.Children.Add(document);
                 }
-                content.DataContext = fileViewModel;
-                HeaderedItemViewModel header = new FileTabItemViewModel(fileViewModel, content);
-                Items.Add(header);
-                SelectedTabItem = header;
+                else
+                {
+                    throw new InvalidOperationException("No LayoutDocumentPaneGroup");
+                }
 
                 SaveData.AddRecentFile(path);
+                SaveData.OpenedFiles.Add(path);
+                return true;
             }
             else
             {
                 MessageBoxUtils.Info(Texts.NotSupportedFormat);
             }
+            return false;
         }
 
         public void TryOpenFile(string path)
@@ -160,20 +171,15 @@ namespace RszTool.App.ViewModels
         {
             for (int i = 0; i < files.Length; i++)
             {
-                string file = files[i];
-                TryOpenFile(file);
-            }
-        }
-
-        /// <summary>
-        /// Callback to handle tab closing.
-        /// </summary>
-        private void ClosingTabItemHandlerImpl(ItemActionCallbackArgs<TabablzControl> args)
-        {
-            if (args.DragablzItem.DataContext is not FileTabItemViewModel fileTab) return;
-            if (!OnTabClose(fileTab))
-            {
-                args.Cancel();
+                string path = files[i];
+                if (Directory.Exists(path))
+                {
+                    FileExplorerViewModel.AddFolder(path);
+                }
+                else
+                {
+                    TryOpenFile(path);
+                }
             }
         }
 
@@ -235,7 +241,7 @@ namespace RszTool.App.ViewModels
             AppUtils.TryAction(() => CurrentFile?.Reopen());
         }
 
-        private static bool OnTabClose(FileTabItemViewModel fileTab)
+        public static bool OnTabClose(FileTabItemViewModel fileTab)
         {
             if (fileTab.FileViewModel.Changed)
             {
@@ -248,14 +254,15 @@ namespace RszTool.App.ViewModels
                 }
                 else if (result == MessageBoxResult.Cancel) return false;
             }
+            SaveData.OpenedFiles.Remove(fileTab.FileViewModel.FilePath!);
             return true;
         }
 
         private void OnClose(object arg)
         {
-            if (SelectedTabItem is FileTabItemViewModel fileTab && OnTabClose(fileTab))
+            if (SelectedTabItem is FileTabItemViewModel fileTab)
             {
-                Items.Remove(fileTab);
+                fileTab.Close();
             }
         }
 
@@ -267,9 +274,29 @@ namespace RszTool.App.ViewModels
             }
         }
 
+        private void OnPreference(object arg)
+        {
+            PreferenceWindow preferenceWindow = new();
+            preferenceWindow.DataContext = SaveData;
+            preferenceWindow.ShowDialog();
+        }
+
         private void OnClearRecentFilesHistory(object arg)
         {
             SaveData.RecentFiles.Clear();
+        }
+
+        private void OnRemoveNonExistedRecentFilesHistory(object arg)
+        {
+            List<string> newList = new();
+            foreach (var item in SaveData.RecentFiles)
+            {
+                if (File.Exists(item))
+                {
+                    newList.Add(item);
+                }
+            }
+            SaveData.RecentFiles = new(newList);
         }
 
         private void OnOpenRecentFile(object arg)
@@ -291,13 +318,13 @@ namespace RszTool.App.ViewModels
 
         public bool OnExit()
         {
-            foreach (var item in Items)
+            foreach (var fileTab in GetFileTabs())
             {
-                if (item is FileTabItemViewModel fileTab)
-                {
-                    if (!OnTabClose(fileTab)) return false;
-                }
+                if (!OnTabClose(fileTab)) return false;
             }
+            var serializer = new XmlLayoutSerializer(DockingManager);
+            using var stream = new StreamWriter(LayoutConfigFileName);
+            serializer.Serialize(stream);
             return true;
         }
 
@@ -306,23 +333,126 @@ namespace RszTool.App.ViewModels
             var about = new AboutWindow();
             about.ShowDialog();
         }
+
+        private void OnOpenChangeLog(object arg)
+        {
+            var window = new LongTextWindow
+            {
+                Title = Texts.ChangeLog,
+                Text = Texts.ChangeLogContent
+            };
+            window.ShowDialog();
+        }
     }
 
 
-    public class FileTabItemViewModel : HeaderedItemViewModel
+    public class FileTabItemViewModel : LayoutDocument
     {
-        public FileTabItemViewModel(BaseRszFileViewModel fileViewModel, object content, bool isSelected = false)
-            : base(fileViewModel.FileName!, content, isSelected)
+        public FileTabItemViewModel()
         {
-            FileViewModel = fileViewModel;
-            fileViewModel.HeaderChanged += UpdateHeader;
         }
 
-        public BaseRszFileViewModel FileViewModel { get; set; }
+        public FileTabItemViewModel(FrameworkElement content)
+        {
+            Content = content;
+            PostInit();
+        }
+
+        public void PostInit()
+        {
+            var fileViewModel = FileViewModel;
+            fileViewModel.HeaderChanged += UpdateHeader;
+            Title = fileViewModel.FileName;
+            ContentId = fileViewModel.FilePath;
+        }
+
+        public BaseRszFileViewModel FileViewModel => (BaseRszFileViewModel)((FrameworkElement)Content).DataContext;
 
         public void UpdateHeader()
         {
-            Header = FileViewModel.FileName + (FileViewModel.Changed ? "*" : "");
+            var fileViewModel = FileViewModel;
+            Title = fileViewModel.FileName + (fileViewModel.Changed ? "*" : "");
+        }
+    }
+
+
+    public class RszFileViewFactory
+    {
+        public static FrameworkElement? Create(GameName gameName, string path)
+        {
+            BaseRszFileViewModel? fileViewModel = null;
+            RszFileOption option = new(gameName);
+            FrameworkElement? content = null;
+            switch (RszUtils.GetFileType(path))
+            {
+                case FileType.user:
+                    fileViewModel = new UserFileViewModel(new(option, new(path)));
+                    content = new RszUserFileView();
+                    break;
+                case FileType.pfb:
+                    fileViewModel = new PfbFileViewModel(new(option, new(path)));
+                    content = new RszPfbFileView();
+                    break;
+                case FileType.scn:
+                    fileViewModel = new ScnFileViewModel(new(option, new(path)));
+                    content = new RszScnFileView();
+                    break;
+            }
+            if (fileViewModel != null && content != null)
+            {
+                bool readSuccess = false;
+                for (int tryCount = 0; tryCount < 5; tryCount++)
+                {
+                    try
+                    {
+                        readSuccess = fileViewModel.Read();
+                        break;
+                    }
+                    catch (RszRetryOpenException e)
+                    {
+                        fileViewModel.File.FileHandler.Seek(0);
+                        MessageBoxUtils.Info(string.Format(Texts.TryReopen, e.Message));
+                    }
+                    catch (Exception)
+                    {
+                        throw;
+                    }
+                }
+                if (!readSuccess)
+                {
+                    MessageBoxUtils.Error(Texts.ReadFailed);
+                    return null;
+                }
+                content.DataContext = fileViewModel;
+                return content;
+            }
+            return null;
+        }
+    }
+
+
+    public class MyVs2013DarkTheme : Theme
+    {
+        public override Uri GetResourceUri()
+        {
+            if (typeof(Vs2013DarkTheme).Assembly.GetName().Name != "AvalonDock.Themes.VS2013")
+            {
+                return new Uri($"pack://application:,,,/{GetType().Assembly.GetName().Name};component/avalondock.themes.vs2013/DarkTheme.xaml");
+            }
+            return new Vs2013DarkTheme().GetResourceUri();
+        }
+    }
+
+
+    public class MyVs2013LightTheme : Theme
+    {
+        public override Uri GetResourceUri()
+        {
+            if (typeof(Vs2013LightTheme).Assembly.GetName().Name != "AvalonDock.Themes.VS2013")
+            {
+                return new Uri($"pack://application:,,,/{GetType().Assembly.GetName().Name};component/avalondock.themes.vs2013/LightTheme.xaml");
+            }
+            return new Vs2013LightTheme().GetResourceUri();
         }
     }
 }

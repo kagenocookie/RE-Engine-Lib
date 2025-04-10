@@ -26,6 +26,27 @@ namespace RszTool
         private readonly Dictionary<string, RszClass> classNameDict;
 
         public Dictionary<uint, RszClass> ClassDict => classDict;
+        public string[]? nonGenericClassNames;
+        public string[] NonGenericClassNames
+        {
+            get
+            {
+                if (nonGenericClassNames == null)
+                {
+                    List<string> list = new();
+                    foreach (var name in classNameDict.Keys)
+                    {
+                        if (name.Length > 0 && !name.Contains('<') && !name.Contains('`') && !name.Contains('[') && !name.Contains('!'))
+                        {
+                            list.Add(name);
+                        }
+                    }
+                    list.Sort();
+                    nonGenericClassNames = list.ToArray();
+                }
+                return nonGenericClassNames;
+            }
+        }
 
         public RszParser(string jsonPath)
         {
@@ -282,11 +303,11 @@ namespace RszTool
             if (type != RszFieldType.Data) return;
             type = size switch
             {
-                80 => RszFieldType.OBB,
-                64 => RszFieldType.Mat4,
-                16 => align == 8 ? RszFieldType.Guid : RszFieldType.Vec4,
-                8 => align == 8 ? RszFieldType.U64 : RszFieldType.Vec2,
                 1 => RszFieldType.U8,
+                8 => align == 8 ? RszFieldType.U64 : RszFieldType.Vec2,
+                16 => align == 8 ? RszFieldType.Guid : RszFieldType.Vec4,
+                64 => RszFieldType.Mat4,
+                80 => RszFieldType.OBB,
                 _ => type
             };
             // IsTypeInferred = type != RszFieldType.Data;

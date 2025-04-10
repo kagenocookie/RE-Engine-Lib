@@ -26,7 +26,7 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Name}" ToolTip="{Binding Path}" VerticalAlignment="Center">
                         <TextBlock.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="{res:Text Remove}" Command="{Binding Data.RemoveRootDirectory, Source={StaticResource ParentData}}" CommandParameter="{Binding}" />
@@ -42,7 +42,7 @@
             </HierarchicalDataTemplate>
 
             <HierarchicalDataTemplate DataType="{x:Type viewmodels:DirectoryItem}" ItemsSource="{Binding Children}">
-                <TextBlock Text="{Binding Name}">
+                <TextBlock Text="{Binding Name}" ToolTip="{Binding Path}">
                     <TextBlock.ContextMenu>
                         <ContextMenu>
                             <MenuItem Header="{res:Text OpenInExplorer}" Command="{Binding Data.OpenInExplorer, Source={StaticResource ParentData}}" CommandParameter="{Binding}" />
@@ -53,7 +53,7 @@
 
             <DataTemplate DataType="{x:Type viewmodels:FileItem}">
                 <ContentControl MouseDoubleClick="FileItem_MouseDoubleClick">
-                    <TextBlock Text="{Binding Name}">
+                    <TextBlock Text="{Binding Name}" ToolTip="{Binding Path}">
                         <TextBlock.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="{res:Text OpenInExplorer}" Command="{Binding Data.OpenInExplorer, Source={StaticResource ParentData}}" CommandParameter="{Binding}" />

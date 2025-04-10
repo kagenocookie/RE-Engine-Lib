@@ -28,6 +28,7 @@
                     <MenuItem Header="{res:Text Copy}" Command="{Binding Data.CopyInstance, Source={StaticResource ParentData}}" CommandParameter="{Binding}" />
                     <MenuItem Header="{res:Text Paste}" Command="{Binding Data.PasteInstance, Source={StaticResource ParentData}}" CommandParameter="{Binding}" />
                     <MenuItem Header="{res:Text Remove}" Command="{Binding Data.RemoveComponent, Source={StaticResource ParentData}}" CommandParameter="{Binding}" />
+                    <MenuItem Header="{res:Text ParseTransformClipboard}" Command="{Binding Data.ParseTransformClipboard, Source={StaticResource ParentData}}" CommandParameter="{Binding}" />
                 </ContextMenu>
             </TextBlock.ContextMenu>
         </TextBlock>

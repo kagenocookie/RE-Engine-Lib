@@ -52,7 +52,7 @@ namespace RszTool.App.Views
                 RszFieldType.Vec2 or RszFieldType.Float2 or RszFieldType.Int2 or RszFieldType.Uint2
                     or RszFieldType.Point or RszFieldType.Size or RszFieldType.Range or RszFieldType.RangeI
                     => element.FindResource("InputVec2"),
-                RszFieldType.Vec3 or RszFieldType.Float3 or RszFieldType.Int3 or RszFieldType.Uint3
+                RszFieldType.Vec3 or RszFieldType.Float3 or RszFieldType.Int3 or RszFieldType.Uint3 or RszFieldType.Position
                     => element.FindResource("InputVec3"),
                 RszFieldType.Vec4 or RszFieldType.Float4 or RszFieldType.Int4 or RszFieldType.Uint4 or RszFieldType.Quaternion
                     => element.FindResource("InputVec4"),

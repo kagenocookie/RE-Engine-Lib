@@ -98,6 +98,7 @@ namespace RszTool
                         RSZFile embeddedRSZFile = new(Option, handler.WithOffset(rszUserDataInfo.RSZOffset));
                         embeddedRSZFile.Read();
                         EmbeddedRSZFileList.Add(embeddedRSZFile);
+                        rszUserDataInfo.EmbeddedRSZ = embeddedRSZFile;
                         handler.Seek(pos);
                     }
                 }
@@ -194,7 +195,7 @@ namespace RszTool
                     var item = (RSZUserDataInfo_TDB_LE_67)RSZUserDataInfoList[i];
                     item.RSZOffset = handler.Tell();
                     var embeddedRSZ = EmbeddedRSZFileList[i];
-                    embeddedRSZ.WriteTo(handler.WithOffset(item.RSZOffset));
+                    embeddedRSZ.WriteTo(handler.WithOffset(item.RSZOffset), false);
                     // rewrite
                     item.dataSize = (uint)embeddedRSZ.Size;
                     item.Rewrite(handler);
@@ -665,6 +666,7 @@ namespace RszTool
         public int InstanceId { get => instanceId; set => instanceId = value; }
         public uint TypeId => typeId;
         public string? ClassName { get; set; }
+        public RSZFile? EmbeddedRSZ { get; set; }
 
         protected override bool DoRead(FileHandler handler)
         {

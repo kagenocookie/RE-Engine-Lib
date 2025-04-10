@@ -1,4 +1,5 @@
 using RszTool.Common;
+using System.Buffers;
 using System.Collections;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -12,8 +13,9 @@ namespace RszTool
         public Stream Stream { get; private set; }
         public long Offset { get; set; }
         public bool IsMemory => Stream is MemoryStream;
-        private StringTable? StringTable;
-        private OffsetContentTable? OffsetContentTable;
+        public StringTable? StringTable { get; private set; }
+        public StringTable? AsciiStringTable { get; private set; }
+        public OffsetContentTable? OffsetContentTable { get; private set; }
         private Sunday? searcher = new();
         private int fileVersion = -1;
 
@@ -21,7 +23,7 @@ namespace RszTool
             get {
                 if (fileVersion != -1) return fileVersion;
                 if (FilePath == null) return 0;
-                return fileVersion = RszUtils.GetFileVersion(FilePath);
+                return fileVersion = RszUtils.GetFileExtensionVersion(FilePath);
             }
             set => fileVersion = value;
         }
@@ -659,14 +661,14 @@ namespace RszTool
             return WriteSpan(text.AsSpan()) && Write<ushort>(0);
         }
 
-        public T Read<T>() where T : struct
+        public T Read<T>() where T : unmanaged
         {
             T value = default;
             Stream.Read(MemoryUtils.StructureAsBytes(ref value));
             return value;
         }
 
-        public T Read<T>(long tell, bool jumpBack = true) where T : struct
+        public T Read<T>(long tell, bool jumpBack = true) where T : unmanaged
         {
             long pos = Tell();
             Seek(tell);
@@ -675,12 +677,12 @@ namespace RszTool
             return value;
         }
 
-        public int Read<T>(ref T value) where T : struct
+        public int Read<T>(ref T value) where T : unmanaged
         {
             return Stream.Read(MemoryUtils.StructureAsBytes(ref value));
         }
 
-        public int Read<T>(long tell, ref T value, bool jumpBack = true) where T : struct
+        public int Read<T>(long tell, ref T value, bool jumpBack = true) where T : unmanaged
         {
             long pos = Tell();
             Seek(tell);
@@ -689,13 +691,13 @@ namespace RszTool
             return result;
         }
 
-        public bool Write<T>(T value) where T : struct
+        public bool Write<T>(T value) where T : unmanaged
         {
             Stream.Write(MemoryUtils.StructureAsBytes(ref value));
             return true;
         }
 
-        public bool Write<T>(long tell, T value, bool jumpBack = true) where T : struct
+        public bool Write<T>(long tell, T value, bool jumpBack = true) where T : unmanaged
         {
             long pos = Tell();
             Seek(tell);
@@ -704,13 +706,13 @@ namespace RszTool
             return result;
         }
 
-        public bool Write<T>(ref T value) where T : struct
+        public bool Write<T>(ref T value) where T : unmanaged
         {
             Stream.Write(MemoryUtils.StructureAsBytes(ref value));
             return true;
         }
 
-        public bool Write<T>(long tell, ref T value, bool jumpBack = true) where T : struct
+        public bool Write<T>(long tell, ref T value, bool jumpBack = true) where T : unmanaged
         {
             long pos = Tell();
             Seek(tell);
@@ -719,39 +721,97 @@ namespace RszTool
             return result;
         }
 
+        public unsafe object ReadObject(Type type)
+        {
+            if (type == typeof(bool))
+            {
+                return ReadBoolean();
+            }
+            else if (type == typeof(byte))
+            {
+                return ReadByte();
+            }
+            else if (type == typeof(sbyte))
+            {
+                return ReadSByte();
+            }
+            int size = Marshal.SizeOf(type);
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(size);
+            try
+            {
+                Stream.Read(buffer, 0, size);
+                fixed (byte* p = buffer)
+                {
+                    return Marshal.PtrToStructure((IntPtr)p, type)!;
+                }
+            }
+            finally { ArrayPool<byte>.Shared.Return(buffer); }
+        }
+
+        public unsafe bool WriteObject(object obj)
+        {
+            if (obj is bool boolValue)
+            {
+                WriteBoolean(boolValue);
+                return true;
+            }
+            else if (obj is byte byteValue)
+            {
+                WriteByte(byteValue);
+                return true;
+            }
+            else if (obj is sbyte sbyteValue)
+            {
+                WriteSByte(sbyteValue);
+                return true;
+            }
+            int size = Marshal.SizeOf(obj);
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(size);
+            try
+            {
+                fixed (byte* p = buffer)
+                {
+                    Marshal.StructureToPtr(obj, (IntPtr)p, false);
+                }
+                Stream.Write(buffer, 0, size);
+                return true;
+            }
+            finally { ArrayPool<byte>.Shared.Return(buffer); }
+        }
+
         /// <summary>
-        /// 获取start..end之间的数据，长度在2-128
+        /// 获取start..end之间的数据，长度在2-256
         /// 涉及unsafe操作，注意内存范围和对齐
         /// </summary>
-        public static Span<byte> GetRangeSpan<TS, TE>(ref TS start, ref TE end) where TS : struct where TE : struct
+        public static Span<byte> GetRangeSpan<TS, TE>(ref TS start, ref TE end) where TS : unmanaged where TE : unmanaged
         {
             unsafe
             {
                 var startPtr = (nint)Unsafe.AsPointer(ref start);
                 var endPtr = (nint)Unsafe.AsPointer(ref end) + Unsafe.SizeOf<TE>();
                 int size = (int)(endPtr - startPtr);
-                if (size < 2 || size > 128)
+                if (size < 2 || size > 256)
                 {
-                    throw new InvalidDataException($"Size {size} is out of range [2, 128]");
+                    throw new InvalidDataException($"Size {size} is out of range [2, 256]");
                 }
                 return new Span<byte>((void*)startPtr, size);
             }
         }
 
         /// <summary>
-        /// 读取数据到start..end，长度在2-128
+        /// 读取数据到start..end，长度在2-256
         /// 涉及unsafe操作，注意内存范围和对齐
         /// </summary>
-        public int ReadRange<TS, TE>(ref TS start, ref TE end) where TS : struct where TE : struct
+        public int ReadRange<TS, TE>(ref TS start, ref TE end) where TS : unmanaged where TE : unmanaged
         {
             return Stream.Read(GetRangeSpan(ref start, ref end));
         }
 
         /// <summary>
-        /// 写入start..end范围内的数据，长度在2-128
+        /// 写入start..end范围内的数据，长度在2-256
         /// 涉及unsafe操作，注意内存范围和对齐
         /// </summary>
-        public bool WriteRange<TS, TE>(ref TS start, ref TE end) where TS : struct where TE : struct
+        public bool WriteRange<TS, TE>(ref TS start, ref TE end) where TS : unmanaged where TE : unmanaged
         {
             Stream.Write(GetRangeSpan(ref start, ref end));
             return true;
@@ -771,22 +831,31 @@ namespace RszTool
         }
 
         /// <summary>读取数组</summary>
-        public T[] ReadArray<T>(int length) where T : struct
+        public T[] ReadArray<T>(int length) where T : unmanaged
         {
+            if (length == 0) return [];
             T[] array = new T[length];
             Stream.Read(MemoryMarshal.AsBytes((Span<T>)array));
             return array;
         }
 
         /// <summary>读取数组</summary>
-        public bool ReadArray<T>(T[] array) where T : struct
+        public bool ReadArray<T>(T[] array) where T : unmanaged
         {
             Stream.Read(MemoryMarshal.AsBytes((Span<T>)array));
             return true;
         }
 
+        /// <summary>读取二维数组</summary>
+        public bool ReadArray<T>(T[,] array) where T : unmanaged
+        {
+            int length = array.GetLength(0) * array.GetLength(1);
+            Stream.Read(MemoryMarshal.AsBytes(MemoryUtils.CreateSpan(ref array[0, 0], length)));
+            return true;
+        }
+
         /// <summary>读取数组</summary>
-        public bool ReadArray<T>(T[] array, int start = 0, int length = -1) where T : struct
+        public bool ReadArray<T>(T[] array, int start = 0, int length = -1) where T : unmanaged
         {
             if (length == -1 || length > array.Length - start)
             {
@@ -796,15 +865,32 @@ namespace RszTool
             return true;
         }
 
+        /// <summary>读取列表</summary>
+        public bool ReadList<T>(List<T> list, int count) where T : unmanaged
+        {
+            for (int i = 0; i < count; i++)
+            {
+                list.Add(Read<T>());
+            }
+            return true;
+        }
+
+        /// <summary>读取数组</summary>
+        public bool ReadSpan<T>(Span<T> span) where T : unmanaged
+        {
+            Stream.Write(MemoryMarshal.AsBytes(span));
+            return true;
+        }
+
         /// <summary>写入数组</summary>
-        public bool WriteArray<T>(T[] array) where T : struct
+        public bool WriteArray<T>(T[] array) where T : unmanaged
         {
             Stream.Write(MemoryMarshal.AsBytes((ReadOnlySpan<T>)array));
             return true;
         }
 
         /// <summary>写入数组</summary>
-        public bool WriteArray<T>(T[] array, int start = 0, int length = -1) where T : struct
+        public bool WriteArray<T>(T[] array, int start = 0, int length = -1) where T : unmanaged
         {
             if (length == -1 || length > array.Length - start)
             {
@@ -814,15 +900,26 @@ namespace RszTool
             return true;
         }
 
-        /// <summary>读取数组</summary>
-        public bool ReadSpan<T>(Span<T> span) where T : struct
+        /// <summary>写入二维数组</summary>
+        public bool WriteArray<T>(T[,] array) where T : unmanaged
         {
-            Stream.Write(MemoryMarshal.AsBytes(span));
+            int length = array.GetLength(0) * array.GetLength(1);
+            Stream.Write(MemoryMarshal.AsBytes(MemoryUtils.CreateSpan(ref array[0, 0], length)));
+            return true;
+        }
+
+        /// <summary>写入列表</summary>
+        public bool WriteList<T>(List<T> list) where T : unmanaged
+        {
+            for (int i = 0; i < list.Count; i++)
+            {
+                Write(list[i]);
+            }
             return true;
         }
 
         /// <summary>写入数组</summary>
-        public bool WriteSpan<T>(ReadOnlySpan<T> span) where T : struct
+        public bool WriteSpan<T>(ReadOnlySpan<T> span) where T : unmanaged
         {
             Stream.Write(MemoryMarshal.AsBytes(span));
             return true;
@@ -878,7 +975,7 @@ namespace RszTool
             return FindBytes(encoding.GetBytes(pattern), param);
         }
 
-        public long FindFirst<T>(T pattern, in SearchParam param = default) where T : struct
+        public long FindFirst<T>(T pattern, in SearchParam param = default) where T : unmanaged
         {
             return FindBytes(MemoryUtils.StructureRefToBytes(ref pattern), param);
         }
@@ -928,6 +1025,12 @@ namespace RszTool
             text = ReadWString(offset);
         }
 
+        public void WriteOffsetAsciiString(string text)
+        {
+            AsciiStringTableAdd(text);
+            WriteInt64(0);
+        }
+
         public void WriteOffsetWString(string text)
         {
             StringTableAdd(text);
@@ -939,13 +1042,14 @@ namespace RszTool
             WriteInt64(0);
         }
 
-        public void StringTableAdd(string? text)
+        public StringTableItem? StringTableAdd(string? text, bool addOffset = true)
         {
             if (text != null)
             {
                 StringTable ??= new();
-                StringTable.Add(text, Tell());
+                return StringTable.Add(text, addOffset ? Tell() : -1);
             }
+            return null;
         }
 
         /// <summary>
@@ -978,10 +1082,44 @@ namespace RszTool
             Skip(sizeof(long));
         }
 
-        public void OffsetContentTableAdd(Action<FileHandler> write)
+        public StringTableItem? AsciiStringTableAdd(string? text, bool addOffset = true)
+        {
+            if (text != null)
+            {
+                AsciiStringTable ??= new() { IsAscii = true };
+                return AsciiStringTable.Add(text, addOffset ? Tell() : -1);
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// 写入字符串表字符串和偏移
+        /// </summary>
+        public void AsciiStringTableFlush()
+        {
+            AsciiStringTable?.Flush(this);
+        }
+
+        /// <summary>
+        /// 写入字符串表的字符串
+        /// </summary>
+        public void AsciiStringTableWriteStrings()
+        {
+            AsciiStringTable?.WriteStrings(this);
+        }
+
+        /// <summary>
+        /// 写入字符串表的偏移，并清空数据
+        /// </summary>
+        public void AsciiStringTableFlushOffsets()
+        {
+            AsciiStringTable?.FlushOffsets(this);
+        }
+
+        public OffsetContent OffsetContentTableAdd(Action<FileHandler> write)
         {
             OffsetContentTable ??= new();
-            OffsetContentTable.Add(write, Tell());
+            return OffsetContentTable.Add(write, Tell());
         }
 
         public void OffsetContentTableAddAlign(int align)
@@ -1019,19 +1157,27 @@ namespace RszTool
     public class StringTableItem
     {
         public string Text { get; }
-        // 引用改字符串的偏移集合
+        /// <summary>
+        /// 引用改字符串的偏移集合
+        /// </summary>
         public HashSet<long> OffsetStart { get; } = new();
+        /// <summary>
+        /// 字符串在整个文件中的偏移
+        /// </summary>
         public long TextStart { get; set; } = -1;
-        public bool IsAscii { get; set; }
+        /// <summary>
+        /// 在字符串表中的偏移，约定按字符长度，而不是字节长度
+        /// </summary>
+        public int TableOffset { get; set; }
 
         public StringTableItem(string text)
         {
             Text = text;
         }
 
-        public void Write(FileHandler handler)
+        public void Write(FileHandler handler, bool isAscii = false)
         {
-            if (IsAscii)
+            if (isAscii)
             {
                 handler.WriteAsciiString(Text);
             }
@@ -1049,24 +1195,31 @@ namespace RszTool
     public class StringTable : IEnumerable<StringTableItem>
     {
         private List<StringTableItem> Items { get; } = new();
-        private Dictionary<string, StringTableItem> StringMap { get; } = new();
-
+        public Dictionary<string, StringTableItem> StringMap { get; } = new();
+        public bool IsAscii { get; init; }
         public int Count => Items.Count;
+        public int LastTableOffset { get; set; }
 
         public void Clear()
         {
             Items.Clear();
             StringMap.Clear();
+            LastTableOffset = 0;
         }
 
-        public void Add(string text, long offset)
+        public StringTableItem Add(string text, long offset)
         {
             if (!StringMap.TryGetValue(text, out var item))
             {
-                StringMap[text] = item = new(text);
+                StringMap[text] = item = new(text) { TableOffset = LastTableOffset };
                 Items.Add(item);
+                LastTableOffset += text.Length + 1;
             }
-            item.OffsetStart.Add(offset);
+            if (offset != -1)
+            {
+                item.OffsetStart.Add(offset);
+            }
+            return item;
         }
 
         public void Flush(FileHandler handler)
@@ -1080,7 +1233,7 @@ namespace RszTool
                     handler.WriteInt64(offsetStart, item.TextStart);
                 }
                 handler.Seek(item.TextStart);
-                item.Write(handler);
+                item.Write(handler, IsAscii);
             }
             Clear();
         }
@@ -1091,7 +1244,7 @@ namespace RszTool
             foreach (var item in Items)
             {
                 item.TextStart = handler.Tell();
-                item.Write(handler);
+                item.Write(handler, IsAscii);
             }
         }
 
@@ -1141,13 +1294,14 @@ namespace RszTool
             Items.Clear();
         }
 
-        public void Add(Action<FileHandler> write, long offset)
+        public OffsetContent Add(Action<FileHandler> write, long offset)
         {
             var item = new OffsetContent(write)
             {
                 OffsetStart = offset
             };
             Items.Add(item);
+            return item;
         }
 
         public void Flush(FileHandler handler)
@@ -1203,14 +1357,31 @@ namespace RszTool
     {
         FileHandler Handler { get; }
         bool Success { get; }
-        bool Handle<T>(ref T value) where T : struct;
+        bool Handle<T>(ref T value) where T : unmanaged;
         IFileHandlerAction HandleOffsetWString(ref string value);
     }
 
 
     public static class IFileHandlerActionExtension
     {
-        public static IFileHandlerAction? Then<T>(this IFileHandlerAction action, ref T value) where T : struct
+        public static IFileHandlerAction Do<T>(this IFileHandlerAction action, ref T value) where T : unmanaged
+        {
+            action.Handle(ref value);
+            return action;
+        }
+
+        public static IFileHandlerAction Do<T>(this IFileHandlerAction action, bool condition, ref T value) where T : unmanaged
+        {
+            return condition ? action.Do(ref value) : action;
+        }
+
+        public static IFileHandlerAction Skip(this IFileHandlerAction action, long skip)
+        {
+            action.Handler.Skip(skip);
+            return action;
+        }
+
+        public static IFileHandlerAction? Then<T>(this IFileHandlerAction action, ref T value) where T : unmanaged
         {
             if (action.Handle(ref value))
             {
@@ -1219,15 +1390,9 @@ namespace RszTool
             return null;
         }
 
-        public static IFileHandlerAction? Then<T>(this IFileHandlerAction action, bool condition, ref T value) where T : struct
+        public static IFileHandlerAction? Then<T>(this IFileHandlerAction action, bool condition, ref T value) where T : unmanaged
         {
             return condition ? action.Then(ref value) : action;
-        }
-
-        public static IFileHandlerAction? Skip(this IFileHandlerAction action, long skip)
-        {
-            action.Handler.Skip(skip);
-            return action;
         }
     }
 
@@ -1238,7 +1403,7 @@ namespace RszTool
         public int LastResult { get; set; } = -1;
         public readonly bool Success => LastResult != 0;
 
-        public bool Handle<T>(ref T value) where T : struct
+        public bool Handle<T>(ref T value) where T : unmanaged
         {
             LastResult = Handler.Read(ref value);
             return Success;
@@ -1257,7 +1422,7 @@ namespace RszTool
         public FileHandler Handler { get; set; } = handler;
         public bool Success { get; set; }
 
-        public bool Handle<T>(ref T value) where T : struct
+        public bool Handle<T>(ref T value) where T : unmanaged
         {
             Success = Handler.Write(ref value);
             return Success;

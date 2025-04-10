@@ -29,10 +29,11 @@
         </Setter>
     </Style>
 
-    <!-- <Style TargetType="TreeView" BasedOn="{StaticResource {x:Type TreeView}}">
+    <Style TargetType="TreeView" BasedOn="{StaticResource {x:Type TreeView}}">
         <Setter Property="VirtualizingStackPanel.IsVirtualizing" Value="True"/>
         <Setter Property="VirtualizingStackPanel.VirtualizationMode" Value="Standard"/>
-        <Setter Property="VirtualizingPanel.ScrollUnit" Value="Item"/>
+        <Setter Property="VirtualizingStackPanel.UseLayoutRounding" Value="False"/>
+        <!-- <Setter Property="VirtualizingPanel.ScrollUnit" Value="Item"/> -->
         <Setter Property="ItemsPanel">
             <Setter.Value>
                 <ItemsPanelTemplate>
@@ -40,7 +41,7 @@
                 </ItemsPanelTemplate>
             </Setter.Value>
         </Setter>
-    </Style> -->
+    </Style>
 
     <Style TargetType="TreeViewItem">
         <Setter Property="Template">
@@ -113,13 +114,13 @@
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
-        <!-- <Setter Property="ItemsPanel">
+        <Setter Property="ItemsPanel">
             <Setter.Value>
                 <ItemsPanelTemplate>
                     <local:MyVirtualizingStackPanel />
                 </ItemsPanelTemplate>
             </Setter.Value>
-        </Setter> -->
+        </Setter>
     </Style>
 
     <Style TargetType="TreeViewItem" x:Key="TreeViewItemHideIfEmpty" BasedOn="{StaticResource {x:Type TreeViewItem}}">

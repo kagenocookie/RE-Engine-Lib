@@ -78,12 +78,12 @@ namespace RszTool
     }
 
 
-    public interface IGameObjectData
+    public interface IGameObject
     {
         string? Name { get; }
         RszInstance? Instance { get; }
         ObservableCollection<RszInstance> Components { get; }
 
-        IEnumerable<IGameObjectData> GetChildren();
+        IEnumerable<IGameObject> GetChildren();
     }
 }

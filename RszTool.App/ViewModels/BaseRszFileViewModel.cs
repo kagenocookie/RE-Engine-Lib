@@ -1,8 +1,9 @@
 using System.Collections.ObjectModel;
-using System.Collections.Specialized;
 using System.ComponentModel;
 using System.IO;
+using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using System.Windows;
 using RszTool.App.Common;
 using RszTool.App.Resources;
@@ -94,6 +95,17 @@ namespace RszTool.App.ViewModels
 
         public bool Save()
         {
+            string? filePath = FilePath;
+            if (System.IO.File.Exists(filePath))
+            {
+                string bak1 = filePath + ".bak1";
+                string bak2 = filePath + ".bak2";
+                if (System.IO.File.Exists(bak1))
+                {
+                    System.IO.File.Copy(bak1, bak2, true);
+                }
+                System.IO.File.Copy(filePath, bak1, true);
+            }
             bool result = File.Save();
             if (result)
             {
@@ -114,11 +126,21 @@ namespace RszTool.App.ViewModels
             return result;
         }
 
+        public static void RestoreFile(string filePath, int slot)
+        {
+            string bak = $"{filePath}.bak{slot}";
+            if (System.IO.File.Exists(bak))
+            {
+                System.IO.File.Copy(bak, filePath, true);
+            }
+        }
+
         public bool Reopen()
         {
             // TODO check Changed
             File.FileHandler.Reopen();
             bool result = Read();
+            treeViewItems = null;
             OnPropertyChanged(nameof(TreeViewItems));
             return result;
         }
@@ -444,20 +466,31 @@ namespace RszTool.App.ViewModels
             }
         }
 
-        public abstract IEnumerable<object> TreeViewItems { get; }
+        private IEnumerable<object>? treeViewItems;
+        public IEnumerable<object> TreeViewItems
+        {
+            get
+            {
+                return treeViewItems ??= GetTreeViewItems();
+            }
+        }
+
+        public abstract IEnumerable<object> GetTreeViewItems();
     }
 
 
-    public class GameObejctComponentViewModel(IGameObjectData gameObject, RszInstance instance) : BaseViewModel
+    public class GameObejctComponentViewModel(IGameObject gameObject, RszInstance instance) : BaseViewModel
     {
-        public IGameObjectData GameObject { get; } = gameObject;
+        public IGameObject GameObject { get; } = gameObject;
         public RszInstance Instance { get; } = instance;
 
         public string Name => Instance.Name;
-        public IEnumerable<object> Items => Converters.RszInstanceFieldsConverter.GetItems(Instance);
+        private object[]? items;
+        public IEnumerable<object> Items => items ??= Converters.RszInstanceFieldsConverter.GetItems(Instance).ToArray();
 
         public void NotifyItemsChanged()
         {
+            items = null;
             OnPropertyChanged(nameof(Items));
         }
 
@@ -466,7 +499,7 @@ namespace RszTool.App.ViewModels
             return Instance.Name;
         }
 
-        public static ObservableCollection<GameObejctComponentViewModel> MakeList(IGameObjectData gameObject)
+        public static ObservableCollection<GameObejctComponentViewModel> MakeList(IGameObject gameObject)
         {
             ObservableCollection<GameObejctComponentViewModel> list = new();
             foreach (var item in gameObject.Components)
@@ -479,6 +512,82 @@ namespace RszTool.App.ViewModels
                     obj => new GameObejctComponentViewModel(gameObject, (RszInstance)obj), e);
             };
             return list;
+        }
+
+        public bool ParseTransformClipboard()
+        {
+            if (Instance.RszClass.name == "via.Transform")
+            {
+                var text = Clipboard.GetText();
+                bool success = false;
+                // v0 is pos
+                // v1 is rot
+                if (text.StartsWith('{') && text.EndsWith('}'))
+                {
+                    var json = JsonDocument.Parse(text);
+                    if (json.RootElement.TryGetProperty("pos", out var pos))
+                    {
+                        Vector4 vec = new()
+                        {
+                            X = pos[0].GetSingle(),
+                            Y = pos[1].GetSingle(),
+                            Z = pos[2].GetSingle(),
+                        };
+                        Instance.SetFieldValue("v0", vec);
+                        success = true;
+                    }
+                    if (json.RootElement.TryGetProperty("rot", out var rot))
+                    {
+                        Vector4 vec = new()
+                        {
+                            X = rot[0].GetSingle(),
+                            Y = rot[1].GetSingle(),
+                            Z = rot[2].GetSingle(),
+                            W = rot[3].GetSingle(),
+                        };
+                        Instance.SetFieldValue("v1", vec);
+                        success = true;
+                    }
+                }
+                else if (text.StartsWith("vec:"))
+                {
+                    // for emv
+                    string[] data = text.Substring(4).Split(' ');
+                    if (data.Length == 3)
+                    {
+                        Vector4 vec = new()
+                        {
+                            X = float.Parse(data[0]),
+                            Y = float.Parse(data[1]),
+                            Z = float.Parse(data[2]),
+                        };
+                        Instance.SetFieldValue("v0", vec);
+                        success = true;
+                    }
+                    else if (data.Length == 4)
+                    {
+                        Vector4 vec = new()
+                        {
+                            X = float.Parse(data[0]),
+                            Y = float.Parse(data[1]),
+                            Z = float.Parse(data[2]),
+                            W = float.Parse(data[3]),
+                        };
+                        Instance.SetFieldValue("v1", vec);
+                        success = true;
+                    }
+                }
+                if (success)
+                {
+                    NotifyItemsChanged();
+                }
+                else
+                {
+                    MessageBoxUtils.Warning(Texts.ParseTransformClipboardHint);
+                }
+                return success;
+            }
+            return false;
         }
     }
 }

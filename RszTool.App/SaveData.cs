@@ -1,11 +1,12 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Text.Json.Serialization;
+using RszTool.App.Resources;
 using RszTool.Common;
 
 namespace RszTool.App
 {
-    public class SaveData
+    public class SaveData : INotifyPropertyChanged
     {
         public const string JsonPath = "RszTool.App.SaveData.json";
 
@@ -13,8 +14,13 @@ namespace RszTool.App
         public GameName GameName { get; set; } = GameName.re4;
         public ObservableCollection<string> RecentFiles { get; set; } = new();
         public List<string> OpenedFolders { get; set; } = new();
+        public List<string> OpenedFiles { get; set; } = new();
         public ContextIDData LastContextID { get; set; } = new();
+        // 更新ContextID时自动更新+n
+        public int ContextIDIndexIncrementOffset { get; set; } = 100;
         public bool IsDarkTheme { get; set; }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         public void AddRecentFile(string path)
         {
@@ -28,6 +34,8 @@ namespace RszTool.App
                 RecentFiles.Insert(0, path);
             }
         }
+
+        public string ContextIDText => $"{LastContextID.Text}, {Texts.ContextIDIndexIncrementOffset}: {ContextIDIndexIncrementOffset}";
     }
 
 

@@ -6,7 +6,7 @@ namespace RszTool.Common
     public static class MemoryUtils
     {
 #if !NET5_0_OR_GREATER
-        public static ref T AsRef<T>(Span<byte> span) where T : struct
+        public static ref T AsRef<T>(Span<byte> span) where T : unmanaged
         {
             int size = Unsafe.SizeOf<T>();
             if (size > (uint)span.Length)
@@ -21,29 +21,11 @@ namespace RszTool.Common
 
 #else
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ref T AsRef<T>(Span<byte> span) where T : struct => ref MemoryMarshal.AsRef<T>(span);
+        public static ref T AsRef<T>(Span<byte> span) where T : unmanaged => ref MemoryMarshal.AsRef<T>(span);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Span<T> CreateSpan<T>(ref T reference, int length) => MemoryMarshal.CreateSpan(ref reference, length);
 #endif
-
-        public static object? BytesToStruct(byte[] buffer, Type type)
-        {
-            IntPtr ptr = Marshal.UnsafeAddrOfPinnedArrayElement(buffer, 0);
-            return Marshal.PtrToStructure(ptr, type);
-        }
-
-        /// <summary>
-        /// bytes转结构体引用
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="buffer"></param>
-        /// <returns></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ref T BytesAsStructure<T>(Span<byte> buffer) where T : struct
-        {
-            return ref AsRef<T>(buffer);
-        }
 
         /// <summary>
         /// 结构体转bytes，对bytes的改动会影响原数据
@@ -51,16 +33,20 @@ namespace RszTool.Common
         /// <typeparam name="T"></typeparam>
         /// <param name="value"></param>
         /// <returns></returns>
-        public static Span<byte> StructureAsBytes<T>(ref T value) where T : struct
+        public static unsafe Span<byte> StructureAsBytes<T>(ref T value) where T : unmanaged
         {
-            var span = CreateSpan(ref value, 1);
-            return MemoryMarshal.AsBytes(span);
+            /* var span = CreateSpan(ref value, 1);
+            return MemoryMarshal.AsBytes(span); */
+            fixed (T* ptr = &value)
+            {
+                return new Span<byte>(ptr, Unsafe.SizeOf<T>());
+            }
         }
 
         /// <summary>
         /// 结构体引用转byte[]
         /// </summary>
-        public static byte[] StructureRefToBytes<T>(ref T value, byte[]? buffer = null) where T : struct
+        public static byte[] StructureRefToBytes<T>(ref T value, byte[]? buffer = null) where T : unmanaged
         {
             int size = Unsafe.SizeOf<T>();
             if (buffer == null || buffer.Length < size)
@@ -79,7 +65,7 @@ namespace RszTool.Common
         /// 结构体转byte[]
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static byte[] StructureToBytes<T>(T value, byte[]? buffer = null) where T : struct
+        public static byte[] StructureToBytes<T>(T value, byte[]? buffer = null) where T : unmanaged
         {
             return StructureRefToBytes(ref value, buffer);
         }

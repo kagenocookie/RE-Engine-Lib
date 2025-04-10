@@ -220,11 +220,17 @@
   <data name="FileChangedPrompt" xml:space="preserve">
     <value>文件已修改，是否保存？</value>
   </data>
+  <data name="FileNotExists" xml:space="preserve">
+    <value>文件不存在</value>
+  </data>
   <data name="OpenRecentFiles" xml:space="preserve">
     <value>打开最近的文件</value>
   </data>
   <data name="ClearRecentFilesHistory" xml:space="preserve">
-    <value>清除最近打开记录</value>
+    <value>清除最近打开文件记录</value>
+  </data>
+  <data name="RemoveNonExistedRecentFilesHistory" xml:space="preserve">
+    <value>清除不存在的文件记录</value>
   </data>
   <data name="Help" xml:space="preserve">
     <value>帮助</value>
@@ -259,9 +265,6 @@
   <data name="PasteInstanceAsComponent" xml:space="preserve">
     <value>粘贴实例作为组件</value>
   </data>
-  <data name="ReadFaild" xml:space="preserve">
-    <value>读取失败。</value>
-  </data>
   <data name="TryReopen" xml:space="preserve">
     <value>正在尝试重新打开，因为 {0}，最好重新打开其他已经打开的文件.</value>
   </data>
@@ -276,5 +279,123 @@
   </data>
   <data name="OpenInExplorer" xml:space="preserve">
     <value>在文件管理器中显示</value>
+  </data>
+  <data name="ReadFailed" xml:space="preserve">
+    <value>读取失败</value>
+  </data>
+  <data name="ContextIDIndexIncrementOffset" xml:space="preserve">
+    <value>ContextID序号增加偏移</value>
+  </data>
+  <data name="Preference" xml:space="preserve">
+    <value>选项</value>
+  </data>
+  <data name="ApplyOffset" xml:space="preserve">
+    <value>应用偏移</value>
+  </data>
+  <data name="ParseTransformClipboard" xml:space="preserve">
+    <value>从剪贴板读取Transform数据</value>
+  </data>
+  <data name="ParseTransformClipboardHint" xml:space="preserve">
+    <value>解析transform数据失败，格式应为
+1. 对于DebugInfo
+{"pos": [x, y, z], "rot": [x, y, z, w]}
+2. 对于Emv Engine，以下分别对应位置和旋转
+vec:x y z
+vec:x y z w</value>
+  </data>
+  <data name="ChangeLogContent" xml:space="preserve">
+    <value>RszTool更新记录
+
+2025/03/29 0.3.5
+1. 修复怪物猎人：荒野读取
+
+2025/03/04 0.3.4
+1. 支持怪物猎人：荒野
+
+2024/11/25 0.3.3
+1. 支持自动检测OBB类型
+
+2024/06/25 0.3.2
+1. 优化打开项目数量较多的文件的性能，优化项目渲染
+2. 使用AvalonDock，支持更高级的布局，支持重新打开上次未关闭的文件，支持记录布局
+3. 支持拖入文件夹来加到文件浏览窗口
+4. 写入Rsz数据失败时会弹出警告
+5. ContextID修正窗口支持手动输入偏移量，批量更新Index
+6. 支持解析从DebugInfo复制的当前玩家的位置和旋转（在Script Generated UI中复制）
+7. 支持解析从Emv Engine中复制的位置和旋转，
+   点Emv Engine对应的向量字段左边的+，复制vec:开头的数据，
+   3个值当成位置x,y,z，4个值当成旋转x,y,z,w
+8. 添加组件时支持搜索类名
+
+2024/04/12 0.3.0
+1. 添加暗色主题
+2. 修复Quaternion编辑
+3. 修复Folder层级
+4. 添加文件浏览功能
+5. Scn文件支持添加文件夹
+6. 字符串字段值修改时会重新生成ResourceInfos
+7. 支持手动编辑资源路径
+8. 支持龙之信条2
+
+2024/01/09 0.2.3
+1. 搜索栏在输入框按回车直接搜索
+2. 修复Pfb移除组件的判断bug
+3. 修复某些情况下修改资源路径字段后没有更新加载资源列表
+
+2023/12/23 0.2.2
+1. 支持互相粘贴pfb和scn的游戏对象
+2. RE4支持枚举下拉框
+3. RE4在粘贴游戏对象后会更新ContextID
+
+2023/12/13 0.2.1
+1. Pfb游戏对象支持复制粘贴
+2. 对象类型检测增加自检查机制
+3. 修复dmc5多余的null对象，防止010 Editor抛出异常
+4. 修复重新打开pfb的bug
+5. 修正最近文件记录显示问题
+6. 重新生成数据时修正RszInstance.RSZUserData.InstanceId
+7. 重写Scn对象和实例序号算法，更加接近RE引擎生成的原版文件
+8. 重新生成数据时检查资源路径
+
+2023/12/12 0.2.0
+1. 支持移除游戏对象组件
+2. 支持编辑Int2, Int3, Int4, Uint2, Uint3, Uint4等类型
+
+2023/12/11 0.1.9
+1. 支持实例和字段复制粘贴
+2. 支持游戏对象和组件
+3. 修正User文件资源信息读取
+
+2023/12/10 0.1.8
+1. 修正按值搜索实例
+2. 修正复选框没有触发文件已改变的状态
+3. 普通字段数组支持重复和移除项
+4. 复制对象时自动修正ObjectRef的guid
+5. 修正使用“重写打开”命令时视图没有刷新的问题
+
+2023/12/09 0.1.7
+1. 修正dmc5读取
+2. 修正添加数组项
+
+2023/12/09 0.1.6
+1. 显示实例外部UserData路径
+2. 显示GameObjectInfo Guid
+3. 支持最近打开的文件记录
+4. 修正一些操作没有触发文件已改变的状态</value>
+  </data>
+  <data name="ChangeLog" xml:space="preserve">
+    <value>更新记录</value>
+  </data>
+  <data name="OK" xml:space="preserve">
+    <value>确认</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="Clear" xml:space="preserve">
+    <value>清空</value>
+  </data>
+  <data name="ConsoleLog" xml:space="preserve">
+    <value>日志</value>
   </data>
 </root>

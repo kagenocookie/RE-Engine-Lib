@@ -13,6 +13,10 @@ namespace RszTool.App.ViewModels
             Application.Current.Resources["LightForeground"] as SolidColorBrush ?? Brushes.Black;
         public readonly SolidColorBrush DarkForeground =
             Application.Current.Resources["DarkForeground"] as SolidColorBrush ?? Brushes.White;
+        public readonly SolidColorBrush LightErrorBrush =
+            Application.Current.Resources["LightErrorBrush"] as SolidColorBrush ?? Brushes.Red;
+        public readonly SolidColorBrush DarkErrorBrush =
+            Application.Current.Resources["DarkErrorBrush"] as SolidColorBrush ?? Brushes.Red;
 
         public static ThemeManager Instance
         {
@@ -28,11 +32,18 @@ namespace RszTool.App.ViewModels
             {
                 isDarkTheme = value;
                 var mergedDictionaries = Application.Current.Resources.MergedDictionaries;
-                mergedDictionaries.Clear();
-                mergedDictionaries.Add(new ResourceDictionary()
+                var resourceDictionary = new ResourceDictionary()
                 {
                     Source = new Uri(isDarkTheme ? "Themes/DarkTheme.xaml" : "Themes/LightTheme.xaml", UriKind.Relative)
-                });
+                };
+                if (mergedDictionaries.Count == 0)
+                {
+                    mergedDictionaries.Add(resourceDictionary);
+                }
+                else
+                {
+                    mergedDictionaries[0] = resourceDictionary;
+                }
                 PropertyChanged?.Invoke(this, new(nameof(IsDarkTheme)));
             }
         }

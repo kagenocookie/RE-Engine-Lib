@@ -21,13 +21,6 @@ namespace RszTool.App.ViewModels
     }
 
 
-    public class TreeItemDelegate(string name, Func<IEnumerable<object>>? itemsFunc) : BaseTreeItemViewModel(name)
-    {
-        public Func<IEnumerable<object>>? ItemsFunc { get; set; } = itemsFunc;
-        public override IEnumerable<object>? Items => ItemsFunc?.Invoke() ?? null;
-    }
-
-
     public class GameObjectsHeader(string name, IEnumerable<object>? items) : TreeItemViewModel(name, items);
     public class FoldersHeader(string name, IEnumerable<object>? items) : TreeItemViewModel(name, items);
 }

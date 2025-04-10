@@ -87,6 +87,32 @@ namespace RszTool.Common
             return false;
         }
 
+        public static uint BitsGet(uint value, int bitOffset, int bitLength)
+        {
+            uint mask = (uint)((1 << bitLength) - 1);
+            return (value >> bitOffset) & mask;
+        }
+
+        public static uint BitsSet(uint value, int bitOffset, int bitLength, uint data)
+        {
+            uint mask = (uint)((1 << bitLength) - 1);
+            uint newValue = (value & ~(mask << bitOffset)) | ((data & mask) << bitOffset);
+            return newValue;
+        }
+
+        public static ulong BitsGet(ulong value, int bitOffset, int bitLength)
+        {
+            ulong mask = (ulong)((1 << bitLength) - 1);
+            return (value >> bitOffset) & mask;
+        }
+
+        public static ulong BitsSet(ulong value, int bitOffset, int bitLength, ulong data)
+        {
+            ulong mask = (ulong)((1 << bitLength) - 1);
+            ulong newValue = (value & ~(mask << bitOffset)) | ((data & mask) << bitOffset);
+            return newValue;
+        }
+
         public static void Debug(object value, [CallerArgumentExpression(nameof(value))] string? name = null)
         {
             Console.WriteLine($"{name} = {value}");

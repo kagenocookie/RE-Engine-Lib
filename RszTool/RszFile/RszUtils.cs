@@ -114,7 +114,7 @@ namespace RszTool
         }
 
 #if NET8_0_OR_GREATER
-        public static int GetFileVersion(ReadOnlySpan<char> path)
+        public static int GetFileExtensionVersion(ReadOnlySpan<char> path)
         {
             var versionStr = Path.GetExtension(path);
             if (!versionStr.IsEmpty)
@@ -124,7 +124,7 @@ namespace RszTool
             return int.TryParse(versionStr, out var version) ? version : 0;
         }
 #else
-        public static int GetFileVersion(string path)
+        public static int GetFileExtensionVersion(string path)
         {
             var versionStr = Path.GetExtension(path);
             if (!string.IsNullOrEmpty(versionStr))

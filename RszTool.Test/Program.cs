@@ -7,13 +7,19 @@ namespace RszTool.Test
         static void Main(string[] args)
         {
             // TestParseUser();
-            TestParseUserRead();
+            // TestParseUserRead();
             // TestParsePfb();
             // TestParsePfbRe2();
             // TestParsePfbRead();
             // TestParseScn();
-            // TestParseScnRead();
+            TestParseScnRead();
             // TestScnExtractGameObjectToPfb();
+            // TestParseRcolRead();
+            // TestParseMotbank();
+            // TestParseMotlist();
+            // TestParseMotfsn2();
+            // TestParseUVarFile();
+            // TestParseMsg();
             // TestImportGameObject();
             // TestParseMdf();
             // TestMurMur3Hash();
@@ -159,22 +165,92 @@ namespace RszTool.Test
 
         static void TestParseScnRead()
         {
-            string path = "test/gimmick_st66_101.scn.20";
-            RszFileOption option = new(GameName.re4);
+            string path = @"C:\Users\An\Documents\Hack\Re\re4\RETool\re2\re_chunk_000\natives\x64\objectroot\scene\contents\main\catalog_1st.scn.19";
+            RszFileOption option = new(GameName.re2);
             ScnFile scnFile = new(option, new FileHandler(path));
             scnFile.Read();
 
             if (scnFile.RSZ != null)
             {
                 // Console.WriteLine(scnFile.RSZ.ObjectsStringify());
-                scnFile.SetupGameObjects();
-                if (scnFile.GameObjectDatas != null)
-                {
-                    foreach (var item in scnFile.GameObjectDatas)
-                    {
-                        Console.WriteLine(item.Name);
-                    }
-                }
+                // scnFile.SetupGameObjects();
+                // if (scnFile.GameObjects != null)
+                // {
+                //     foreach (var item in scnFile.GameObjects)
+                //     {
+                //         Console.WriteLine(item.Name);
+                //     }
+                // }
+            }
+        }
+
+        static void TestParseRcolRead()
+        {
+            string path = "test/wp5000.rcol.25";
+            RszFileOption option = new(GameName.re4);
+            RcolFile rcolFile = new(option, new FileHandler(path));
+            rcolFile.Read();
+        }
+
+        static void TestParseMotbank()
+        {
+            string path = "test/cha0.motbank.3";
+            string newPath = "test/cha0_new.motbank.3";
+            RszFileOption option = new(GameName.re4);
+            MotbankFile motbankFile = new(option, new FileHandler(path));
+            motbankFile.Read();
+            using FileHandler newFileHandler = new(newPath, true);
+            motbankFile.WriteTo(newFileHandler);
+
+            MotbankFile newMotbankFile = new(option, newFileHandler);
+            newMotbankFile.Read();
+
+            foreach (var item in newMotbankFile.MotlistItems)
+            {
+                Console.WriteLine($"{item.BankID} {item.Path}");
+            }
+        }
+
+        static void TestParseMotlist()
+        {
+            string path = "test/cha0_Ability.motlist.663";
+            RszFileOption option = new(GameName.re4);
+            MotlistFile motlistFile = new(option, new FileHandler(path));
+            motlistFile.Read();
+        }
+
+        static void TestParseMotfsn2()
+        {
+            string path = "test/ch0CommonUpperBodyAdd.motfsm2.43";
+            RszFileOption option = new(GameName.re4);
+            Motfsm2File file = new(option, new FileHandler(path));
+            file.Read();
+        }
+
+        static void TestParseUVarFile()
+        {
+            string path = "test/GlobalVariables.uvar.3";
+            RszFileOption option = new(GameName.re4);
+            UVarFile file = new(option, new FileHandler(path));
+            file.Read();
+        }
+
+        static void TestParseMsg()
+        {
+            string path = "test/CH_Mes_Main_File_001.msg.22";
+            string newPath = "test/CH_Mes_Main_File_001_new.msg.22";
+            RszFileOption option = new(GameName.re4);
+            MsgFile msgFile = new(option, new FileHandler(path));
+            msgFile.Read();
+            using FileHandler newFileHandler = new(newPath, true);
+            msgFile.WriteTo(newFileHandler);
+
+            MsgFile newMsgFile = new(option, newFileHandler);
+            newMsgFile.Read();
+
+            foreach (var item in newMsgFile.SubEntryList)
+            {
+                Console.WriteLine($"{item}");
             }
         }
 

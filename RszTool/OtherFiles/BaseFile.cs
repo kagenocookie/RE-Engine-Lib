@@ -3,6 +3,7 @@ namespace RszTool
     public abstract class BaseFile : IDisposable
     {
         public long Size { get; protected set; }
+        public bool Embedded { get; set; }
 
         public FileHandler FileHandler { get; set; }
 

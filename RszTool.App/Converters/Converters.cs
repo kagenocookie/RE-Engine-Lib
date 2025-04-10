@@ -2,6 +2,8 @@ using System.Collections.ObjectModel;
 using System.Windows.Data;
 using RszTool.App.Common;
 using RszTool.App.ViewModels;
+using RszTool.Pfb;
+using RszTool.Scn;
 
 namespace RszTool.App.Converters
 {
@@ -13,6 +15,18 @@ namespace RszTool.App.Converters
             if (instance.RSZUserData is RSZUserDataInfo userDataInfo)
             {
                 yield return new ClassViewModel("UserDataInfo", userDataInfo, ["Path"]);
+            }
+            else if (instance.RSZUserData is RSZUserDataInfo_TDB_LE_67 userDataInfo_TDB_LE_67)
+            {
+                var embeddedRSZ = userDataInfo_TDB_LE_67.EmbeddedRSZ;
+                if (embeddedRSZ != null &&
+                    embeddedRSZ.ObjectList.Count > 0)
+                {
+                    foreach (var item in GetItems(embeddedRSZ.ObjectList[0]))
+                    {
+                        yield return item;
+                    }
+                }
             }
             else
             {
@@ -53,10 +67,10 @@ namespace RszTool.App.Converters
     }
 
 
-    [ValueConversion(typeof(ScnFile.GameObjectData), typeof(IEnumerable<object>))]
-    public class ScnGameObjectDataSubItemsConverter : IValueConverter
+    [ValueConversion(typeof(ScnGameObject), typeof(IEnumerable<object>))]
+    public class ScnGameObjectSubItemsConverter : IValueConverter
     {
-        public static IEnumerable<object> Convert(ScnFile.GameObjectData gameObject)
+        public static IEnumerable<object> Convert(ScnGameObject gameObject)
         {
             if (gameObject.Instance != null)
             {
@@ -74,7 +88,7 @@ namespace RszTool.App.Converters
 
         public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
         {
-            var gameObject = (ScnFile.GameObjectData)value;
+            var gameObject = (ScnGameObject)value;
             return Convert(gameObject);
         }
 
@@ -85,10 +99,10 @@ namespace RszTool.App.Converters
     }
 
 
-    [ValueConversion(typeof(ScnFile.FolderData), typeof(IEnumerable<object>))]
+    [ValueConversion(typeof(ScnFolderData), typeof(IEnumerable<object>))]
     public class ScnFolderDataSubItemsConverter : IValueConverter
     {
-        public static IEnumerable<object> Convert(ScnFile.FolderData folder)
+        public static IEnumerable<object> Convert(ScnFolderData folder)
         {
             if (folder.Instance != null)
             {
@@ -101,7 +115,7 @@ namespace RszTool.App.Converters
 
         public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
         {
-            var folder = (ScnFile.FolderData)value;
+            var folder = (ScnFolderData)value;
             return Convert(folder);
         }
 
@@ -112,10 +126,10 @@ namespace RszTool.App.Converters
     }
 
 
-    [ValueConversion(typeof(PfbFile.GameObjectData), typeof(IEnumerable<object>))]
-    public class PfbGameObjectDataSubItemsConverter : IValueConverter
+    [ValueConversion(typeof(PfbGameObject), typeof(IEnumerable<object>))]
+    public class PfbGameObjectSubItemsConverter : IValueConverter
     {
-        public static IEnumerable<object> Convert(PfbFile.GameObjectData gameObject)
+        public static IEnumerable<object> Convert(PfbGameObject gameObject)
         {
             if (gameObject.Instance != null)
             {
@@ -128,60 +142,7 @@ namespace RszTool.App.Converters
 
         public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
         {
-            var gameObject = (PfbFile.GameObjectData)value;
-            return Convert(gameObject);
-        }
-
-        public object? ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
-        {
-            return null;
-        }
-    }
-
-    [ValueConversion(typeof(RcolFile.RcolGroupInfo), typeof(ObservableCollection<object>))]
-    public class RcolInfoFieldsConverter : IValueConverter
-    {
-        public static IEnumerable<object> GetItems(RcolFile.RcolGroupInfo instance)
-        {
-            yield return new ClassViewModel("Info", instance, ["name", "guid", "layerGuid", "layerIndex", "maskBits"]);
-        }
-
-        public static ObservableCollection<object> Convert(RcolFile.RcolGroupInfo instance)
-        {
-            ObservableCollection<object> list = new(GetItems(instance));
-            // instance.ValuesChanged += sender => {
-            //     list.Clear();
-            //     foreach (var item in GetItems(sender))
-            //     {
-            //         list.Add(item);
-            //     }
-            // };
-            return list;
-        }
-
-        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
-        {
-            return Convert((RcolFile.RcolGroupInfo)value);
-        }
-
-        public object? ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
-        {
-            return null;
-        }
-    }
-
-    [ValueConversion(typeof(RcolFile.RcolGroup), typeof(IEnumerable<object>))]
-    public class RcolGroupShapesConverter : IValueConverter
-    {
-        public static IEnumerable<object> Convert(RcolFile.RcolGroup group)
-        {
-            yield return new ClassViewModel("Info", group.Info, ["Name", "Guid", "LayerIndex", "MaskBits", "LayerGuid"]);
-            yield return new TreeItemViewModel("Shapes", RcolShapeViewModel.MakeList(group));
-        }
-
-        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
-        {
-            var gameObject = (RcolFile.RcolGroup)value;
+            var gameObject = (PfbGameObject)value;
             return Convert(gameObject);
         }
 

@@ -3,7 +3,6 @@ using System.Collections.ObjectModel;
 using RszTool.Scn;
 
 
-using GameObjectInfoModel = RszTool.StructModel<RszTool.Scn.ScnGameObjectInfo>;
 using FolderInfoModel = RszTool.StructModel<RszTool.Scn.ScnFolderInfo>;
 
 
@@ -77,13 +76,45 @@ namespace RszTool.Scn
         }
     }
 
-    public struct ScnGameObjectInfo {
+    public class ScnGameObjectInfo : BaseModel {
         public Guid guid;
         public int objectId;
         public int parentId;
         public short componentCount;
         public short ukn;
         public int prefabId;
+
+        protected override bool DoRead(FileHandler handler)
+        {
+            handler.Read(ref guid);
+            handler.Read(ref objectId);
+            handler.Read(ref parentId);
+            handler.Read(ref componentCount);
+            if (handler.FileVersion <= 19) {
+                prefabId = handler.Read<short>();
+                ukn = (short)handler.Read<int>();
+            } else {
+                handler.Read(ref ukn);
+                handler.Read(ref prefabId);
+            }
+            return true;
+        }
+
+        protected override bool DoWrite(FileHandler handler)
+        {
+            handler.Write(ref guid);
+            handler.Write(ref objectId);
+            handler.Write(ref parentId);
+            handler.Write(ref componentCount);
+            if (handler.FileVersion <= 19) {
+                handler.Write((short)prefabId);
+                handler.Write((int)ukn);
+            } else {
+                handler.Write(ref ukn);
+                handler.Write(ref prefabId);
+            }
+            return true;
+        }
     }
 
     public struct ScnFolderInfo {
@@ -160,7 +191,7 @@ namespace RszTool.Scn
     {
         private WeakReference<ScnFolderData>? folderRef;
         private WeakReference<ScnGameObject>? parentRef;
-        public GameObjectInfoModel? Info { get; set; }
+        public ScnGameObjectInfo? Info { get; set; }
         public ScnPrefabInfo? Prefab { get; set; }
         public RszInstance? Instance { get; set; }
         public ObservableCollection<RszInstance> Components { get; private set; } = new();
@@ -189,17 +220,17 @@ namespace RszTool.Scn
             }
         }
 
-        public int? ObjectId => Info?.Data.objectId;
+        public int? ObjectId => Info?.objectId;
 
         public Guid Guid
         {
             get
             {
-                return Info?.Data.guid ?? Guid.Empty;
+                return Info?.guid ?? Guid.Empty;
             }
             set
             {
-                if (Info != null) Info.Data.guid = value;
+                if (Info != null) Info.guid = value;
             }
         }
 
@@ -210,7 +241,7 @@ namespace RszTool.Scn
         {
             ScnGameObject gameObject = new()
             {
-                Info = Info != null ? new() { Data = Info.Data } : null,
+                Info = Info != null ? (ScnGameObjectInfo)Info.Clone() : null,
                 Components = new(Components.Select(item => item.CloneCached())),
                 Instance = Instance?.CloneCached(),
                 Prefab = Prefab != null ? (ScnPrefabInfo)Prefab.Clone() : null,
@@ -237,15 +268,12 @@ namespace RszTool.Scn
             {
                 Info = new()
                 {
-                    Data = new ScnGameObjectInfo
-                    {
-                        // objectId 和 parentId 应该重新生成
-                        guid = Guid.NewGuid(),
-                        objectId = -1,
-                        parentId = -1,
-                        componentCount = (short)pfbGameObject.Components.Count,
-                        prefabId = -1,
-                    }
+                    // objectId 和 parentId 应该重新生成
+                    guid = Guid.NewGuid(),
+                    objectId = -1,
+                    parentId = -1,
+                    componentCount = (short)pfbGameObject.Components.Count,
+                    prefabId = -1,
                 },
                 Components = new(pfbGameObject.Components.Select(item => item.CloneCached())),
                 Instance = pfbGameObject.Instance?.CloneCached()
@@ -270,7 +298,7 @@ namespace RszTool
     public class ScnFile : BaseRszFile
     {
         public ScnHeaderStruct Header { get; }
-        public List<GameObjectInfoModel> GameObjectInfoList { get; } = new();
+        public List<ScnGameObjectInfo> GameObjectInfoList { get; } = new();
         public List<FolderInfoModel> FolderInfoList { get; } = new();
         public List<ResourceInfo> ResourceInfoList { get; } = new();
         public List<ScnPrefabInfo> PrefabInfoList { get; } = new();
@@ -443,18 +471,18 @@ namespace RszTool
                 ScnGameObject gameObjectData = new()
                 {
                     Info = info,
-                    Instance = RSZ!.ObjectList[info.Data.objectId],
+                    Instance = RSZ!.ObjectList[info.objectId],
                 };
-                for (int i = 0; i < info.Data.componentCount; i++)
+                for (int i = 0; i < info.componentCount; i++)
                 {
-                    gameObjectData.Components.Add(RSZ!.ObjectList[info.Data.objectId + 1 + i]);
+                    gameObjectData.Components.Add(RSZ!.ObjectList[info.objectId + 1 + i]);
                 }
-                if (info.Data.prefabId >= 0 && info.Data.prefabId < PrefabInfoList.Count)
+                if (info.prefabId >= 0 && info.prefabId < PrefabInfoList.Count)
                 {
-                    gameObjectData.Prefab = PrefabInfoList[info.Data.prefabId];
+                    gameObjectData.Prefab = PrefabInfoList[info.prefabId];
                 }
-                gameObjectMap[info.Data.objectId] = gameObjectData;
-                if (info.Data.parentId == -1)
+                gameObjectMap[info.objectId] = gameObjectData;
+                if (info.parentId == -1)
                 {
                     GameObjects.Add(gameObjectData);
                 }
@@ -463,13 +491,13 @@ namespace RszTool
             // add children and set parent
             foreach (var info in GameObjectInfoList)
             {
-                var gameObject = gameObjectMap[info.Data.objectId];
-                if (gameObjectMap.TryGetValue(info.Data.parentId, out var parent))
+                var gameObject = gameObjectMap[info.objectId];
+                if (gameObjectMap.TryGetValue(info.parentId, out var parent))
                 {
                     parent.Children.Add(gameObject);
                     gameObject.Parent = parent;
                 }
-                if (folderIdxMap.TryGetValue(info.Data.parentId, out var folder))
+                if (folderIdxMap.TryGetValue(info.parentId, out var folder))
                 {
                     folder.GameObjects.Add(gameObject);
                     gameObject.Folder = folder;
@@ -668,7 +696,7 @@ namespace RszTool
                     gameObject.Prefab = PrefabInfoList[prefabId];
                 }
             }
-            ref var infoData = ref gameObject.Info!.Data;
+            var infoData = gameObject.Info!;
             // AddToObjectTable会修正ObjectTableIndex
             RSZ!.AddToObjectTable(instance);
             infoData.objectId = instance.ObjectTableIndex;
@@ -676,7 +704,7 @@ namespace RszTool
             infoData.parentId = gameObject.Parent?.ObjectId ?? gameObject.Folder?.ObjectId ?? -1;
             infoData.prefabId = prefabId;
 
-            GameObjectInfoList.Add(gameObject.Info);
+            GameObjectInfoList.Add(infoData);
             foreach (var item in gameObject.Components)
             {
                 RSZ.AddToObjectTable(item);

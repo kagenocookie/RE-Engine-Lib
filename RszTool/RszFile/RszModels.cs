@@ -12,9 +12,9 @@ namespace RszTool
         {
         }
 
-        public ResourceInfo(GameVersion version)
+        public ResourceInfo(GameVersion version, bool isPfb)
         {
-            HasOffset = version > GameVersion.re2;
+            HasOffset = !(version == GameVersion.re7 || isPfb && (version is GameVersion.re2 or GameVersion.dmc5));
         }
 
         protected override bool DoRead(FileHandler handler)

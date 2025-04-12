@@ -37,7 +37,7 @@ namespace RszTool
         /// InstanceList中包括里面依赖的成员实例或者实例数组的项
         /// </summary>
         public List<RszInstance> ObjectList { get; private set; } = new();
-        public List<RSZFile>? EmbeddedRSZFileList { get; private set; }
+        public List<RSZFile>? EmbeddedRSZFileList { get; set; }
         // if struct changed, need rebuild
 
         public RSZFile(RszFileOption option, FileHandler fileHandler) : base(option, fileHandler)

@@ -221,7 +221,7 @@ namespace RszTool
             // ResourceInfoList.Read(handler, header.resourceCount);
             for (int i = 0; i < header.resourceCount; i++)
             {
-                ResourceInfo item = new(Option.Version);
+                ResourceInfo item = new(Option.Version, true);
                 if (!item.Read(handler)) return false;
                 ResourceInfoList.Add(item);
             }

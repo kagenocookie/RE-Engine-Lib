@@ -196,13 +196,12 @@ namespace RszTool.Test
         {
             string path = "test/cha0.motbank.3";
             string newPath = "test/cha0_new.motbank.3";
-            RszFileOption option = new(GameName.re4);
-            MotbankFile motbankFile = new(option, new FileHandler(path));
+            MotbankFile motbankFile = new(new FileHandler(path));
             motbankFile.Read();
             using FileHandler newFileHandler = new(newPath, true);
             motbankFile.WriteTo(newFileHandler);
 
-            MotbankFile newMotbankFile = new(option, newFileHandler);
+            MotbankFile newMotbankFile = new(newFileHandler);
             newMotbankFile.Read();
 
             foreach (var item in newMotbankFile.MotlistItems)
@@ -230,8 +229,7 @@ namespace RszTool.Test
         static void TestParseUVarFile()
         {
             string path = "test/GlobalVariables.uvar.3";
-            RszFileOption option = new(GameName.re4);
-            UVarFile file = new(option, new FileHandler(path));
+            UVarFile file = new(new FileHandler(path));
             file.Read();
         }
 

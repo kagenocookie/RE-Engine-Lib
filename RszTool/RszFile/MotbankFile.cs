@@ -6,8 +6,8 @@ namespace RszTool.Motbank
     {
         public long offset;
         public long BankID;
-        public int uknInt;
-        public long ukn;
+        public uint BankType;
+        public long BankTypeMaskBits;
 
         public int Version { get; set; }
         public string Path { get; set; } = string.Empty;
@@ -23,13 +23,13 @@ namespace RszTool.Motbank
             if (Version == 3)
             {
                 BankID = handler.ReadInt();
-                handler.Read(ref uknInt);
+                handler.Read(ref BankType);
             }
             else
             {
                 handler.Read(ref BankID);
             }
-            handler.Read(ref ukn);
+            handler.Read(ref BankTypeMaskBits);
             Path = handler.ReadWString(offset);
             return true;
         }
@@ -40,13 +40,13 @@ namespace RszTool.Motbank
             if (Version == 3)
             {
                 handler.WriteInt((int)BankID);
-                handler.Write(ref uknInt);
+                handler.Write(ref BankType);
             }
             else
             {
                 handler.Write(ref BankID);
             }
-            handler.Write(ref ukn);
+            handler.Write(ref BankTypeMaskBits);
             return true;
         }
     }
@@ -55,10 +55,10 @@ namespace RszTool.Motbank
 
 namespace RszTool
 {
-    public class MotbankFile(RszFileOption option, FileHandler fileHandler) : BaseRszFile(option, fileHandler)
+    public class MotbankFile(FileHandler fileHandler) : BaseFile(fileHandler)
     {
-        public int version;
-        public uint magic;
+        public int version = fileHandler.FileVersion;
+        public uint magic = Magic;
         // Skip(8);
         public long motlistsOffset;
         public long uvarOffset;

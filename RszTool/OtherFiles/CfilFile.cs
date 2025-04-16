@@ -6,14 +6,14 @@ namespace RszTool
     public class CfilFile : BaseFile
     {
         public int guidCount;
-        public Guid myGuid;
+        public Guid LayerGuid;
         public int ukn3;
         public int ukn4;
         public int ukn5;
         public int ukn6;
         public long guidListOffset;
         public long uknOffset;
-        public Guid[]? Guids;
+        public Guid[]? Masks;
 
         private const int Magic = 0x4c494643;
 
@@ -24,21 +24,25 @@ namespace RszTool
         protected override bool DoRead()
         {
             var handler = FileHandler;
-            handler.Read<int>();
+            var magic = handler.Read<int>();
+            if (magic != Magic)
+            {
+                throw new Exception("Invalid CFIL file");
+            }
             handler.Read(ref guidCount);
             handler.Skip(8);
-            handler.Read(ref myGuid);
+            handler.Read(ref LayerGuid);
             handler.Read(ref ukn3);
             handler.Read(ref ukn4);
             handler.Read(ref ukn5);
             handler.Read(ref ukn6);
             handler.Read(ref guidListOffset);
             handler.Read(ref uknOffset);
-            if (Guids == null || Guids.Length != guidCount)
+            if (Masks == null || Masks.Length != guidCount)
             {
-                Guids = new Guid[guidCount];
+                Masks = new Guid[guidCount];
             }
-            handler.ReadArray(Guids);
+            handler.ReadArray(Masks);
             return true;
         }
 
@@ -46,10 +50,10 @@ namespace RszTool
         {
             var handler = FileHandler;
             handler.Write(Magic);
-            guidCount = Guids?.Length ?? 0;
+            guidCount = Masks?.Length ?? 0;
             handler.Write(ref guidCount);
             handler.Skip(8);
-            handler.Write(ref myGuid);
+            handler.Write(ref LayerGuid);
             handler.Write(ref ukn3);
             handler.Write(ref ukn4);
             handler.Write(ref ukn5);
@@ -58,7 +62,7 @@ namespace RszTool
             guidListOffset = 64L;
             handler.Write(ref guidListOffset);
             handler.Write(guidListOffset + guidCount * sizeof(long) * 2);
-            handler.WriteArray(Guids ?? Array.Empty<Guid>());
+            handler.WriteArray(Masks ?? Array.Empty<Guid>());
             return true;
         }
     }

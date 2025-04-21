@@ -656,6 +656,15 @@ namespace RszTool
             return length;
         }
 
+        public string ReadInlineWString()
+        {
+            var count = Read<int>();
+            if (count == 0) return string.Empty;
+            var str = ReadWString(-1, count, false);
+            Align(4);
+            return str;
+        }
+
         public bool WriteWString(string text)
         {
             return WriteSpan(text.AsSpan()) && Write<ushort>(0);

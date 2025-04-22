@@ -874,6 +874,18 @@ namespace RszTool
             return true;
         }
 
+        public void ReadOffsetArray<T>(ref T[] array, int length) where T : unmanaged
+        {
+            var offset = Read<long>();
+            var pos = Tell();
+            Seek(offset);
+            if (array == null || array.Length != length) array = new T[length];
+            if (length == 0) return;
+
+            Stream.Read(MemoryMarshal.AsBytes((Span<T>)array));
+            Seek(pos);
+        }
+
         /// <summary>读取列表</summary>
         public bool ReadList<T>(List<T> list, int count) where T : unmanaged
         {
@@ -915,6 +927,13 @@ namespace RszTool
             int length = array.GetLength(0) * array.GetLength(1);
             Stream.Write(MemoryMarshal.AsBytes(MemoryUtils.CreateSpan(ref array[0, 0], length)));
             return true;
+        }
+
+        public void WriteOffsetArray<T>(T[] array, ref long offsetPosition) where T : unmanaged
+        {
+            Write(offsetPosition, Tell());
+            offsetPosition += sizeof(long);
+            WriteArray(array);
         }
 
         /// <summary>写入列表</summary>

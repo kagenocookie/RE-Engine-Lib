@@ -1,0 +1,17 @@
+[*.cs]
+
+# CA1725: Parameter names should match base declaration
+dotnet_diagnostic.CA1725.severity = none
+
+# CA1708: Identifiers should differ by more than case
+dotnet_diagnostic.CA1708.severity = none
+
+# CA1720: Identifier contains type name
+dotnet_diagnostic.CA1720.severity = none
+
+# CA1720: Identifier contains type name
+dotnet_diagnostic.CA1863.severity = suggestion
+
+# RS2008: Enable analyzer release tracking for the analyzer project containing rule 'RSZT001'
+dotnet_diagnostic.RS2008.severity = suggestion
+

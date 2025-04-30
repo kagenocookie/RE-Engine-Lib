@@ -333,9 +333,9 @@ namespace RszTool
                 MatDatas.Add(matData);
             }
 
-            handler.Seek(MatDatas[0].Header.texHeaderOffset);
             foreach (var matData in MatDatas)
             {
+                handler.Seek(matData.Header.texHeaderOffset);
                 for (int i = 0; i < matData.Header.texCount; i++)
                 {
                     TexHeader texHeader = new(Option.Version);
@@ -344,9 +344,9 @@ namespace RszTool
                 }
             }
 
-            handler.Seek(MatDatas[0].Header.paramHeaderOffset);
             foreach (var matData in MatDatas)
             {
+                handler.Seek(matData.Header.paramHeaderOffset);
                 for (int i = 0; i < matData.Header.paramCount; i++)
                 {
                     ParamHeader paramHeader = new(Option.Version);

@@ -30,6 +30,7 @@ namespace RszTool.Rcol
         public long dataOffset;
         public long requestSetOffset;
         public long ignoreTagOffset;
+        public long requestSetIDLookupsOffset; //rcol.2
         public long autoGenerateJointDescOffset;
         public long unknPtr0;
         public long unknPtr1;
@@ -49,10 +50,11 @@ namespace RszTool.Rcol
             handler.Read(ref magic);
             if (ExtensionVersion == 2)
             {
-                numGroups = handler.ReadShort();
-                numShapes = handler.ReadShort();
-                numUserData = handler.ReadShort();
+                numGroups = handler.ReadByte();
+                numShapes = handler.ReadByte();
+                uknCount = handler.ReadShort();
                 numRequestSets = handler.ReadShort();
+                maxRequestSetId = handler.ReadUShort();
             }
             else
             {
@@ -73,6 +75,7 @@ namespace RszTool.Rcol
             }
             handler.Read(ref userDataSize);
             handler.Read(ref status);
+            if (ExtensionVersion == 2) handler.Read<int>();
             if (ExtensionVersion == 11)
             {
                 handler.Read(ref uknRe3_A);
@@ -91,6 +94,10 @@ namespace RszTool.Rcol
                 handler.Read(ref ignoreTagOffset);
                 handler.Read(ref autoGenerateJointDescOffset);
             }
+            else if (ExtensionVersion == 2)
+            {
+                handler.Read(ref requestSetIDLookupsOffset);
+            }
             else if (ExtensionVersion == 11)
             {
                 handler.Read(ref uknRe3);
@@ -107,40 +114,41 @@ namespace RszTool.Rcol
             handler.Write(ref magic);
             if (ExtensionVersion == 2)
             {
-                handler.WriteShort((short)numGroups);
-                handler.WriteShort((short)numShapes);
-                handler.WriteShort((short)numUserData);
+                handler.WriteByte((byte)numGroups);
+                handler.WriteByte((byte)numShapes);
+                handler.WriteShort((short)uknCount);
                 handler.WriteShort((short)numRequestSets);
+                handler.WriteShort((short)maxRequestSetId);
             }
             else
             {
                 handler.Write(ref numGroups);
                 if (ExtensionVersion >= 25) {
                     handler.Write(ref numUserData);
-                    handler.Write(ref uknCount);
                 } else {
                     handler.Write(ref numShapes);
-                    handler.Write(ref numUserData);
                 }
+                handler.Write(ref uknCount);
                 handler.Write(ref numRequestSets);
                 handler.Write(ref maxRequestSetId);
-                if (ExtensionVersion > 11)
-                {
-                    handler.Write(ref numIgnoreTags);
-                    handler.Write(ref numAutoGenerateJoints);
-                }
-                handler.Write(ref userDataSize);
-                handler.Write(ref status);
-                if (ExtensionVersion == 11)
-                {
-                    handler.Write(ref uknRe3_A);
-                    handler.Write(ref uknRe3_B);
-                }
-                if (ExtensionVersion >= 20)
-                {
-                    handler.Write(ref ukn1);
-                    handler.Write(ref ukn2);
-                }
+            }
+            if (ExtensionVersion > 11)
+            {
+                handler.Write(ref numIgnoreTags);
+                handler.Write(ref numAutoGenerateJoints);
+            }
+            handler.Write(ref userDataSize);
+            handler.Write(ref status);
+            if (ExtensionVersion == 2) handler.Write<int>(0);
+            if (ExtensionVersion == 11)
+            {
+                handler.Write(ref uknRe3_A);
+                handler.Write(ref uknRe3_B);
+            }
+            if (ExtensionVersion >= 20)
+            {
+                handler.Write(ref ukn1);
+                handler.Write(ref ukn2);
             }
             handler.Write(ref groupsPtrOffset);
             handler.Write(ref dataOffset);
@@ -149,6 +157,10 @@ namespace RszTool.Rcol
             {
                 handler.Write(ref ignoreTagOffset);
                 handler.Write(ref autoGenerateJointDescOffset);
+            }
+            else if (ExtensionVersion == 2)
+            {
+                handler.Write(ref requestSetIDLookupsOffset);
             }
             else if (ExtensionVersion == 11)
             {
@@ -196,24 +208,33 @@ namespace RszTool.Rcol
                 handler.Read(ref NumShapes);
                 // verified: for 27, this is extra (mirror) shape count and not userdata. need to recheck v25 and pre-25
                 handler.Read(ref NumExtraShapes);
+                handler.Read(ref NumMaskGuids);
             }
-            else
+            else if (handler.FileVersion > 2)
             {
                 handler.Read(ref UserDataIndex);
                 handler.Read(ref NumShapes);
+                handler.Read(ref NumMaskGuids);
             }
-            handler.Read(ref NumMaskGuids);
+            else // RE7
+            {
+                UserDataIndex = handler.Read<short>();
+                NumShapes = handler.Read<short>();
+            }
             handler.Read(ref ShapesOffset);
             handler.Read(ref LayerIndex);
             handler.Read(ref MaskBits);
-            handler.Read(ref MaskGuidsOffset);
-            handler.Read(ref LayerGuid);
 
-            using var defer = handler.SeekJumpBack(MaskGuidsOffset);
-            {
-                MaskGuids ??= new();
-                handler.ReadList(MaskGuids, NumMaskGuids);
+            if (handler.FileVersion > 2) {
+                handler.Read(ref MaskGuidsOffset);
+                handler.Read(ref LayerGuid);
+                using var defer = handler.SeekJumpBack(MaskGuidsOffset);
+                {
+                    MaskGuids ??= new();
+                    handler.ReadList(MaskGuids, NumMaskGuids);
+                }
             }
+
             return true;
         }
 
@@ -224,28 +245,37 @@ namespace RszTool.Rcol
             NameHash = MurMur3HashUtils.GetHash(Name ?? string.Empty);
             handler.Write(ref NameHash);
             UserDataIndex = UserData?.Index ?? UserDataIndex;
+            NumMaskGuids = MaskGuids?.Count ?? 0;
             if (handler.FileVersion >= 25)
             {
                 handler.Write(ref NumShapes);
                 handler.Write(ref NumExtraShapes);
+                handler.Write(ref NumMaskGuids);
             }
-            else
+            else if (handler.FileVersion > 2)
             {
                 handler.Write(ref UserDataIndex);
                 handler.Write(ref NumShapes);
+                handler.Write(ref NumMaskGuids);
             }
-            NumMaskGuids = MaskGuids?.Count ?? 0;
-            handler.Write(ref NumMaskGuids);
+            else
+            {
+                handler.Write((short)UserDataIndex);
+                handler.Write((short)NumShapes);
+            }
             ShapesOffsetStart = handler.Tell();
             handler.Write(ref ShapesOffset);
             handler.Write(ref LayerIndex);
             handler.Write(ref MaskBits);
-            if (MaskGuids != null)
-            {
-                handler.OffsetContentTableAdd(handler => handler.WriteList(MaskGuids));
+
+            if (handler.FileVersion > 2) {
+                if (MaskGuids != null)
+                {
+                    handler.OffsetContentTableAdd(handler => handler.WriteList(MaskGuids));
+                }
+                handler.Write(ref MaskGuidsOffset);
+                handler.Write(ref LayerGuid);
             }
-            handler.Write(ref MaskGuidsOffset);
-            handler.Write(ref LayerGuid);
             return true;
         }
     }
@@ -356,9 +386,13 @@ namespace RszTool.Rcol
         {
             handler.Read(ref Guid);
             handler.ReadOffsetWString(out Name);
-            handler.ReadRange(ref NameHash, ref SkipIdBits);
+            handler.Read(ref NameHash);
+            handler.Read(ref UserDataIndex);
+            handler.Read(ref LayerIndex);
+            handler.Read(ref Attribute);
             if (handler.FileVersion >= 27)
             {
+                handler.Read(ref SkipIdBits);
                 handler.Read(ref shapeType);
                 handler.Read(ref IgnoreTagBits);
                 handler.Skip(4);
@@ -367,8 +401,9 @@ namespace RszTool.Rcol
                 handler.Read(ref PrimaryJointNameHash);
                 handler.Read(ref SecondaryJointNameHash);
             }
-            else
-        {
+            else if (handler.FileVersion > 2)
+            {
+                handler.Read(ref SkipIdBits);
                 handler.Read(ref IgnoreTagBits);
                 handler.ReadOffsetWString(out primaryJointNameStr);
                 handler.ReadOffsetWString(out secondaryJointNameStr);
@@ -376,6 +411,15 @@ namespace RszTool.Rcol
                 handler.Read(ref SecondaryJointNameHash);
                 handler.Read(ref shapeType);
                 handler.Skip(4);
+            }
+            else
+            {
+                handler.ReadOffsetWString(out primaryJointNameStr);
+                handler.ReadOffsetWString(out secondaryJointNameStr);
+                handler.Read(ref PrimaryJointNameHash);
+                handler.Read(ref SecondaryJointNameHash);
+                handler.Read(ref shapeType);
+                handler.Skip(12);
             }
             return true;
         }
@@ -387,9 +431,14 @@ namespace RszTool.Rcol
             NameHash = MurMur3HashUtils.GetHash(Name ?? string.Empty);
             handler.Write(ref Guid);
             handler.WriteOffsetWString(Name ?? string.Empty);
-            handler.WriteRange(ref NameHash, ref SkipIdBits);
+            handler.Write(ref NameHash);
+            handler.Write(ref UserDataIndex);
+            handler.Write(ref LayerIndex);
+            handler.Write(ref Attribute);
 
-            if (handler.FileVersion >= 27) {
+            if (handler.FileVersion >= 27)
+            {
+                handler.Read(ref SkipIdBits);
                 handler.Write(ref shapeType);
                 handler.Write(ref IgnoreTagBits);
                 handler.Skip(4);
@@ -398,7 +447,10 @@ namespace RszTool.Rcol
 
                 handler.Write(ref PrimaryJointNameHash);
                 handler.Write(ref SecondaryJointNameHash);
-            } else {
+            }
+            else if (handler.FileVersion > 2)
+            {
+                handler.Read(ref SkipIdBits);
                 handler.Write(ref IgnoreTagBits);
                 handler.WriteOffsetWString(primaryJointNameStr ?? string.Empty);
                 handler.WriteOffsetWString(secondaryJointNameStr ?? string.Empty);
@@ -406,6 +458,15 @@ namespace RszTool.Rcol
                 handler.Write(ref SecondaryJointNameHash);
                 handler.Write(ref shapeType);
                 handler.Skip(4);
+            }
+            else
+            {
+                handler.WriteOffsetWString(primaryJointNameStr ?? string.Empty);
+                handler.WriteOffsetWString(secondaryJointNameStr ?? string.Empty);
+                handler.Write(ref PrimaryJointNameHash);
+                handler.Write(ref SecondaryJointNameHash);
+                handler.Write(ref shapeType);
+                handler.Skip(12);
             }
             return true;
         }
@@ -482,11 +543,10 @@ namespace RszTool.Rcol
 
         protected override bool DoRead(FileHandler handler)
         {
-            handler.Read(ref ID);
-            handler.Read(ref GroupIndex);
-
             if (handler.FileVersion >= 25)
             {
+                handler.Read(ref ID);
+                handler.Read(ref GroupIndex);
                 handler.Read(ref requestSetUserdataIndex);
                 handler.Read(ref groupUserdataIndexStart);
                 handler.Read(ref status);
@@ -496,8 +556,10 @@ namespace RszTool.Rcol
                 handler.Read(ref NameHash);
                 handler.Read(ref KeyHash);
             }
-            else
+            else if (handler.FileVersion > 2)
             {
+                handler.Read(ref ID);
+                handler.Read(ref GroupIndex);
                 handler.Read(ref ShapeOffset);
                 handler.Read(ref status);
                 handler.ReadOffsetWString(out Name);
@@ -507,19 +569,25 @@ namespace RszTool.Rcol
                 handler.Read(ref KeyHash);
                 handler.Skip(4);
             }
+            else
+            {
+                handler.Read(ref GroupIndex);
+                handler.Read(ref ShapeOffset);
+                handler.Read(ref status);
+                handler.Skip(4);
+            }
 
             return true;
         }
 
         protected override bool DoWrite(FileHandler handler)
         {
-            handler.Write(ref ID);
-            handler.Write(ref GroupIndex);
-            NameHash = MurMur3HashUtils.GetHash(Name);
-            KeyHash = MurMur3HashUtils.GetHash(KeyName);
-
             if (handler.FileVersion >= 25)
             {
+                handler.Write(ref ID);
+                handler.Write(ref GroupIndex);
+                NameHash = MurMur3HashUtils.GetHash(Name);
+                KeyHash = MurMur3HashUtils.GetHash(KeyName);
                 // TODO make sure we set requestSetUserdataIndex
                 handler.Write(ref requestSetUserdataIndex);
                 handler.Write(ref groupUserdataIndexStart);
@@ -530,8 +598,12 @@ namespace RszTool.Rcol
                 handler.Write(ref NameHash);
                 handler.Write(ref KeyHash);
             }
-            else
+            else if (handler.FileVersion > 2)
             {
+                handler.Write(ref ID);
+                handler.Write(ref GroupIndex);
+                NameHash = MurMur3HashUtils.GetHash(Name);
+                KeyHash = MurMur3HashUtils.GetHash(KeyName);
                 handler.Write(ref ShapeOffset);
                 handler.Write(ref status);
                 handler.WriteOffsetWString(Name);
@@ -539,6 +611,13 @@ namespace RszTool.Rcol
                 handler.Skip(4);
                 handler.WriteOffsetWString(KeyName);
                 handler.Write(ref KeyHash);
+                handler.Skip(4);
+            }
+            else
+            {
+                handler.Write(ref GroupIndex);
+                handler.Write(ref ShapeOffset);
+                handler.Write(ref status);
                 handler.Skip(4);
             }
 
@@ -666,6 +745,19 @@ namespace RszTool
                 }
             }
 
+            if (header.requestSetIDLookupsOffset > 0)
+            {
+                handler.Seek(header.requestSetIDLookupsOffset);
+                for (int i = 0; i < header.maxRequestSetId; ++i)
+                {
+                    var index = handler.Read<int>();
+                    if (index != -1)
+                    {
+                        RequestSets[index].Info.ID = (uint)i;
+                    }
+                }
+            }
+
             SetupReferences(handler.FileVersion);
 
             return true;
@@ -694,8 +786,18 @@ namespace RszTool
                         requestSet.ShapeUserdata.Add(RSZ.ObjectList[requestSet.Info.groupUserdataIndexStart + k]);
                     }
                 }
+                else if (fileVersion > 2)
+                {
+                    requestSet.Instance = RSZ.ObjectList[i];
+                    for (int k = 0; k < requestSet.Group.Shapes.Count; ++k) {
+                        var shape = requestSet.Group.Shapes[k];
+                        var instanceId = RSZ.ObjectTableList[shape.Info.UserDataIndex + requestSet.Info.ShapeOffset].Data.instanceId;
+                        requestSet.ShapeUserdata.Add(RSZ.InstanceList[instanceId]);
+                    }
+                }
                 else
                 {
+                    requestSet.Info.Name = Groups[requestSet.Info.GroupIndex].Info.Name;
                     requestSet.Instance = RSZ.ObjectList[i];
                     for (int k = 0; k < requestSet.Group.Shapes.Count; ++k) {
                         var shape = requestSet.Group.Shapes[k];
@@ -746,8 +848,8 @@ namespace RszTool
 
             handler.Align(16);
             header.dataOffset = handler.Tell();
-            WriteRsz(RSZ!, header.dataOffset);
-            header.userDataSize = (int)RSZ!.Size;
+            WriteRsz(RSZ, header.dataOffset);
+            header.userDataSize = (int)RSZ.Size;
 
             handler.Align(16);
             header.maxRequestSetId = 0;
@@ -758,6 +860,9 @@ namespace RszTool
                 item.Info.Write(handler);
                 if (item.Info.ID > header.maxRequestSetId) header.maxRequestSetId = item.Info.ID;
             }
+
+            // the field is used as an array size for rcol.2 so it needs to be +1 from the highest one
+            if (handler.FileVersion == 2) header.maxRequestSetId++;
 
             handler.Align(16);
             header.numIgnoreTags = IgnoreTags?.Count ?? 0;
@@ -777,6 +882,21 @@ namespace RszTool
             }
 
             handler.Align(16);
+            if (handler.FileVersion == 2)
+            {
+                header.requestSetIDLookupsOffset = handler.Tell();
+                int index = 0;
+                foreach (var set in RequestSets.OrderBy(s => s.Info.ID))
+                {
+                    while (index < set.Info.ID) {
+                        index++;
+                        handler.Write<int>(-1);
+                    }
+                    handler.Write(set.Info.ID);
+                    index++;
+                }
+            }
+
             handler.StringTableFlush();
             handler.OffsetContentTableFlush();
 

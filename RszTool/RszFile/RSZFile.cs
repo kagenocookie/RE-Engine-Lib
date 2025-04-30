@@ -3,17 +3,20 @@ using RszTool.Common;
 
 namespace RszTool
 {
-    public class RSZFile : BaseRszFile
+    public partial class RSZFile : BaseRszFile
     {
-        public struct HeaderStruct
+        [RszGenerate, RszAutoReadWrite]
+        public partial class RszHeader : BaseModel
         {
             public uint magic;
             public uint version;
             public int objectCount;
             public int instanceCount;
+            [RszConditional(nameof(version), '>', 3)]
             public long userdataCount;
             public long instanceOffset;
             public long dataOffset;
+            [RszConditional(nameof(version), '>', 3)]
             public long userdataOffset;
         }
 
@@ -22,7 +25,7 @@ namespace RszTool
             public int instanceId;
         }
 
-        public StructModel<HeaderStruct> Header { get; } = new();
+        public RszHeader Header { get; } = new();
         public List<StructModel<ObjectTable>> ObjectTableList { get; } = new();
         public List<InstanceInfo> InstanceInfoList { get; } = new();
         public List<IRSZUserDataInfo> RSZUserDataInfoList { get; } = new();
@@ -42,7 +45,9 @@ namespace RszTool
 
         public RSZFile(RszFileOption option, FileHandler fileHandler) : base(option, fileHandler)
         {
-            Header.Data.version = option.Version <= GameVersion.re2 ? 8u : 16u;
+            Header.version = option.Version == GameVersion.re7 ? 3u
+                : option.Version <= GameVersion.re2 ? 8u
+                : 16u;
         }
 
         public const uint Magic = 0x5a5352;
@@ -61,32 +66,32 @@ namespace RszTool
             var handler = FileHandler;
             handler.Seek(0);
             if (!Header.Read(handler)) return false;
-            if (Header.Data.magic != Magic)
+            if (Header.magic != Magic)
             {
                 throw new InvalidDataException($"Not a RSZ data");
             }
 
             var rszParser = RszParser;
 
-            ObjectTableList.Read(handler, Header.Data.objectCount);
+            ObjectTableList.Read(handler, Header.objectCount);
 
-            handler.Seek(Header.Data.instanceOffset);
-            for (int i = 0; i < Header.Data.instanceCount; i++)
+            handler.Seek(Header.instanceOffset);
+            for (int i = 0; i < Header.instanceCount; i++)
             {
-                InstanceInfo instanceInfo = new();
+                InstanceInfo instanceInfo = new(Option.Version);
                 instanceInfo.Read(handler);
                 instanceInfo.ReadClassName(rszParser);
                 InstanceInfoList.Add(instanceInfo);
             }
 
-            handler.Seek(Header.Data.userdataOffset);
+            handler.Seek(Header.userdataOffset);
             Dictionary<int, int> instanceIdToUserData = new();
             if (Option.Version <= GameVersion.re2)
             {
-                if (Header.Data.userdataCount > 0)
+                if (Header.userdataCount > 0)
                 {
                     EmbeddedRSZFileList = new();
-                    for (int i = 0; i < (int)Header.Data.userdataCount; i++)
+                    for (int i = 0; i < (int)Header.userdataCount; i++)
                     {
                         RSZUserDataInfo_TDB_LE_67 rszUserDataInfo = new();
                         rszUserDataInfo.Read(handler);
@@ -105,7 +110,7 @@ namespace RszTool
             }
             else
             {
-                for (int i = 0; i < (int)Header.Data.userdataCount; i++)
+                for (int i = 0; i < (int)Header.userdataCount; i++)
                 {
                     RSZUserDataInfo rszUserDataInfo = new();
                     rszUserDataInfo.Read(handler);
@@ -115,7 +120,7 @@ namespace RszTool
             }
 
             // read instance data
-            handler.Seek(Header.Data.dataOffset);
+            handler.Seek(Header.dataOffset);
             for (int i = 0; i < InstanceInfoList.Count; i++)
             {
                 RszClass? rszClass = RszParser.GetRSZClass(InstanceInfoList[i].typeId);
@@ -171,8 +176,8 @@ namespace RszTool
                 RebuildInstanceInfo();
             }
             FileHandler handler = FileHandler;
-            ref var header = ref Header.Data;
-            handler.Seek(Header.Size);
+            var header = Header;
+            header.Write(handler);
             ObjectTableList.Write(handler);
 
             handler.Align(16);
@@ -220,7 +225,7 @@ namespace RszTool
         {
             InstanceList.Clear();
             InstanceList.Add(RszInstance.NULL);
-            InstanceInfoList.Add(new InstanceInfo());
+            InstanceInfoList.Add(new InstanceInfo(Option.Version));
         }
 
         public void ClearObjects()
@@ -421,7 +426,7 @@ namespace RszTool
             RSZUserDataInfoList.Clear();
             foreach (var instance in InstanceList)
             {
-                InstanceInfoList.Add(new InstanceInfo
+                InstanceInfoList.Add(new InstanceInfo(Option.Version)
                 {
                     typeId = instance.RszClass.typeId,
                     CRC = instance.RszClass.crc
@@ -579,10 +584,24 @@ namespace RszTool
         public uint CRC;
         public string? ClassName { get; set; }
 
+        public GameVersion Version;
+
+        public InstanceInfo()
+        {
+            Version = GameVersion.unknown;
+        }
+
+        public InstanceInfo(GameVersion version)
+        {
+            Version = version;
+        }
+
         protected override bool DoRead(FileHandler handler)
         {
             handler.Read(ref typeId);
             handler.Read(ref CRC);
+
+            if (Version == GameVersion.re7) handler.Skip(8);
             return true;
         }
 
@@ -590,6 +609,8 @@ namespace RszTool
         {
             handler.Write(typeId);
             handler.Write(CRC);
+
+            if (Version == GameVersion.re7) handler.Skip(8);
             return true;
         }
 

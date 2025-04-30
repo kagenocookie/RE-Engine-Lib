@@ -79,7 +79,7 @@ public class RszSerializerGenerator : IIncrementalGenerator
 
         var parents = context.ClassDecl.Ancestors().OfType<ClassDeclarationSyntax>().Reverse();
         foreach (var parent in parents) {
-            sb.Append(string.Join(" ", parent.Modifiers.Select(m => m.Text))).Append(" class ").Append(parent.Identifier.Text);
+            sb.Append(string.Join(" ", parent.Modifiers.Select(m => m.Text))).Append(" class ").AppendLine(parent.Identifier.Text).AppendLine("{");
         }
 
         var classIndent = new string('\t', parents.Count());
@@ -183,9 +183,9 @@ public class RszSerializerGenerator : IIncrementalGenerator
 
         var field = EvaluateExpressionIdentifier(ctx, expr);
         if (field == null) {
-            // ctx.source.ReportDiagnostic(Diagnostic.Create(Diagnostic_UnsupportedExpression, expr.GetLocation()));
+            ctx.source.ReportDiagnostic(Diagnostic.Create(Diagnostics.UnsupportedExpression, expr.GetLocation()));
         } else if (!fields.Any(f => f.GetFieldName() == field)) {
-            // ctx.source.ReportDiagnostic(Diagnostic.Create(Diagnostic_InvalidFieldIdentifier, expr.GetLocation()));
+            ctx.source.ReportDiagnostic(Diagnostic.Create(Diagnostics.InvalidFieldIdentifier, expr.GetLocation()));
         } else {
             return field;
         }
@@ -207,7 +207,7 @@ public class RszSerializerGenerator : IIncrementalGenerator
             var optional = conditionAttr.GetOptionalArguments();
 
             var condition = string.Join(" ", positional.Select(p => EvaluateExpressionString(ctx, p.Expression)));
-            var endAt = EvaluateExpressionIdentifier(ctx, optional.FirstOrDefault()?.Expression);
+            var endAt = EvaluateExpressionFieldIdentifier(ctx, optional.FirstOrDefault()?.Expression);
             if (!string.IsNullOrEmpty(condition)) {
                 ctx.OpenConditions.Add(new ConditionContext(condition) { endAt = endAt ?? name });
                 ctx.Indent().AppendLine($"if ({condition}) {{ // end at: {endAt ?? name}");

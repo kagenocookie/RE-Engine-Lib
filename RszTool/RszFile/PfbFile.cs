@@ -181,6 +181,7 @@ namespace RszTool
                 GameName.re2 => ".16",
                 GameName.re2rt => ".17",
                 GameName.re3 => ".17",
+                GameName.re3rt => ".17",
                 GameName.re4 => ".17",
                 GameName.re8 => ".17",
                 GameName.re7 => ".16",

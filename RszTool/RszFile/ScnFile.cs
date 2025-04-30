@@ -46,7 +46,9 @@ namespace RszTool.Scn
             handler.Read(ref folderInfoOffset);
             handler.Read(ref resourceInfoOffset);
             handler.Read(ref prefabInfoOffset);
-            handler.Read(ref userdataInfoOffset);
+            if (Version > GameVersion.re7) {
+                handler.Read(ref userdataInfoOffset);
+            }
             handler.Read(ref dataOffset);
             return true;
         }
@@ -70,7 +72,9 @@ namespace RszTool.Scn
             handler.Write(ref folderInfoOffset);
             handler.Write(ref resourceInfoOffset);
             handler.Write(ref prefabInfoOffset);
-            handler.Write(ref userdataInfoOffset);
+            if (Version > GameVersion.re7) {
+                handler.Write(ref userdataInfoOffset);
+            }
             handler.Write(ref dataOffset);
             return true;
         }
@@ -329,6 +333,7 @@ namespace RszTool
                 GameName.re2 => ".19",
                 GameName.re2rt => ".20",
                 GameName.re3 => ".20",
+                GameName.re3rt => ".20",
                 GameName.re4 => ".20",
                 GameName.re8 => ".20",
                 GameName.re7 => ".18",
@@ -368,7 +373,12 @@ namespace RszTool
             FolderInfoList.Read(handler, header.folderCount);
 
             handler.Seek(header.resourceInfoOffset);
-            ResourceInfoList.Read(handler, header.resourceCount);
+            for (int i = 0; i < header.resourceCount; i++)
+            {
+                ResourceInfo item = new(Option.Version, true);
+                if (!item.Read(handler)) return false;
+                ResourceInfoList.Add(item);
+            }
 
             handler.Seek(header.prefabInfoOffset);
             PrefabInfoList.Read(handler, header.prefabCount);
@@ -928,7 +938,7 @@ namespace RszTool
 
             // 这里有拷贝instance
             pfbFile.PfbFromScnGameObject(gameObject);
-            pfbFile.RSZ!.Header.Data.version = RSZ!.Header.Data.version;
+            pfbFile.RSZ!.Header.version = RSZ!.Header.version;
             return true;
         }
 

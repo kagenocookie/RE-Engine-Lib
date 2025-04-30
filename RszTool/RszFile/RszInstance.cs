@@ -320,6 +320,7 @@ namespace RszTool
             [RszFieldType.Sfix2] = typeof(via.Sfix2),
             [RszFieldType.Sfix3] = typeof(via.Sfix3),
             [RszFieldType.Sfix4] = typeof(via.Sfix4),
+            [RszFieldType.Enum] = typeof(uint),
         };
 
         public static Type RszFieldTypeToCSharpType(RszFieldType fieldType)

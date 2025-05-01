@@ -5,15 +5,20 @@ namespace RszTool
 {
     public class CfilFile : BaseFile
     {
-        public int guidCount;
-        public Guid LayerGuid;
-        public int ukn3;
-        public int ukn4;
-        public int ukn5;
-        public int ukn6;
-        public long guidListOffset;
+        public int maskCount;
         public long uknOffset;
-        public Guid[]? Masks;
+
+        /// <summary>
+        /// cfil.7+
+        /// </summary>
+        public Guid LayerGuid;
+        public Guid[]? MaskGuids;
+
+        /// <summary>
+        /// cfil.3
+        /// </summary>
+        public int layerIndex;
+        public int[]? MaskIDs;
 
         private const int Magic = 0x4c494643;
 
@@ -29,20 +34,26 @@ namespace RszTool
             {
                 throw new Exception("Invalid CFIL file");
             }
-            handler.Read(ref guidCount);
+            var version = handler.FileVersion;
+            if (version == 3)
+            {
+                layerIndex = handler.Read<byte>();
+                maskCount = handler.Read<byte>();
+                handler.Skip(2);
+                MaskIDs = handler.ReadArray<byte>(maskCount).Select(n => (int)n).ToArray();
+                return true;
+            }
+            handler.Read(ref maskCount);
             handler.Skip(8);
             handler.Read(ref LayerGuid);
-            handler.Read(ref ukn3);
-            handler.Read(ref ukn4);
-            handler.Read(ref ukn5);
-            handler.Read(ref ukn6);
-            handler.Read(ref guidListOffset);
+            handler.Skip(16); // always 0
+            var guidListOffset = handler.Read<long>();
             handler.Read(ref uknOffset);
-            if (Masks == null || Masks.Length != guidCount)
+            if (MaskGuids == null || MaskGuids.Length != maskCount)
             {
-                Masks = new Guid[guidCount];
+                MaskGuids = new Guid[maskCount];
             }
-            handler.ReadArray(Masks);
+            handler.ReadArray(MaskGuids);
             return true;
         }
 
@@ -50,19 +61,36 @@ namespace RszTool
         {
             var handler = FileHandler;
             handler.Write(Magic);
-            guidCount = Masks?.Length ?? 0;
-            handler.Write(ref guidCount);
+            var version = handler.FileVersion;
+            if (version == 3)
+            {
+                maskCount = MaskIDs?.Length ?? 0;
+                handler.Write((byte)layerIndex);
+                handler.Write((byte)maskCount);
+                handler.Skip(2);
+                if (maskCount == 0) {
+                    handler.Write<int>(-1);
+                } else {
+                    foreach (var mask in MaskIDs!) handler.Write((byte)mask);
+                    handler.Align(4);
+                }
+                // there's another 16 bytes after but they're all 0
+                // either an empty guid or mask IDs is a fixed 20 size array
+                handler.Write(0L);
+                handler.Write(0L);
+                return true;
+            }
+
+            maskCount = MaskGuids?.Length ?? 0;
+            handler.Write(ref maskCount);
             handler.Skip(8);
             handler.Write(ref LayerGuid);
-            handler.Write(ref ukn3);
-            handler.Write(ref ukn4);
-            handler.Write(ref ukn5);
-            handler.Write(ref ukn6);
+            handler.Skip(16); // always 0
             // since there's only one cfil header structure and everything else seems to just be 0, guids always start at 64
-            guidListOffset = 64L;
+            var guidListOffset = 64L;
             handler.Write(ref guidListOffset);
-            handler.Write(guidListOffset + guidCount * sizeof(long) * 2);
-            handler.WriteArray(Masks ?? Array.Empty<Guid>());
+            handler.Write(guidListOffset + maskCount * sizeof(long) * 2);
+            handler.WriteArray(MaskGuids ?? Array.Empty<Guid>());
             return true;
         }
     }

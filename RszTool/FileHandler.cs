@@ -957,7 +957,8 @@ namespace RszTool
         public long FindBytes(byte[] pattern, in SearchParam param = default)
         {
             const int PAGE_SIZE = 8192;
-            byte[] buffer = new byte[PAGE_SIZE];
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(PAGE_SIZE);
+
             long addr = param.start;
             int sizeAligned = pattern.Length; // 数据大小对齐4字节
 
@@ -983,12 +984,14 @@ namespace RszTool
                     int result = searcher.Search(buffer, 0, readCount, param.ordinal);
                     if (result != -1)
                     {
+                        ArrayPool<byte>.Shared.Return(buffer);
                         return addr + result;
                     }
                 }
                 addr += PAGE_SIZE - sizeAligned;
             }
 
+            ArrayPool<byte>.Shared.Return(buffer);
             return -1;
         }
 

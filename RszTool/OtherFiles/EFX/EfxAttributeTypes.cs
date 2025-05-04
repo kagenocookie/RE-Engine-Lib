@@ -273,8 +273,14 @@ public enum EfxAttributeType
     unknSBStruct156_MeshEmitter,
     unknSBStruct189_PtAngularVelocity3D,
     unknRERTStruct168,
-    unknRERTStruct219,
+    unknRERTStruct215,
+    unknRERTStruct219, // similar to TypeGpuPolygon
+    unknRERTStruct220Expression, // expression for unknRERTStruct219
     unknRERTStruct181,
+    unknRERTStruct136,
+
+    unknRERTStruct151_PtColor,
+    unknRERTStruct152_PtColorClip,
 }
 
 public static partial class EfxAttributeTypeRemapper
@@ -1292,7 +1298,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.DMC5] = 64,
             [EfxVersion.RE7] = 55,
             [EfxVersion.RE8] = 119,
-            [EfxVersion.RERT] = 122,
+            [EfxVersion.RERT] = 121, // probably, unused
             [EfxVersion.RE4] = 133, // probably, unused
         },
         [EfxAttributeType.PlayEfx] = new() {
@@ -1301,7 +1307,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.DMC5] = 65,
             [EfxVersion.RE7] = 56,
             [EfxVersion.RE8] = 120,
-            [EfxVersion.RERT] = 123,
+            [EfxVersion.RERT] = 122,
             [EfxVersion.RE4] = 134, // guess
         },
         [EfxAttributeType.FadeByAngle] = new() {
@@ -1310,7 +1316,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.DMC5] = 66,
             [EfxVersion.RE7] = 57,
             [EfxVersion.RE8] = 121,
-            [EfxVersion.RERT] = 124,
+            [EfxVersion.RERT] = 123,
             [EfxVersion.RE4] = 135,
         },
         [EfxAttributeType.FadeByAngleExpression] = new() {
@@ -1319,7 +1325,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.DMC5] = 67,
             [EfxVersion.RE7] = 58,
             [EfxVersion.RE8] = 122,
-            [EfxVersion.RERT] = 125,
+            [EfxVersion.RERT] = 124,
             [EfxVersion.RE4] = 136,
         },
         [EfxAttributeType.FadeByEmitterAngle] = new() {
@@ -1327,7 +1333,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.RE2] = 68,
             [EfxVersion.DMC5] = 68,
             [EfxVersion.RE8] = 123,
-            [EfxVersion.RERT] = 126,
+            [EfxVersion.RERT] = 125,
             [EfxVersion.RE4] = 137, // probably
         },
         [EfxAttributeType.FadeByDepth] = new() {
@@ -1336,7 +1342,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.DMC5] = 69,
             [EfxVersion.RE7] = 59,
             [EfxVersion.RE8] = 124,
-            [EfxVersion.RERT] = 127,
+            [EfxVersion.RERT] = 126,
             [EfxVersion.RE4] = 138,
         },
         [EfxAttributeType.FadeByDepthExpression] = new() {
@@ -1345,7 +1351,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.DMC5] = 70,
             [EfxVersion.RE7] = 60,
             [EfxVersion.RE8] = 125,
-            [EfxVersion.RERT] = 128,
+            [EfxVersion.RERT] = 127,
             [EfxVersion.RE4] = 139,
         },
         [EfxAttributeType.FadeByOcclusion] = new() {
@@ -1354,7 +1360,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.DMC5] = 71,
             [EfxVersion.RE7] = 61,
             [EfxVersion.RE8] = 126,
-            [EfxVersion.RERT] = 129,
+            [EfxVersion.RERT] = 128,
             [EfxVersion.RE4] = 140,
         },
         [EfxAttributeType.FadeByOcclusionExpression] = new() {
@@ -1363,7 +1369,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.DMC5] = 72,
             [EfxVersion.RE7] = 62,
             [EfxVersion.RE8] = 127,
-            [EfxVersion.RERT] = 130,
+            [EfxVersion.RERT] = 129,
             [EfxVersion.RE4] = 141,
         },
         [EfxAttributeType.FakeDoF] = new() {
@@ -1372,7 +1378,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.DMC5] = 73,
             [EfxVersion.RE7] = 63,
             [EfxVersion.RE8] = 128,
-            [EfxVersion.RERT] = 131, // guess
+            [EfxVersion.RERT] = 130, // guess
             [EfxVersion.RE4] = 142,
         },
         [EfxAttributeType.LuminanceBleed] = new() {
@@ -1381,7 +1387,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.DMC5] = 74,
             [EfxVersion.RE7] = 64,
             [EfxVersion.RE8] = 129,
-            [EfxVersion.RERT] = 132, // guess
+            [EfxVersion.RERT] = 131,
             [EfxVersion.RE4] = 143,
         },
 
@@ -1416,6 +1422,9 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.RERT] = 135, // possibly wrong
             [EfxVersion.RE4] = UNKNOWN,
         },
+        [EfxAttributeType.unknRERTStruct136] = new() {
+            [EfxVersion.RERT] = 136,
+        },
         [EfxAttributeType.FluidEmitter2D] = new() {
             [EfxVersion.RE3] = 99,
             [EfxVersion.RE2] = 78,
@@ -1438,6 +1447,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.DMC5] = 79,
             [EfxVersion.RE7] = 69,
             [EfxVersion.RE8] = 137,
+            [EfxVersion.RERT] = 139,
             [EfxVersion.RE4] = UNKNOWN,
         },
         [EfxAttributeType.unknRE4Struct144] = new() {
@@ -1461,7 +1471,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.DMC5] = 81,
             [EfxVersion.RE7] = 71,
             [EfxVersion.RE8] = 139,
-            [EfxVersion.RERT] = 142,
+            [EfxVersion.RERT] = 141,
             [EfxVersion.RE4] = 152,
         },
         [EfxAttributeType.PtTransform3DClip] = new() {
@@ -1470,7 +1480,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.DMC5] = 82,
             [EfxVersion.RE7] = 72,
             [EfxVersion.RE8] = 140,
-            [EfxVersion.RERT] = 143,
+            [EfxVersion.RERT] = 142,
             [EfxVersion.RE4] = 153,
         },
 
@@ -1492,6 +1502,7 @@ public static partial class EfxAttributeTypeRemapper
         },
         [EfxAttributeType.unknRE4Struct155] = new() {
             [EfxVersion.RE4] = 155,
+            // [EfxVersion.RERT] = 145,
         },
 
         [EfxAttributeType.PtVelocity3D] = new() {
@@ -1500,7 +1511,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.DMC5] = 85,
             [EfxVersion.RE7] = 75,
             [EfxVersion.RE8] = 143,
-            [EfxVersion.RERT] = 146,
+            [EfxVersion.RERT] = 145, // should be correct
             [EfxVersion.RE4] = 157,
         },
         [EfxAttributeType.PtVelocity3DClip] = new() {
@@ -1509,7 +1520,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.DMC5] = 86,
             [EfxVersion.RE7] = 76,
             [EfxVersion.RE8] = 144,
-            [EfxVersion.RERT] = 147,
+            [EfxVersion.RERT] = 146,
             [EfxVersion.RE4] = 158, // unused
         },
         [EfxAttributeType.PtVelocity2D] = new() {
@@ -1518,7 +1529,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.DMC5] = 87,
             [EfxVersion.RE7] = 77,
             [EfxVersion.RE8] = 145,
-            [EfxVersion.RERT] = 148, // guess
+            [EfxVersion.RERT] = 147, // guess
             [EfxVersion.RE4] = 159, // probably
         },
         [EfxAttributeType.PtVelocity2DClip] = new() {
@@ -1545,8 +1556,13 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.DMC5] = 90,
             [EfxVersion.RE7] = 80,
             [EfxVersion.RE8] = 148,
-            [EfxVersion.RERT] = 151, // guess
             [EfxVersion.RE4] = 162,
+        },
+        [EfxAttributeType.unknRERTStruct151_PtColor] = new() {
+            [EfxVersion.RERT] = 151, // same as 153
+        },
+        [EfxAttributeType.unknRERTStruct152_PtColorClip] = new() {
+            [EfxVersion.RERT] = 152, // same as 154
         },
         [EfxAttributeType.PtColor] = new() {
             [EfxVersion.RE3] = 112,
@@ -1554,7 +1570,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.DMC5] = 91,
             [EfxVersion.RE7] = 81,
             [EfxVersion.RE8] = 149,
-            [EfxVersion.RERT] = 152,
+            [EfxVersion.RERT] = 153, // same as 151
             [EfxVersion.RE4] = 164,
         },
         [EfxAttributeType.PtColorClip] = new() {
@@ -1563,7 +1579,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.DMC5] = 92,
             [EfxVersion.RE7] = 82,
             [EfxVersion.RE8] = 150,
-            [EfxVersion.RERT] = 153,
+            [EfxVersion.RERT] = 154, // same as 152
             [EfxVersion.RE4] = 165,
         },
         [EfxAttributeType.PtUvSequence] = new() {
@@ -1572,7 +1588,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.DMC5] = 93,
             [EfxVersion.RE7] = 83,
             [EfxVersion.RE8] = 151,
-            [EfxVersion.RERT] = 154,
+            [EfxVersion.RERT] = UNKNOWN,
             [EfxVersion.RE4] = 168,
         },
         [EfxAttributeType.PtUvSequenceClip] = new() {
@@ -1581,7 +1597,6 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.DMC5] = 94,
             [EfxVersion.RE7] = 84,
             [EfxVersion.RE8] = 152,
-            [EfxVersion.RERT] = 155,
             [EfxVersion.RE4] = 169,
         },
         [EfxAttributeType.MeshEmitter] = new() {
@@ -1590,7 +1605,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.DMC5] = 95,
             [EfxVersion.RE8] = 153,
             [EfxVersion.MHRiseSB] = 156,
-            [EfxVersion.RERT] = 156,
+            [EfxVersion.RERT] = 155,
             [EfxVersion.RE4] = 170, // probably
         },
         [EfxAttributeType.MeshEmitterClip] = new() {
@@ -1598,7 +1613,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.RE2] = 96,
             [EfxVersion.DMC5] = 96,
             [EfxVersion.RE8] = 154,
-            [EfxVersion.RERT] = 157,
+            [EfxVersion.RERT] = 156, // probably
             [EfxVersion.RE4] = 171, // unused
         },
         [EfxAttributeType.MeshEmitterExpression] = new() {
@@ -1606,7 +1621,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.RE2] = 97,
             [EfxVersion.DMC5] = 97,
             [EfxVersion.RE8] = 155,
-            [EfxVersion.RERT] = 158,
+            [EfxVersion.RERT] = 157, // probably
             [EfxVersion.RE4] = 172, // unused
         },
         [EfxAttributeType.ScreenSpaceEmitter] = new() {
@@ -1733,19 +1748,19 @@ public static partial class EfxAttributeTypeRemapper
         [EfxAttributeType.Attractor] = new() {
             [EfxVersion.RE3] = 130,
             [EfxVersion.RE8] = 174,
-            [EfxVersion.RERT] = 177,
+            [EfxVersion.RERT] = 176,
             [EfxVersion.RE4] = 192,
         },
         [EfxAttributeType.AttractorClip] = new() {
             [EfxVersion.RE3] = 131,
             [EfxVersion.RE8] = 175,
-            [EfxVersion.RERT] = 178,
+            [EfxVersion.RERT] = 177, // probably
             [EfxVersion.RE4] = 193, // unused
         },
         [EfxAttributeType.AttractorExpression] = new() {
             [EfxVersion.RE3] = 132,
             [EfxVersion.RE8] = 176,
-            [EfxVersion.RERT] = 179,
+            [EfxVersion.RERT] = 178, // probably
             [EfxVersion.RE4] = 194, // unused
         },
         [EfxAttributeType.unknRE4Struct195] = new() {
@@ -1758,6 +1773,9 @@ public static partial class EfxAttributeTypeRemapper
         },
         [EfxAttributeType.unknRERTStruct219] = new() {
             [EfxVersion.RERT] = 219,
+        },
+        [EfxAttributeType.unknRERTStruct220Expression] = new() {
+            [EfxVersion.RERT] = 220,
         },
 
         [EfxAttributeType.CustomComputeShader] = new() {
@@ -1860,6 +1878,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.RE2] = 109,
             [EfxVersion.DMC5] = 109,
             [EfxVersion.RE8] = 193,
+            [EfxVersion.RERT] = 182,
             [EfxVersion.RE4] = 201,
         },
         [EfxAttributeType.VectorField] = new() {
@@ -1883,7 +1902,7 @@ public static partial class EfxAttributeTypeRemapper
         [EfxAttributeType.AngularVelocity3DDelayFrame] = new() {
             [EfxVersion.RE3] = 146,
             [EfxVersion.RE8] = 197,
-            [EfxVersion.RERT] = 187,
+            [EfxVersion.RERT] = 186, // guess
             [EfxVersion.RE4] = 205,
         },
         [EfxAttributeType.AngularVelocity3D] = new() {
@@ -1891,7 +1910,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.RE2] = 112,
             [EfxVersion.DMC5] = 112,
             [EfxVersion.RE8] = 198,
-            [EfxVersion.RERT] = 188,
+            [EfxVersion.RERT] = 187,
             [EfxVersion.RE4] = 206,
         },
 
@@ -1942,7 +1961,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.RE2] = 114,
             [EfxVersion.DMC5] = 118,
             [EfxVersion.RE8] = 205,
-            [EfxVersion.RERT] = 196,
+            [EfxVersion.RERT] = 194,
             [EfxVersion.RE4] = UNKNOWN,
         },
         [EfxAttributeType.unknRE4Struct210] = new() {

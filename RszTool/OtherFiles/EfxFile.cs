@@ -1,7 +1,4 @@
 using RszTool.Common;
-using System.Collections.ObjectModel;
-using System.Text;
-using System.Text.Unicode;
 
 namespace RszTool.Efx
 {
@@ -352,7 +349,6 @@ namespace RszTool.Efx
 namespace RszTool
 {
     using RszTool.Efx;
-    using RszTool.Efx.Structs;
 
     public partial class EfxFile : BaseFile
     {
@@ -401,6 +397,21 @@ namespace RszTool
             VERSION_DD2 => EfxVersion.DD2,
             VERSION_WILDS => EfxVersion.MHWilds,
             _ => EfxVersion.Unknown,
+        };
+        public static int GetFileVersion(EfxVersion version) => version switch {
+            EfxVersion.RE7 => VERSION_RE7,
+            EfxVersion.RE2 => VERSION_RE2,
+            EfxVersion.DMC5 => VERSION_DMC5,
+            EfxVersion.RE3 => VERSION_RE3,
+            EfxVersion.MHRise => VERSION_MHR,
+            EfxVersion.RE8 => VERSION_RE8,
+            EfxVersion.RERT => VERSION_RERT,
+            EfxVersion.MHRiseSB => VERSION_MHRSB,
+            EfxVersion.SF6 => VERSION_SF6,
+            EfxVersion.RE4 => VERSION_RE4,
+            EfxVersion.DD2 => VERSION_DD2,
+            EfxVersion.MHWilds => VERSION_WILDS,
+            _ => -1,
         };
         public static EfxVersion[] AllVersions => (EfxVersion[])Enum.GetValues(typeof(EfxVersion));
 

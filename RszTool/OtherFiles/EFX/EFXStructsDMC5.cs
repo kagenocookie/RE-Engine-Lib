@@ -522,15 +522,21 @@ public partial class EFXAttributeMeshEmitterExpression : RszTool.Efx.EFXAttribut
     // [RszFixedSizeArray(nameof(part2Size))] public byte[]? part2;
 	[RszClassInstance] public EFXExpressionListWrapper expressions = new();
 }
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.ShaderSettingsExpression, EfxVersion.DMC5)]
+[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.ShaderSettingsExpression, EfxVersion.DMC5, EfxVersion.RERT)]
 public partial class EFXAttributeShaderSettingsExpression : RszTool.Efx.EFXAttribute
 {
     public EFXAttributeShaderSettingsExpression() : base(EfxAttributeType.ShaderSettingsExpression) { }
 
-    [RszFixedSizeArray(2)] uint[]? ukn1;
+    public uint ukn0;
+    public uint ukn1;
+    [RszConditional(nameof(Version), ">=", EfxVersion.RERT, EndAt = nameof(ukn7))]
+    public uint ukn2;
+    public uint ukn3;
+    public uint ukn4;
+    public uint ukn5;
+    public uint ukn6;
+    public uint ukn7;
 
-    // uint part2Size;// <name="Second Part's Size">;
-    // [RszFixedSizeArray(nameof(part2Size))] public byte[]? part2;
 	[RszClassInstance] public EFXExpressionListWrapper expressions = new();
 }
 [RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.MeshEmitterClip, EfxVersion.DMC5)]
@@ -591,22 +597,25 @@ public partial class EFXAttributePtTransform2D : RszTool.Efx.EFXAttribute
     [RszFixedSizeArray(5)] uint[]? ukn;
 
 }
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.FluidSimulator2D, EfxVersion.DMC5)]
+[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.FluidSimulator2D, EfxVersion.DMC5, EfxVersion.RERT)]
 public partial class EFXAttributeFluidSimulator2D : RszTool.Efx.EFXAttribute
 {
     public EFXAttributeFluidSimulator2D() : base(EfxAttributeType.FluidSimulator2D) { }
 
-    [RszFixedSizeArray(46)] uint[]? ukn1;
+    [RszFixedSizeArray(45)] uint[]? ukn1;
+    [RszConditional(nameof(Version), "==", EfxVersion.DMC5)]
+    uint ukn2;
     uint extraByteCount;
     uint path1Size;// <name="Texture Path 1 Size">;
     uint path2Size;// <name="Texture Path 2 Size">;
     uint path3Size;// <name="Texture Path 3 Size">;
     uint path4Size;// <name="Texture Path 4 Size">;
+    [RszConditional(nameof(Version), "==", EfxVersion.DMC5)]
     uint path5Size;// <name="Texture Path 5 Size">;
     [RszInlineWString(nameof(path1Size))] public string? uvsPath1;
     [RszInlineWString(nameof(path2Size))] public string? uvsPath2;
     [RszInlineWString(nameof(path3Size))] public string? uvsPath3;
     [RszInlineWString(nameof(path4Size))] public string? uvsPath4;
-    [RszInlineWString(nameof(path5Size))] public string? uvsPath5;
+    [RszConditional(nameof(Version), "==", EfxVersion.DMC5), RszInlineWString(nameof(path5Size))] public string? uvsPath5;
     [RszFixedSizeArray(nameof(extraByteCount))] public byte[]? extraBytes;
 }

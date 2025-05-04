@@ -219,5 +219,9 @@ namespace RszTool
             GameVersions = gameVersions;
         }
     }
-}
 
+    public class FieldListInput
+    {
+        public int FileVersion { get; set; }
+    }
+}

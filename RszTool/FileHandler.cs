@@ -538,12 +538,12 @@ namespace RszTool
             return text;
         }
 
-        private static string AsciiGetString(Span<byte> buffer)
+        private static string DecodeString(Span<byte> buffer, Encoding encoding)
         {
 #if !NET5_0_OR_GREATER
-            return Encoding.ASCII.GetString(buffer.ToArray());
+            return encoding.GetString(buffer.ToArray());
 #else
-            return Encoding.ASCII.GetString(buffer);
+            return encoding.GetString(buffer);
 #endif
         }
 
@@ -564,7 +564,7 @@ namespace RszTool
                 int n = buffer.IndexOf((byte)0);
                 if (n != -1)
                 {
-                    result = n == 0 ? "" : AsciiGetString(buffer.Slice(0, n));
+                    result = n == 0 ? "" : DecodeString(buffer.Slice(0, n), Encoding.ASCII);
                 }
             }
             else
@@ -574,14 +574,14 @@ namespace RszTool
             if (result == null)
             {
                 StringBuilder sb = new();
-                sb.Append(AsciiGetString(buffer));
+                sb.Append(DecodeString(buffer, Encoding.ASCII));
                 do
                 {
                     readCount = Stream.Read(buffer);
                     if (readCount != 0)
                     {
                         int n = buffer.IndexOf((byte)0);
-                        sb.Append(AsciiGetString(n != -1 ? buffer.Slice(0, n): buffer));
+                        sb.Append(DecodeString(n != -1 ? buffer.Slice(0, n) : buffer, Encoding.ASCII));
                         if (n != -1) break;
                     }
                 } while (readCount == buffer.Length);
@@ -668,6 +668,41 @@ namespace RszTool
         public bool WriteWString(string text)
         {
             return WriteSpan(text.AsSpan()) && Write<ushort>(0);
+        }
+
+        public string ReadUTF8String(long pos = -1, bool jumpBack = true, int maxByteSize = 128)
+        {
+            long originPos = Tell();
+            if (pos != -1) Seek(pos);
+            string? result = null;
+            if (maxByteSize > 1024)
+            {
+                throw new ArgumentException($"{maxByteSize} too large", nameof(maxByteSize));
+            }
+            Span<byte> buffer = maxByteSize <= 128 ? stackalloc byte[maxByteSize] : new byte[maxByteSize];
+            int readCount = Stream.Read(buffer);
+            int byteSize = 0;
+            if (readCount != 0)
+            {
+                byteSize = buffer.IndexOf((byte)0);
+                if (byteSize == -1)
+                {
+                    // making multiple fixed size buffer reads like the other string methods may break up in the middle of a UTF8 character, throw exception instead to be safe for now
+                    throw new Exception("Could not determine UTF8 string length");
+                }
+                result = byteSize == 0 ? "" : DecodeString(buffer.Slice(0, byteSize), Encoding.UTF8);
+            }
+            else
+            {
+                result = "";
+            }
+            Seek(jumpBack ? originPos : originPos + byteSize + 1);
+            return result;
+        }
+
+        public bool WriteUTF8String(string text)
+        {
+            return WriteBytes(Encoding.UTF8.GetBytes(text)) && Write<byte>(0);
         }
 
         public T Read<T>() where T : unmanaged

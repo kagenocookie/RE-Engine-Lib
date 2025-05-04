@@ -67,6 +67,11 @@ namespace RszTool.Common
             return MurMur3Hash(Encoding.ASCII.GetBytes(text));
         }
 
+        public static uint GetUTF8Hash(string text)
+        {
+            return MurMur3Hash(Encoding.UTF8.GetBytes(text));
+        }
+
         /// <summary>
         /// 低32位是Ascii的hash，高32位是Unicode的hash
         /// </summary>

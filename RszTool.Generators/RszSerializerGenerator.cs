@@ -116,7 +116,7 @@ public class RszSerializerGenerator : IIncrementalGenerator
         foreach (var parent in parents) {
             sb.AppendLine("}");
         }
-        source.AddSource($"{context.ClassDecl.Identifier.Text}.rsz", sb.ToString());
+        source.AddSource($"{ns}_{context.ClassDecl.Identifier.Text}.rsz", sb.ToString());
     }
 
     private static void WriteReader(ClassBuildContext ctx)
@@ -156,6 +156,16 @@ public class RszSerializerGenerator : IIncrementalGenerator
         return expr.ToString();
     }
 
+    private static string? EvaluateAttributeExpressionList(ClassBuildContext ctx, IEnumerable<AttributeArgumentSyntax>? expr)
+    {
+        if (expr == null) return null;
+        return string.Join(" ", expr.Select(p => EvaluateExpressionString(ctx, p.Expression)));
+    }
+    private static string? EvaluateAttributeExpressionList(ClassBuildContext ctx, AttributeSyntax? expr)
+    {
+        if (expr?.ArgumentList == null) return null;
+        return EvaluateAttributeExpressionList(ctx, expr.ArgumentList.Arguments);
+    }
 
     private static string? EvaluateExpressionIdentifier(ClassBuildContext ctx, ExpressionSyntax? expr)
     {
@@ -206,7 +216,7 @@ public class RszSerializerGenerator : IIncrementalGenerator
             var positional = conditionAttr.GetPositionalArguments();
             var optional = conditionAttr.GetOptionalArguments();
 
-            var condition = string.Join(" ", positional.Select(p => EvaluateExpressionString(ctx, p.Expression)));
+            var condition = EvaluateAttributeExpressionList(ctx, positional) ?? string.Empty;
             var endAt = EvaluateExpressionFieldIdentifier(ctx, optional.FirstOrDefault()?.Expression);
             if (!string.IsNullOrEmpty(condition)) {
                 ctx.OpenConditions.Add(new ConditionContext(condition) { endAt = endAt ?? name });
@@ -224,10 +234,44 @@ public class RszSerializerGenerator : IIncrementalGenerator
             }
         }
 
-        if (field.TryGetAttribute("RszInlineWString", out var mainAttr) || field.TryGetAttribute("RszInlineString", out mainAttr)) {
+        AttributeSyntax mainAttr;
+        if (field.TryGetAttribute("RszList", out mainAttr)) {
+            var isClass = field.HasAttribute("RszClassInstance");
+            var isString = !isClass && field.HasAttribute("RszInlineString");
+            var isWString = !isClass && !isString && field.HasAttribute("RszInlineWString");
+            if (isWrite) {
+                if (isClass) {
+                    ctx.Indent().AppendLine($"{name}.Write(handler);");
+                } else if (isString || isWString) {
+                    var strMethod = isString ? "WriteAsciiString" : "WriteWString";
+                    ctx.Indent().AppendLine($"{name} ??= Array.Empty<string>();");
+                    ctx.Indent().AppendLine($"foreach (var str in {name}) handler.{strMethod}(str);");
+                } else {
+                    ctx.source.ReportDiagnostic(Diagnostic.Create(Diagnostics.UnhandledFailure, field.GetLocation(), "unsupported list type"));
+                }
+            } else {
+                var size = EvaluateAttributeExpressionList(ctx, mainAttr.GetPositionalArguments());
+                if (isClass) {
+                    if (string.IsNullOrEmpty(size)) size = "handler.Read<int>()";
+                    var constructor = EvaluateAttributeExpressionList(ctx, field.GetAttribute("RszConstructorParams"));
+                    if (string.IsNullOrEmpty(constructor)) {
+                        ctx.Indent().AppendLine($"{name}.Read(handler, (int)({size}));");
+                    } else {
+                        var fieldType = field.GetFieldType()?.GetArrayElementType();
+                        ctx.Indent().AppendLine($"for (int i = 0; i < {size}; ++i) {{ var item = new {fieldType}({constructor}); item.Read(handler); {name}.Add(item); }}");
+                    }
+                } else if (isString || isWString) {
+                    ctx.Indent().AppendLine($"{name} = new string[{size}];");
+                    var strMethod = isString ? "ReadAsciiString" : "ReadWString";
+                    ctx.Indent().AppendLine($"for (int i = 0; i < {size}; ++i) {name}[i] = handler.{strMethod}(-1, -1, false);");
+                } else {
+                    ctx.source.ReportDiagnostic(Diagnostic.Create(Diagnostics.UnhandledFailure, field.GetLocation(), "unsupported list type"));
+                }
+            }
+        } else if (field.TryGetAttribute("RszInlineWString", out mainAttr) || field.TryGetAttribute("RszInlineString", out mainAttr)) {
             var stringType = mainAttr.Name.ToString().Contains("WString") ? "WString" : "AsciiString";
 
-            var size = string.Join(" ", mainAttr.GetPositionalArguments().Select(p => EvaluateExpressionString(ctx, p?.Expression)));
+            var size = EvaluateAttributeExpressionList(ctx, mainAttr.GetPositionalArguments());
             if (!string.IsNullOrEmpty(size)) size = $"(int)({size})";
 
             if (isWrite) {
@@ -256,7 +300,7 @@ public class RszSerializerGenerator : IIncrementalGenerator
         } else if (field.TryGetAttribute("RszFixedSizeArray", out mainAttr)) {
             var fieldType = field.GetFieldType();
             var elementType = fieldType?.GetArrayElementType();
-            var size = string.Join(" ", mainAttr.GetPositionalArguments().Select(p => EvaluateExpressionString(ctx, p.Expression)));
+            var size = EvaluateAttributeExpressionList(ctx, mainAttr.GetPositionalArguments());
             if (isWrite) {
                 ctx.Indent().AppendLine($"if ({name} == null || {name}.Length != ({size}))");
                 ctx.AddIndent();
@@ -266,36 +310,35 @@ public class RszSerializerGenerator : IIncrementalGenerator
             } else {
                 ctx.Indent().AppendLine($"{name} = handler.ReadArray<{elementType}>((int)({size}));");
             }
-        } else if (field.TryGetAttribute("RszClassList", out mainAttr)) {
+        } else if (field.TryGetAttribute("RszSwitch", out mainAttr)) {
+            var args = mainAttr.GetPositionalArguments().ToList();
             if (isWrite) {
                 ctx.Indent().AppendLine($"{name}.Write(handler);");
             } else {
-                var size = string.Join(" ", mainAttr.GetPositionalArguments().Select(p => EvaluateExpressionString(ctx, p.Expression)));
-                if (string.IsNullOrEmpty(size)) size = "handler.Read<int>()";
-                ctx.Indent().AppendLine($"{name}.Read(handler, (int)({size}));");
-            }
-        } else if (field.TryGetAttribute("RszSwitch", out mainAttr)) {
-            var args = mainAttr.GetPositionalArguments().ToList();
-            var isValid = args.Count % 2 == 0;
-            if (!isValid || args.Count == 0) {
-                ctx.Indent().AppendLine("// ERROR: Missing switch cases");
-            } else if (isWrite) {
-                ctx.Indent().AppendLine($"{name}.Write(handler);");
-            } else {
-                for (var i = 0; i < args.Count; i += 2) {
-                    var condition = EvaluateExpressionString(ctx, args[i].Expression);
-                    if (condition == "null") condition = "true";
-                    var classname = EvaluateExpressionIdentifier(ctx, args[i + 1].Expression);
-                    if (i == 0) {
+                var constructor = EvaluateAttributeExpressionList(ctx, field.GetAttribute("RszConstructorParams"));
+                List<string> caseArgs = new();
+                var addedArgs = 0;
+                for (var i = 0; i < args.Count; i++) {
+                    if (args[i].Expression is not TypeOfExpressionSyntax typeofSyntax) {
+                        caseArgs.Add(EvaluateExpressionString(ctx, args[i].Expression)!);
+                        continue;
+                    }
+
+                    var classname = typeofSyntax.Type.GetElementTypeName();
+                    var condition = string.Join(" ", caseArgs);
+                    caseArgs.Clear();
+                    if (addedArgs++ == 0) {
                         ctx.Indent().AppendLine($"if ({condition}) {{");
+                    } else if (string.IsNullOrEmpty(condition)) {
+                        ctx.Indent().AppendLine("} else {");
                     } else {
                         ctx.Indent().AppendLine($"}} else if ({condition}) {{");
                     }
                     ctx.AddIndent();
-                    ctx.Indent().AppendLine($"{name} = new {classname}();");
+                    ctx.Indent().AppendLine($"{name} = new {classname}({constructor});");
                     ctx.ReduceIndent();
-                    if (i == args.Count - 2) {
-                        if (condition != "true") {
+                    if (i == args.Count - 1) {
+                        if (!string.IsNullOrEmpty(condition)) {
                             ctx.Indent().AppendLine("} else {");
                             ctx.AddIndent();
                             ctx.Indent().AppendLine("throw new NotImplementedException(\"Unhandled switch case\");");
@@ -310,7 +353,8 @@ public class RszSerializerGenerator : IIncrementalGenerator
             if (isWrite) {
                 ctx.Indent().AppendLine($"{name}?.Write(handler);");
             } else {
-                ctx.Indent().AppendLine($"{name} ??= new();");
+                var constructor = EvaluateAttributeExpressionList(ctx, field.GetAttribute("RszConstructorParams"));
+                ctx.Indent().AppendLine($"{name} ??= new({constructor});");
                 ctx.Indent().AppendLine($"{name}.Read(handler);");
             }
         } else {
@@ -324,7 +368,7 @@ public class RszSerializerGenerator : IIncrementalGenerator
             if (padding != null) {
                 var conditions = positional.Skip(1);
                 if (conditions.Any()) {
-                    var paddingCondition = string.Join(" ", conditions.Select(p => EvaluateExpressionString(ctx, p.Expression)));
+                    var paddingCondition = EvaluateAttributeExpressionList(ctx, conditions);
                     ctx.Indent().AppendLine($"if ({paddingCondition}) handler.Skip({padding});");
                 } else {
                     ctx.Indent().AppendLine($"handler.Skip({padding});");

@@ -1,4 +1,5 @@
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 public static class SyntaxHelpers
@@ -69,7 +70,7 @@ public static class SyntaxHelpers
         return field.DescendantNodes().OfType<VariableDeclarationSyntax>().FirstOrDefault()?.Type;
     }
 
-    public static string? GetArrayElementType(this TypeSyntax type)
+    public static string? GetArrayElementType(this TypeSyntax type, bool ignoreNamespace = false)
     {
         if (type is GenericNameSyntax generic) {
             type = generic.TypeArgumentList.Arguments.First();
@@ -83,6 +84,10 @@ public static class SyntaxHelpers
             type = array.ElementType;
         }
 
+        if (ignoreNamespace && type is QualifiedNameSyntax colon) {
+            type = colon.Right;
+        }
+
         return type.ToString();
     }
     public static string? GetElementTypeName(this TypeSyntax type)
@@ -92,5 +97,14 @@ public static class SyntaxHelpers
         }
 
         return type.ToString();
+    }
+    public static T? FindParentNode<T>(this SyntaxNode? node) where T : SyntaxNode
+    {
+        while (node?.Parent != null) {
+            if (node.Parent is T target) return target;
+            node = node.Parent;
+        }
+
+        return null;
     }
 }

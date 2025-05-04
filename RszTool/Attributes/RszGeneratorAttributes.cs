@@ -1,4 +1,5 @@
 using System.Text.Json;
+using RszTool.Efx;
 
 namespace RszTool
 {
@@ -159,13 +160,28 @@ namespace RszTool
     /// Marks a List<IModel> field. If size parameters are not given, a length prefixed integer is expected.
     /// </summary>
     [System.AttributeUsage(System.AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
-    internal sealed class RszClassListAttribute : System.Attribute
+    internal sealed class RszListAttribute : System.Attribute
     {
         public object[] SizeFunc { get; }
 
-        public RszClassListAttribute(params object[] sizeFunc)
+        public RszListAttribute(params object[] sizeFunc)
         {
             SizeFunc = sizeFunc;
+        }
+    }
+
+
+    /// <summary>
+    /// Mark the type as needing to be instantiated with specific constructor parameters.
+    /// </summary>
+    [System.AttributeUsage(System.AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
+    internal sealed class RszConstructorParamsAttribute : System.Attribute
+    {
+        public object[] Parameters { get; }
+
+        public RszConstructorParamsAttribute(params object[] parameters)
+        {
+            Parameters = parameters;
         }
     }
 
@@ -183,12 +199,24 @@ namespace RszTool
     [System.AttributeUsage(System.AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
     internal sealed class RszSwitchAttribute : System.Attribute
     {
-        public string[] Args { get; }
+        public object[] Args { get; }
 
-        public RszSwitchAttribute(params string[] args)
+        public RszSwitchAttribute(params object[] args)
         {
-            foreach (var arg in args) if (!arg.Contains(':')) throw new Exception("Invalid switch arg parameter - must be in format '<condition>:<classname>'");
             Args = args;
+        }
+    }
+
+    [System.AttributeUsage(System.AttributeTargets.Class, Inherited = false, AllowMultiple = true)]
+    internal sealed class EfxStructAttribute : System.Attribute
+    {
+        public EfxAttributeType AttributeType { get; }
+        public EfxVersion[] GameVersions { get; }
+
+        public EfxStructAttribute(EfxAttributeType attributeType, params EfxVersion[] gameVersions)
+        {
+            AttributeType = attributeType;
+            GameVersions = gameVersions;
         }
     }
 }

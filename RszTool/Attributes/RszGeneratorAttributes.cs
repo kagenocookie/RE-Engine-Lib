@@ -128,7 +128,7 @@ namespace RszTool
     /// <summary>
     /// Conditionally deserialize the marked field. EndAt can be used to share the condition for multiple sequential fields.
     /// </summary>
-    [System.AttributeUsage(System.AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
+    [System.AttributeUsage(System.AttributeTargets.Field, Inherited = false, AllowMultiple = true)]
     internal sealed class RszConditionalAttribute : System.Attribute
     {
         public object[] Condition { get; }
@@ -219,6 +219,38 @@ namespace RszTool
             GameVersions = gameVersions;
         }
     }
+
+    /// <summary>
+    /// Mark the class type as having versioning support based on the specified version type
+    /// </summary>
+    [System.AttributeUsage(System.AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
+    internal sealed class RszVersionedObjectAttribute : System.Attribute
+    {
+        public Type VersionValueType { get; }
+        public string VersionFieldName { get; }
+
+        public RszVersionedObjectAttribute(Type versionValueType, string versionFieldName = "Version")
+        {
+            VersionValueType = versionValueType;
+            VersionFieldName = versionFieldName;
+        }
+    }
+
+    /// <summary>
+    /// Conditionally deserialize the marked field based on a version condition. EndAt can be used to share the condition for multiple sequential fields.
+    /// </summary>
+    [System.AttributeUsage(System.AttributeTargets.Field, Inherited = false, AllowMultiple = true)]
+    internal sealed class RszVersionAttribute : System.Attribute
+    {
+        public object[] Condition { get; }
+        public string? EndAt { get; init; }
+
+        public RszVersionAttribute(params object[] condition)
+        {
+            Condition = condition;
+        }
+    }
+
 
     public class FieldListInput
     {

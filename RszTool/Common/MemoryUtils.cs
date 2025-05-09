@@ -84,5 +84,17 @@ namespace RszTool.Common
             Marshal.StructureToPtr(value, ptr, false);
             return buffer;
         }
+
+#if !NET5_0_OR_GREATER
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe int SingleToInt32(float value) => *(int*)(&value);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe float Int32ToSingle(int value) => *(float*)(&value);
+#else
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe int SingleToInt32(float value) => BitConverter.SingleToInt32Bits(value);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float Int32ToSingle(int value) => BitConverter.Int32BitsToSingle(value);
+#endif
     }
 }

@@ -31,6 +31,7 @@ public class RszSerializerGenerator : IIncrementalGenerator
         public string indent = string.Empty;
         public RszFileHandlerContext context;
         public readonly SourceProductionContext source;
+        public string versionParam = "Version";
 
         public void AddIndent() => indent += "\t";
         public void ReduceIndent() => indent = indent.Length == 0 ? "" : indent.Substring(0, indent.Length - 1);
@@ -113,11 +114,18 @@ public class RszSerializerGenerator : IIncrementalGenerator
         sb.Append(methodBodyIndent).AppendLine("return true;");
         sb.Append(memberIndent).AppendLine("}");
 
-        sb.Append(memberIndent).AppendLine($"public IEnumerable<Type> GetFieldList(RszTool.FieldListInput handler)");
-        sb.Append(memberIndent).AppendLine("{");
-        WriteFieldList(buildCtx);
-        buildCtx.Indent().AppendLine("yield break;");
-        sb.Append(memberIndent).AppendLine("}");
+        if (context.ClassDecl.TryGetAttribute("RszVersionedObject", out var vvo)) {
+            var versionType = (vvo.ArgumentList?.Arguments.FirstOrDefault()?.Expression as TypeOfExpressionSyntax)?.Type.GetElementTypeName();
+            if (versionType != null) {
+                buildCtx.versionParam = EvaluateExpressionIdentifier(buildCtx, vvo.ArgumentList?.Arguments.Skip(1).FirstOrDefault()?.Expression)
+                    ?? "Version";
+                sb.Append(memberIndent).AppendLine($"public static IEnumerable<(string name, Type type)> GetFieldList({versionType} {buildCtx.versionParam})");
+                sb.Append(memberIndent).AppendLine("{");
+                WriteFieldList(buildCtx);
+                buildCtx.Indent().AppendLine("yield break;");
+                sb.Append(memberIndent).AppendLine("}");
+            }
+        }
 
         if (context.ClassDecl.HasAttribute("RszAutoReadWrite") || context.ClassDecl.HasAttribute("RszAutoRead")) {
             sb.Append(memberIndent).AppendLine("protected override bool DoRead(FileHandler handler) => DefaultRead(handler);");
@@ -234,13 +242,22 @@ public class RszSerializerGenerator : IIncrementalGenerator
         var name = field.GetFieldName();
         if (name == null) return;
 
-        var conditionAttr = field.GetAttribute("RszConditional");
-        if (conditionAttr != null) {
+        foreach (var conditionAttr in field.GetAttributesWhere(attr => attr.Name.ToString() == "RszConditional" || attr.Name.ToString() == "RszVersion")) {
             var args = conditionAttr.ArgumentList!.Arguments;
             var positional = conditionAttr.GetPositionalArguments();
             var optional = conditionAttr.GetOptionalArguments();
 
             var condition = EvaluateAttributeExpressionList(ctx, positional) ?? string.Empty;
+            if (conditionAttr.Name.ToString() == "RszVersion") {
+                var argCount = positional.Count();
+                if (argCount == 1) {
+                    condition = $"{ctx.versionParam} >= {condition}";
+                } else if (argCount == 2 && (condition.StartsWith("<") || condition.StartsWith(">") || condition.StartsWith("=") || condition.StartsWith("!="))) {
+                    condition = $"{ctx.versionParam} {condition}";
+                }
+            } else if (handle == HandleType.FieldList) {
+                continue;
+            }
 
             var endAt = EvaluateExpressionFieldIdentifier(ctx, optional.FirstOrDefault()?.Expression);
             if (!string.IsNullOrEmpty(condition)) {
@@ -300,7 +317,7 @@ public class RszSerializerGenerator : IIncrementalGenerator
                 } else if (!int.TryParse(size, out count)) {
                     count = 1;
                 }
-                ctx.Indent().AppendLine($"yield return typeof({field.GetFieldType()?.GetArrayElementType()});");
+                ctx.Indent().AppendLine($"yield return (nameof({name}), typeof({field.GetFieldType()?.GetArrayElementType()}));");
             }
         } else if (field.TryGetAttribute("RszInlineWString", out mainAttr) || field.TryGetAttribute("RszInlineString", out mainAttr)) {
             var stringType = mainAttr.Name.ToString().Contains("WString") ? "WString" : "AsciiString";
@@ -322,7 +339,10 @@ public class RszSerializerGenerator : IIncrementalGenerator
                     ctx.Indent().AppendLine($"{name} = handler.Read{stringType}(-1, {size}, false);");
                 }
             } else if (handle == HandleType.FieldList) {
-                ctx.Indent().AppendLine($"yield return typeof({field.GetFieldType()?.GetArrayElementType()});");
+                if (string.IsNullOrEmpty(size)) {
+                    ctx.Indent().AppendLine($"yield return (nameof({name}), typeof(uint));");
+                }
+                ctx.Indent().AppendLine($"yield return (nameof({name}), typeof({field.GetFieldType()?.GetArrayElementType()}));");
             }
         } else if (field.TryGetAttribute("RszOffsetWString", out mainAttr) || field.TryGetAttribute("RszOffsetString", out mainAttr)) {
             var stringType = mainAttr.Name.ToString().Contains("WString") ? "WString" : "AsciiString";
@@ -333,7 +353,7 @@ public class RszSerializerGenerator : IIncrementalGenerator
             } else if (handle == HandleType.Read) {
                 ctx.Indent().AppendLine($"{name} = handler.ReadOffset{stringType}();");
             } else if (handle == HandleType.FieldList) {
-                ctx.Indent().AppendLine($"yield return typeof({field.GetFieldType()?.GetArrayElementType()});");
+                ctx.Indent().AppendLine($"yield return (nameof({name}), typeof({field.GetFieldType()?.GetArrayElementType()}));");
             }
         } else if (field.TryGetAttribute("RszFixedSizeArray", out mainAttr)) {
             var fieldType = field.GetFieldType();
@@ -349,7 +369,7 @@ public class RszSerializerGenerator : IIncrementalGenerator
                 ctx.Indent().AppendLine($"{name} = handler.ReadArray<{elementType}>((int)({size}));");
             }
         } else if (handle == HandleType.FieldList) {
-            ctx.Indent().AppendLine($"yield return typeof({field.GetFieldType()?.GetElementTypeName()});");
+            ctx.Indent().AppendLine($"yield return (nameof({name}), typeof({field.GetFieldType()?.GetElementTypeName()}));");
         } else if (field.TryGetAttribute("RszSwitch", out mainAttr)) {
             var args = mainAttr.GetPositionalArguments().ToList();
             if (handle == HandleType.Write) {

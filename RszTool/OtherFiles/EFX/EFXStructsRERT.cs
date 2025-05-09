@@ -10,9 +10,9 @@ public partial class EFXAttributeunknRERTStruct168 : EFXAttribute
 	public EFXAttributeunknRERTStruct168() : base(EfxAttributeType.unknRERTStruct168) { }
 
     public uint ukn0;
-    public uint ukn1;
+    public float ukn1;
     public float ukn2;
-    public uint ukn3;
+    public float ukn3;
 }
 
 [RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.unknRERTStruct215, EfxVersion.RERT)]
@@ -46,13 +46,13 @@ public partial class EFXAttributeunknRERTStruct219 : EFXAttribute
     public uint ukn0;
     public uint ukn1;
     public uint ukn2;
-    public uint ukn3;
-    public uint ukn4;
+    public via.Color ukn3; // rert 3207412549, 3213004694, 3221225471, 3212865134, 3207476021, 3103784959, 3210191284, 3099517439
+    public via.Color ukn4; // rert 3207476021, 3103784959
     public float ukn5;
     public uint ukn6;
     public uint ukn7;
-    public uint ukn8;
-    public uint ukn9;
+    public float ukn8; // rert 1065749138, 1070141403, 3217625051, 1076333878, 1078530011
+    public float ukn9; // rert: 1078530011, 1086918619, 1043511491, 1057360530, 1051900099, 1060288707, 1061752795
     public float ukn10;
     public float ukn11;
     public float ukn12;
@@ -188,13 +188,16 @@ public partial class EFXAttributeunknRERTStruct220Expression : EFXAttribute
 	[RszClassInstance] public EFXExpressionListWrapper expressions = new();
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.TypeRibbonChainExpression, EfxVersion.RERT)]
+[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.TypeRibbonChainExpression, EfxVersion.RE2, EfxVersion.RERT)]
 public partial class EFXAttributeTypeRibbonChainExpression : EFXAttribute
 {
 	public EFXAttributeTypeRibbonChainExpression() : base(EfxAttributeType.TypeRibbonChainExpression) { }
 
 	public uint unkn1;
 	public uint unkn2;
-    [RszFixedSizeArray(8)] public uint[]? ukn;
+    [RszFixedSizeArray(6)] public uint[]? ukn;
+    [RszConditional(nameof(Version), '>', EfxVersion.RE2, EndAt = nameof(ukn5))]
+    public uint ukn4;
+    public uint ukn5;
 	[RszClassInstance] public EFXExpressionListWrapper expressions = new();
 }

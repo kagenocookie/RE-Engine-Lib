@@ -1,20 +1,21 @@
 using System.Numerics;
 using RszTool;
 using RszTool.Efx.Structs.RE4;
+using RszTool.Efx.Structs.RERT;
 
 namespace RszTool.Efx.Structs.DMC5;
 
 public struct mid_cc {
     public via.Color color1;
     public via.Color color2;
-	public float   ukn_float;// <name="Might be brightness">;
+	public float   ukn_float;
 }
 
 public struct large_cc {
 	public via.Color   color;
 	public via.Color   color2;
 	public via.Color   color3;
-	public float   Brightness;// <name="Might be brightness">;
+	public float   Brightness;
 }
 
 enum Cycle_Loop {
@@ -74,53 +75,6 @@ enum Animation_Mode : uint {
 	animate_once_and_stay_on_last_untill_2C_flipped_vertically_random_flipped_horizontally = 39
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.Spawn, EfxVersion.DMC5)]
-public partial class EFXAttributeSpawn : EFXAttribute
-{
-	public EFXAttributeSpawn() : base(EfxAttributeType.Spawn) { }
-
-    public uint ukn1;
-    public uint count1;
-    public uint count2;
-    public uint count3;
-    public uint count4;
-    public uint count5;
-    public uint count6;
-    public uint disappearTime1;
-    public uint disappearTime2;
-}
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.Life, EfxVersion.DMC5)]
-public partial class EFXAttributeLife : RszTool.Efx.EFXAttribute
-{
-    public EFXAttributeLife() : base(EfxAttributeType.Life) { }
-
-    [RszFixedSizeArray(9)] uint[]? ukn;
-}
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.ShaderSettings, EfxVersion.DMC5)]
-public partial class EFXAttributeShaderSettings : RszTool.Efx.EFXAttribute
-{
-    public EFXAttributeShaderSettings() : base(EfxAttributeType.ShaderSettings) { }
-
-    float  saturation;// <name="Saturation">;
-    float  ukn4;
-    float  layerNeg;// <name="Layer Negative", comment="The smaller it is the more it gets in front of the other objects.">;
-    uint layerPos;// <name="Layer Positive", comment="The bigger it is the more it gets in front of the other objects.">;
-    [RszFixedSizeArray(4)] byte[]?  ukn8;
-    float  ukn9;
-    float  ukn10;
-    float  ukn11;
-    float  ukn12;
-    float  ukn13;
-    float  ukn14;
-    [RszFixedSizeArray(3)] float[]?  ukn15;
-    float  ukn16;
-    float  ukn17;
-    float  ukn18;
-    uint ukn19;
-    float  colorBrightness;// <name="Color Brightness">;
-    //byte ukn[0x54 - 4];
-}
-
 public enum MaterialParameterTypeDmc5 : short
 {
 	None = 0,
@@ -143,7 +97,7 @@ public partial class MdfProperty_DMC5 : BaseModel
 
 	[RszFixedSizeArray(16)] public byte[]? propertyValue;
 }
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.TypeMesh, EfxVersion.DMC5)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeMesh, EfxVersion.RE7, EfxVersion.DMC5)]
 public partial class EFXAttributeTypeMesh : RszTool.Efx.EFXAttribute
 {
     public EFXAttributeTypeMesh() : base(EfxAttributeType.TypeMesh) { }
@@ -152,21 +106,23 @@ public partial class EFXAttributeTypeMesh : RszTool.Efx.EFXAttribute
     uint overriddenHashCount;
     mid_cc mid_color;
     [RszFixedSizeArray(8)] uint[]? ukn2;
-    float rotationXMin;// <name="Rotation Minimum X">;
-    float rotationXMax;// <name="Rotation Maximum X">;
-    float rotationYMin;// <name="Rotation Minimum Y">;
-    float rotationYMax;// <name="Rotation Y Maximum">;
-    float rotationZMin;// <name="Rotation Minimum Z">;
-    float rotationZMax;// <name="Rotation Z Maximum">;
-    float scaleXMin;// <name="Scale Minimum X">;
-    float scaleXMax;// <name="Scale X Maximum">;
-    float scaleYMin;// <name="Scale Minimum Y">;
-    float scaleYMax;// <name="Scale Y Maximum">;
-    float scaleZMin;// <name="Scale Minimum Z">;
-    float scaleZMax;// <name="Scale Z Maximum">;
-    float scaleMultiplierMin;// <name="Scale Multiplier Minimum">;
-    float scaleMultiplierMax;// <name="Scale Multiplier Maximum">;
-    [RszFixedSizeArray(2)] uint[]? ukn3;
+    float rotationXMin;
+    float rotationXMax;
+    float rotationYMin;
+    float rotationYMax;
+    float rotationZMin;
+    float rotationZMax;
+    float scaleXMin;
+    float scaleXMax;
+    float scaleYMin;
+    float scaleYMax;
+    float scaleZMin;
+    float scaleZMax;
+    float scaleMultiplierMin;
+    float scaleMultiplierMax;
+    [RszConditional(nameof(Version), '>', EfxVersion.RE7, EndAt = nameof(texCount))]
+    uint ukn3;
+    uint ukn4;
     public uint texCount;
     public uint meshPathLength;
     public uint mdfPathLength;
@@ -176,9 +132,10 @@ public partial class EFXAttributeTypeMesh : RszTool.Efx.EFXAttribute
     [RszInlineWString(nameof(mdfPathLength))] public string? mdfPath;
 
     // [RszInlineWString(nameof(texPathLength)), RszConditional(nameof(texPathLength), '>', 0)] public string? tex;
+    [RszConditional(nameof(Version), '>', EfxVersion.RE7)]
 	[RszInlineWString, RszList(nameof(texCount))] public string[]? texPaths;
 }
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.TypeRibbonFollow, EfxVersion.DMC5)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonFollow, EfxVersion.DMC5)]
 public partial class EFXAttributeTypeRibbonFollow : RszTool.Efx.EFXAttribute
 {
     public EFXAttributeTypeRibbonFollow() : base(EfxAttributeType.TypeRibbonFollow) { }
@@ -200,20 +157,7 @@ public partial class EFXAttributeTypeRibbonFollow : RszTool.Efx.EFXAttribute
     large_cc largel_color;
     [RszFixedSizeArray(6)] float[]? ukn7;
 }
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.EmitterShape3D, EfxVersion.DMC5)]
-public partial class EFXAttributeEmitterShape3D : RszTool.Efx.EFXAttribute
-{
-    public EFXAttributeEmitterShape3D() : base(EfxAttributeType.EmitterShape3D) { }
-
-    float spreadXMin;// <name="Spread X Minimum">;
-    float spreadXMax;// <name="Spread X Maximum">;
-    float spreadYMin;// <name="Spread Y Minimum">;
-    float spreadYMax;// <name="Spread Y Maximum">;
-    float spreadZMin;// <name="Spread Z Minimum">;
-    float spreadZMax;// <name="Spread Z Maximum">;
-    [RszFixedSizeArray(12)] uint[]? ukn1;
-}
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.PtCollision, EfxVersion.DMC5)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtCollision, EfxVersion.DMC5)]
 public partial class EFXAttributePtCollision : RszTool.Efx.EFXAttribute
 {
     public EFXAttributePtCollision() : base(EfxAttributeType.PtCollision) { }
@@ -231,27 +175,27 @@ public partial class EFXAttributePtCollision : RszTool.Efx.EFXAttribute
     float  ukn8;
     [RszFixedSizeArray(2)] uint[]? ukn9;
 }
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.Transform3DModifier, EfxVersion.DMC5)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Transform3DModifier, EfxVersion.DMC5)]
 public partial class EFXAttributeTransform3DModifier : RszTool.Efx.EFXAttribute
 {
     public EFXAttributeTransform3DModifier() : base(EfxAttributeType.Transform3DModifier) { }
 
     [RszFixedSizeArray(55)] public uint[]? ukn;
 }
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.PtColorClip, EfxVersion.DMC5)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtColorClip, EfxVersion.DMC5)]
 public partial class EFXAttributePtColorClip : RszTool.Efx.EFXAttribute
 {
     public EFXAttributePtColorClip() : base(EfxAttributeType.PtColorClip) { }
 
-    uint secChunkID;// <name="Second Chunk Type ID">;
+    uint secChunkID;
     uint ukn2;
-    Cycle_Loop loop;// <name="Loop State", format=hex, bgcolor=0x99CCFF>;
-    float  loopTime;// <name="Loop Duration", bgcolor=0xFF9BDE>;
+    Cycle_Loop loop;
+    float  loopTime;
     [RszFixedSizeArray(3)] uint[]? ukn3;
 
-    uint firstChunkSize;// <name="First Chunk Size">;
-    uint secondChunkSize;// <name="Second Chunk Size">;
-    uint thirdChunkSize;// <name="Third Chunk Size">;
+    uint firstChunkSize;
+    uint secondChunkSize;
+    uint thirdChunkSize;
     [RszFixedSizeArray(nameof(firstChunkSize), '/', 4)] public uint[]? substruct1; // colorBitCount + intCount, apparently
     [RszFixedSizeArray(nameof(secondChunkSize), '/', 4)] public int[]? substruct2; // TODO very varying content
     [RszFixedSizeArray(nameof(thirdChunkSize), '/', 4)] public uint[]? substruct3;
@@ -267,7 +211,7 @@ public partial class EFXAttributePtColorClip : RszTool.Efx.EFXAttribute
     //                             case 1:
     //                                 for(c5it = 0; c5it < colorBitCount_arr[e]; c5it++){
     //                                     struct{
-    //                                         float appearTime;// <name="Appear Time", bgcolor=0xA2A2A2>;
+    //                                         float appearTime;
     //                                         uint ukn;
     //                                         if( colorBitCount_arr[3] > c5it){
     //                                             redPos[red] = FTell();
@@ -276,16 +220,16 @@ public partial class EFXAttributePtColorClip : RszTool.Efx.EFXAttribute
     //                                             alphaLessRedPos[alphaLessRed] = FTell();
     //                                             alphaLessRed++;
     //                                         }
-    //                                         byte red;// <name="Red", bgcolor=0x9B9BFF>;
+    //                                         byte red;
     //                                         [RszFixedSizeArray(3)] byte[]? ukn2;
-    //                                     } redSt;// <name="Red">;
+    //                                     } redSt;
     //                                 }
     //                                 break;
 
     //                             case 2:
     //                                 for(c5it = 0; c5it < colorBitCount_arr[e]; c5it++){
     //                                     struct{
-    //                                         float appearTime;// <name="Appear Time", bgcolor=0xA2A2A2>;
+    //                                         float appearTime;
     //                                         uint ukn;
     //                                         if( colorBitCount_arr[3] > c5it){
     //                                             greenPos[green] = FTell();
@@ -294,16 +238,16 @@ public partial class EFXAttributePtColorClip : RszTool.Efx.EFXAttribute
     //                                             alphaLessGreenPos[alphaLessGreen] = FTell();
     //                                             alphaLessGreen++;
     //                                         }
-    //                                         byte green;// <name="Green", bgcolor=0x67AA67>;
+    //                                         byte green;
     //                                         [RszFixedSizeArray(3)] byte[]? ukn2;
-    //                                     } greenSt;// <name="Green">;
+    //                                     } greenSt;
     //                                 }
     //                                 break;
 
     //                             case 3:
     //                                 for(c5it = 0; c5it < colorBitCount_arr[e]; c5it++){
     //                                     struct{
-    //                                         float appearTime;// <name="Appear Time", bgcolor=0xA2A2A2>;
+    //                                         float appearTime;
     //                                         uint ukn;
     //                                         if( colorBitCount_arr[3] > c5it){
     //                                             bluePos[blue] = FTell();
@@ -312,40 +256,40 @@ public partial class EFXAttributePtColorClip : RszTool.Efx.EFXAttribute
     //                                             alphaLessBluePos[alphaLessBlue] = FTell();
     //                                             alphaLessBlue++;
     //                                         }
-    //                                         byte blue;// <name="Blue", bgcolor=0xFF9B9B>;
+    //                                         byte blue;
     //                                         [RszFixedSizeArray(3)] byte[]? ukn2;
-    //                                     } blueSt;// <name="Blue">;
+    //                                     } blueSt;
     //                                 }
     //                                 break;
 
     //                             case 4:
     //                                 for(c5it = 0; c5it < colorBitCount_arr[e]; c5it++){
     //                                     struct{
-    //                                         float appearTime;// <name="Appear Time", bgcolor=0xA2A2A2>;
+    //                                         float appearTime;
     //                                         uint ukn;
     //                                         alphaPos[alpha] = FTell();
     //                                         alpha++;
-    //                                         byte alpha;// <name="Alpha", bgcolor=0x9BFFFF>;
+    //                                         byte alpha;
     //                                         [RszFixedSizeArray(3)] byte[]? ukn2;
-    //                                     } alphaSt;// <name="Alpha">;
+    //                                     } alphaSt;
     //                                 }
     //                                 break;
     //                             default:
     //                                 break;
     //                         }
     //                     }
-    //                 }secondChunk;// <name="Second Chunk (Color & Alpha)">;
+    //                 }secondChunk;
     //                 break;
     //             case 0x00000008:
     //                 for(c5it = 0; c5it < colorBitCount_arr[0]; c5it++){
     //                     struct{
-    //                         float appearTime;// <name="Appear Time", bgcolor=0xA2A2A2>;
+    //                         float appearTime;
     //                         uint ukn;
     //                         onlyAlphaPos[onlyAlpha]= FTell();
     //                         onlyAlpha++;
-    //                         byte alpha;// <name="Alpha", bgcolor=0x9BFFFF>;
+    //                         byte alpha;
     //                         [RszFixedSizeArray(3)] byte[]? ukn2;
-    //                     } alphaSt;// <name="Alpha">;
+    //                     } alphaSt;
     //                 }
     //                 break;
     //             case 0x00000007:
@@ -356,39 +300,39 @@ public partial class EFXAttributePtColorClip : RszTool.Efx.EFXAttribute
     //                             case 1:
     //                                 for(c5it = 0; c5it < colorBitCount_arr[e]; c5it++){
     //                                     struct{
-    //                                         float appearTime;// <name="Appear Time", bgcolor=0xA2A2A2>;
+    //                                         float appearTime;
     //                                         uint ukn;
     //                                         alphaLessRedPos[alphaLessRed] = FTell();
     //                                         alphaLessRed++;
-    //                                         byte red;// <name="Red", bgcolor=0x9B9BFF>;
+    //                                         byte red;
     //                                         [RszFixedSizeArray(3)] byte[]? ukn2;
-    //                                     } redSt;// <name="Red">;
+    //                                     } redSt;
     //                                 }
     //                                 break;
 
     //                             case 2:
     //                                 for(c5it = 0; c5it < colorBitCount_arr[e]; c5it++){
     //                                     struct{
-    //                                         float appearTime;// <name="Appear Time", bgcolor=0xA2A2A2>;
+    //                                         float appearTime;
     //                                         uint ukn;
     //                                         alphaLessGreenPos[alphaLessGreen] = FTell();
     //                                         alphaLessGreen++;
-    //                                         byte green;// <name="Green", bgcolor=0x67AA67>;
+    //                                         byte green;
     //                                         [RszFixedSizeArray(3)] byte[]? ukn2;
-    //                                     } greenSt;// <name="Green">;
+    //                                     } greenSt;
     //                                 }
     //                                 break;
 
     //                             case 3:
     //                                 for(c5it = 0; c5it < colorBitCount_arr[e]; c5it++){
     //                                     struct{
-    //                                         float appearTime;// <name="Appear Time", bgcolor=0xA2A2A2>;
+    //                                         float appearTime;
     //                                         uint ukn;
     //                                         alphaLessBluePos[alphaLessBlue] = FTell();
     //                                         alphaLessBlue++;
-    //                                         byte blue;// <name="Blue", bgcolor=0xFF9B9B>;
+    //                                         byte blue;
     //                                         [RszFixedSizeArray(3)] byte[]? ukn2;
-    //                                     } blueSt;// <name="Blue">;
+    //                                     } blueSt;
     //                                 }
     //                                 break;
 
@@ -396,19 +340,19 @@ public partial class EFXAttributePtColorClip : RszTool.Efx.EFXAttribute
     //                                 break;
     //                         }
     //                     }
-    //                 }secondChunk;// <name="Second Chunk (Color & Alpha)">;
+    //                 }secondChunk;
     //                 break;
     //             default:
     //                 struct{
     //                     uint ukn[secondChunkSize/4];
-    //                 } secondChunk;// <name="Second Chunk">;
+    //                 } secondChunk;
     //                 break;
     //         }
     //     }
     // }
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.ParentOptions, EfxVersion.DMC5)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.ParentOptions, EfxVersion.RE7, EfxVersion.RE2, EfxVersion.DMC5)]
 public partial class EFXAttributeParentOptions : RszTool.Efx.EFXAttribute
 {
     public EFXAttributeParentOptions() : base(EfxAttributeType.ParentOptions) { }
@@ -419,15 +363,7 @@ public partial class EFXAttributeParentOptions : RszTool.Efx.EFXAttribute
     public uint boneCountMaybe;
     [RszInlineWString] public string? boneName;
 }
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.SpawnExpression, EfxVersion.DMC5)]
-public partial class EFXAttributeSpawnExpression : RszTool.Efx.EFXAttribute
-{
-    public EFXAttributeSpawnExpression() : base(EfxAttributeType.SpawnExpression) { }
-
-    [RszFixedSizeArray(5)] uint[]? ukn1;
-	[RszClassInstance] public EFXExpressionListWrapper expressions = new();
-}
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.TypeMeshClip, EfxVersion.DMC5)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeMeshClip, EfxVersion.DMC5)]
 public partial class EFXAttributeTypeMeshClip : RszTool.Efx.EFXAttribute
 {
     public EFXAttributeTypeMeshClip() : base(EfxAttributeType.TypeMeshClip) { }
@@ -443,7 +379,7 @@ public partial class EFXAttributeTypeMeshClip : RszTool.Efx.EFXAttribute
     [RszFixedSizeArray(nameof(part4Size))] public byte[]? part4;
     [RszFixedSizeArray(nameof(part5Size))] public byte[]? part5;
 }
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.TypeRibbonFixEndExpression, EfxVersion.DMC5)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonFixEndExpression, EfxVersion.DMC5)]
 public partial class EFXAttributeTypeRibbonFixEndExpression : RszTool.Efx.EFXAttribute
 {
     public EFXAttributeTypeRibbonFixEndExpression() : base(EfxAttributeType.TypeRibbonFixEndExpression) { }
@@ -451,78 +387,105 @@ public partial class EFXAttributeTypeRibbonFixEndExpression : RszTool.Efx.EFXAtt
     [RszFixedSizeArray(8)] uint[]? ukn1;
 	[RszClassInstance] public EFXExpressionListWrapper expressions = new();
 }
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.TypeBillboard2D, EfxVersion.DMC5)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeBillboard2D, EfxVersion.DMC5)]
 public partial class EFXAttributeTypeBillboard2D : RszTool.Efx.EFXAttribute
 {
     public EFXAttributeTypeBillboard2D() : base(EfxAttributeType.TypeBillboard2D) { }
 
     [RszFixedSizeArray(16)] uint[]? ukn;
 }
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.DepthOperator, EfxVersion.DMC5)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.DepthOperator, EfxVersion.DMC5)]
 public partial class EFXAttributeDepthOperator : RszTool.Efx.EFXAttribute
 {
     public EFXAttributeDepthOperator() : base(EfxAttributeType.DepthOperator) { }
 
     [RszFixedSizeArray(3)] uint[]? ukn;
 }
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.ProceduralDistortion, EfxVersion.DMC5)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.ProceduralDistortion, EfxVersion.DMC5)]
 public partial class EFXAttributeProceduralDistortion : RszTool.Efx.EFXAttribute
 {
     public EFXAttributeProceduralDistortion() : base(EfxAttributeType.ProceduralDistortion) { }
 
     [RszFixedSizeArray(6)] uint[]? ukn;
 }
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.TypeMeshExpression, EfxVersion.DMC5)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeMeshExpression, EfxVersion.DMC5)]
 public partial class EFXAttributeTypeMeshExpression : RszTool.Efx.EFXAttribute
 {
     public EFXAttributeTypeMeshExpression() : base(EfxAttributeType.TypeMeshExpression) { }
 
     uint ukn1;
-    uint part2Size;// <name="Second Part's Size">;
+    uint part2Size;
     [RszFixedSizeArray(22)] uint[]? ukn2;
     [RszConditional(nameof(Version), ">=", EfxVersion.RERT), RszFixedSizeArray(3)] uint[]? ukn_rert;
-    uint part3Size;// <name="Third Part's Size">;
+    uint part3Size;
     [RszFixedSizeArray(nameof(part2Size), '/', 4)] public uint[]? part2;
     [RszFixedSizeArray(nameof(part3Size), '/', 4)] public uint[]? part3;
 }
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.TypePolygonClip, EfxVersion.DMC5)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypePolygonClip, EfxVersion.DMC5)]
 public partial class EFXAttributeTypePolygonClip : RszTool.Efx.EFXAttribute
 {
     public EFXAttributeTypePolygonClip() : base(EfxAttributeType.TypePolygonClip) { }
 
     [RszFixedSizeArray(6)] uint[]? ukn1;
-    uint part2Size;// <name="Second Part's Size">;
-    uint part3Size;// <name="Third Part's Size">;
-    uint part4Size;// <name="Fourth Part's Size">;
-    uint part5Size;// <name="Fifth Part's Size">;
+    uint part2Size;
+    uint part3Size;
+    uint part4Size;
+    uint part5Size;
 
     [RszFixedSizeArray(nameof(part2Size))] public byte[]? part2;
     [RszFixedSizeArray(nameof(part3Size))] public byte[]? part3;
     [RszFixedSizeArray(nameof(part4Size))] public byte[]? part4;
     [RszFixedSizeArray(nameof(part5Size))] public byte[]? part5;
 }
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.TypeStrainRibbon, EfxVersion.DMC5)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeStrainRibbon, EfxVersion.RE7, EfxVersion.DMC5)]
 public partial class EFXAttributeTypeStrainRibbon : RszTool.Efx.EFXAttribute
 {
     public EFXAttributeTypeStrainRibbon() : base(EfxAttributeType.TypeStrainRibbon) { }
 
     uint ukn1;
     mid_cc mid_color;
-    [RszFixedSizeArray(36)] uint[]? ukn2;
+    public float ukn2_0;
+    public float ukn2_1;
+    public float ukn2_2;
+    public float ukn2_3;
+    public float ukn2_4;
+    public float ukn2_5;
+    public float ukn2_6;
+    public float ukn2_7;
+    public uint ukn2_8;
+    public float ukn2_9;
+    public float ukn2_10;
+    public float ukn2_11;
+    public float ukn2_12;
+    public float ukn2_13;
+    public float ukn2_14;
+    public float ukn2_15;
+    public float ukn2_16;
+    public float ukn2_17;
+    public float ukn2_18;
+    public uint ukn2_19;
+    public uint ukn2_20;
+    public uint ukn2_21;
+    public float ukn2_22;
+    public float ukn2_23;
+    public UndeterminedFieldType ukn2_24;
+    public uint ukn2_25;
+    public float ukn2_26;
+    public uint ukn2_27;
+    [RszConditional(nameof(Version), ">=", EfxVersion.DMC5)]
+    [RszFixedSizeArray(8)] uint[]? ukn3;
     [RszInlineWString] public string? boneName;
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.MeshEmitterExpression, EfxVersion.DMC5)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.MeshEmitterExpression, EfxVersion.DMC5)]
 public partial class EFXAttributeMeshEmitterExpression : RszTool.Efx.EFXAttribute
 {
     public EFXAttributeMeshEmitterExpression() : base(EfxAttributeType.MeshEmitterExpression) { }
 
     [RszFixedSizeArray(17)] uint[]? ukn1;
-    // uint part2Size;// <name="Second Part's Size">;
-    // [RszFixedSizeArray(nameof(part2Size))] public byte[]? part2;
 	[RszClassInstance] public EFXExpressionListWrapper expressions = new();
 }
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.ShaderSettingsExpression, EfxVersion.DMC5, EfxVersion.RERT)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.ShaderSettingsExpression, EfxVersion.DMC5, EfxVersion.RERT, EfxVersion.DD2)]
 public partial class EFXAttributeShaderSettingsExpression : RszTool.Efx.EFXAttribute
 {
     public EFXAttributeShaderSettingsExpression() : base(EfxAttributeType.ShaderSettingsExpression) { }
@@ -536,24 +499,34 @@ public partial class EFXAttributeShaderSettingsExpression : RszTool.Efx.EFXAttri
     public uint ukn5;
     public uint ukn6;
     public uint ukn7;
+    [RszConditional(nameof(Version), ">=", EfxVersion.DD2, EndAt = nameof(dd2_ukn4))]
+    public uint dd2_ukn0;
+    public uint dd2_ukn1;
+    public uint dd2_ukn2;
+    public uint dd2_ukn3;
+    public uint dd2_ukn4;
 
-	[RszClassInstance] public EFXExpressionListWrapper expressions = new();
+	[RszSwitch(
+		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXExpressionListWrapper3),
+		typeof(EFXExpressionListWrapper)
+	)]
+	[RszClassInstance] public EFXExpressionListWrapperBase? expressions;
 }
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.MeshEmitterClip, EfxVersion.DMC5)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.MeshEmitterClip, EfxVersion.DMC5)]
 public partial class EFXAttributeMeshEmitterClip : RszTool.Efx.EFXAttribute
 {
     public EFXAttributeMeshEmitterClip() : base(EfxAttributeType.MeshEmitterClip) { }
 
     [RszFixedSizeArray(7)] uint[]? ukn1;
-    uint part2Size;// <name="Second Part's Size">;
-    uint part3Size;// <name="Third Part's Size">;
-    uint part4Size;// <name="Fourth Part's Size">;
+    uint part2Size;
+    uint part3Size;
+    uint part4Size;
 
     [RszFixedSizeArray(nameof(part2Size))] public byte[]? part2;
     [RszFixedSizeArray(nameof(part3Size))] public byte[]? part3;
     [RszFixedSizeArray(nameof(part4Size))] public byte[]? part4;
 }
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.TypePolygonExpression, EfxVersion.DMC5)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypePolygonExpression, EfxVersion.DMC5)]
 public partial class EFXAttributeTypePolygonExpression : RszTool.Efx.EFXAttribute
 {
     public EFXAttributeTypePolygonExpression() : base(EfxAttributeType.TypePolygonExpression) { }
@@ -561,43 +534,97 @@ public partial class EFXAttributeTypePolygonExpression : RszTool.Efx.EFXAttribut
     [RszFixedSizeArray(19)] uint[]? ukn1;
 	[RszClassInstance] public EFXExpressionListWrapper expressions = new();
 }
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.TypeLightning3D, EfxVersion.DMC5)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeLightning3D, EfxVersion.RE7, EfxVersion.DMC5)]
 public partial class EFXAttributeTypeLightning3D : RszTool.Efx.EFXAttribute
 {
     public EFXAttributeTypeLightning3D() : base(EfxAttributeType.TypeLightning3D) { }
 
-    [RszFixedSizeArray(60)] uint[]? ukn;
+	public uint unknBitFlag;
+	public via.Color color0;
+	public via.Color color1;
+	public float unkn2_0;
+	public UndeterminedFieldType unkn2_1;
+	public UndeterminedFieldType unkn2_2;
+	public UndeterminedFieldType unkn2_3;
+
+    public float unkn2_4;
+	public UndeterminedFieldType unkn2_5;
+	public float unkn2_6;
+	public UndeterminedFieldType unkn2_7;
+	public uint unkn2_8;
+	public UndeterminedFieldType unkn2_9; // either int or float (DMC5) [3, 0.1]
+	public UndeterminedFieldType unkn2_10; // either int or float (DMC5) [5, 0.12]
+	public UndeterminedFieldType unkn2_11; // either int or float (DMC5) [1, 0.3]
+	public UndeterminedFieldType unkn2_12; // either int or float (DMC5) [1, 0.4]
+	public float unkn2_13;
+	public UndeterminedFieldType unkn2_14;
+	public float unkn2_15;
+	public float unkn2_16;
+	public float unkn2_17;
+	public UndeterminedFieldType unkn2_18;
+	public float unkn2_19;
+	public UndeterminedFieldType unkn2_20;
+	public float unkn2_21;
+	public UndeterminedFieldType unkn2_22;
+	public float unkn2_23;
+	public float unkn2_24;
+	public float unkn2_25;
+	public UndeterminedFieldType unkn2_26;
+	public float unkn2_27;
+	public UndeterminedFieldType unkn2_28;
+	public float unkn2_29;
+	public UndeterminedFieldType unkn2_30;
+	public float unkn2_31;
+	public UndeterminedFieldType unkn2_32;
+	public UndeterminedFieldType unkn2_33;
+	public float unkn2_34;
+	public UndeterminedFieldType unkn2_35;
+	public UndeterminedFieldType unkn2_36;
+	public UndeterminedFieldType unkn2_37;
+	public float unkn2_38;
+	public UndeterminedFieldType unkn2_39;
+	public float unkn2_40;
+	public float unkn2_41;
+	public float unkn2_42;
+	public float unkn2_43;
+	public float unkn2_44;
+	public float unkn2_45;
+	public float unkn2_46;
+	public float unkn2_47;
+	public float unkn2_48;
+	public uint unkn2_49;
+	public UndeterminedFieldType unkn2_50;
+	public UndeterminedFieldType unkn2_51;
+	public UndeterminedFieldType unkn2_52;
+	public UndeterminedFieldType unkn2_53;
+	public UndeterminedFieldType unkn2_54;
+	public uint unkn2_55;
+    [RszVersion(EfxVersion.DMC5)]
+	public uint unkn2_56;
     [RszFixedSizeArray(2)] byte[]? boneNameEmpty;
 }
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.FakeDoF, EfxVersion.DMC5)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.FakeDoF, EfxVersion.DMC5)]
 public partial class EFXAttributeFakeDoF : RszTool.Efx.EFXAttribute
 {
     public EFXAttributeFakeDoF() : base(EfxAttributeType.FakeDoF) { }
 
     [RszFixedSizeArray(5)] uint[]? ukn;
 }
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.TypeNodeBillboard, EfxVersion.DMC5)]
-public partial class EFXAttributeTypeNodeBillboard : RszTool.Efx.EFXAttribute
-{
-    public EFXAttributeTypeNodeBillboard() : base(EfxAttributeType.TypeNodeBillboard) { }
-
-    [RszFixedSizeArray(60)] uint[]? ukn;
-}
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.FluidEmitter2D, EfxVersion.DMC5)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.FluidEmitter2D, EfxVersion.DMC5)]
 public partial class EFXAttributeFluidEmitter2D : RszTool.Efx.EFXAttribute
 {
     public EFXAttributeFluidEmitter2D() : base(EfxAttributeType.FluidEmitter2D) { }
 
     [RszFixedSizeArray(8)] uint[]? ukn;
 }
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.PtTransform2D, EfxVersion.DMC5)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtTransform2D, EfxVersion.DMC5)]
 public partial class EFXAttributePtTransform2D : RszTool.Efx.EFXAttribute
 {
     public EFXAttributePtTransform2D() : base(EfxAttributeType.PtTransform2D) { }
     [RszFixedSizeArray(5)] uint[]? ukn;
-
 }
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.FluidSimulator2D, EfxVersion.DMC5, EfxVersion.RERT)]
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.FluidSimulator2D, EfxVersion.DMC5, EfxVersion.RERT)]
 public partial class EFXAttributeFluidSimulator2D : RszTool.Efx.EFXAttribute
 {
     public EFXAttributeFluidSimulator2D() : base(EfxAttributeType.FluidSimulator2D) { }
@@ -605,17 +632,20 @@ public partial class EFXAttributeFluidSimulator2D : RszTool.Efx.EFXAttribute
     [RszFixedSizeArray(45)] uint[]? ukn1;
     [RszConditional(nameof(Version), "==", EfxVersion.DMC5)]
     uint ukn2;
+    [RszConditional(nameof(Version), "==", EfxVersion.RE7)]
+    uint ukn3;
     uint extraByteCount;
-    uint path1Size;// <name="Texture Path 1 Size">;
-    uint path2Size;// <name="Texture Path 2 Size">;
-    uint path3Size;// <name="Texture Path 3 Size">;
-    uint path4Size;// <name="Texture Path 4 Size">;
-    [RszConditional(nameof(Version), "==", EfxVersion.DMC5)]
-    uint path5Size;// <name="Texture Path 5 Size">;
+    uint path1Size;
+    uint path2Size;
+    uint path3Size;
+    uint path4Size;
+    [RszConditional(nameof(Version), "<=", EfxVersion.DMC5)]//dmc5, re7
+    uint path5Size;
     [RszInlineWString(nameof(path1Size))] public string? uvsPath1;
     [RszInlineWString(nameof(path2Size))] public string? uvsPath2;
     [RszInlineWString(nameof(path3Size))] public string? uvsPath3;
     [RszInlineWString(nameof(path4Size))] public string? uvsPath4;
-    [RszConditional(nameof(Version), "==", EfxVersion.DMC5), RszInlineWString(nameof(path5Size))] public string? uvsPath5;
+    [RszConditional(nameof(Version), "<=", EfxVersion.DMC5), RszInlineWString(nameof(path5Size))] public string? uvsPath5;
     [RszFixedSizeArray(nameof(extraByteCount))] public byte[]? extraBytes;
+    // [RszFixedSizeArray(129)] public uint[]? ukndata;
 }

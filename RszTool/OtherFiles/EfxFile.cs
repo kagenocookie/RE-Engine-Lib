@@ -1,3 +1,4 @@
+using System.Reflection;
 using RszTool.Common;
 
 namespace RszTool.Efx
@@ -19,64 +20,45 @@ namespace RszTool.Efx
         MHWilds,
     }
 
-    public class Header : BaseModel
+    [RszGenerate, RszVersionedObject(typeof(EfxVersion))]
+    public partial class EfxHeader : BaseModel
     {
         public int magic = EfxFile.Magic;
-        public int ukn;
+        public int ukn; // re7: 0,1  vfx\vfx_resource\vfx_effecteditor\efd_character_id\efd_em3600\vfx_efd_bh7_em3600_1008.efx.1179750
         public int entryCount;
         public int stringTableLength; // note: version specific?
         public int actionCount;
         public int fieldParameterCount;
         public int expressionParameterCount;
+        [RszVersion(">", EfxVersion.RE7, EndAt = nameof(collisionEffectLength))]
         public int collisionEffectCount;
         public int collisionEffectLength;
+        [RszVersion("<=", EfxVersion.RE7)]
+        public int expressionParameterSize;
+        [RszVersion(">", EfxVersion.DMC5, EndAt = nameof(uknFlag))]
         public int boneCount;
         public int boneAttributeEntryCount;
         public int uknFlag;
 
         public EfxVersion Version { get; }
 
-        public Header(EfxVersion version)
+        public EfxHeader(EfxVersion version)
         {
             Version = version;
         }
 
         protected override bool DoRead(FileHandler handler)
         {
-            handler.Read(ref magic);
+            DefaultRead(handler);
             if (magic != EfxFile.Magic)
             {
                 throw new Exception("Invalid EFX file");
             }
 
-            handler.ReadRange(ref ukn, ref fieldParameterCount);
-            handler.Read(ref expressionParameterCount);
-            handler.Read(ref collisionEffectCount);
-            handler.Read(ref collisionEffectLength);
-            if (Version > EfxVersion.DMC5)
-            {
-                handler.Read(ref boneCount);
-                handler.Read(ref boneAttributeEntryCount);
-                handler.Read(ref uknFlag);
-            }
             return true;
         }
 
-        protected override bool DoWrite(FileHandler handler)
-        {
-            handler.Write(ref magic);
-            handler.WriteRange(ref ukn, ref fieldParameterCount);
-            handler.Write(ref expressionParameterCount);
-            handler.Write(ref collisionEffectCount);
-            handler.Write(ref collisionEffectLength);
-            if (Version > EfxVersion.DMC5)
-            {
-                handler.Write(ref boneCount);
-                handler.Write(ref boneAttributeEntryCount);
-                handler.Write(ref uknFlag);
-            }
-            return true;
-        }
+        protected override bool DoWrite(FileHandler handler) => DefaultWrite(handler);
     }
 
     public class Strings : BaseModel
@@ -88,9 +70,9 @@ namespace RszTool.Efx
         public string[] EfxNames = Array.Empty<string>();
         public string[] CollisionEffectNames = Array.Empty<string>();
 
-        public Header Header { get; }
+        public EfxHeader Header { get; }
 
-        public Strings(Header header)
+        public Strings(EfxHeader header)
         {
             Header = header;
         }
@@ -133,23 +115,25 @@ namespace RszTool.Efx
 
         protected override bool DoRead(FileHandler handler)
         {
-            ExpressionParameterNames = ReadStrings(Header.expressionParameterCount, handler, true);
+            ExpressionParameterNames = ReadStrings(Header.expressionParameterCount, handler, Header.Version > EfxVersion.RE7);
             BoneNames = ReadStrings(Header.boneCount, handler, true);
-            ActionNames = ReadStrings(Header.actionCount, handler, false);
-            FieldParameterNames = ReadStrings(Header.fieldParameterCount, handler, false);
+            if (Header.Version > EfxVersion.RE7) ActionNames = ReadStrings(Header.actionCount, handler, false);
+            FieldParameterNames = ReadStrings(Header.fieldParameterCount, handler, Header.Version <= EfxVersion.RE7);
             EfxNames = ReadStrings(Header.entryCount, handler, false);
             CollisionEffectNames = ReadStrings(Header.collisionEffectCount, handler, false);
+            if (Header.Version <= EfxVersion.RE7) ActionNames = ReadStrings(Header.actionCount, handler, false);
             return true;
         }
 
         protected override bool DoWrite(FileHandler handler)
         {
-            WriteStrings(ExpressionParameterNames, handler, true);
+            WriteStrings(ExpressionParameterNames, handler, Header.Version > EfxVersion.RE7);
             WriteStrings(BoneNames, handler, true);
-            WriteStrings(ActionNames, handler, false);
-            WriteStrings(FieldParameterNames, handler, false);
+            if (Header.Version > EfxVersion.RE7) WriteStrings(ActionNames, handler, false);
+            WriteStrings(FieldParameterNames, handler, Header.Version <= EfxVersion.RE7);
             WriteStrings(EfxNames, handler, false);
             WriteStrings(CollisionEffectNames, handler, false);
+            if (Header.Version <= EfxVersion.RE7) WriteStrings(ActionNames, handler, false);
             return true;
         }
     }
@@ -180,6 +164,27 @@ namespace RszTool.Efx
 
         protected EFXAttribute(EfxAttributeType type)
         {
+        }
+
+        public static class Info<T> where T : EFXAttribute
+        {
+            // https://steven-giesel.com/blogPost/74cc8abc-b6e3-4cb0-ba98-9c92f9a5a4d2
+            // avoids allocating the temp instance on the heap, possibly meaningless perf wise since we're also creating an enumerator anyway
+            // maybe instead add a specific version parameter for our specific usecase
+
+            private static readonly IntPtr TypeHandleValue = typeof(T).TypeHandle.Value;
+            private static readonly int Size = System.Runtime.InteropServices.Marshal.ReadInt32(TypeHandleValue, 4);
+            private static MethodInfo? fieldListMethod = typeof(T).GetMethod(nameof(GetFieldList), BindingFlags.Public|BindingFlags.Instance);
+
+            public static unsafe IEnumerable<Type> GetFieldList(FieldListInput[] args)
+            {
+                if (fieldListMethod == null) throw new NotImplementedException();
+
+                var mem = stackalloc byte[Size];
+                *(IntPtr*)mem = TypeHandleValue;
+                var inst = System.Runtime.CompilerServices.Unsafe.AsRef<T>(mem);
+                return (IEnumerable<Type>)fieldListMethod.Invoke(inst, args)!;
+            }
         }
     }
 
@@ -288,12 +293,15 @@ namespace RszTool.Efx
     [RszGenerate]
     public partial class EFXFieldParameterValue : BaseModel
     {
+        [RszIgnore] public EfxVersion Version;
+
         public uint unkn0;
         public uint fieldParameterNameHash;
         public uint unkn2;
         public uint type;
         public uint unkn4;
         public uint unkn5;
+        [RszConditional(nameof(Version), ">", EfxVersion.RE7, EndAt = nameof(unkn10))]
         public uint unkn6;
         public uint unkn7;
         public float unkn8;
@@ -305,7 +313,7 @@ namespace RszTool.Efx
         protected override bool DoRead(FileHandler handler)
         {
             DefaultRead(handler);
-            if (type is 110 or 183 or 184 or 202 or 194) {
+            if (type is 110 or 183 or 184 or 202 or 194 or 215) {
                 filePath = handler.ReadWString(-1, handler.Read<int>(), false);
             }
             return true;
@@ -355,7 +363,7 @@ namespace RszTool
         public List<EFXEntry> Entries { get; } = new();
         public List<EFXBone> Bones { get; } = new();
 
-        public Header? Header;
+        public EfxHeader? Header;
         public Strings? Strings;
 
         public List<EFXExpressionParameter> ExpressionParameters = new();
@@ -363,6 +371,10 @@ namespace RszTool
         public List<EFXFieldParameterValue> FieldParameterValues = new();
         public List<CollisionEffect> CollisionEffects = new();
         public List<string> UvarStrings = new();
+        /// <summary>
+        /// RE7
+        /// </summary>
+        public int[]? expressionData;
 
         public const int Magic = 0x72786665;
 
@@ -418,16 +430,19 @@ namespace RszTool
         protected override bool DoRead()
         {
             var handler = FileHandler;
-            Header = new Header(GetEfxVersion(FileHandler.FileVersion));
+            Header = new EfxHeader(GetEfxVersion(FileHandler.FileVersion));
             Header.Read(handler);
             Strings = new Strings(Header);
             Strings.Read(handler);
 
-            for (int i = 0; i < Header.expressionParameterCount; ++i) {
-                var param = new EFXExpressionParameter();
-                param.name = Strings.ExpressionParameterNames[i];
-                param.Read(handler);
-                ExpressionParameters.Add(param);
+            if (Header.expressionParameterSize == 0)
+            {
+                for (int i = 0; i < Header.expressionParameterCount; ++i) {
+                    var param = new EFXExpressionParameter();
+                    param.name = Strings.ExpressionParameterNames[i];
+                    param.Read(handler);
+                    ExpressionParameters.Add(param);
+                }
             }
 
             for (int i = 0; i < Header.boneCount; ++i) {
@@ -441,17 +456,28 @@ namespace RszTool
             var boneRelations = new List<short>();
             for (int i = 0; i < Header.boneAttributeEntryCount; ++i) boneRelations.Add(handler.Read<short>());
 
-            for (int i = 0; i < Header.actionCount; ++i) {
-                var action = new EFXAction() { Version = Header.Version };
-                action.name = Strings.ActionNames[i];
-                action.Read(handler);
-                Actions.Add(action);
+            if (Header.Version > EfxVersion.RE7) {
+                for (int i = 0; i < Header.actionCount; ++i) {
+                    var action = new EFXAction() { Version = Header.Version };
+                    action.name = Strings.ActionNames[i];
+                    action.Read(handler);
+                    Actions.Add(action);
+                }
             }
             for (int i = 0; i < Header.fieldParameterCount; ++i) {
                 var entry = new EFXFieldParameterValue();
+                entry.Version = Header.Version;
                 entry.name = Strings.FieldParameterNames[i];
                 entry.Read(handler);
                 FieldParameterValues.Add(entry);
+            }
+            if (Header.Version <= EfxVersion.RE7) {
+                for (int i = 0; i < Header.actionCount; ++i) {
+                    var action = new EFXAction() { Version = Header.Version };
+                    action.name = Strings.ActionNames[i];
+                    action.Read(handler);
+                    Actions.Add(action);
+                }
             }
             Entries.Clear();
             for (int i = 0; i < Header.entryCount; ++i) {
@@ -470,13 +496,18 @@ namespace RszTool
 
             if (Header.Version > EfxVersion.DMC5) {
                 var uvarCount = handler.Read<int>();
-                if (uvarCount != 0) {
-                    throw new Exception("Unexpected non-0 uvar count at EFX EOF");
-                }
+                // note: found these as either 0 or 1 in DD2, sometimes other numbers too
+                // always 0 for RE4,DMC5,RERT
+
+                // if (uvarCount != 0) {
+                //     throw new Exception("Unexpected non-0 uvar count at EFX EOF");
+                // }
                 var end = handler.Read<int>();
-                if (end != 0) {
-                    throw new Exception("Unexpected non-0 at EFX EOF");
-                }
+                // if (end != 0) {
+                //     throw new Exception("Unexpected non-0 at EFX EOF");
+                // }
+            } else if (Header.expressionParameterSize > 0) {
+                expressionData = handler.ReadArray<int>(Header.expressionParameterSize);
             }
 
             SetupReferences(boneRelations);
@@ -499,7 +530,7 @@ namespace RszTool
         private void UpdateHeaderData(EfxVersion version)
         {
             if (Header == null || Header.Version != version) {
-                Header = new Header(version);
+                Header = new EfxHeader(version);
                 Strings = new(Header);
             }
 

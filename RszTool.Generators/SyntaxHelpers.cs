@@ -28,10 +28,18 @@ public static class SyntaxHelpers
         return node.AttributeLists.Any(al => al.Attributes.Any(a => a.Name.ToString() == name));
     }
 
-    public static AttributeSyntax? GetAttribute(this MemberDeclarationSyntax node, string name)
+    public static IEnumerable<AttributeSyntax> GetAttributesWhere(this MemberDeclarationSyntax node, Func<AttributeSyntax, bool> filter)
     {
-        return node.AttributeLists.Select(al => al.Attributes.FirstOrDefault(a => a.Name.ToString() == name)).FirstOrDefault();
+        return node.AttributeLists.SelectMany(al => al.Attributes.Where(filter));
     }
+
+    public static IEnumerable<AttributeSyntax> GetAttributes(this MemberDeclarationSyntax node, string name)
+    {
+        return node.AttributeLists.SelectMany(al => al.Attributes.Where(a => a.Name.ToString() == name));
+    }
+
+    public static AttributeSyntax? GetAttribute(this MemberDeclarationSyntax node, string name)
+        => node.GetAttributes(name).FirstOrDefault();
 
     public static bool TryGetAttribute(this MemberDeclarationSyntax node, string name, out AttributeSyntax attr)
     {

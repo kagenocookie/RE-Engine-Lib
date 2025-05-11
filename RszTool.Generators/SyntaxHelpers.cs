@@ -115,4 +115,9 @@ public static class SyntaxHelpers
 
         return null;
     }
+
+    public static IEnumerable<FieldDeclarationSyntax> GetFields(this ClassDeclarationSyntax classDecl)
+    {
+        return classDecl.ChildNodes().OfType<FieldDeclarationSyntax>();
+    }
 }

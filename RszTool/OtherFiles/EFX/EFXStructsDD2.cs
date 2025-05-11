@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using RszTool;
 using RszTool.Common;
 using RszTool.Efx.Structs.RE4;
+using RszTool.InternalAttributes;
 
 namespace RszTool.Efx.Structs.RERT;
 

@@ -2,6 +2,7 @@ namespace RszTool.Efx;
 
 using System.Reflection;
 using RszTool.Efx.Structs;
+using RszTool.InternalAttributes;
 
 public enum EfxAttributeType
 {
@@ -349,6 +350,22 @@ public static partial class EfxAttributeTypeRemapper
         }
 
         return dict.TryGetValue(type, out var t) ? t : null;
+    }
+
+    public static IEnumerable<Type> GetAllEfxAttributeInstanceTypes()
+    {
+        var list = new HashSet<Type>();
+
+        foreach (var ver in (EfxVersion[])Enum.GetValues(typeof(EfxVersion)))
+        {
+            var ids = GetAllTypes(ver);
+            foreach (var pair in ids) {
+                var type = EfxAttributeTypeRemapper.GetAttributeInstanceType(pair.Value, ver);
+                if (type != null) list.Add(type);
+            }
+        }
+
+        return list;
     }
 
     private static readonly EfxVersion[] GameOrder = EfxFile.AllVersions;

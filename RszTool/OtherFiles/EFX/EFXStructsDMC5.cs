@@ -2,20 +2,21 @@ using System.Numerics;
 using RszTool;
 using RszTool.Efx.Structs.RE4;
 using RszTool.Efx.Structs.RERT;
+using RszTool.InternalAttributes;
 
 namespace RszTool.Efx.Structs.DMC5;
 
 public struct mid_cc {
     public via.Color color1;
     public via.Color color2;
-	public float   ukn_float;
+	public float  ukn_float;
 }
 
 public struct large_cc {
 	public via.Color   color;
 	public via.Color   color2;
 	public via.Color   color3;
-	public float   Brightness;
+	public float  Brightness;
 }
 
 enum Cycle_Loop {
@@ -105,7 +106,14 @@ public partial class EFXAttributeTypeMesh : RszTool.Efx.EFXAttribute
     uint ukn1;
     uint overriddenHashCount;
     mid_cc mid_color;
-    [RszFixedSizeArray(8)] uint[]? ukn2;
+    public uint unkn2_0;
+    public uint unkn2_1;
+    public uint unkn2_2;
+    public uint unkn2_3;
+    public uint unkn2_4;
+    public uint unkn2_5;
+    public uint unkn2_6;
+    public uint unkn2_7;
     float rotationXMin;
     float rotationXMax;
     float rotationYMin;
@@ -143,7 +151,8 @@ public partial class EFXAttributeTypeRibbonFollow : RszTool.Efx.EFXAttribute
     uint ukn1;
     mid_cc mid_color;
 
-    [RszFixedSizeArray(2)] float[]? ukn3;
+    float ukn2;
+    float ukn3;
     float scaleXMin; //doubt
     float scaleXMax; //doubt
     float scaleYMin; //doubt
@@ -153,9 +162,15 @@ public partial class EFXAttributeTypeRibbonFollow : RszTool.Efx.EFXAttribute
 
     uint ukn4;
     float ukn5;
-    [RszFixedSizeArray(2)] uint[]? ukn6;
+    float ukn6;
+    float ukn7;
     large_cc largel_color;
-    [RszFixedSizeArray(6)] float[]? ukn7;
+    public float unkn8_0;
+    public float unkn8_1;
+    public float unkn8_2;
+    public float unkn8_3;
+    public float unkn8_4;
+    public float unkn8_5;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtCollision, EfxVersion.DMC5)]
 public partial class EFXAttributePtCollision : RszTool.Efx.EFXAttribute
@@ -163,24 +178,80 @@ public partial class EFXAttributePtCollision : RszTool.Efx.EFXAttribute
     public EFXAttributePtCollision() : base(EfxAttributeType.PtCollision) { }
 
     uint ukn00;
-    float  ukn0;
-    float  ukn1;
-    [RszFixedSizeArray(2)] uint[]? ukn2;
-    float  ukn3;
-    float  ukn4;
-    float  ukn5;
-    float  ukn6;
-
-    [RszFixedSizeArray(2)] uint[]? ukn7;
-    float  ukn8;
-    [RszFixedSizeArray(2)] uint[]? ukn9;
+    float unkn0;
+    float unkn1;
+    uint unkn2;
+    uint unkn3;
+    float unkn4;
+    float unkn5;
+    float unkn6;
+    float unkn7;
+    uint unkn8;
+    uint unkn9;
+    float unkn10;
+    uint unkn11;
+    uint unkn12;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Transform3DModifier, EfxVersion.DMC5)]
 public partial class EFXAttributeTransform3DModifier : RszTool.Efx.EFXAttribute
 {
     public EFXAttributeTransform3DModifier() : base(EfxAttributeType.Transform3DModifier) { }
 
-    [RszFixedSizeArray(55)] public uint[]? ukn;
+    public uint unkn0;
+    public uint unkn1;
+    public uint unkn2;
+    public uint unkn3;
+    public uint unkn4;
+    public uint unkn5;
+    public uint unkn6;
+    public uint unkn7;
+    public uint unkn8;
+    public uint unkn9;
+    public uint unkn10;
+    public uint unkn11;
+    public uint unkn12;
+    public uint unkn13;
+    public uint unkn14;
+    public uint unkn15;
+    public uint unkn16;
+    public uint unkn17;
+    public uint unkn18;
+    public uint unkn19;
+    public uint unkn20;
+    public uint unkn21;
+    public uint unkn22;
+    public uint unkn23;
+    public uint unkn24;
+    public uint unkn25;
+    public uint unkn26;
+    public uint unkn27;
+    public uint unkn28;
+    public uint unkn29;
+    public uint unkn30;
+    public uint unkn31;
+    public uint unkn32;
+    public uint unkn33;
+    public uint unkn34;
+    public uint unkn35;
+    public uint unkn36;
+    public uint unkn37;
+    public uint unkn38;
+    public uint unkn39;
+    public uint unkn40;
+    public uint unkn41;
+    public uint unkn42;
+    public uint unkn43;
+    public uint unkn44;
+    public uint unkn45;
+    public uint unkn46;
+    public uint unkn47;
+    public uint unkn48;
+    public uint unkn49;
+    public uint unkn50;
+    public uint unkn51;
+    public uint unkn52;
+    public uint unkn53;
+    public uint unkn54;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtColorClip, EfxVersion.DMC5)]
 public partial class EFXAttributePtColorClip : RszTool.Efx.EFXAttribute
@@ -188,10 +259,12 @@ public partial class EFXAttributePtColorClip : RszTool.Efx.EFXAttribute
     public EFXAttributePtColorClip() : base(EfxAttributeType.PtColorClip) { }
 
     uint secChunkID;
-    uint ukn2;
+    uint unkn2;
     Cycle_Loop loop;
-    float  loopTime;
-    [RszFixedSizeArray(3)] uint[]? ukn3;
+    float loopTime;
+    public uint unkn3;
+    public uint unkn4;
+    public uint unkn5;
 
     uint firstChunkSize;
     uint secondChunkSize;
@@ -370,7 +443,11 @@ public partial class EFXAttributeTypeMeshClip : RszTool.Efx.EFXAttribute
 
     uint ukn1;
     uint part2Size;
-    [RszFixedSizeArray(5)] uint[]? ukn2;
+    uint ukn2_0;
+    uint ukn2_1;
+    uint ukn2_2;
+    uint ukn2_3;
+    uint ukn2_4;
     uint part3Size;
     uint part4Size;
     uint part5Size;
@@ -384,7 +461,14 @@ public partial class EFXAttributeTypeRibbonFixEndExpression : RszTool.Efx.EFXAtt
 {
     public EFXAttributeTypeRibbonFixEndExpression() : base(EfxAttributeType.TypeRibbonFixEndExpression) { }
 
-    [RszFixedSizeArray(8)] uint[]? ukn1;
+    uint ukn1_0;
+    uint ukn1_1;
+    uint ukn1_2;
+    uint ukn1_3;
+    uint ukn1_4;
+    uint ukn1_5;
+    uint ukn1_6;
+    uint ukn1_7;
 	[RszClassInstance] public EFXExpressionListWrapper expressions = new();
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeBillboard2D, EfxVersion.DMC5)]
@@ -392,31 +476,77 @@ public partial class EFXAttributeTypeBillboard2D : RszTool.Efx.EFXAttribute
 {
     public EFXAttributeTypeBillboard2D() : base(EfxAttributeType.TypeBillboard2D) { }
 
-    [RszFixedSizeArray(16)] uint[]? ukn;
+    public uint unkn0;
+    public uint unkn1;
+    public uint unkn2;
+    public uint unkn3;
+    public uint unkn4;
+    public uint unkn5;
+    public uint unkn6;
+    public uint unkn7;
+    public uint unkn8;
+    public uint unkn9;
+    public uint unkn10;
+    public uint unkn11;
+    public uint unkn12;
+    public uint unkn13;
+    public uint unkn14;
+    public uint unkn15;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.DepthOperator, EfxVersion.DMC5)]
 public partial class EFXAttributeDepthOperator : RszTool.Efx.EFXAttribute
 {
     public EFXAttributeDepthOperator() : base(EfxAttributeType.DepthOperator) { }
 
-    [RszFixedSizeArray(3)] uint[]? ukn;
+    uint unkn0;
+    uint unkn1;
+    uint unkn2;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.ProceduralDistortion, EfxVersion.DMC5)]
 public partial class EFXAttributeProceduralDistortion : RszTool.Efx.EFXAttribute
 {
     public EFXAttributeProceduralDistortion() : base(EfxAttributeType.ProceduralDistortion) { }
 
-    [RszFixedSizeArray(6)] uint[]? ukn;
+    public uint unkn0;
+    public uint unkn1;
+    public uint unkn2;
+    public uint unkn3;
+    public uint unkn4;
+    public uint unkn5;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeMeshExpression, EfxVersion.DMC5)]
 public partial class EFXAttributeTypeMeshExpression : RszTool.Efx.EFXAttribute
 {
     public EFXAttributeTypeMeshExpression() : base(EfxAttributeType.TypeMeshExpression) { }
 
-    uint ukn1;
+    uint unkn1;
     uint part2Size;
-    [RszFixedSizeArray(22)] uint[]? ukn2;
-    [RszConditional(nameof(Version), ">=", EfxVersion.RERT), RszFixedSizeArray(3)] uint[]? ukn_rert;
+    public uint unkn2_0;
+    public uint unkn2_1;
+    public uint unkn2_2;
+    public uint unkn2_3;
+    public uint unkn2_4;
+    public uint unkn2_5;
+    public uint unkn2_6;
+    public uint unkn2_7;
+    public uint unkn2_8;
+    public uint unkn2_9;
+    public uint unkn2_10;
+    public uint unkn2_11;
+    public uint unkn2_12;
+    public uint unkn2_13;
+    public uint unkn2_14;
+    public uint unkn2_15;
+    public uint unkn2_16;
+    public uint unkn2_17;
+    public uint unkn2_18;
+    public uint unkn2_19;
+    public uint unkn2_20;
+    public uint unkn2_21;
+    [RszConditional(nameof(Version), ">=", EfxVersion.RERT, EndAt = nameof(unkn3_2))]
+    public uint unkn3_0;
+    public uint unkn3_1;
+    public uint unkn3_2;
     uint part3Size;
     [RszFixedSizeArray(nameof(part2Size), '/', 4)] public uint[]? part2;
     [RszFixedSizeArray(nameof(part3Size), '/', 4)] public uint[]? part3;
@@ -426,7 +556,12 @@ public partial class EFXAttributeTypePolygonClip : RszTool.Efx.EFXAttribute
 {
     public EFXAttributeTypePolygonClip() : base(EfxAttributeType.TypePolygonClip) { }
 
-    [RszFixedSizeArray(6)] uint[]? ukn1;
+    public uint unkn0;
+    public uint unkn1;
+    public uint unkn2;
+    public uint unkn3;
+    public uint unkn4;
+    public uint unkn5;
     uint part2Size;
     uint part3Size;
     uint part4Size;
@@ -473,7 +608,14 @@ public partial class EFXAttributeTypeStrainRibbon : RszTool.Efx.EFXAttribute
     public float ukn2_26;
     public uint ukn2_27;
     [RszConditional(nameof(Version), ">=", EfxVersion.DMC5)]
-    [RszFixedSizeArray(8)] uint[]? ukn3;
+    public uint ukn3_0;
+    public uint ukn3_1;
+    public uint ukn3_2;
+    public uint ukn3_3;
+    public uint ukn3_4;
+    public uint ukn3_5;
+    public uint ukn3_6;
+    public uint ukn3_7;
     [RszInlineWString] public string? boneName;
 }
 
@@ -482,7 +624,23 @@ public partial class EFXAttributeMeshEmitterExpression : RszTool.Efx.EFXAttribut
 {
     public EFXAttributeMeshEmitterExpression() : base(EfxAttributeType.MeshEmitterExpression) { }
 
-    [RszFixedSizeArray(17)] uint[]? ukn1;
+    public uint unkn0;
+    public uint unkn1;
+    public uint unkn2;
+    public uint unkn3;
+    public uint unkn4;
+    public uint unkn5;
+    public uint unkn6;
+    public uint unkn7;
+    public uint unkn8;
+    public uint unkn9;
+    public uint unkn10;
+    public uint unkn11;
+    public uint unkn12;
+    public uint unkn13;
+    public uint unkn14;
+    public uint unkn15;
+    public uint unkn16;
 	[RszClassInstance] public EFXExpressionListWrapper expressions = new();
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.ShaderSettingsExpression, EfxVersion.DMC5, EfxVersion.RERT, EfxVersion.DD2)]
@@ -517,7 +675,13 @@ public partial class EFXAttributeMeshEmitterClip : RszTool.Efx.EFXAttribute
 {
     public EFXAttributeMeshEmitterClip() : base(EfxAttributeType.MeshEmitterClip) { }
 
-    [RszFixedSizeArray(7)] uint[]? ukn1;
+    public uint unkn0;
+    public uint unkn1;
+    public uint unkn2;
+    public uint unkn3;
+    public uint unkn4;
+    public uint unkn5;
+    public uint unkn6;
     uint part2Size;
     uint part3Size;
     uint part4Size;
@@ -531,7 +695,25 @@ public partial class EFXAttributeTypePolygonExpression : RszTool.Efx.EFXAttribut
 {
     public EFXAttributeTypePolygonExpression() : base(EfxAttributeType.TypePolygonExpression) { }
 
-    [RszFixedSizeArray(19)] uint[]? ukn1;
+    public uint unkn0;
+    public uint unkn1;
+    public uint unkn2;
+    public uint unkn3;
+    public uint unkn4;
+    public uint unkn5;
+    public uint unkn6;
+    public uint unkn7;
+    public uint unkn8;
+    public uint unkn9;
+    public uint unkn10;
+    public uint unkn11;
+    public uint unkn12;
+    public uint unkn13;
+    public uint unkn14;
+    public uint unkn15;
+    public uint unkn16;
+    public uint unkn17;
+    public uint unkn18;
 	[RszClassInstance] public EFXExpressionListWrapper expressions = new();
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeLightning3D, EfxVersion.RE7, EfxVersion.DMC5)]
@@ -601,27 +783,42 @@ public partial class EFXAttributeTypeLightning3D : RszTool.Efx.EFXAttribute
 	public uint unkn2_55;
     [RszVersion(EfxVersion.DMC5)]
 	public uint unkn2_56;
-    [RszFixedSizeArray(2)] byte[]? boneNameEmpty;
+    short boneNameEmpty;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.FakeDoF, EfxVersion.DMC5)]
 public partial class EFXAttributeFakeDoF : RszTool.Efx.EFXAttribute
 {
     public EFXAttributeFakeDoF() : base(EfxAttributeType.FakeDoF) { }
 
-    [RszFixedSizeArray(5)] uint[]? ukn;
+    public uint unkn0;
+    public uint unkn1;
+    public uint unkn2;
+    public uint unkn3;
+    public uint unkn4;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.FluidEmitter2D, EfxVersion.DMC5)]
 public partial class EFXAttributeFluidEmitter2D : RszTool.Efx.EFXAttribute
 {
     public EFXAttributeFluidEmitter2D() : base(EfxAttributeType.FluidEmitter2D) { }
 
-    [RszFixedSizeArray(8)] uint[]? ukn;
+    public uint unkn0;
+    public uint unkn1;
+    public uint unkn2;
+    public uint unkn3;
+    public uint unkn4;
+    public uint unkn5;
+    public uint unkn6;
+    public uint unkn7;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtTransform2D, EfxVersion.DMC5)]
 public partial class EFXAttributePtTransform2D : RszTool.Efx.EFXAttribute
 {
     public EFXAttributePtTransform2D() : base(EfxAttributeType.PtTransform2D) { }
-    [RszFixedSizeArray(5)] uint[]? ukn;
+    public uint unkn0;
+    public uint unkn1;
+    public uint unkn2;
+    public uint unkn3;
+    public uint unkn4;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.FluidSimulator2D, EfxVersion.DMC5, EfxVersion.RERT)]
@@ -629,23 +826,67 @@ public partial class EFXAttributeFluidSimulator2D : RszTool.Efx.EFXAttribute
 {
     public EFXAttributeFluidSimulator2D() : base(EfxAttributeType.FluidSimulator2D) { }
 
-    [RszFixedSizeArray(45)] uint[]? ukn1;
+    public uint unkn1_0;
+    public uint unkn1_1;
+    public uint unkn1_2;
+    public uint unkn1_3;
+    public uint unkn1_4;
+    public uint unkn1_5;
+    public uint unkn1_6;
+    public uint unkn1_7;
+    public uint unkn1_8;
+    public uint unkn1_9;
+    public uint unkn1_10;
+    public uint unkn1_11;
+    public uint unkn1_12;
+    public uint unkn1_13;
+    public uint unkn1_14;
+    public uint unkn1_15;
+    public uint unkn1_16;
+    public uint unkn1_17;
+    public uint unkn1_18;
+    public uint unkn1_19;
+    public uint unkn1_20;
+    public uint unkn1_21;
+    public uint unkn1_22;
+    public uint unkn1_23;
+    public uint unkn1_24;
+    public uint unkn1_25;
+    public uint unkn1_26;
+    public uint unkn1_27;
+    public uint unkn1_28;
+    public uint unkn1_29;
+    public uint unkn1_30;
+    public uint unkn1_31;
+    public uint unkn1_32;
+    public uint unkn1_33;
+    public uint unkn1_34;
+    public uint unkn1_35;
+    public uint unkn1_36;
+    public uint unkn1_37;
+    public uint unkn1_38;
+    public uint unkn1_39;
+    public uint unkn1_40;
+    public uint unkn1_41;
+    public uint unkn1_42;
+    public uint unkn1_43;
+    public uint unkn1_44;
+
     [RszConditional(nameof(Version), "==", EfxVersion.DMC5)]
-    uint ukn2;
+    public uint ukn2;
     [RszConditional(nameof(Version), "==", EfxVersion.RE7)]
-    uint ukn3;
-    uint extraByteCount;
-    uint path1Size;
-    uint path2Size;
-    uint path3Size;
-    uint path4Size;
+    public uint ukn3;
+    public uint extraByteCount;
+    public uint path1Size;
+    public uint path2Size;
+    public uint path3Size;
+    public uint path4Size;
     [RszConditional(nameof(Version), "<=", EfxVersion.DMC5)]//dmc5, re7
-    uint path5Size;
+    public uint path5Size;
     [RszInlineWString(nameof(path1Size))] public string? uvsPath1;
     [RszInlineWString(nameof(path2Size))] public string? uvsPath2;
     [RszInlineWString(nameof(path3Size))] public string? uvsPath3;
     [RszInlineWString(nameof(path4Size))] public string? uvsPath4;
     [RszConditional(nameof(Version), "<=", EfxVersion.DMC5), RszInlineWString(nameof(path5Size))] public string? uvsPath5;
     [RszFixedSizeArray(nameof(extraByteCount))] public byte[]? extraBytes;
-    // [RszFixedSizeArray(129)] public uint[]? ukndata;
 }

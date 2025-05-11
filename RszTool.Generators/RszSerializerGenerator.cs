@@ -125,6 +125,12 @@ public class RszSerializerGenerator : IIncrementalGenerator
                 buildCtx.Indent().AppendLine("yield break;");
                 sb.Append(memberIndent).AppendLine("}");
             }
+        } else {
+            sb.Append(memberIndent).AppendLine($"public static IEnumerable<(string name, Type type)> GetFieldList()");
+            sb.Append(memberIndent).AppendLine("{");
+            WriteFieldList(buildCtx);
+            buildCtx.Indent().AppendLine("yield break;");
+            sb.Append(memberIndent).AppendLine("}");
         }
 
         if (context.ClassDecl.HasAttribute("RszAutoReadWrite") || context.ClassDecl.HasAttribute("RszAutoRead")) {
@@ -219,7 +225,7 @@ public class RszSerializerGenerator : IIncrementalGenerator
     private static string? EvaluateExpressionFieldIdentifier(ClassBuildContext ctx, ExpressionSyntax? expr)
     {
         if (expr == null) return null;
-        var fields = ctx.context.ClassDecl.ChildNodes().OfType<FieldDeclarationSyntax>();
+        var fields = ctx.context.ClassDecl.GetFields();
 
         var field = EvaluateExpressionIdentifier(ctx, expr);
         if (field == null) {
@@ -274,10 +280,24 @@ public class RszSerializerGenerator : IIncrementalGenerator
             if (EvaluateExpressionString(ctx, field.GetAttribute("RszStringAsciiHash")?.ArgumentList?.Arguments.FirstOrDefault()?.Expression) is string str2) {
                 ctx.Indent().AppendLine($"if ({name} == 0) {name} = global::RszTool.Common.MurMur3HashUtils.GetAsciiHash({str2});");
             }
+            if (EvaluateExpressionString(ctx, field.GetAttribute("RszStringUTF8Hash")?.ArgumentList?.Arguments.FirstOrDefault()?.Expression) is string str3) {
+                ctx.Indent().AppendLine($"if ({name} == 0) {name} = global::RszTool.Common.MurMur3HashUtils.GetUTF8Hash({str3});");
+            }
+            if (EvaluateExpressionString(ctx, field.GetAttribute("RszStringLengthField")?.ArgumentList?.Arguments.FirstOrDefault()?.Expression) is string str4) {
+                ctx.Indent().AppendLine($"{name} = {str4}.Length;");
+            }
+            if (EvaluateExpressionString(ctx, field.GetAttribute("RszArraySizeField")?.ArgumentList?.Arguments.FirstOrDefault()?.Expression) is string str5) {
+                var targetField = ctx.context.ClassDecl.GetFields().FirstOrDefault(f => f.GetFieldName() == str5);
+                if (targetField != null && targetField.GetFieldType() is GenericNameSyntax generic) {
+                    ctx.Indent().AppendLine($"{name} = {str5}.Count;");
+                } else {
+                    ctx.Indent().AppendLine($"{name} = {str5}.Length;");
+                }
+            }
         }
 
         AttributeSyntax mainAttr;
-        if (field.TryGetAttribute("RszList", out mainAttr)) {
+        if (field.TryGetAttribute("RszList", out mainAttr) || (handle == HandleType.FieldList && field.TryGetAttribute("RszFixedSizeArray", out mainAttr))) {
             var isClass = field.HasAttribute("RszClassInstance");
             var isString = !isClass && field.HasAttribute("RszInlineString");
             var isWString = !isClass && !isString && field.HasAttribute("RszInlineWString");
@@ -311,13 +331,11 @@ public class RszSerializerGenerator : IIncrementalGenerator
                 }
             } else if (handle == HandleType.FieldList) {
                 var size = EvaluateAttributeExpressionList(ctx, mainAttr.GetPositionalArguments());
-                var count = 0;
-                if (string.IsNullOrEmpty(size)) {
-                    count = 1;
-                } else if (!int.TryParse(size, out count)) {
-                    count = 1;
+                if (!int.TryParse(size, out var count)) {
+                    count = 999;
                 }
-                ctx.Indent().AppendLine($"yield return (nameof({name}), typeof({field.GetFieldType()?.GetArrayElementType()}));");
+                var fieldType = field.GetFieldType()!;
+                ctx.Indent().AppendLine($"yield return (nameof({name}), typeof({fieldType.GetElementTypeName()}));");
             }
         } else if (field.TryGetAttribute("RszInlineWString", out mainAttr) || field.TryGetAttribute("RszInlineString", out mainAttr)) {
             var stringType = mainAttr.Name.ToString().Contains("WString") ? "WString" : "AsciiString";
@@ -340,7 +358,7 @@ public class RszSerializerGenerator : IIncrementalGenerator
                 }
             } else if (handle == HandleType.FieldList) {
                 if (string.IsNullOrEmpty(size)) {
-                    ctx.Indent().AppendLine($"yield return (nameof({name}), typeof(uint));");
+                    ctx.Indent().AppendLine($"yield return (\"len_{name}\", typeof(uint));");
                 }
                 ctx.Indent().AppendLine($"yield return (nameof({name}), typeof({field.GetFieldType()?.GetArrayElementType()}));");
             }
@@ -360,10 +378,14 @@ public class RszSerializerGenerator : IIncrementalGenerator
             var elementType = fieldType?.GetArrayElementType();
             var size = EvaluateAttributeExpressionList(ctx, mainAttr.GetPositionalArguments());
             if (handle == HandleType.Write) {
-                ctx.Indent().AppendLine($"if ({name} == null || {name}.Length != ({size}))");
+                ctx.Indent().AppendLine($"{name} ??= new {elementType}[{size}];");
+                ctx.Indent().AppendLine($"if ({name}.Length != ({size})) {{");
                 ctx.AddIndent();
-                ctx.Indent().AppendLine($"{name} = new {elementType}[{size}];");
+                ctx.Indent().AppendLine($"var tmpArray_{name} = new {elementType}[{size}];");
+                ctx.Indent().AppendLine($"Array.Copy({name}, tmpArray_{name}, Math.Min({size}, {name}.Length));");
+                ctx.Indent().AppendLine($"{name} = tmpArray_{name};");
                 ctx.ReduceIndent();
+                ctx.Indent().AppendLine($"}}");
                 ctx.Indent().AppendLine($"handler.WriteArray({name});");
             } else if (handle == HandleType.Read) {
                 ctx.Indent().AppendLine($"{name} = handler.ReadArray<{elementType}>((int)({size}));");

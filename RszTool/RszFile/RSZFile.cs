@@ -1,5 +1,6 @@
 using System.Text;
 using RszTool.Common;
+using RszTool.InternalAttributes;
 
 namespace RszTool
 {

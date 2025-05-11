@@ -1,13 +1,14 @@
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using RszTool.Efx;
 
-namespace RszTool
+namespace RszTool.InternalAttributes
 {
     /// <summary>
     /// Generate the read/write code for a given class - DefaultRead(FileHandler) and DefaultWrite(FileHandler).
     /// </summary>
     [System.AttributeUsage(System.AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
-    internal sealed class RszGenerateAttribute : System.Attribute
+    public sealed class RszGenerateAttribute : System.Attribute
     {
     }
 
@@ -15,7 +16,7 @@ namespace RszTool
     /// Automate the read method for an IModel fully.
     /// </summary>
     [System.AttributeUsage(System.AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
-    internal sealed class RszAutoReadAttribute : System.Attribute
+    public sealed class RszAutoReadAttribute : System.Attribute
     {
     }
 
@@ -23,7 +24,7 @@ namespace RszTool
     /// Automate the write method for an IModel fully.
     /// </summary>
     [System.AttributeUsage(System.AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
-    internal sealed class RszAutoWriteAttribute : System.Attribute
+    public sealed class RszAutoWriteAttribute : System.Attribute
     {
     }
 
@@ -31,7 +32,7 @@ namespace RszTool
     /// Automate both the read and write methods for an IModel fully.
     /// </summary>
     [System.AttributeUsage(System.AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
-    internal sealed class RszAutoReadWriteAttribute : System.Attribute
+    public sealed class RszAutoReadWriteAttribute : System.Attribute
     {
     }
 
@@ -40,7 +41,7 @@ namespace RszTool
     /// Ignore the marked field for serializer purposes, for fields that can't be easily automated.
     /// </summary>
     [System.AttributeUsage(System.AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
-    internal sealed class RszIgnoreAttribute : System.Attribute
+    public sealed class RszIgnoreAttribute : System.Attribute
     {
     }
 
@@ -48,7 +49,7 @@ namespace RszTool
     /// Mark a string as being an inline wstring (UTF-16). If no size is provided, a length integer prefix is expected.
     /// </summary>
     [System.AttributeUsage(System.AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
-    internal sealed class RszInlineWStringAttribute : System.Attribute
+    public sealed class RszInlineWStringAttribute : System.Attribute
     {
         public object[] SizeProvider { get; }
 
@@ -62,7 +63,7 @@ namespace RszTool
     /// Mark a string as being an int64 offset to a wstring (UTF-16) in the string table.
     /// </summary>
     [System.AttributeUsage(System.AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
-    internal sealed class RszOffsetWStringAttribute : System.Attribute
+    public sealed class RszOffsetWStringAttribute : System.Attribute
     {
     }
 
@@ -70,7 +71,7 @@ namespace RszTool
     /// Mark a string as being an inline ascii string. If no size is provided, a length integer prefix is expected.
     /// </summary>
     [System.AttributeUsage(System.AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
-    internal sealed class RszInlineStringAttribute : System.Attribute
+    public sealed class RszInlineStringAttribute : System.Attribute
     {
         public object[] SizeProvider { get; }
 
@@ -84,7 +85,7 @@ namespace RszTool
     /// Add a fixed size padding after the field.
     /// </summary>
     [System.AttributeUsage(System.AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
-    internal sealed class RszPaddingAfterAttribute : System.Attribute
+    public sealed class RszPaddingAfterAttribute : System.Attribute
     {
         public int Amount { get; }
         public object[] Condition { get; }
@@ -100,7 +101,7 @@ namespace RszTool
     /// Mark a field as containing the UTF-16 MurMur3 hash of the given string field.
     /// </summary>
     [System.AttributeUsage(System.AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
-    internal sealed class RszStringHashAttribute : System.Attribute
+    public sealed class RszStringHashAttribute : System.Attribute
     {
         public string HashedStringField { get; init; }
 
@@ -114,7 +115,7 @@ namespace RszTool
     /// Mark a field as containing the ascii MurMur3 hash of the given string field.
     /// </summary>
     [System.AttributeUsage(System.AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
-    internal sealed class RszStringAsciiHashAttribute : System.Attribute
+    public sealed class RszStringAsciiHashAttribute : System.Attribute
     {
         public string HashedStringField { get; init; }
 
@@ -124,12 +125,68 @@ namespace RszTool
         }
     }
 
+    /// <summary>
+    /// Mark a field as containing the UTF8 MurMur3 hash of the given string field.
+    /// </summary>
+    [System.AttributeUsage(System.AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
+    public sealed class RszStringUTF8HashAttribute : System.Attribute
+    {
+        public string HashedStringField { get; init; }
+
+        public RszStringUTF8HashAttribute(string field)
+        {
+            HashedStringField = field;
+        }
+    }
+
+    /// <summary>
+    /// Mark a field as containing the size of an array.
+    /// </summary>
+    [System.AttributeUsage(System.AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
+    public sealed class RszArraySizeFieldAttribute : System.Attribute
+    {
+        public string ArrayField { get; init; }
+
+        public RszArraySizeFieldAttribute(string arrayField)
+        {
+            ArrayField = arrayField;
+        }
+    }
+
+    /// <summary>
+    /// Mark a field as containing the byte size of an object.
+    /// </summary>
+    [System.AttributeUsage(System.AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
+    public sealed class RszByteSizeFieldAttribute : System.Attribute
+    {
+        public string TargetObject { get; init; }
+
+        public RszByteSizeFieldAttribute(string arrayField)
+        {
+            TargetObject = arrayField;
+        }
+    }
+
+    /// <summary>
+    /// Mark a field as containing the length of a string.
+    /// </summary>
+    [System.AttributeUsage(System.AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
+    public sealed class RszStringLengthFieldAttribute : System.Attribute
+    {
+        public string StringField { get; init; }
+
+        public RszStringLengthFieldAttribute(string stringField)
+        {
+            StringField = stringField;
+        }
+    }
+
 
     /// <summary>
     /// Conditionally deserialize the marked field. EndAt can be used to share the condition for multiple sequential fields.
     /// </summary>
     [System.AttributeUsage(System.AttributeTargets.Field, Inherited = false, AllowMultiple = true)]
-    internal sealed class RszConditionalAttribute : System.Attribute
+    public sealed class RszConditionalAttribute : System.Attribute
     {
         public object[] Condition { get; }
         public string? EndAt { get; init; }
@@ -145,7 +202,7 @@ namespace RszTool
     /// Marks a TStruct[] field with an optional size. If size parameters are not given, a length integer prefix is expected.
     /// </summary>
     [System.AttributeUsage(System.AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
-    internal sealed class RszFixedSizeArrayAttribute : System.Attribute
+    public sealed class RszFixedSizeArrayAttribute : System.Attribute
     {
         public object[] SizeFunc { get; }
 
@@ -160,7 +217,7 @@ namespace RszTool
     /// Marks a List<IModel> field. If size parameters are not given, a length prefixed integer is expected.
     /// </summary>
     [System.AttributeUsage(System.AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
-    internal sealed class RszListAttribute : System.Attribute
+    public sealed class RszListAttribute : System.Attribute
     {
         public object[] SizeFunc { get; }
 
@@ -175,7 +232,7 @@ namespace RszTool
     /// Mark the type as needing to be instantiated with specific constructor parameters.
     /// </summary>
     [System.AttributeUsage(System.AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
-    internal sealed class RszConstructorParamsAttribute : System.Attribute
+    public sealed class RszConstructorParamsAttribute : System.Attribute
     {
         public object[] Parameters { get; }
 
@@ -189,7 +246,7 @@ namespace RszTool
     /// Marks an IModel class.
     /// </summary>
     [System.AttributeUsage(System.AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
-    internal sealed class RszClassInstanceAttribute : System.Attribute
+    public sealed class RszClassInstanceAttribute : System.Attribute
     {
     }
 
@@ -197,7 +254,7 @@ namespace RszTool
     /// Marks an abstract type based on conditions. Target field must be an IModel class.
     /// </summary>
     [System.AttributeUsage(System.AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
-    internal sealed class RszSwitchAttribute : System.Attribute
+    public sealed class RszSwitchAttribute : System.Attribute
     {
         public object[] Args { get; }
 
@@ -208,7 +265,7 @@ namespace RszTool
     }
 
     [System.AttributeUsage(System.AttributeTargets.Class, Inherited = false, AllowMultiple = true)]
-    internal sealed class EfxStructAttribute : System.Attribute
+    public sealed class EfxStructAttribute : System.Attribute
     {
         public EfxAttributeType AttributeType { get; }
         public EfxVersion[] GameVersions { get; }
@@ -224,7 +281,7 @@ namespace RszTool
     /// Mark the class type as having versioning support based on the specified version type
     /// </summary>
     [System.AttributeUsage(System.AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
-    internal sealed class RszVersionedObjectAttribute : System.Attribute
+    public sealed class RszVersionedObjectAttribute : System.Attribute
     {
         public Type VersionValueType { get; }
         public string VersionFieldName { get; }
@@ -240,7 +297,7 @@ namespace RszTool
     /// Conditionally deserialize the marked field based on a version condition. EndAt can be used to share the condition for multiple sequential fields.
     /// </summary>
     [System.AttributeUsage(System.AttributeTargets.Field, Inherited = false, AllowMultiple = true)]
-    internal sealed class RszVersionAttribute : System.Attribute
+    public sealed class RszVersionAttribute : System.Attribute
     {
         public object[] Condition { get; }
         public string? EndAt { get; init; }
@@ -249,11 +306,5 @@ namespace RszTool
         {
             Condition = condition;
         }
-    }
-
-
-    public class FieldListInput
-    {
-        public int FileVersion { get; set; }
     }
 }

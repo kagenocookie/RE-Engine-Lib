@@ -1,5 +1,6 @@
 using System.Numerics;
 using RszTool;
+using RszTool.InternalAttributes;
 
 namespace RszTool.Efx.Structs;
 
@@ -67,8 +68,8 @@ public struct ExpressionStruct_Param1 {
 [RszGenerate, RszAutoReadWrite]
 public partial class EFXExpression : BaseModel
 {
-	public uint struct1Count;// input parameters?
-	public uint struct2Count;
+	[RszArraySizeField(nameof(struct1))] public int struct1Count;// input parameters?
+	[RszArraySizeField(nameof(struct2))] public int struct2Count;
 	[RszFixedSizeArray(nameof(struct1Count))] public ExpressionStruct_Param1[]? struct1;
 
 	[RszClassInstance, RszList(nameof(struct2Count))]
@@ -81,8 +82,8 @@ public partial class EFXExpression : BaseModel
 [RszGenerate, RszAutoReadWrite]
 public partial class EFXExpression3 : BaseModel
 {
-	public uint struct1Count;
-	public uint struct2Count;
+	[RszArraySizeField(nameof(struct1))] public int struct1Count;
+	[RszArraySizeField(nameof(struct2))] public int struct2Count;
 	public uint struct3Count;
 	[RszFixedSizeArray(nameof(struct1Count))] public ExpressionStruct_Param1[]? struct1;
 
@@ -93,12 +94,13 @@ public partial class EFXExpression3 : BaseModel
 [RszGenerate, RszAutoReadWrite]
 public abstract partial class EFXExpressionListWrapperBase : BaseModel
 {
-	public uint solverSize;
+	[RszByteSizeField("")] public uint solverSize;
 }
 
+[RszGenerate]
 public partial class EFXExpressionListWrapper : EFXExpressionListWrapperBase
 {
-	public List<EFXExpression> expressions = new();
+	[RszClassInstance, RszList] public List<EFXExpression> expressions = new();
 
     protected override bool DoRead(FileHandler handler)
     {
@@ -114,8 +116,9 @@ public partial class EFXExpressionListWrapper : EFXExpressionListWrapperBase
 
     protected override bool DoWrite(FileHandler handler)
     {
+		handler.Skip(4);
 		expressions.Write(handler);
-		handler.Write(Start, (uint)(handler.Tell() - Start));
+		handler.Write(Start, (uint)(handler.Tell() - Start) - 4);
 		return true;
     }
 }
@@ -123,7 +126,7 @@ public partial class EFXExpressionListWrapper : EFXExpressionListWrapperBase
 [RszGenerate]
 public partial class EFXExpressionListWrapper2 : EFXExpressionListWrapperBase
 {
-	public uint indexCount;
+	[RszArraySizeField(nameof(data2))] public int indexCount;
 	[RszFixedSizeArray(nameof(solverSize), "/4")] public uint[]? unknData;
 	[RszFixedSizeArray(nameof(indexCount))] public uint[]? data2;
 

@@ -1,6 +1,7 @@
 using System.Numerics;
 using RszTool;
 using RszTool.Efx.Structs.RERT;
+using RszTool.InternalAttributes;
 
 namespace RszTool.Efx.Structs.RE4;
 
@@ -2565,8 +2566,24 @@ public partial class EFXAttributeVelocity2DExpression : EFXAttribute
 	public EFXAttributeVelocity2DExpression() : base(EfxAttributeType.Velocity2DExpression) { }
 
     public uint unkn0;
-    [RszFixedSizeArray(8)] public uint[]? unkn1;
-    [RszVersion(EfxVersion.RE4), RszFixedSizeArray(5)] public uint[]? unkn2;
+    public uint unkn1;
+    public uint unkn2;
+    public uint unkn3;
+    public uint unkn4;
+    public uint unkn5;
+    public uint unkn6;
+    public uint unkn7;
+    public uint unkn8;
+
+    [RszVersion(EfxVersion.RE4, EndAt = nameof(unkn2_7))]
+    public uint unkn2_0;
+    public uint unkn2_1;
+    public uint unkn2_2;
+    public uint unkn2_3;
+    public uint unkn2_4;
+    public uint unkn2_5;
+    public uint unkn2_6;
+    public uint unkn2_7;
 
 	[RszSwitch(
 		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXExpressionListWrapper3),
@@ -2810,8 +2827,8 @@ public partial class EFXAttributeunknRE4Struct150 : EFXAttribute
 	[RszVersion(EfxVersion.DD2, EndAt = nameof(ukn13))]
 	public float ukn12;
 	public uint ukn13;
-	public uint colorCount;
-	public uint subsizeCount;
+	[RszArraySizeField(nameof(colors))] public int colorCount;
+	[RszArraySizeField(nameof(ukn_data))] public int subsizeCount;
 	public uint uvs0PathUnicodeCharCount;
 	public uint uvs1PathUnicodeCharCount;
 	public uint uvs2PathUnicodeCharCount;
@@ -3199,7 +3216,7 @@ public partial class EFXAttributePlayEmitter : EFXAttribute
 {
 	public EFXAttributePlayEmitter() : base(EfxAttributeType.PlayEmitter) { }
 
-	public uint fileSize;
+	[RszByteSizeField(nameof(efxrData))] public uint fileSize;
 	[RszFixedSizeArray(nameof(fileSize))] public byte[]? efxrData;
 }
 
@@ -3315,9 +3332,9 @@ public partial class EFXAttributeAttractorClip : EFXAttribute
 	public uint unkn4;//Values:[4]
 	public uint unkn5;//Values:[12, 16]
 	public uint null6;//Values:[0]
-	public uint substruct1Length;//Values:[32]
-	public uint substruct2Length;//Values:[144, 192]
-	public uint substruct3Length;//Values:[0]
+	[RszArraySizeField(nameof(substruct1))] public int substruct1Length;//Values:[32]
+	[RszArraySizeField(nameof(substruct2))] public int substruct2Length;//Values:[144, 192]
+	[RszArraySizeField(nameof(substruct3))] public int substruct3Length;//Values:[0]
 	[RszFixedSizeArray(nameof(substruct1Length), '/', 4)] public int[]? substruct1;
 	[RszFixedSizeArray(nameof(substruct2Length), '/', 4)] public int[]? substruct2;
 	[RszFixedSizeArray(nameof(substruct3Length), '/', 4)] public float[]? substruct3;
@@ -3335,9 +3352,9 @@ public partial class EFXAttributeEmitterColorClip : EFXAttribute
 	public uint unkn4;//Values:[4]
 	public uint unkn5;//Values:[12, 16]
 	public uint null6;//Values:[0]
-	public uint substruct1Length;//Values:[32]
-	public uint substruct2Length;//Values:[144, 192]
-	public uint substruct3Length;//Values:[0]
+	[RszArraySizeField(nameof(substruct1))] public int substruct1Length;//Values:[32]
+	[RszArraySizeField(nameof(substruct2))] public int substruct2Length;//Values:[144, 192]
+	[RszArraySizeField(nameof(substruct3))] public int substruct3Length;//Values:[0]
 	[RszFixedSizeArray(nameof(substruct1Length), '/', 4)] public int[]? substruct1;
 	[RszFixedSizeArray(nameof(substruct2Length), '/', 4)] public int[]? substruct2;
 	[RszFixedSizeArray(nameof(substruct3Length), '/', 4)] public float[]? substruct3;
@@ -3355,9 +3372,9 @@ public partial class EFXAttributeProceduralDistortionClip : EFXAttribute
     public uint unkn4;
     public uint unkn5;
     public uint null6;
-    public uint substruct1Length;
-    public uint substruct2Length;
-    public uint substruct3Length;
+	[RszArraySizeField(nameof(substruct1))] public int substruct1Length;
+	[RszArraySizeField(nameof(substruct2))] public int substruct2Length;
+	[RszArraySizeField(nameof(substruct3))] public int substruct3Length;
     [RszFixedSizeArray(nameof(substruct1Length), '/', 4)] public int[]? substruct1;
     [RszFixedSizeArray(nameof(substruct2Length), '/', 4)] public int[]? substruct2;
     [RszFixedSizeArray(nameof(substruct3Length), '/', 4)] public float[]? substruct3;
@@ -3376,9 +3393,9 @@ public partial class EFXAttributePtColorClip : EFXAttribute
     uint unkn4;
     uint unkn5;
     uint unkn6;
-    uint substruct1Length;
-    uint substruct2Length;
-    uint substruct3Length;
+	[RszArraySizeField(nameof(substruct1))] public int substruct1Length;
+	[RszArraySizeField(nameof(substruct2))] public int substruct2Length;
+	[RszArraySizeField(nameof(substruct3))] public int substruct3Length;
     [RszFixedSizeArray(nameof(substruct1Length), '/', 4)] public int[]? substruct1;
     [RszFixedSizeArray(nameof(substruct2Length), '/', 4)] public int[]? substruct2;
     [RszFixedSizeArray(nameof(substruct3Length), '/', 4)] public float[]? substruct3;
@@ -3396,9 +3413,9 @@ public partial class EFXAttributePtTransform3DClip : EFXAttribute
     uint unkn4;
     uint unkn5;
     uint unkn6;
-    uint substruct1Length;
-    uint substruct2Length;
-    uint substruct3Length;
+	[RszArraySizeField(nameof(substruct1))] public int substruct1Length;
+	[RszArraySizeField(nameof(substruct2))] public int substruct2Length;
+	[RszArraySizeField(nameof(substruct3))] public int substruct3Length;
     [RszFixedSizeArray(nameof(substruct1Length), '/', 4)] public int[]? substruct1;
     [RszFixedSizeArray(nameof(substruct2Length), '/', 4)] public int[]? substruct2;
     [RszFixedSizeArray(nameof(substruct3Length), '/', 4)] public float[]? substruct3;
@@ -3417,9 +3434,9 @@ public partial class EFXAttributePtUvSequenceClip : EFXAttribute
     uint unkn5;
     uint unkn6;
 
-    uint substruct1Length;
-    uint substruct2Length;
-    uint substruct3Length;
+	[RszArraySizeField(nameof(substruct1))] public int substruct1Length;
+	[RszArraySizeField(nameof(substruct2))] public int substruct2Length;
+	[RszArraySizeField(nameof(substruct3))] public int substruct3Length;
     [RszFixedSizeArray(nameof(substruct1Length), '/', 4)] public int[]? substruct1;
     [RszFixedSizeArray(nameof(substruct2Length), '/', 4)] public int[]? substruct2;
     [RszFixedSizeArray(nameof(substruct3Length), '/', 4)] public float[]? substruct3;
@@ -3491,7 +3508,7 @@ public partial class EFXAttributeunknRE4Struct177 : EFXAttribute
 
 	public uint unkn1;
 	[RszFixedSizeArray(20)] public uint[]? unkn2;
-	public int dataSize;
+	[RszByteSizeField(nameof(unkn5))] public int dataSize;
 	[RszClassInstance, RszList(nameof(dataSize), "/ 44")] public List<unknRE4Struct177_struct> unkn5 = new();
 }
 
@@ -3530,9 +3547,9 @@ public partial class EFXAttributePtVelocity3DClip : EFXAttribute
     uint unkn5;
     uint null6;
 
-    uint substruct1Length;
-    uint substruct2Length;
-    uint substruct3Length;
+	[RszArraySizeField(nameof(substruct1))] public int substruct1Length;
+	[RszArraySizeField(nameof(substruct2))] public int substruct2Length;
+	[RszArraySizeField(nameof(substruct3))] public int substruct3Length;
     [RszFixedSizeArray(nameof(substruct1Length), '/', 4)] public int[]? substruct1;
     [RszFixedSizeArray(nameof(substruct2Length), '/', 4)] public int[]? substruct2;
     [RszFixedSizeArray(nameof(substruct3Length), '/', 4)] public float[]? substruct3;
@@ -3550,9 +3567,9 @@ public partial class EFXAttributeTexelChannelOperatorClip : EFXAttribute
     uint unkn4;
     uint unkn5;
     uint unkn6;
-    uint substruct1Length;
-    uint substruct2Length;
-    uint substruct3Length;
+	[RszArraySizeField(nameof(substruct1))] public int substruct1Length;
+	[RszArraySizeField(nameof(substruct2))] public int substruct2Length;
+	[RszArraySizeField(nameof(substruct3))] public int substruct3Length;
     [RszFixedSizeArray(nameof(substruct1Length), '/', 4)] public int[]? substruct1;
     [RszFixedSizeArray(nameof(substruct2Length), '/', 4)] public int[]? substruct2;
     [RszFixedSizeArray(nameof(substruct3Length), '/', 4)] public float[]? substruct3;
@@ -3570,9 +3587,9 @@ public partial class EFXAttributeTransform3DClip : EFXAttribute
     uint unkn4;
     uint unkn5;
     uint unkn6;
-    uint substruct1Length;
-    uint substruct2Length;
-    uint substruct3Length;
+	[RszArraySizeField(nameof(substruct1))] public int substruct1Length;
+	[RszArraySizeField(nameof(substruct2))] public int substruct2Length;
+	[RszArraySizeField(nameof(substruct3))] public int substruct3Length;
     [RszFixedSizeArray(nameof(substruct1Length), '/', 4)] public int[]? substruct1;
     [RszFixedSizeArray(nameof(substruct2Length), '/', 4)] public int[]? substruct2;
     [RszFixedSizeArray(nameof(substruct3Length), '/', 4)] public float[]? substruct3;
@@ -3645,9 +3662,9 @@ public partial class EFXAttributeTypePolygonClip : EFXAttribute
     uint unkn4;
     uint unkn5;
     uint null6;
-    uint substruct1Length;
-    uint substruct2Length;
-    uint substruct3Length;
+	[RszArraySizeField(nameof(substruct1))] public int substruct1Length;
+	[RszArraySizeField(nameof(substruct2))] public int substruct2Length;
+	[RszArraySizeField(nameof(substruct3))] public int substruct3Length;
     [RszFixedSizeArray(nameof(substruct1Length), '/', 4)] public int[]? substruct1;
     [RszFixedSizeArray(nameof(substruct2Length), '/', 4)] public int[]? substruct2;
     [RszFixedSizeArray(nameof(substruct3Length), '/', 4)] public float[]? substruct3;
@@ -3665,9 +3682,9 @@ public partial class EFXAttributeVectorFieldParameterClip : EFXAttribute
     uint unkn4;
     uint unkn5;
     uint null6;
-    uint substruct1Length;
-    uint substruct2Length;
-    uint substruct3Length;
+	[RszArraySizeField(nameof(substruct1))] public int substruct1Length;
+	[RszArraySizeField(nameof(substruct2))] public int substruct2Length;
+	[RszArraySizeField(nameof(substruct3))] public int substruct3Length;
     [RszFixedSizeArray(nameof(substruct1Length), '/', 4)] public int[]? substruct1;
     [RszFixedSizeArray(nameof(substruct2Length), '/', 4)] public int[]? substruct2;
     [RszFixedSizeArray(nameof(substruct3Length), '/', 4)] public float[]? substruct3;
@@ -3741,26 +3758,26 @@ public partial class EFXAttributeTypeMeshClip : EFXAttribute
 {
     public EFXAttributeTypeMeshClip() : base(EfxAttributeType.TypeMeshClip) { }
 
-	uint null1;
-    uint unkn2;
-    int unkn3;
-    float unkn4;
-    uint substruct1Count;
-    uint substruct2Count;
-    uint substruct3Count;
+	public uint null1;
+    public uint unkn2;
+    public int unkn3;
+    public float unkn4;
+	[RszArraySizeField(nameof(substruct1))] public int substruct1Count;
+	[RszArraySizeField(nameof(substruct2))] public int substruct2Count;
+	[RszArraySizeField(nameof(substruct3))] public int substruct3Count;
 
-    uint substruct1Length;
-    uint substruct2Length;
-    uint substruct3Length;
+    public uint substruct1Length;
+    public uint substruct2Length;
+    public uint substruct3Length;
 	[RszVersion(EfxVersion.RE4)]
-    uint substruct4CountMaybe;
-    uint indicesCount;
+    public uint substruct4CountMaybe;
+    [RszArraySizeField(nameof(indices))] public int indicesCount;
 
     [RszFixedSizeArray(nameof(substruct1Count))] public MeshClip_Struct1[]? substruct1;
     [RszFixedSizeArray(nameof(substruct2Count))] public MeshClip_Struct2[]? substruct2;
     [RszFixedSizeArray(nameof(substruct3Count))] public MeshClip_Struct3[]? substruct3;
     [RszFixedSizeArray(nameof(substruct1Count))] public MeshClip_Struct4[]? substruct4;
-    [RszFixedSizeArray(nameof(indicesCount))] uint[]? indices;
+    [RszFixedSizeArray(nameof(indicesCount))] public uint[]? indices;
 
     public struct MeshClip_Struct1
     {
@@ -3808,9 +3825,9 @@ public partial class EFXAttributeunknRE4Struct213 : EFXAttribute
     public EFXAttributeunknRE4Struct213() : base(EfxAttributeType.unknRE4Struct213) { }
 
     public uint null1;
-    public uint substruct1Count;
+	[RszArraySizeField(nameof(substruct1))] public int substruct1Count;
     public float unkn2_0;
-    public uint substruct2Count;
+	[RszArraySizeField(nameof(substruct2))] public int substruct2Count;
 
     [RszFixedSizeArray(nameof(substruct1Count))] public unknRE4Struct213_Substruct1[]? substruct1;
     [RszFixedSizeArray(nameof(substruct2Count))] public unknRE4Struct213_Substruct2[]? substruct2;
@@ -3845,8 +3862,7 @@ public partial class EFXAttributeunknSBStruct195 : EFXAttribute
     [RszVersion(EfxVersion.RE4)]
     public uint re4_unkn0;
     public float unkn2_0;
-    public uint substructCount;
-
+	[RszArraySizeField(nameof(substruct))] public int substructCount;
     [RszFixedSizeArray(nameof(substructCount))] public EFXAttributeunknSBStruct195_Substruct[]? substruct;
 
     public float unkn13;
@@ -3895,6 +3911,12 @@ public partial class PtBehaviorVariableDataBase : BaseModel
 	[RszVersion(EfxVersion.RE4, EndAt = nameof(re4_unkn1))]
 	public short re4_unkn0;
 	public short re4_unkn1;
+
+	protected bool EnsureMinimumSize(int minSize)
+	{
+		if (size < minSize) size = minSize;
+		return true;
+	}
 }
 
 [RszGenerate, RszVersionedObject(typeof(EfxVersion))]
@@ -3906,7 +3928,7 @@ public partial class PtBehaviorVariableDataColor : PtBehaviorVariableDataBase
 	[RszFixedSizeArray(nameof(size), - 4)] public byte[]? restData;
 
     protected override bool DoRead(FileHandler handler) => base.DoRead(handler) && DefaultRead(handler);
-    protected override bool DoWrite(FileHandler handler) => base.DoWrite(handler) && DefaultWrite(handler);
+    protected override bool DoWrite(FileHandler handler) => EnsureMinimumSize(4) && base.DoWrite(handler) && DefaultWrite(handler);
 }
 
 [RszGenerate, RszVersionedObject(typeof(EfxVersion))]
@@ -3918,7 +3940,7 @@ public partial class PtBehaviorVariableInteger : PtBehaviorVariableDataBase
 	[RszFixedSizeArray(nameof(size), - 4)] public byte[]? restData;
 
     protected override bool DoRead(FileHandler handler) => base.DoRead(handler) && DefaultRead(handler);
-    protected override bool DoWrite(FileHandler handler) => base.DoWrite(handler) && DefaultWrite(handler);
+    protected override bool DoWrite(FileHandler handler) => EnsureMinimumSize(4) && base.DoWrite(handler) && DefaultWrite(handler);
 }
 [RszGenerate, RszVersionedObject(typeof(EfxVersion))]
 public partial class PtBehaviorVariableFloat : PtBehaviorVariableDataBase
@@ -3929,7 +3951,7 @@ public partial class PtBehaviorVariableFloat : PtBehaviorVariableDataBase
 	[RszFixedSizeArray(nameof(size), - 4)] public byte[]? restData;
 
     protected override bool DoRead(FileHandler handler) => base.DoRead(handler) && DefaultRead(handler);
-    protected override bool DoWrite(FileHandler handler) => base.DoWrite(handler) && DefaultWrite(handler);
+    protected override bool DoWrite(FileHandler handler) => EnsureMinimumSize(4) && base.DoWrite(handler) && DefaultWrite(handler);
 }
 [RszGenerate, RszVersionedObject(typeof(EfxVersion))]
 public partial class PtBehaviorVariableFloat2 : PtBehaviorVariableDataBase
@@ -3940,7 +3962,7 @@ public partial class PtBehaviorVariableFloat2 : PtBehaviorVariableDataBase
 	[RszFixedSizeArray(nameof(size), - 8)] public byte[]? restData;
 
     protected override bool DoRead(FileHandler handler) => base.DoRead(handler) && DefaultRead(handler);
-    protected override bool DoWrite(FileHandler handler) => base.DoWrite(handler) && DefaultWrite(handler);
+    protected override bool DoWrite(FileHandler handler) => EnsureMinimumSize(8) && base.DoWrite(handler) && DefaultWrite(handler);
 }
 [RszGenerate, RszVersionedObject(typeof(EfxVersion))]
 public partial class PtBehaviorVariableFloat3 : PtBehaviorVariableDataBase
@@ -3951,7 +3973,7 @@ public partial class PtBehaviorVariableFloat3 : PtBehaviorVariableDataBase
 	[RszFixedSizeArray(nameof(size), - 12)] public byte[]? restData;
 
     protected override bool DoRead(FileHandler handler) => base.DoRead(handler) && DefaultRead(handler);
-    protected override bool DoWrite(FileHandler handler) => base.DoWrite(handler) && DefaultWrite(handler);
+    protected override bool DoWrite(FileHandler handler) => EnsureMinimumSize(12) && base.DoWrite(handler) && DefaultWrite(handler);
 }
 
 [RszGenerate, RszVersionedObject(typeof(EfxVersion))]
@@ -3962,7 +3984,7 @@ public partial class PtBehaviorVariableDataPrefabPath : PtBehaviorVariableDataBa
 	[RszInlineWString(nameof(size))] public string? prefabPath;
 
     protected override bool DoRead(FileHandler handler) => base.DoRead(handler) && DefaultRead(handler);
-    protected override bool DoWrite(FileHandler handler) => base.DoWrite(handler) && DefaultWrite(handler);
+    protected override bool DoWrite(FileHandler handler) => EnsureMinimumSize(prefabPath?.Length ?? 2) && base.DoWrite(handler) && DefaultWrite(handler);
 }
 
 [RszGenerate, RszVersionedObject(typeof(EfxVersion))]
@@ -3973,10 +3995,10 @@ public partial class PtBehaviorVariableDataPrefabUnknown : PtBehaviorVariableDat
 	[RszFixedSizeArray(nameof(size))] public byte[]? data;
 
     protected override bool DoRead(FileHandler handler) => base.DoRead(handler) && DefaultRead(handler);
-    protected override bool DoWrite(FileHandler handler) => base.DoWrite(handler) && DefaultWrite(handler);
+    protected override bool DoWrite(FileHandler handler) => EnsureMinimumSize(data?.Length ?? 0) && base.DoWrite(handler) && DefaultWrite(handler);
 }
 
-[RszGenerate]
+[RszGenerate, RszVersionedObject(typeof(EfxVersion))]
 public partial class PtBehaviorVariable : BaseModel
 {
 	[RszIgnore] public EfxVersion Version;
@@ -4034,8 +4056,8 @@ public partial class EFXAttributePtBehavior : EFXAttribute
     public EFXAttributePtBehavior() : base(EfxAttributeType.PtBehavior) { }
 
     public uint unkn1;
-    public uint behaviorStringLength;
-    public int varCount;
+    [RszStringLengthField(nameof(behaviorString))] public int behaviorStringLength;
+    [RszArraySizeField(nameof(properties))] public int varCount;
     [RszInlineString(nameof(behaviorStringLength))]
 	public string? behaviorString;
 
@@ -4097,11 +4119,11 @@ public partial class EFXAttributeTypeGpuMesh : EFXAttribute
     public float unkn29;
     public float unkn30;
     public uint unkn31;
-    public uint texCount;
+    [RszArraySizeField(nameof(texturePaths))] public int texCount;
     [RszInlineWString] public string? meshPath;
     [RszInlineWString] public string? unknPath;
     [RszInlineWString] public string? mdfPath;
-    public uint unknDataSize;
+    [RszByteSizeField(nameof(unknData))] public uint unknDataSize;
     [RszFixedSizeArray(nameof(unknDataSize))] public byte[]? unknData;
 
 	public int texBlockLength;
@@ -4187,7 +4209,7 @@ public partial class EFXAttributeTypeMesh : EFXAttribute
     public uint re4_unkn1;
     [RszVersion(EfxVersion.DD2)]
     public float dd2_unkn1;
-    public uint texCount;
+    [RszArraySizeField(nameof(texPaths))] public int texCount;
     [RszVersion(EfxVersion.DD2)]
     public uint dd2_unkn2;
     [RszInlineWString] public string? meshPath;
@@ -4195,7 +4217,7 @@ public partial class EFXAttributeTypeMesh : EFXAttribute
     [RszInlineWString] public string? mdfPath;
 
 	[RszConditional(nameof(texCount), "!=", 0, EndAt = nameof(properties))]
-	public uint propertiesDataSize;
+	[RszArraySizeField(nameof(properties))] public int propertiesDataSize;
 	[RszClassInstance, RszList(nameof(propertiesDataSize), '/', 32)]
 	public readonly List<MdfProperty_RE4> properties = new();
 

@@ -1,5 +1,6 @@
 using System.Reflection;
 using RszTool.Common;
+using RszTool.InternalAttributes;
 
 namespace RszTool.Efx
 {
@@ -26,7 +27,7 @@ namespace RszTool.Efx
         public int magic = EfxFile.Magic;
         public int ukn; // re7: 0,1  vfx\vfx_resource\vfx_effecteditor\efd_character_id\efd_em3600\vfx_efd_bh7_em3600_1008.efx.1179750
         public int entryCount;
-        public int stringTableLength; // note: version specific?
+        public int stringTableLength;
         public int actionCount;
         public int fieldParameterCount;
         public int expressionParameterCount;
@@ -165,27 +166,6 @@ namespace RszTool.Efx
         protected EFXAttribute(EfxAttributeType type)
         {
         }
-
-        public static class Info<T> where T : EFXAttribute
-        {
-            // https://steven-giesel.com/blogPost/74cc8abc-b6e3-4cb0-ba98-9c92f9a5a4d2
-            // avoids allocating the temp instance on the heap, possibly meaningless perf wise since we're also creating an enumerator anyway
-            // maybe instead add a specific version parameter for our specific usecase
-
-            private static readonly IntPtr TypeHandleValue = typeof(T).TypeHandle.Value;
-            private static readonly int Size = System.Runtime.InteropServices.Marshal.ReadInt32(TypeHandleValue, 4);
-            private static MethodInfo? fieldListMethod = typeof(T).GetMethod(nameof(GetFieldList), BindingFlags.Public|BindingFlags.Instance);
-
-            public static unsafe IEnumerable<Type> GetFieldList(FieldListInput[] args)
-            {
-                if (fieldListMethod == null) throw new NotImplementedException();
-
-                var mem = stackalloc byte[Size];
-                *(IntPtr*)mem = TypeHandleValue;
-                var inst = System.Runtime.CompilerServices.Unsafe.AsRef<T>(mem);
-                return (IEnumerable<Type>)fieldListMethod.Invoke(inst, args)!;
-            }
-        }
     }
 
     public class EFXEntry : BaseModel
@@ -218,6 +198,7 @@ namespace RszTool.Efx
         protected override bool DoWrite(FileHandler handler)
         {
             handler.Write(ref index);
+            effectNameHash = MurMur3HashUtils.GetUTF8Hash(name ?? string.Empty);
             handler.Write(ref effectNameHash);
             handler.Write(ref entryAssignment);
             handler.Write(Attributes.Count);
@@ -235,10 +216,10 @@ namespace RszTool.Efx
     {
         public uint expressionParameterNameUTF16Hash;
         public uint expressionParameterNameUTF8Hash;
-        public uint unkn2;
-        public int unkn3;
+        public uint unkn1;
+        public int unkn2;
+        public uint unkn3;
         public uint unkn4;
-        public uint unkn5;
         [RszIgnore] public string? name;
     }
 
@@ -334,11 +315,10 @@ namespace RszTool.Efx
     [RszGenerate, RszAutoReadWrite]
     public partial class CollisionEffect : BaseModel
     {
-        public uint conditionalEffectGroupNameHashUTF16;
-        public uint conditionalEffectGroupNameHashUTF8;
-        public uint valueCount;
-        [RszFixedSizeArray(nameof(valueCount))] public uint[]? efxEntryIndex;
-
+        [RszStringHash(nameof(conditionalEffectGroupName))] public uint conditionalEffectGroupNameHashUTF16;
+        [RszStringUTF8Hash(nameof(conditionalEffectGroupName))] public uint conditionalEffectGroupNameHashUTF8;
+        [RszArraySizeField(nameof(efxEntryIndexes))] public int valueCount;
+        [RszFixedSizeArray(nameof(valueCount))] public uint[]? efxEntryIndexes;
         [RszIgnore] public string? conditionalEffectGroupName;
     }
 
@@ -564,7 +544,11 @@ namespace RszTool
             Strings!.Write(handler);
             Header.stringTableLength = (int)(handler.Tell() - writeStart);
 
-            ExpressionParameters.Write(handler);
+            foreach (var exprParam in ExpressionParameters) {
+                exprParam.expressionParameterNameUTF16Hash = MurMur3HashUtils.GetHash(exprParam.name ?? string.Empty);
+                exprParam.expressionParameterNameUTF8Hash = MurMur3HashUtils.GetUTF8Hash(exprParam.name ?? string.Empty);
+                exprParam.Write(handler);
+            }
 
             if (Header.Version > EfxVersion.DMC5) {
                 foreach (var bone in Bones) {
@@ -575,11 +559,13 @@ namespace RszTool
                     handler.Write(ref pair);
                 }
 
+                Header.boneAttributeEntryCount = 0;
                 foreach (var entry in Entries) {
                     foreach (var attr in entry.Attributes) {
                         if (attr is IBoneRelationAttribute parented) {
                             var index = string.IsNullOrEmpty(parented.ParentBone) ? -1 : Bones.FindIndex(b => b.name == parented.ParentBone);
                             handler.Write((short)index);
+                            Header.boneAttributeEntryCount++;
                         }
                     }
                 }

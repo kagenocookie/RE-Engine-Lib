@@ -92,6 +92,16 @@ public partial class EFXExpression3 : BaseModel
 }
 
 [RszGenerate, RszAutoReadWrite]
+public partial class EFXExpression4 : BaseModel
+{
+	public uint unkn1;
+	public uint unkn2;
+	public uint hash3;
+	public uint unkn4;
+	[RszClassInstance] public EFXExpression? expression;
+}
+
+[RszGenerate, RszAutoReadWrite]
 public abstract partial class EFXExpressionListWrapperBase : BaseModel
 {
 	[RszByteSizeField("")] public uint solverSize;
@@ -141,16 +151,18 @@ public partial class EFXExpressionListWrapper2 : EFXExpressionListWrapperBase
     }
 }
 
+[RszGenerate]
 public partial class EFXExpressionListWrapper3 : EFXExpressionListWrapperBase
 {
-	public List<EFXExpression3> expressions = new();
+	[RszClassInstance, RszList(nameof(solverSize))]
+	public List<EFXExpression4> expressions = new();
 
     protected override bool DoRead(FileHandler handler)
     {
 		handler.Read(ref solverSize);
 		var end = handler.Tell() + solverSize;
 		while (handler.Tell() < end) {
-			var expr = new EFXExpression3();
+			var expr = new EFXExpression4();
 			expr.Read(handler);
 			expressions.Add(expr);
 		}

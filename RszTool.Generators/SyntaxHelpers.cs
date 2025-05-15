@@ -80,6 +80,10 @@ public static class SyntaxHelpers
 
     public static string? GetArrayElementType(this TypeSyntax type, bool ignoreNamespace = false)
     {
+        if (type is NullableTypeSyntax nullable1) {
+            type = nullable1.ElementType;
+        }
+
         if (type is GenericNameSyntax generic) {
             type = generic.TypeArgumentList.Arguments.First();
         }

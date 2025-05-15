@@ -5,7 +5,7 @@ using RszTool.InternalAttributes;
 
 namespace RszTool.Efx.Structs.RERT;
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.unknRERTStruct168, EfxVersion.RERT)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknRERTStruct168, EfxVersion.RERT)]
 public partial class EFXAttributeunknRERTStruct168 : EFXAttribute
 {
 	public EFXAttributeunknRERTStruct168() : base(EfxAttributeType.unknRERTStruct168) { }
@@ -16,7 +16,7 @@ public partial class EFXAttributeunknRERTStruct168 : EFXAttribute
     public float ukn3;
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.unknRERTStruct215, EfxVersion.RERT)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknRERTStruct215, EfxVersion.RERT)]
 public partial class EFXAttributeunknRERTStruct215 : EFXAttribute
 {
 	public EFXAttributeunknRERTStruct215() : base(EfxAttributeType.unknRERTStruct215) { }
@@ -38,7 +38,7 @@ public partial class EFXAttributeunknRERTStruct215 : EFXAttribute
     public uint ukn14;
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.unknRERTStruct219, EfxVersion.RERT)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknRERTStruct219, EfxVersion.RERT)]
 public partial class EFXAttributeunknRERTStruct219 : EFXAttribute
 {
     // similar to TypeGpuPolygon
@@ -65,7 +65,7 @@ public partial class EFXAttributeunknRERTStruct219 : EFXAttribute
     public uint ukn18;
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.TypeGpuMeshTrailExpression, EfxVersion.RERT)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuMeshTrailExpression, EfxVersion.RERT)]
 public partial class EFXAttributeTypeGpuMeshTrailExpression : EFXAttribute
 {
 	public EFXAttributeTypeGpuMeshTrailExpression() : base(EfxAttributeType.TypeGpuMeshTrailExpression) { }
@@ -77,13 +77,22 @@ public partial class EFXAttributeTypeGpuMeshTrailExpression : EFXAttribute
     public uint ukn4;
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.ScreenSpaceEmitter, EfxVersion.RERT)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.ScreenSpaceEmitter, EfxVersion.RE8, EfxVersion.RE4)]
 public partial class EFXAttributeScreenSpaceEmitter : EFXAttribute
 {
 	public EFXAttributeScreenSpaceEmitter() : base(EfxAttributeType.ScreenSpaceEmitter) { }
 
-    public float unkn0;
-    public float unkn1;
+    public UndeterminedFieldType unkn0;
+    public UndeterminedFieldType unkn1;
+}
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknRERTStruct159, EfxVersion.RERT)]
+public partial class EFXAttributeunknRERTStruct159 : EFXAttribute
+{
+	public EFXAttributeunknRERTStruct159() : base(EfxAttributeType.unknRERTStruct159) { }
+
+    public UndeterminedFieldType unkn0;
+    public UndeterminedFieldType unkn1;
     public float unkn2;
     public float unkn3;
     public float unkn4;
@@ -104,7 +113,7 @@ public partial class EFXAttributeScreenSpaceEmitter : EFXAttribute
     public uint ukn7;
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.Transform2DClip, EfxVersion.RERT)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Transform2DClip, EfxVersion.RERT)]
 public partial class EFXAttributeTransform2DClip : EFXAttribute
 {
 	public EFXAttributeTransform2DClip() : base(EfxAttributeType.Transform2DClip) { }
@@ -161,7 +170,7 @@ public partial class EFXAttributeTransform2DClip : EFXAttribute
     public uint ukn9;
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.PtVelocity2D, EfxVersion.RERT)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtVelocity2D, EfxVersion.RERT)]
 public partial class EFXAttributePtVelocity2D : EFXAttribute
 {
 	public EFXAttributePtVelocity2D() : base(EfxAttributeType.PtVelocity2D) { }
@@ -171,7 +180,7 @@ public partial class EFXAttributePtVelocity2D : EFXAttribute
     public float ukn2;
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.PtVelocity2DClip, EfxVersion.RERT)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtVelocity2DClip, EfxVersion.RERT)]
 public partial class EFXAttributePtVelocity2DClip : EFXAttribute
 {
 	public EFXAttributePtVelocity2DClip() : base(EfxAttributeType.PtVelocity2DClip) { }
@@ -182,7 +191,7 @@ public partial class EFXAttributePtVelocity2DClip : EFXAttribute
     public uint ukn3;
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.unknRERTStruct136, EfxVersion.RERT)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknRERTStruct136, EfxVersion.RERT)]
 public partial class EFXAttributeunknRERTStruct136 : EFXAttribute
 {
     // note: looks eerily similar to UnitCulling, except for the extra last field
@@ -200,7 +209,7 @@ public partial class EFXAttributeunknRERTStruct136 : EFXAttribute
 	public float unkn1_9;
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.unknRERTStruct151_PtColor, EfxVersion.RERT)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknRERTStruct151_PtColor, EfxVersion.RERT)]
 public partial class EFXAttributeunknRERTStruct151_PtColor : EFXAttribute
 {
 	public EFXAttributeunknRERTStruct151_PtColor() : base(EfxAttributeType.unknRERTStruct151_PtColor) { }
@@ -210,7 +219,7 @@ public partial class EFXAttributeunknRERTStruct151_PtColor : EFXAttribute
 	public via.Color color0;
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.unknRERTStruct152_PtColorClip, EfxVersion.RERT)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknRERTStruct152_PtColorClip, EfxVersion.RERT)]
 public partial class EFXAttributeunknRERTStruct152_PtColorClip : EFXAttribute
 {
     public EFXAttributeunknRERTStruct152_PtColorClip() : base(EfxAttributeType.unknRERTStruct152_PtColorClip) { }
@@ -230,7 +239,7 @@ public partial class EFXAttributeunknRERTStruct152_PtColorClip : EFXAttribute
     [RszFixedSizeArray(nameof(substruct3Length), '/', 4)] public float[]? substruct3;
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.unknRERTStruct220Expression, EfxVersion.RERT)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknRERTStruct220Expression, EfxVersion.RERT)]
 public partial class EFXAttributeunknRERTStruct220Expression : EFXAttribute
 {
 	public EFXAttributeunknRERTStruct220Expression() : base(EfxAttributeType.unknRERTStruct220Expression) { }
@@ -252,7 +261,7 @@ public partial class EFXAttributeunknRERTStruct220Expression : EFXAttribute
 	[RszClassInstance] public EFXExpressionListWrapper expressions = new();
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.TypeRibbonChainExpression, EfxVersion.RE2, EfxVersion.RERT)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonChainExpression, EfxVersion.RE2, EfxVersion.RERT)]
 public partial class EFXAttributeTypeRibbonChainExpression : EFXAttribute
 {
 	public EFXAttributeTypeRibbonChainExpression() : base(EfxAttributeType.TypeRibbonChainExpression) { }
@@ -265,7 +274,7 @@ public partial class EFXAttributeTypeRibbonChainExpression : EFXAttribute
     public uint unkn5;
     public uint unkn6;
     public uint unkn7;
-    [RszConditional(nameof(Version), '>', EfxVersion.RE2, EndAt = nameof(unkn9))]
+    [RszVersion('>', EfxVersion.RE3, EndAt = nameof(unkn9))]
     public uint unkn8;
     public uint unkn9;
 	[RszClassInstance] public EFXExpressionListWrapper expressions = new();

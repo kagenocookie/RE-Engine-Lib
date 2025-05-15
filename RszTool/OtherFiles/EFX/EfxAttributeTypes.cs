@@ -111,7 +111,6 @@ public enum EfxAttributeType
     PtUvSequence,
     PtUvSequenceClip,
     unknRE4Struct170Mesh,
-    unknRE4Struct173,
     VectorFieldParameter,
     VectorFieldParameterClip,
     VectorFieldParameterExpression,
@@ -199,6 +198,7 @@ public enum EfxAttributeType
     ScaleAnimExpression,
     ScaleByDepth,
     ScreenSpaceEmitter,
+    unknRERTStruct159,
     ShaderSettingsExpression,
     ShapeOperator,
     ShapeOperatorExpression,
@@ -1990,7 +1990,6 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.RE7] = 83,
             [EfxVersion.MHRise] = 144,
             [EfxVersion.RE8] = 151,
-            [EfxVersion.RERT] = UNKNOWN,
             [EfxVersion.MHRiseSB] = 154,
             [EfxVersion.RE4] = 168,
             [EfxVersion.DD2] = 174, // ok
@@ -2040,12 +2039,12 @@ public static partial class EfxAttributeTypeRemapper
         [EfxAttributeType.ScreenSpaceEmitter] = new() {
             [EfxVersion.MHRise] = 149,
             [EfxVersion.RE8] = 156,
-            [EfxVersion.RERT] = 159,
+            [EfxVersion.RERT] = 158,
             [EfxVersion.MHRiseSB] = 159, // guess
-            [EfxVersion.RE4] = UNKNOWN,
+            [EfxVersion.RE4] = 173,
         },
-        [EfxAttributeType.unknRE4Struct173] = new() {
-            [EfxVersion.RE4] = 173, // screen space emitter?
+        [EfxAttributeType.unknRERTStruct159] = new() {
+            [EfxVersion.RERT] = 159,
         },
         [EfxAttributeType.VectorFieldParameter] = new() {
             [EfxVersion.RE3] = 119,

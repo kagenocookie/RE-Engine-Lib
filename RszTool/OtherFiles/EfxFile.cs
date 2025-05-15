@@ -281,32 +281,52 @@ namespace RszTool.Efx
         public uint unkn2;
         public uint type;
         public uint unkn4;
-        public uint unkn5;
-        [RszConditional(nameof(Version), ">", EfxVersion.RE7, EndAt = nameof(unkn10))]
-        public uint unkn6;
-        public uint unkn7;
-        public float unkn8;
-        public float unkn9;
-        public float unkn10;
+        public int value_ukn1;
+        [RszIgnore] public uint value_ukn2;
+        [RszIgnore] public uint value_ukn3;
+        [RszIgnore] public float value_ukn4;
+        [RszIgnore] public float value_ukn5;
+        [RszIgnore] public float value_ukn6;
         [RszIgnore] public string? name;
         [RszIgnore] public string? filePath;
 
         protected override bool DoRead(FileHandler handler)
         {
             DefaultRead(handler);
-            if (type is 110 or 183 or 184 or 202 or 194 or 215) {
+            if (type == 196) {
+                filePath = handler.ReadWString(-1, value_ukn1, false);
+            } else if (Version > EfxVersion.RE7) {
+                handler.Read(ref value_ukn2);
+                handler.Read(ref value_ukn3);
+                handler.Read(ref value_ukn4);
+                handler.Read(ref value_ukn5);
+                handler.Read(ref value_ukn6);
+            if (type is 110 or 144 or 183 or 184 or 202 or 194 or 215) {
                 filePath = handler.ReadWString(-1, handler.Read<int>(), false);
+                }
             }
             return true;
         }
 
         protected override bool DoWrite(FileHandler handler)
         {
+            if (type == 196) {
+                filePath ??= string.Empty;
+                value_ukn1 = filePath.Length + 2;
+                DefaultWrite(handler);
+                handler.WriteWString(filePath);
+            } else {
             DefaultWrite(handler);
-            if (type is 110 or 184 or 202 or 194) {
+                handler.Write(ref value_ukn2);
+                handler.Write(ref value_ukn3);
+                handler.Write(ref value_ukn4);
+                handler.Write(ref value_ukn5);
+                handler.Write(ref value_ukn6);
+                if (type is 110 or 144 or 183 or 184 or 202 or 194 or 215) {
                 filePath ??= "";
                 handler.Write(filePath.Length);
                 handler.WriteWString(filePath);
+                }
             }
             return true;
         }
@@ -490,7 +510,10 @@ namespace RszTool
                 expressionData = handler.ReadArray<int>(Header.expressionParameterSize);
             }
 
+            if (Header.Version > EfxVersion.DMC5)
+            {
             SetupReferences(boneRelations);
+            }
             return true;
         }
 

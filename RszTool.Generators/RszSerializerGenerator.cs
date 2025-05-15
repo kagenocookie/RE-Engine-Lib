@@ -317,6 +317,7 @@ public class RszSerializerGenerator : IIncrementalGenerator
                     if (string.IsNullOrEmpty(size)) size = "handler.Read<int>()";
                     var constructor = EvaluateAttributeExpressionList(ctx, field.GetAttribute("RszConstructorParams"));
                     if (string.IsNullOrEmpty(constructor)) {
+                        ctx.Indent().AppendLine($"{name} ??= new();");
                         ctx.Indent().AppendLine($"{name}.Read(handler, (int)({size}));");
                     } else {
                         var fieldType = field.GetFieldType()?.GetArrayElementType();

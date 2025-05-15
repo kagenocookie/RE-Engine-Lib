@@ -126,7 +126,9 @@ internal sealed class Program
                 CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EfxFile.cs"))),
                 CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/EfxAttributeTypes.cs"))),
                 CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/EfxExpressionVariables.cs"))),
+                CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/EfxStructsRE7.cs"))),
                 CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/EFXStructsDMC5.cs"))),
+                CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/EFXStructsRE8.cs"))),
                 CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/EFXStructsRERT.cs"))),
                 CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/EfxStructsRE4.cs"))),
                 CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/EFXStructsDD2.cs")))
@@ -206,6 +208,8 @@ internal sealed class Program
         var ignoredStructs = new HashSet<string>() {
                 "CollisionEffect",
                 "UndeterminedFieldType",
+                "EFXExpressionListWrapper",
+                "EFXExpressionListWrapper3",
             };
         var structCases = new Dictionary<string, string>();
 

@@ -43,6 +43,7 @@ public partial class EFXAttributeFixRandomGenerator : EFXAttribute
 	public int unkn1_4;
 	[RszVersion(">", EfxVersion.DMC5, EndAt = nameof(unkn1_9))]
 	public int unkn1_5;
+	[RszVersion(">", EfxVersion.RE3, EndAt = nameof(unkn1_9))]
 	public int unkn1_6;
 	public int unkn1_7;
 	public int unkn1_8;
@@ -80,14 +81,14 @@ public partial class EFXAttributeTransform2DModifierDelayFrame : EFXAttribute
 	public uint unkn1;
 
 }
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Transform2DExpression, EfxVersion.RERT, EfxVersion.RE4)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Transform2DExpression, EfxVersion.RE2, EfxVersion.RERT, EfxVersion.RE4)]
 public partial class EFXAttributeTransform2DExpression : EFXAttribute
 {
 	public EFXAttributeTransform2DExpression() : base(EfxAttributeType.Transform2DExpression) { }
 
 	public uint unkn1_0;
 	public uint unkn1_1;
-	[RszVersion(">", EfxVersion.DMC5, EndAt = nameof(unkn1_5))]
+	[RszVersion("!=", EfxVersion.DMC5, EndAt = nameof(unkn1_5))]
 	public uint unkn1_2;
 	public uint unkn1_3;
 	public uint unkn1_4;
@@ -202,12 +203,17 @@ public partial class EFXAttributeTransform3DExpression : EFXAttribute
 	[RszClassInstance] public EFXExpressionListWrapperBase? expressions;
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.ParentOptions, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.ParentOptions, EfxVersion.RE7, EfxVersion.RE2, EfxVersion.DMC5, EfxVersion.RE3, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
 public partial class EFXAttributeParentOptions : EFXAttribute, IBoneRelationAttribute
 {
+	public EFXAttributeParentOptions() : base(EfxAttributeType.ParentOptions) { }
+
 	public via.Int3 RelationPos;
 	public via.Int3 RelationRot;
 	public via.Int3 RelationScl;
+	[RszVersion('<', EfxVersion.RE8)]
+	public uint ParticleUseLocal_re7;
+	[RszVersion(EfxVersion.RE8, EndAt = nameof(unkn8))]
 	public byte ParticleUseLocal;
 	public float ConstInheritRate;
 	public float ConstInheritVariation;
@@ -216,14 +222,13 @@ public partial class EFXAttributeParentOptions : EFXAttribute, IBoneRelationAttr
 	public uint unkn6;
 	public uint unkn7;
 	public float unkn8;
-	[RszInlineWString] public string? boneName;
 
-	public EFXAttributeParentOptions() : base(EfxAttributeType.ParentOptions) { }
+	[RszInlineWString] public string? boneName;
 
     public string? ParentBone { get; set; }
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Spawn, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Spawn, EfxVersion.DMC5, EfxVersion.RE3, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
 public partial class EFXAttributeSpawn : EFXAttribute
 {
 	public EFXAttributeSpawn() : base(EfxAttributeType.Spawn) { }
@@ -235,7 +240,7 @@ public partial class EFXAttributeSpawn : EFXAttribute
 	public uint useSpawnFrame;
 	public via.RangeI spawnFrame;
 
-	[RszVersion(">", EfxVersion.DMC5, EndAt = nameof(re4_unkn6))]
+	[RszVersion(">", EfxVersion.RE3, EndAt = nameof(re4_unkn6))]
 	public via.RangeI loopNum;
 
 	public via.Int2 emitterdelayFrame;
@@ -253,34 +258,11 @@ public partial class EFXAttributeSpawn : EFXAttribute
 	public uint re4_unkn0;
 	public float re4_unkn1;
 	public uint re4_unkn2;
-	public float re4_unkn3;
+	public uint re4_unkn3;
 	public uint re4_unkn4;
 	[RszVersion("<", EfxVersion.DD2, EndAt = nameof(re4_unkn6))]
-	public float re4_unkn5;
-	public float re4_unkn6;
-}
-
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeBillboard2D, EfxVersion.RE4)]
-public partial class EFXAttributeTypeBillboard2D : EFXAttribute
-{
-	public uint unkn1;
-	public via.Color color0;
-	public via.Color color1;
-	public float unkn2_0;
-	public float unkn2_1;
-	public uint null2_2;
-	public float unkn2_3;
-	public float unkn2_4;
-	public float unkn2_5;
-	public float unkn2_6;
-	public float unkn2_7;
-	public float unkn2_8;
-	public float unkn2_9;
-	public float unkn2_10;
-	public float unkn2_11;
-	public uint null2_12;
-
-	public EFXAttributeTypeBillboard2D() : base(EfxAttributeType.TypeBillboard2D) { }
+	public uint re4_unkn5;
+	public uint re4_unkn6;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeBillboard2DExpression, EfxVersion.RERT, EfxVersion.RE4)]
@@ -322,7 +304,7 @@ public partial class EFXAttributeLife : EFXAttribute
 	public uint VanishFrameMax;
 	public uint unkn7; // Might be KeepHoldFrame
 	public uint unkn8; // Might be KeepHoldFrameVariation
-	[RszConditional(nameof(Version), '>', EfxVersion.RE7)]
+	[RszVersion(EfxVersion.RE2)]
 	public uint unkn9;
 
 	public EFXAttributeLife() : base(EfxAttributeType.Life) { }
@@ -334,7 +316,7 @@ public partial class EFXAttributeTypeNoDraw : EFXAttribute
 	public uint unkn1_0;
 	public via.Color color0;
 	public via.Color color1;
-	public float unkn1_3;
+	public uint unkn1_3;
 
 	public float unkn1_4;
 	public float unkn1_5;
@@ -366,14 +348,14 @@ public partial class EFXAttributeEmitterShape3D : EFXAttribute
 	public uint ShapeType;
 	public uint RangeDivideNum;
 	public uint RangeDivideAxis;
-	[RszVersion(">", EfxVersion.DMC5, EndAt = nameof(unkn1_10))]
+	[RszVersion(">", EfxVersion.RE3, EndAt = nameof(unkn1_10))]
 	public uint emitCount;
 	public uint unkn1_10;
 	public float LocalRotationX;
 	public float LocalRotationY;
 	public float LocalRotationZ;
 	public uint RotationOrder;
-	[RszVersion(nameof(Version), ">", EfxVersion.RE7, EndAt = nameof(unkn4_3))]
+	[RszVersion(">", EfxVersion.RE7, EndAt = nameof(unkn4_3))]
 	[RszVersion(nameof(Version), "==", EfxVersion.MHRiseSB, "||", nameof(Version), "==", EfxVersion.RERT, "||", nameof(Version), "==", EfxVersion.RE8)]
 	public byte unkn2;
 	public uint unkn3;
@@ -547,7 +529,7 @@ public partial class EFXAttributeEmitterShape2DExpression : EFXAttribute
 
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.EmitterShape3DExpression, EfxVersion.RE7, EfxVersion.DMC5, EfxVersion.RE4)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.EmitterShape3DExpression, EfxVersion.RE7, EfxVersion.DMC5, EfxVersion.RE3, EfxVersion.RE4)]
 public partial class EFXAttributeEmitterShape3DExpression : EFXAttribute
 {
 	public EFXAttributeEmitterShape3DExpression() : base(EfxAttributeType.EmitterShape3DExpression) { }
@@ -559,9 +541,9 @@ public partial class EFXAttributeEmitterShape3DExpression : EFXAttribute
 	public uint unkn1_4;
 	public uint unkn1_5;
 	public uint unkn1_6;
-	[RszConditional(nameof(Version), '>', EfxVersion.RE7)]
+	[RszVersion('>', EfxVersion.RE7)]
 	public uint unkn1_7;
-	[RszConditional(nameof(Version), '>', EfxVersion.DMC5, EndAt = nameof(unkn1_9))]
+	[RszVersion('>', EfxVersion.RE3, EndAt = nameof(unkn1_9))]
 	public uint unkn1_8;
 	public uint unkn1_9;
 	[RszSwitch(
@@ -677,13 +659,23 @@ public partial class EFXAttributeLuminanceBleed : EFXAttribute
 	public EFXAttributeLuminanceBleed() : base(EfxAttributeType.LuminanceBleed) { }
 
 	public uint unkn0;
-    public float unkn1;
+	[RszVersion(EfxVersion.RE3)]
+    public uint unkn1_toggle;
     public float unkn2;
+
     public float unkn3;
     public float unkn4;
     public float unkn5;
-	[RszConditional(nameof(Version), '>', EfxVersion.DMC5)]
     public float unkn6;
+
+	// public uint unkn0;
+    // public float unkn1;
+    // public float unkn2;
+    // public float unkn3;
+    // public float unkn4;
+    // public float unkn5;
+	// [RszVersion('>', EfxVersion.DMC5)]
+    // public float unkn6;
 
 }
 
@@ -817,15 +809,15 @@ public partial class EFXAttributePtTransform3D : EFXAttribute
 	public float unkn1_8;
 
 }
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtUvSequence, EfxVersion.DMC5, EfxVersion.RE4)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtUvSequence, EfxVersion.DMC5, EfxVersion.RE3, EfxVersion.RE4)]
 public partial class EFXAttributePtUvSequence : EFXAttribute
 {
 	public EFXAttributePtUvSequence() : base(EfxAttributeType.PtUvSequence) { }
 
 	public uint unkn1_0;
-	public uint null1_1;
-	public uint null1_2;
-	[RszVersion("<=", EfxVersion.DMC5)]
+	public uint unkn1_1;
+	[RszVersion("<=", EfxVersion.RE3)]
+	public uint unkn1_2;
 	public float unkn1_3;
 }
 
@@ -1012,56 +1004,71 @@ public partial class EFXAttributeShaderSettings : EFXAttribute
 
 	public float unkn1;
 	public uint unkn2;
-    [RszVersion(EfxVersion.RERT, EndAt = nameof(sb_unkn1))]
+    [RszVersion(EfxVersion.RE8, EndAt = nameof(sb_unkn1))]
 	public float sb_unkn0;
 	public float sb_unkn1;
 
 	public float unkn3;
 	public uint unkn4;
+	[RszVersion("==", EfxVersion.RE7)]
 	public uint unkn5;
-	public via.Color unkn6;
+	public via.Color color0;
+	public float unkn6;
 	public float unkn7;
 	public float unkn8;
 	public float unkn9;
 	public float unkn10;
 	public float unkn11;
 	public float unkn12;
-	public float unkn13;
-	public uint null14;
-	public float null15;
-	public float null16;
+	public uint unkn13;
+	public uint unkn14;
+	public float unkn15;
+	public float unkn16;
+	[RszVersion(EfxVersion.RE2)]
 	public float unkn17;
-	public float unkn18;
+	[RszVersion(EfxVersion.RE4, EndAt = nameof(re4_unkn3))]
+	public float re4_unkn1;
+	public float re4_unkn2;
+	public float re4_unkn3;
+	public uint unkn19;
     [RszVersion(EfxVersion.RERT, EndAt = nameof(sb_unkn5))]
 	public float sb_unkn2;
 	public float sb_unkn3;
-	public uint sb_unkn4;
+	public float sb_unkn4;
 	public float sb_unkn5;
 
-    [RszVersion(">", EfxVersion.RE7)]
-	public float unkn19; // colorBrightness?
-    [RszVersion(">", EfxVersion.DMC5, EndAt = nameof(dd2_unkn))]
-	public float null20;
-	public float null21;
-	public float null22;
-	public float null23;
-	public float unkn24;
+    [RszVersion(EfxVersion.RE4)]
+	public uint re4_unkn4;
+    [RszVersion(EfxVersion.RE2)]
+	public float unkn20;
 
-    [RszVersion(EfxVersion.RERT, EndAt = nameof(sb_unkn12))]
-	public float sb_unkn6;
-	public float sb_null7;
-	public float sb_unkn8;
+    [RszVersion(EfxVersion.RE3, EndAt = nameof(dd2_unkn))]
+	public float unkn21;
     [RszVersion(">", EfxVersion.RERT, EndAt = nameof(sb_unkn12))]
 	public float sb_unkn9;
-	public uint sb_unkn10;
-	public uint sb_unkn11;
+	public float sb_unkn10;
+	public float sb_unkn11;
 	public float sb_unkn12;
+	public uint unkn22;
+    [RszVersion(EfxVersion.RE8, EndAt = nameof(dd2_unkn))]
+	public float unkn23;
+    [RszVersion("==", EfxVersion.RE8)]
+	public float re8_unkn1;
+    [RszVersion("==", EfxVersion.RE8)]
+	public float re8_unkn2;
+    [RszVersion("!=", EfxVersion.RE8)]
+	public uint unkn24;
+	public uint unkn25;
 
-    [RszVersion(EfxVersion.RE4), RszFixedSizeArray(4)] public uint[]? re4_unkn;
+    [RszVersion(EfxVersion.RERT, EndAt = nameof(sb_unkn8))]
+	public uint sb_unkn6;
+	public uint sb_unkn7;
+	public uint sb_unkn8;
+
     [RszVersion(EfxVersion.DD2)] public uint dd2_unkn;
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.SpawnExpression, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.SpawnExpression, EfxVersion.RE3, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
 public partial class EFXAttributeSpawnExpression : EFXAttribute
 {
 	public EFXAttributeSpawnExpression() : base(EfxAttributeType.SpawnExpression) { }
@@ -1294,7 +1301,7 @@ public partial class EFXAttributeTypeBillboard3D : EFXAttribute
 	[RszVersion(EfxVersion.RERT)]
 	public float sb_unkn0;
 
-	public float unkn14;
+	public uint unkn14;
     [RszVersion(">", EfxVersion.RE7, EndAt = nameof(unkn16))]
     public float unkn15;
 	public float unkn16;
@@ -1341,7 +1348,7 @@ public partial class EFXAttributeTypeGpuBillboard : EFXAttribute
 
 	public uint unkn1;
 	public uint unkn2;
-    [RszVersion(EfxVersion.RERT)]
+    [RszVersion(EfxVersion.RE8)]
 	public uint unkn3;
 	public via.Color color0;
 	public via.Color color1;
@@ -1493,20 +1500,21 @@ public partial class EFXAttributeTypeGpuPolygon : EFXAttribute
 
 	public uint unkn1;
 	public uint unkn2;
+	[RszVersion('>', EfxVersion.RE3)]
 	public uint unkn3;
 	public via.Color color0;
 	public via.Color color1;
-	public via.Color color2;
-	public via.Color color3;
+	public via.Color color2; // rert: color, re3: float?
+	public via.Color color3; // rert: color, re3: float?
 	public float unkn4_2;
-	public uint unkn4_3;
+	public float unkn4_3;
 	public float unkn4_4;
 	public float null4_5;
 	public float unkn4_6;
 	public float unkn4_7;
 	public float unkn4_8;
 	public float unkn4_9;
-	[RszConditional(nameof(Version), '>', EfxVersion.RERT, EndAt = nameof(unkn4_15))]
+	[RszVersion("!=", EfxVersion.RERT, EndAt = nameof(unkn4_15))]
 	public float unkn4_10;
 	public float unkn4_11;
 	public float unkn4_12;
@@ -1515,7 +1523,7 @@ public partial class EFXAttributeTypeGpuPolygon : EFXAttribute
 	public float unkn4_15;
 
 }
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuRibbonFollow, EfxVersion.DMC5, EfxVersion.RE4)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuRibbonFollow, EfxVersion.DMC5, EfxVersion.RE3, EfxVersion.RE4)]
 public partial class EFXAttributeTypeGpuRibbonFollow : EFXAttribute
 {
 	public EFXAttributeTypeGpuRibbonFollow() : base(EfxAttributeType.TypeGpuRibbonFollow) { }
@@ -1524,7 +1532,7 @@ public partial class EFXAttributeTypeGpuRibbonFollow : EFXAttribute
 	public uint unkn1_1;
 	public uint unkn1_2;
 	public uint unkn1_3;
-	[RszConditional(nameof(Version), '>', EfxVersion.DMC5)]
+	[RszVersion('>', EfxVersion.DMC5)]
 	public uint unkn1_4;
 	public via.Color color0;
 	public via.Color color1;
@@ -1536,7 +1544,7 @@ public partial class EFXAttributeTypeGpuRibbonFollow : EFXAttribute
 	public float unkn2_4;
 	public float unkn2_5;
 	public float unkn2_6;
-	[RszConditional(nameof(Version), '>', EfxVersion.DMC5)]
+	[RszVersion('>', EfxVersion.RE3)]
 	public float unkn2_7;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuRibbonLength, EfxVersion.RE4)]
@@ -1642,7 +1650,7 @@ public partial class EFXAttributeTypeLightning3D : EFXAttribute, IBoneRelationAt
 	public float unkn2_53;
 	public float unkn2_54;
 	public float unkn2_55;
-	[RszConditional(nameof(Version), '>', EfxVersion.DMC5, EndAt = nameof(unkn2_72))]
+	[RszVersion('>', EfxVersion.DMC5, EndAt = nameof(unkn2_72))]
 	public float unkn2_56;
 	public float unkn2_57;
 	public float unkn2_58;
@@ -1704,15 +1712,29 @@ public partial class EFXAttributeTypeLightning3DExpression : EFXAttribute
 
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeNoDrawExpression, EfxVersion.RE4)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeNoDrawExpression, EfxVersion.RE3, EfxVersion.RE4)]
 public partial class EFXAttributeTypeNoDrawExpression : EFXAttribute
 {
 	public EFXAttributeTypeNoDrawExpression() : base(EfxAttributeType.TypeNoDrawExpression) { }
 
-    [RszFixedSizeArray(15)] public uint[]? unkn0;
-	[RszConditional(nameof(Version), '>', EfxVersion.DMC5, EndAt = nameof(unkn2))]
+    public uint unkn0;
     public uint unkn1;
     public uint unkn2;
+    public uint unkn3;
+    public uint unkn4;
+    public uint unkn5;
+    public uint unkn6;
+    public uint unkn7;
+    public uint unkn8;
+    public uint unkn9;
+    public uint unkn10;
+    public uint unkn11;
+    public uint unkn12;
+    public uint unkn13;
+    public uint unkn14;
+	[RszVersion('>', EfxVersion.RE3, EndAt = nameof(unkn16))]
+    public uint unkn15;
+    public uint unkn16;
 
 	[RszSwitch(
 		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXExpressionListWrapper3),
@@ -1796,7 +1818,7 @@ public partial class EFXAttributeTypeNodeBillboard : EFXAttribute
 	public float unkn1_56;
 	public uint unkn1_57;
 	public uint unkn1_58;
-	[RszVersion(">", EfxVersion.DMC5, EndAt = nameof(unkn1_60))]
+	[RszVersion(">", EfxVersion.RE3, EndAt = nameof(unkn1_60))]
 	public uint unkn1_59;
 	public uint unkn1_60;
 	public float unkn1_61;
@@ -1853,7 +1875,7 @@ public partial class EFXAttributeTypeNodeBillboardExpression : EFXAttribute
 	public uint unkn1_43;
 	[RszClassInstance] public EFXExpressionListWrapper expressions = new();
 }
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypePolygon, EfxVersion.DMC5, EfxVersion.RE4)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypePolygon, EfxVersion.RE7, EfxVersion.RE2, EfxVersion.DMC5, EfxVersion.RE4)]
 public partial class EFXAttributeTypePolygon : EFXAttribute
 {
 	public EFXAttributeTypePolygon() : base(EfxAttributeType.TypePolygon) { }
@@ -1865,13 +1887,11 @@ public partial class EFXAttributeTypePolygon : EFXAttribute
 
 	public float unkn3;
 	public float unkn4_0;
-	public float unkn4_1;
-
-	public float unkn4_2;
-	[RszVersion(EfxVersion.RE4)]
-	public uint re4_unkn0;
-
-    public float unkn4_3;
+	[RszVersion(EfxVersion.RE4, EndAt = nameof(re4_unkn1))]
+	public float re4_unkn0;
+	public uint re4_unkn1;
+	public uint unkn4_1;
+    public float unkn4_3; // re4: int, rest: float
 	public float unkn4_4;
 	public float unkn4_5;
 	public float unkn4_6;
@@ -1885,10 +1905,12 @@ public partial class EFXAttributeTypePolygon : EFXAttribute
 	public float unkn4_14;
 	public float unkn4_15;
 	public float unkn4_16;
+    [RszVersion('<', EfxVersion.RE4)]
+	public float unkn4_17;
     [RszVersion(EfxVersion.RERT)]
 	public float sb_unkn0;
     [RszVersion(EfxVersion.RE4)]
-	public float re4_unkn1;
+	public uint re4_unkn2; // re4: int 1
 	// [RszFixedSizeArray(20)] public uint[]? re4_unkn2;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypePolygonExpression, EfxVersion.RE4, EfxVersion.DD2)]
@@ -1915,7 +1937,7 @@ public partial class EFXAttributeTypePolygonExpression : EFXAttribute
 	public uint unkn1_16;
 	public uint unkn1_17;
 	public uint unkn1_18;
-	[RszConditional(nameof(Version), '>', EfxVersion.DMC5)]
+	[RszVersion('>', EfxVersion.DMC5)]
 	public uint unkn1_19;
 	[RszSwitch(
 		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXExpressionListWrapper3),
@@ -1976,6 +1998,8 @@ public partial class EFXAttributeTypeRibbonFixEnd : EFXAttribute
 	public float unkn2_1;
 	public float unkn2_2;
 	public float unkn2_3;
+    [RszVersion(EfxVersion.RE4)]
+	public uint re4_unkn0;
 	public float unkn2_4;
 	public float unkn2_5;
 	public float unkn2_6;
@@ -1983,8 +2007,6 @@ public partial class EFXAttributeTypeRibbonFixEnd : EFXAttribute
 	public float unkn2_8;
 	[RszVersion(EfxVersion.RERT)]
 	public float sb_unkn0;
-    [RszVersion(EfxVersion.RE4)]
-	public float re4_unkn0;
     public uint unkn2_9; //
 	public float unkn2_10;
 	public float unkn2_11;
@@ -2009,7 +2031,7 @@ public partial class EFXAttributeTypeRibbonFixEnd : EFXAttribute
 	public float unkn2_28;
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonFollow, EfxVersion.RE7, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonFollow, EfxVersion.RE7, EfxVersion.RE2, EfxVersion.DMC5, EfxVersion.RE3, EfxVersion.RERT, EfxVersion.RE4)]
 public partial class EFXAttributeTypeRibbonFollow : EFXAttribute
 {
 	public EFXAttributeTypeRibbonFollow() : base(EfxAttributeType.TypeRibbonFollow) { }
@@ -2021,41 +2043,48 @@ public partial class EFXAttributeTypeRibbonFollow : EFXAttribute
 	public float unkn5;
 	public float unkn6;
 	public float unkn7;
-	public float unkn8;
+	[RszVersion(EfxVersion.RE4)]
+	public uint unkn8;
 	public float unkn9;
 	public float unkn10;
 	public float trailWidth;
 	public float unkn12;
-	[RszVersion(EfxVersion.RERT)]
 	public float sb_unkn0;
-    public float unkn13;
+	[RszVersion(nameof(Version), ">=", EfxVersion.RE2, "&&", nameof(Version), "<=", EfxVersion.RE8)]
+	public uint unkn14_re2;
+	[RszVersion(nameof(Version), "<", EfxVersion.RE2, "||", nameof(Version), ">", EfxVersion.RE8)] // else
 	public float unkn14;
+	[RszVersion(EfxVersion.RERT)]
+	public int rert_unkn0;
 	public float unkn15;
-	public float unkn16;
+	[RszVersion(EfxVersion.RE8)]
+	public float rert_unkn1;
 	public uint trailLength;
-    [RszVersion(EfxVersion.RE4)]
-	public int trailStartDelay;
+    [RszVersion(EfxVersion.RE3)]
+	public uint something;
+    [RszVersion("==", EfxVersion.RE7)]
+	public float unkn17;
 
-    [RszVersion(EfxVersion.RERT)]
-	public float sb_unkn1;
-    [RszVersion(">", EfxVersion.RE7, EndAt = nameof(sb_unkn3))]
+	public int ukn18;
+
+    [RszVersion(EfxVersion.RE2, EndAt = nameof(unkn26))]
     public via.Color color2;
-	public int unkn19;
-	public int unkn20;
-    [RszVersion(EfxVersion.DD2)]
-	public int dd2_unkn1;
+	public via.Color unkn19;
+	public via.Color unkn20;
 	public float unkn21;
 	public float unkn22;
 	public float unkn23;
 	public float unkn24;
 	public float unkn25;
 	public float unkn26;
-	public float unkn27;
-	public float unkn28;
-	public float unkn29;
-    [RszVersion(EfxVersion.RERT)]
-	public float sb_unkn2;
-	public float sb_unkn3;
+    [RszVersion(EfxVersion.RE2)]
+	public float re2_unkn;
+    [RszVersion(EfxVersion.RE3, EndAt = nameof(re3_unkn2))]
+	public float re3_unkn1;
+	public float re3_unkn2;
+    [RszVersion(EfxVersion.RE8, EndAt = nameof(rert_unkn3))]
+	public float rert_unkn2;
+	public UndeterminedFieldType rert_unkn3;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonFollowExpression, EfxVersion.DMC5, EfxVersion.RE4)]
 public partial class EFXAttributeTypeRibbonFollowExpression : EFXAttribute
@@ -2076,7 +2105,7 @@ public partial class EFXAttributeTypeRibbonFollowExpression : EFXAttribute
 	[RszClassInstance] public EFXExpressionListWrapper expressions = new();
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonLength, EfxVersion.RE7, EfxVersion.RE4)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonLength, EfxVersion.RE7, EfxVersion.RE2, EfxVersion.DMC5, EfxVersion.RE3, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.RE4)]
 public partial class EFXAttributeTypeRibbonLength : EFXAttribute
 {
 	public EFXAttributeTypeRibbonLength() : base(EfxAttributeType.TypeRibbonLength) { }
@@ -2089,7 +2118,8 @@ public partial class EFXAttributeTypeRibbonLength : EFXAttribute
 	public float unkn1_4;
 	public float unkn1_5;
 	public float unkn1_6;
-	public float unkn1_7;
+    [RszVersion(EfxVersion.RE4)]
+	public uint unkn1_7;
 	public float unkn1_8;
 	public float unkn1_9;
 	public float unkn1_10;
@@ -2097,10 +2127,11 @@ public partial class EFXAttributeTypeRibbonLength : EFXAttribute
     [RszVersion(EfxVersion.RERT)]
 	public float sb_unkn0;
 	public float unkn1_12;
-	public float unkn1_13;
+    [RszVersion(EfxVersion.RE2)]
+	public uint unkn1_13;
 	public float unkn1_14;
 	public float unkn1_15;
-	public float unkn1_16;
+	public uint unkn1_16;
 	public float unkn1_17;
 	public float unkn1_18;
 	public float unkn1_19;
@@ -2109,12 +2140,13 @@ public partial class EFXAttributeTypeRibbonLength : EFXAttribute
 	public float unkn1_22;
 	public float unkn1_23;
 	public float unkn1_24;
-	[RszVersion(">", EfxVersion.RE7, EndAt = nameof(re4_unkn0))]
 	public float unkn1_25;
+	public float unkn1_26;
 
-	public via.Color unkn1_26;
-	public via.Color unkn1_27;
-	public via.Color unkn1_28;
+	[RszVersion(EfxVersion.RE2, EndAt = nameof(sb_unkn2))]
+	public via.Color color2_1;
+	public via.Color color2_2;
+	public via.Color color2_3;
 	public float unkn1_29;
 
 	public float unkn1_30;
@@ -2123,13 +2155,11 @@ public partial class EFXAttributeTypeRibbonLength : EFXAttribute
 	public float unkn1_33;
 	public float unkn1_34;
 	public float unkn1_35;
-    [RszVersion(EfxVersion.RERT, EndAt = nameof(sb_unkn2))]
+    [RszVersion(EfxVersion.RE8, EndAt = nameof(sb_unkn2))]
 	public float sb_unkn1;
 	public float sb_unkn2;
-    [RszVersion(EfxVersion.RE4)]
-	public float re4_unkn0;
 }
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonLengthExpression, EfxVersion.RE7, EfxVersion.RERT, EfxVersion.RE4)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonLengthExpression, EfxVersion.RE7, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.RE4)]
 public partial class EFXAttributeTypeRibbonLengthExpression : EFXAttribute
 {
 	public EFXAttributeTypeRibbonLengthExpression() : base(EfxAttributeType.TypeRibbonLengthExpression) { }
@@ -2140,10 +2170,10 @@ public partial class EFXAttributeTypeRibbonLengthExpression : EFXAttribute
 	public uint unkn4;
 	public uint unkn5;
 	public uint unkn6;
-	[RszVersion(">", EfxVersion.RE7, EndAt = nameof(unkn8))]
+	[RszVersion(EfxVersion.RE2, EndAt = nameof(unkn8))]
 	public uint unkn7;
 	public uint unkn8;
-    [RszVersion(EfxVersion.RERT, EndAt = nameof(sb_unkn1))]
+    [RszVersion(EfxVersion.RE8, EndAt = nameof(sb_unkn1))]
 	public uint sb_unkn0;
 	public uint sb_unkn1;
     [RszVersion(">", EfxVersion.RERT, EndAt = nameof(sb_unkn7))]
@@ -2195,6 +2225,7 @@ public partial class EFXAttributeTypeRibbonTrail : EFXAttribute
 	public EFXAttributeTypeRibbonTrail() : base(EfxAttributeType.TypeRibbonTrail) { }
 
 	public uint unkn0;
+	[RszVersion('>', EfxVersion.RE3)]
     public uint unkn1;
     public via.Color color0;
     public via.Color color1;
@@ -2204,13 +2235,13 @@ public partial class EFXAttributeTypeRibbonTrail : EFXAttribute
     public float unkn7;
     public float unkn8;
     public float unkn9;
+	[RszVersion('>', EfxVersion.RE3)]
     public float unkn10;
-	[RszConditional(nameof(Version), '>', EfxVersion.DMC5, EndAt = nameof(unkn12))]
     public uint unkn11;
     public uint unkn12;
 
 }
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeStrainRibbon, EfxVersion.RERT, EfxVersion.RE4)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeStrainRibbon, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.RE4)]
 public partial class EFXAttributeTypeStrainRibbon : EFXAttribute, IBoneRelationAttribute
 {
 	public EFXAttributeTypeStrainRibbon() : base(EfxAttributeType.TypeStrainRibbon) { }
@@ -2239,8 +2270,11 @@ public partial class EFXAttributeTypeStrainRibbon : EFXAttribute, IBoneRelationA
 
 	public uint unkn1_18;
 	public uint unkn1_19;
+    [RszVersion(EfxVersion.RERT)]
 	public uint unkn1_20;
-	public float null1_21;
+    [RszVersion('<', EfxVersion.RERT)]
+	public float unkn1_20_re8;
+	public float unkn1_21;
 
 	public via.Color color2;
 	public via.Color color3;
@@ -2279,7 +2313,7 @@ public partial class EFXAttributeTypeStrainRibbon : EFXAttribute, IBoneRelationA
 	public uint null1_56;
 	public byte unkn2;
 	public float null3_0;
-    [RszVersion(EfxVersion.RERT)]
+    [RszVersion(EfxVersion.RE8)]
 	public float sb_unkn1;
 
 	public float null3_1;
@@ -2334,9 +2368,9 @@ public partial class EFXAttributeTypeStrainRibbonExpression : EFXAttribute
 	public uint unkn1_11;
 	public uint unkn1_12;
 	public uint unkn1_13;
-    [RszVersion(EfxVersion.RERT, EndAt = nameof(sb_unkn1))]
-	public float sb_unkn0;//;
-	public float sb_unkn1;//;
+    [RszVersion(EfxVersion.RE8, EndAt = nameof(sb_unkn1))]
+	public uint sb_unkn0;
+	public uint sb_unkn1;
 
 	[RszClassInstance] public EFXExpressionListWrapper expressions = new();
 
@@ -2410,16 +2444,22 @@ public partial class EFXAttributeUVSequenceExpression : EFXAttribute
 {
 	public EFXAttributeUVSequenceExpression() : base(EfxAttributeType.UVSequenceExpression) { }
 
-    [RszFixedSizeArray(7)] public uint[]? unkn;
+	public uint unkn1_0;
+	public uint unkn1_1;
+	public uint unkn1_2;
+	public uint unkn1_3;
+	public uint unkn1_4;
+	public uint unkn1_5;
+	public uint unkn1_6;
 	[RszClassInstance] public EFXExpressionListWrapper expressions = new();
 }
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnitCulling, EfxVersion.DMC5, EfxVersion.RERT, EfxVersion.RE4)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnitCulling, EfxVersion.DMC5, EfxVersion.RE3, EfxVersion.RERT, EfxVersion.RE4)]
 public partial class EFXAttributeUnitCulling : EFXAttribute
 {
 	public EFXAttributeUnitCulling() : base(EfxAttributeType.UnitCulling) { }
 
 	public uint unkn1_0;
-	public float unkn1_1;
+	public float unkn1_1; // 1-6 seem like hashes sometimes, may be some sort of conditional substruct
 	public float unkn1_2;
 	public float unkn1_3;
 	public float unkn1_4;
@@ -2428,7 +2468,7 @@ public partial class EFXAttributeUnitCulling : EFXAttribute
 	public float unkn1_7;
 	public float unkn1_8;
 	public float unkn1_9;
-    [RszVersion(">", EfxVersion.DMC5)]
+    [RszVersion(">", EfxVersion.RE3)]
 	public float unkn1_10;
 
 }
@@ -2476,7 +2516,7 @@ public partial class EFXAttributeVanishArea3DExpression : EFXAttribute
 	[RszClassInstance] public EFXExpressionListWrapper expressions = new();
 
 }
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.VectorFieldParameter, EfxVersion.DMC5, EfxVersion.RE4)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.VectorFieldParameter, EfxVersion.DMC5, EfxVersion.RE3, EfxVersion.RE4)]
 public partial class EFXAttributeVectorFieldParameter : EFXAttribute
 {
 	public EFXAttributeVectorFieldParameter() : base(EfxAttributeType.VectorFieldParameter) { }
@@ -2496,14 +2536,14 @@ public partial class EFXAttributeVectorFieldParameter : EFXAttribute
 	public float unkn1_12;
 	public float unkn1_13;
 	public float unkn1_14;
+	[RszVersion(EfxVersion.RE8, EndAt = nameof(unkn1_17))]
 	public float unkn1_15;
-	public uint null1_16;
-	[RszConditional(nameof(Version), '>', EfxVersion.DMC5, EndAt = nameof(unkn1_19))]
-	public uint null1_17;
+	public uint unkn1_16;
+	public uint unkn1_17;
 	public uint unkn1_18;
 	public uint unkn1_19;
-
 }
+
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.VectorFieldParameterExpression, EfxVersion.DMC5, EfxVersion.RE4)]
 public partial class EFXAttributeVectorFieldParameterExpression : EFXAttribute
 {
@@ -2521,7 +2561,7 @@ public partial class EFXAttributeVectorFieldParameterExpression : EFXAttribute
 	public uint unkn1_9;
 	public uint unkn1_10;
 	public uint unkn1_11;
-	[RszConditional(nameof(Version), '>', EfxVersion.DMC5, EndAt = nameof(unkn1_20))]
+	[RszVersion('>', EfxVersion.DMC5, EndAt = nameof(unkn1_20))]
 	public uint unkn1_12;
 	public uint unkn1_13;
 	public uint unkn1_14;
@@ -2548,17 +2588,20 @@ public partial class EFXAttributeVelocity2D : EFXAttribute
 	public float unkn1_5;
 	public float unkn1_6;
 	public float unkn1_7;
-	public float unkn1_8;
-	public float unkn1_9;
-	public float unkn1_10;
-	public float unkn1_11;
-	public float unkn1_12;
-    [RszVersion(EfxVersion.RE4, EndAt = nameof(re4_unkn4))]
+    [RszVersion(EfxVersion.RE4, EndAt = nameof(re4_unkn2))]
 	public float re4_unkn0;
 	public float re4_unkn1;
 	public float re4_unkn2;
-	public float re4_unkn3;
-	public float re4_unkn4;
+
+	public float unkn2_0;
+	public float unkn2_1;
+	public uint unkn2_2;
+	public float unkn2_3;
+
+	public float unkn2_4;
+    [RszVersion(EfxVersion.RE4, EndAt = nameof(re4_unkn2_1))]
+	public UndeterminedFieldType re4_unkn2_0;
+	public UndeterminedFieldType re4_unkn2_1;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Velocity2DExpression, EfxVersion.RERT, EfxVersion.RE4)]
 public partial class EFXAttributeVelocity2DExpression : EFXAttribute
@@ -2581,6 +2624,7 @@ public partial class EFXAttributeVelocity2DExpression : EFXAttribute
     public uint unkn2_2;
     public uint unkn2_3;
     public uint unkn2_4;
+    [RszVersion(EfxVersion.DD2, EndAt = nameof(unkn2_7))]
     public uint unkn2_5;
     public uint unkn2_6;
     public uint unkn2_7;
@@ -2591,12 +2635,13 @@ public partial class EFXAttributeVelocity2DExpression : EFXAttribute
 	)]
 	[RszClassInstance] public EFXExpressionListWrapperBase? expressions;
 }
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Velocity3D, EfxVersion.RE4)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Velocity3D, EfxVersion.RE2, EfxVersion.DMC5, EfxVersion.RE3, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.RE4)]
 public partial class EFXAttributeVelocity3D : EFXAttribute
 {
 	public EFXAttributeVelocity3D() : base(EfxAttributeType.Velocity3D) { }
 
-	public uint unkn1; // re7: float; NSA: [0, 1, 2, 3, 4, 5, 8, 9, 16, 20] + 2 more
+	[RszVersion(EfxVersion.RE2)]
+	public uint unkn1;
 	public float unkn2_0;
 	public float unkn2_1;
 	public float unkn2_2;
@@ -2607,32 +2652,34 @@ public partial class EFXAttributeVelocity3D : EFXAttribute
 	public float unkn2_7;
 	public float unkn2_8;
 	public float unkn2_9;
-	public float unkn2_10;
-	public float unkn2_11;
+	[RszVersion(EfxVersion.RE4, EndAt = nameof(unkn2_11))]
+	public uint unkn2_10;
+	public uint unkn2_11;
 	public float unkn2_12;
 	public float unkn2_13;
 	public float unkn2_14;
 	public float unkn2_15;
-	[RszVersion(EfxVersion.RE4, EndAt = nameof(re4_unkn1))]
 	public float re4_unkn0;
 	public float re4_unkn1;
 
-    public uint unkn3; // re7: float, else: uint? - NSA says [0, 1, 2, 3]
-	[RszVersion(">", EfxVersion.RE7, EndAt = nameof(unkn4_4))]
+    public uint unkn3;
 	public float unkn4_0;
+	[RszVersion(EfxVersion.RE2)]
 	public float unkn4_1;
+
+    [RszVersion(EfxVersion.RE4, EndAt = nameof(re4_unkn3))]
+	public uint re4_unkn2;
+	public uint re4_unkn3;
+
 	public float unkn4_2;
+	[RszVersion(EfxVersion.RE2, EndAt = nameof(unkn4_5))]
 	public float unkn4_3;
 	public float unkn4_4;
 	public float unkn4_5;
 
-	[RszVersion(EfxVersion.RERT, EndAt = nameof(sb_unkn1))]
+	[RszVersion(EfxVersion.RE8, EndAt = nameof(sb_unkn1))]
 	public float sb_unkn0;
 	public float sb_unkn1;
-
-    [RszVersion(EfxVersion.RE4, EndAt = nameof(re4_unkn3))]
-	public float re4_unkn2;
-	public float re4_unkn3;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Velocity3DDelayFrame, EfxVersion.RE4)]
 public partial class EFXAttributeVelocity3DDelayFrame : EFXAttribute
@@ -2643,33 +2690,35 @@ public partial class EFXAttributeVelocity3DDelayFrame : EFXAttribute
 	public uint unkn2;
 
 }
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Velocity3DExpression, EfxVersion.RERT, EfxVersion.RE4)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Velocity3DExpression, EfxVersion.RE3, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.RE4)]
 public partial class EFXAttributeVelocity3DExpression : EFXAttribute
 {
 	public EFXAttributeVelocity3DExpression() : base(EfxAttributeType.Velocity3DExpression) { }
 
 	public uint unkn1_0;
 	public uint indicesCount;
-	public float unkn1_2;
-	public float unkn1_3;
-	public float unkn1_4;
-	public float unkn1_5;
-	public float unkn1_6;
-	public float unkn1_7;
+    [RszVersion(EfxVersion.RE8, EndAt = nameof(rert_unkn1_7))]
+	public float rert_unkn1_1;
+	public float rert_unkn1_2;
+	public float rert_unkn1_3;
+	public float rert_unkn1_4;
+	public float rert_unkn1_5;
+	public float rert_unkn1_6;
+	public uint rert_unkn1_7;
+
+	public uint unkn1_2;
+	public uint unkn1_3;
+	public uint unkn1_4;
+	public uint unkn1_5;
+	public uint unkn1_6;
+	public uint unkn1_7;
 	public uint unkn1_8;
 	public uint unkn1_9;
 	public uint unkn1_10;
 	public uint unkn1_11;
 	public uint unkn1_12;
 
-    [RszVersion(">", EfxVersion.DMC5, EndAt = nameof(re4_unkn3))]
-	public uint unkn1_13;
-	public uint unkn1_14;
-	public uint unkn1_15;
-	public uint unkn1_16;
-	public uint unkn1_17;
-	public uint unkn1_18;
-	public uint unkn1_19;
+    [RszVersion(">", EfxVersion.RE3, EndAt = nameof(re4_unkn3))]
 	public uint unkn1_20;
 
     [RszVersion(">", EfxVersion.RERT, EndAt = nameof(sb_unkn2))]
@@ -2745,7 +2794,7 @@ public partial class EFXAttributeunknRE4Struct247_UnknTypeGPU : EFXAttribute
     public float unkn2;
     public float unkn3;
     public float unkn4;
-    public float unkn5;
+    public uint unkn5;
     public uint unkn6;
     public uint unkn7;
     public uint unkn8;
@@ -2860,7 +2909,7 @@ public partial class EFXAttributeunknRE4Struct155 : EFXAttribute
     public uint unkn1;
     public uint unkn2;
     public float unkn3;
-	[RszConditional(nameof(Version), '>', EfxVersion.RERT)]
+	[RszVersion('>', EfxVersion.RERT)]
     public float unkn4;
 }
 
@@ -2880,14 +2929,6 @@ public partial class EFXAttributeunknDD2Struct95 : EFXAttribute
 
     [RszFixedSizeArray(7)] public uint[]? unkn;
 	[RszInlineWString] public string? uvsPath;
-}
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknRE4Struct173, EfxVersion.RE4)]
-public partial class EFXAttributeunknRE4Struct173 : EFXAttribute
-{
-	public EFXAttributeunknRE4Struct173() : base(EfxAttributeType.unknRE4Struct173) { }
-
-    public uint unkn1;
-    public uint unkn2;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknRE4Struct187, EfxVersion.RE4)]
 public partial class EFXAttributeunknRE4Struct187 : EFXAttribute
@@ -3078,7 +3119,7 @@ public partial class EFXAttributeunknRE4Struct245_UnknType : EFXAttribute
     public float unkn6;
     public uint unkn7;
     public float unkn8;
-    public float unkn9;
+    public uint unkn9;
     public float unkn10;
     public float unkn11;
     public float unkn12;
@@ -3142,10 +3183,10 @@ public partial class EFXAttributeAlphaCorrection : EFXAttribute
 {
 	public EFXAttributeAlphaCorrection() : base(EfxAttributeType.AlphaCorrection) { }
 
-	uint unkn1; // re7: float, NSA: [0, 1]
+	[RszVersion(">", EfxVersion.RE7)]
+	uint unkn1;
 	float unkn2_0;
 	float unkn2_1;
-	[RszVersion(">", EfxVersion.RE7)]
 	float unkn2_2;
 
 }
@@ -3177,27 +3218,26 @@ public partial class EFXAttributeAngularVelocity3D : EFXAttribute
 {
 	public EFXAttributeAngularVelocity3D() : base(EfxAttributeType.AngularVelocity3D) { }
 
-	uint unkn1_0;
-	uint unkn1_1;
-	float unkn1_2;
-	float unkn1_3;
-	float unkn1_4;
-	float unkn1_5;
-	float unkn1_6;
-	float unkn1_7;
-	float unkn1_8;
-	float unkn1_9;
-	float unkn1_10;
-	float unkn1_11;
-	float unkn1_12;
-	float unkn1_13;
-	float unkn1_14;
-	float unkn1_15;
-	float unkn1_16;
-	float unkn1_17;
-	float unkn1_18;
-	float unkn1_19;
-
+	public uint unkn1_0;
+	public uint unkn1_1;
+	public float unkn1_2;
+	public float unkn1_3;
+	public float unkn1_4;
+	public float unkn1_5;
+	public float unkn1_6;
+	public float unkn1_7;
+	public float unkn1_8;
+	public float unkn1_9;
+	public float unkn1_10;
+	public float unkn1_11;
+	public float unkn1_12;
+	public float unkn1_13;
+	public float unkn1_14;
+	public float unkn1_15;
+	public float unkn1_16;
+	public float unkn1_17;
+	public float unkn1_18;
+	public float unkn1_19;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.AngularVelocity3DDelayFrame, EfxVersion.RERT, EfxVersion.RE4)]
@@ -3227,16 +3267,19 @@ public partial class EFXAttributeDistortion : EFXAttribute
 
 	public DistortionType distortionType;
 	public float unkn2_strength;
-	[RszConditional(nameof(Version), '>', EfxVersion.DMC5, EndAt = nameof(color))]
+
+	[RszVersion(EfxVersion.RE3, EndAt = nameof(color))]
 	public float unkn3;
 	public float unkn4;
+	[RszVersion('>', EfxVersion.RE3)]
 	public via.Color color;
+
 	[RszVersion(EfxVersion.DD2, EndAt = nameof(dd2_unkn2))]
 	public float dd2_unkn1;
 	public byte dd2_unkn2;
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonChain, EfxVersion.RE7, EfxVersion.RE4)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonChain, EfxVersion.RE2, EfxVersion.DMC5, EfxVersion.RE4)]
 public partial class EFXAttributeTypeRibbonChain : EFXAttribute
 {
 	public EFXAttributeTypeRibbonChain() : base(EfxAttributeType.TypeRibbonChain) { }
@@ -3247,23 +3290,23 @@ public partial class EFXAttributeTypeRibbonChain : EFXAttribute
 	public float unkn2_0;
 
 	public float unkn2_1;
-	public float null2_2;
+	public UndeterminedFieldType null2_2;
 	public float unkn2_3;
 	public float unkn2_4;
 	public float unkn2_5;
 	public float unkn2_6;
 	public float unkn2_7;
 	public float unkn2_8;
-	public float unkn2_9;
-    [RszVersion(EfxVersion.RERT)]
-	public float sb_unkn0;
-
+	public uint unkn2_9;
     public float unkn2_10;
-	public UndeterminedFieldType unkn2_11; // re7: int 3, rest: float [15.0, 0.02, 3.0, ...]
+
+    [RszVersion(EfxVersion.RERT, EndAt = nameof(sb_unkn0))]
+	public float sb_unkn0;
+	public float unkn2_11;
 	public float unkn2_12;
 	public float unkn2_13;
 	public float unkn2_14;
-	public float unkn2_15;
+	public UndeterminedFieldType unkn2_15;
 	public float unkn2_16;
 	public float unkn2_17;
 	public uint unkn2_18;
@@ -3276,19 +3319,18 @@ public partial class EFXAttributeTypeRibbonChain : EFXAttribute
     public float unkn2_22;
 	public float unkn2_23;
 	public float unkn2_24;
-    [RszVersion(">", EfxVersion.RE7, EndAt = nameof(dd2_unkn7))]
 	public float unkn2_25;
 	public float unkn2_26;
 	public float unkn2_27;
 	public float unkn2_28;
-	public float null2_29;
+	public float unkn2_29;
 	public float unkn2_30;
-	public float null2_31;
-	public float unkn2_32;
-	public float null2_33; // dmc5: 1305225733=4DCC2A05=428163200.0, -855662123=CCFFA1D5=-134024900.0
-	public int unkn2_34;
-	public int null2_35;
-	public via.Color unkn2_36;
+	public float unkn2_31;
+	public UndeterminedFieldType unkn2_32;
+	public via.Color unkn2_33;
+	public via.Color unkn2_34;
+	public via.Color unkn2_35;
+	public float unkn2_36;
 	public float unkn2_37;
 	public float unkn2_38;
 	public float unkn2_39;
@@ -3378,7 +3420,6 @@ public partial class EFXAttributeProceduralDistortionClip : EFXAttribute
     [RszFixedSizeArray(nameof(substruct1Length), '/', 4)] public int[]? substruct1;
     [RszFixedSizeArray(nameof(substruct2Length), '/', 4)] public int[]? substruct2;
     [RszFixedSizeArray(nameof(substruct3Length), '/', 4)] public float[]? substruct3;
-
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtColorClip, EfxVersion.RE4)]
@@ -3458,7 +3499,7 @@ public partial class EFXAttributeMeshEmitter : EFXAttribute
 	[RszFixedSizeArray(10)] public uint[]? unkn8;
 	public float unkn9;
 	public float unkn10;
-	[RszConditional(nameof(Version), '>', EfxVersion.RERT, EndAt = nameof(unkn16))]
+	[RszVersion('>', EfxVersion.RERT, EndAt = nameof(unkn16))]
 	public uint unkn11;
 	public uint unkn12;
 	public uint unkn13;
@@ -3470,14 +3511,14 @@ public partial class EFXAttributeMeshEmitter : EFXAttribute
     public uint meshPathLength;
     public uint mdfPathLength;
     public uint maskPathLength;
-	[RszConditional(nameof(Version), '>', EfxVersion.DMC5)] public uint msk2PathLength;
+	[RszVersion('>', EfxVersion.DMC5)] public uint msk2PathLength;
 	[RszVersion(EfxVersion.DD2)] public uint msk3PathLength;
 	[RszInlineWString(nameof(mapPathLength))] public string? mapPath; // mapName: NormalRoughnessMap
 	[RszInlineWString(nameof(meshPathLength))] public string? meshPath;
 	[RszInlineWString(nameof(mdfPathLength))] public string? mdfPath;
 	[RszInlineWString(nameof(maskPathLength))] public string? mskPath; // note: might be a path to something else; RE4 doesn't use this one at all
 
-	[RszConditional(nameof(Version), '>', EfxVersion.DMC5), RszInlineWString(nameof(msk2PathLength))]
+	[RszVersion('>', EfxVersion.DMC5), RszInlineWString(nameof(msk2PathLength))]
 	public string? msk2Path;
 	[RszVersion(EfxVersion.DD2), RszInlineWString(nameof(msk3PathLength))]
 	public string? msk3Path;
@@ -3602,6 +3643,7 @@ public partial class EFXAttributeTypeMeshExpression : EFXAttribute
 
     public uint substructCount;
     public uint substructLength;
+	[RszVersion(nameof(Version), "==", EfxVersion.RE3, "||", nameof(Version), "==", EfxVersion.RE8, "||", nameof(Version), "==", EfxVersion.RERT)]
     public uint indicesCount;
     public uint unkn4;
     public uint unkn5_0;
@@ -3622,15 +3664,18 @@ public partial class EFXAttributeTypeMeshExpression : EFXAttribute
     public uint unkn5_15;
     public uint unkn5_16;
     public uint unkn5_17;
-	[RszVersion(">", EfxVersion.RE7, EndAt = nameof(unkn5_21))]
     public uint unkn5_18;
+	[RszVersion(">", EfxVersion.RE7, EndAt = nameof(unkn5_21))]
     public uint unkn5_19;
     public uint unkn5_20;
+	[RszVersion(">", EfxVersion.RE3, EndAt = nameof(unkn5_23))]
     public uint unkn5_21;
-	[RszVersion(nameof(Version), "==", EfxVersion.RERT, "||", nameof(Version), "==", EfxVersion.RE4)]
+	[RszVersion(nameof(Version), "==", EfxVersion.RE8, "||", nameof(Version), "==", EfxVersion.RERT, "||", nameof(Version), "==", EfxVersion.RE4)]
     public uint unkn5_22;
-	[RszVersion("==", EfxVersion.RE4)]
+	[RszVersion(nameof(Version), "==", EfxVersion.RE4)]
     public uint unkn5_23;
+	[RszVersion(EfxVersion.RE4)]
+    public uint unkn5_24; // NOTE: is this the substructCount target?
 
 	[RszSwitch(
 		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXExpressionListWrapper3),
@@ -3639,14 +3684,15 @@ public partial class EFXAttributeTypeMeshExpression : EFXAttribute
 	)]
 	public EFXExpressionListWrapperBase expressions = null!;
 	[RszVersion(EfxVersion.DD2)]
-    public UndeterminedFieldType unkn5_24;
+    public UndeterminedFieldType unkn5_25;
 
 	[RszVersion(EfxVersion.DD2), RszClassInstance] public EFXExpressionListWrapper2? expression2;
 	// [RszFixedSizeArray(nameof(solverSize), '/', 4)] public uint[]? expression;
 	// [RszVersion(EfxVersion.DD2), RszFixedSizeArray(nameof(indicesCount))] public uint[]? indices;
 
-	[RszVersion(nameof(Version), "==", EfxVersion.RERT, EndAt = nameof(indices))]
-	[RszFixedSizeArray(nameof(substructLength), '/', 4)] public uint[]? substruct;
+	[RszVersion(nameof(Version), "==", EfxVersion.RE2, "||", nameof(Version), "==", EfxVersion.DMC5, "||", nameof(Version), "==", EfxVersion.RE3, "||", nameof(Version), "==", EfxVersion.RE8, "||", nameof(Version), "==", EfxVersion.RERT)]
+	[RszList(nameof(substructCount)), RszClassInstance] public List<EFXExpression4>? expression3;
+	[RszVersion(nameof(Version), "==", EfxVersion.RE3, "||", nameof(Version), "==", EfxVersion.RE8, "||", nameof(Version), "==", EfxVersion.RERT)]
 	[RszFixedSizeArray(nameof(indicesCount))] public uint[]? indices;
 }
 
@@ -3710,7 +3756,8 @@ public partial class EFXAttributePtColliderAction : EFXAttribute
 	[RszFixedSizeArray(5)]
 	public float[]? ukn_flag2_3;
 
-	[RszConditional(nameof(Version), ">=", EfxVersion.DD2, "&& (dataFlags & (1 << 2)) != 0")]
+	[RszVersion(EfxVersion.DD2)]
+	[RszConditional("(dataFlags & (1 << 2)) != 0")]
 	public via.Int3 unknUint_flag4;
 
 	[RszConditional("(dataFlags & (1 << 1)) != 0"), RszInlineWString]
@@ -3720,7 +3767,7 @@ public partial class EFXAttributePtColliderAction : EFXAttribute
 	public string? unknString_flag1;
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtCollision, EfxVersion.RE7, EfxVersion.RE4, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtCollision, EfxVersion.RE7, EfxVersion.DMC5, EfxVersion.RE3, EfxVersion.RE4, EfxVersion.DD2)]
 public partial class EFXAttributePtCollision : EFXAttribute
 {
     public EFXAttributePtCollision() : base(EfxAttributeType.PtCollision) { }
@@ -3738,13 +3785,15 @@ public partial class EFXAttributePtCollision : EFXAttribute
     public float unkn7;
     public float unkn8;
     public uint unkn9;
-	[RszConditional(nameof(Version), '>', EfxVersion.RE7, EndAt = nameof(unkn16))]
+	[RszVersion('>', EfxVersion.RE7, EndAt = nameof(unkn16))]
     public float unkn10;
     public float unkn11;
     public float unkn12;
     public float unkn13;
+	[RszVersion('>', EfxVersion.RE3, EndAt = nameof(unkn16))]
     public float unkn14;
-    public float unkn15;
+	[RszVersion('>', EfxVersion.RE8, EndAt = nameof(unkn16))]
+    public uint unkn15;
     public float unkn16;
 	[RszConditional("(stringBitFlag & (1 << 0)) != 0"), RszInlineWString]
 	public string? unknString0;
@@ -3753,7 +3802,7 @@ public partial class EFXAttributePtCollision : EFXAttribute
 	public string? unknString1;
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeMeshClip, EfxVersion.RERT, EfxVersion.RE4)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeMeshClip, EfxVersion.RE3, EfxVersion.RERT, EfxVersion.RE4)]
 public partial class EFXAttributeTypeMeshClip : EFXAttribute
 {
     public EFXAttributeTypeMeshClip() : base(EfxAttributeType.TypeMeshClip) { }
@@ -4082,7 +4131,7 @@ public partial class EFXAttributeunknDD2Struct77 : EFXAttribute
     [RszFixedSizeArray(12)] public float[]? unkn1;
 }
 
-[RszGenerate, EfxStruct(EfxAttributeType.TypeGpuMesh, EfxVersion.RE4)]
+[RszGenerate, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuMesh, EfxVersion.RE8, EfxVersion.RE4)]
 public partial class EFXAttributeTypeGpuMesh : EFXAttribute
 {
     public EFXAttributeTypeGpuMesh() : base(EfxAttributeType.TypeGpuMesh) { }
@@ -4095,11 +4144,15 @@ public partial class EFXAttributeTypeGpuMesh : EFXAttribute
     public via.Color color1;
     public float unkn6;
     public uint unkn7;
-    public uint unkn8;
-    public uint unkn9;
+	[RszVersion(EfxVersion.RE4, EndAt = nameof(re4_unkn2))]
+    public uint re4_unkn1;
+    public uint re4_unkn2;
+	[RszVersion("==", EfxVersion.RE8)]
+    public float re8_unkn1;
     public float unkn10;
     public float unkn11;
     public float unkn12;
+	[RszVersion(EfxVersion.RE4, EndAt = nameof(unkn16))]
     public uint unkn13;
     public uint unkn14;
     public uint unkn15;
@@ -4114,6 +4167,7 @@ public partial class EFXAttributeTypeGpuMesh : EFXAttribute
     public float unkn24;
     public float unkn25;
     public float unkn26;
+	[RszVersion(EfxVersion.RE4, EndAt = nameof(unkn31))]
     public float unkn27;
     public float unkn28;
     public float unkn29;
@@ -4163,7 +4217,7 @@ public partial class MdfProperty_RE4 : BaseModel
 	[RszFixedSizeArray(16)] public byte[]? propertyValue;
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeMesh, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeMesh, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
 public partial class EFXAttributeTypeMesh : EFXAttribute
 {
     public EFXAttributeTypeMesh() : base(EfxAttributeType.TypeMesh) { }
@@ -4219,7 +4273,7 @@ public partial class EFXAttributeTypeMesh : EFXAttribute
 	[RszConditional(nameof(texCount), "!=", 0, EndAt = nameof(properties))]
 	[RszArraySizeField(nameof(properties))] public int propertiesDataSize;
 	[RszClassInstance, RszList(nameof(propertiesDataSize), '/', 32)]
-	public readonly List<MdfProperty_RE4> properties = new();
+	public List<MdfProperty_RE4> properties = new();
 
 	public int texPathBlockLength;
 

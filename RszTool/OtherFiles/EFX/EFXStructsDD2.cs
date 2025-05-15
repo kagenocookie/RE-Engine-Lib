@@ -26,10 +26,24 @@ public struct UndeterminedFieldType
 		this.value = MemoryUtils.SingleToInt32(value);
 	}
 
+	public string GetMostLikelyValueTypeString()
+	{
+		static bool LooksLikeFloat(int n) => BitConverter.Int32BitsToSingle(n) is float f && Math.Abs(f) > 0.00001f && Math.Abs(f) < 10000f;
+
+		if (value == 0) return "0";
+		if (value > 0 && value < 10000) {
+			return value.ToString();
+		}
+		if (LooksLikeFloat(value)) {
+			return BitConverter.Int32BitsToSingle(value).ToString("0.0#");
+		}
+		return ToString();
+	}
+
 	public override string ToString() => $"{value} {value.ToString("X")} {MemoryUtils.Int32ToSingle(value).ToString("0.0#", CultureInfo.InvariantCulture)}";
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.TypeGpuRibbonLengthExpression, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuRibbonLengthExpression, EfxVersion.DD2)]
 public partial class EFXAttributeTypeGpuRibbonLengthExpression : EFXAttribute
 {
 	public EFXAttributeTypeGpuRibbonLengthExpression() : base(EfxAttributeType.TypeGpuRibbonLengthExpression) { }
@@ -42,7 +56,7 @@ public partial class EFXAttributeTypeGpuRibbonLengthExpression : EFXAttribute
 	public EFXExpressionListWrapperBase expressions = null!;
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.TypeBillboard3DMaterial, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeBillboard3DMaterial, EfxVersion.DD2)]
 public partial class EFXAttributeTypeBillboard3DMaterial : EFXAttribute
 {
 	public EFXAttributeTypeBillboard3DMaterial() : base(EfxAttributeType.TypeBillboard3DMaterial) { }
@@ -75,7 +89,7 @@ public partial class EFXAttributeTypeBillboard3DMaterial : EFXAttribute
 	[RszInlineWString, RszList(nameof(texCount))] public string[]? texPaths;
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.TypeBillboard3DMaterialExpression, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeBillboard3DMaterialExpression, EfxVersion.DD2)]
 public partial class EFXAttributeTypeBillboard3DMaterialExpression : EFXAttribute
 {
 	public EFXAttributeTypeBillboard3DMaterialExpression() : base(EfxAttributeType.TypeBillboard3DMaterialExpression) { }
@@ -104,7 +118,7 @@ public partial class EFXAttributeTypeBillboard3DMaterialExpression : EFXAttribut
 	public uint ukn18;
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.unknDD2Struct252, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknDD2Struct252, EfxVersion.DD2)]
 public partial class EFXAttributeunknDD2Struct252 : EFXAttribute
 {
 	public EFXAttributeunknDD2Struct252() : base(EfxAttributeType.unknDD2Struct252) { }
@@ -130,7 +144,7 @@ public partial class EFXAttributeunknDD2Struct252 : EFXAttribute
 	public float ukn18;
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.ProceduralDistortion, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.ProceduralDistortion, EfxVersion.DD2)]
 public partial class EFXAttributeProceduralDistortion : EFXAttribute
 {
 	public EFXAttributeProceduralDistortion() : base(EfxAttributeType.ProceduralDistortion) { }
@@ -154,24 +168,24 @@ public partial class EFXAttributeProceduralDistortion : EFXAttribute
 	public float unkn2_15;
 	public float unkn2_16;
 	public uint unkn2_17; // TODO RE4 has this as float; might be different thing?
-	[RszConditional(nameof(Version), ">=", EfxVersion.DD2)]
+	[RszVersion(EfxVersion.DD2)]
 	public uint unkn2_18;
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.unknDD2Struct249, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknDD2Struct249, EfxVersion.DD2)]
 public partial class EFXAttributeunknDD2Struct249 : EFXAttribute
 {
 	public EFXAttributeunknDD2Struct249() : base(EfxAttributeType.unknDD2Struct249) { }
 
 	public float unkn1;
 }
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.unknDD2Struct250, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknDD2Struct250, EfxVersion.DD2)]
 public partial class EFXAttributeunknDD2Struct250 : EFXAttribute
 {
 	public EFXAttributeunknDD2Struct250() : base(EfxAttributeType.unknDD2Struct250) { }
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.unknDD2Struct214, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknDD2Struct214, EfxVersion.DD2)]
 public partial class EFXAttributeunknDD2Struct214 : EFXAttribute
 {
 	public EFXAttributeunknDD2Struct214() : base(EfxAttributeType.unknDD2Struct214) { }
@@ -181,7 +195,7 @@ public partial class EFXAttributeunknDD2Struct214 : EFXAttribute
 	public uint unkn3;
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.unknDD2Struct223, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknDD2Struct223, EfxVersion.DD2)]
 public partial class EFXAttributeunknDD2Struct223 : EFXAttribute
 {
 	public EFXAttributeunknDD2Struct223() : base(EfxAttributeType.unknDD2Struct223) { }
@@ -203,7 +217,7 @@ public partial class EFXAttributeunknDD2Struct223 : EFXAttribute
 	public float unkn15;
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.unknDD2Struct146, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknDD2Struct146, EfxVersion.DD2)]
 public partial class EFXAttributeunknDD2Struct146 : EFXAttribute
 {
 	public EFXAttributeunknDD2Struct146() : base(EfxAttributeType.unknDD2Struct146) { }
@@ -228,7 +242,7 @@ public partial class EFXAttributeunknDD2Struct146 : EFXAttribute
 
 	public uint unkn16;
 }
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.unknDD2Struct198, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknDD2Struct198, EfxVersion.DD2)]
 public partial class EFXAttributeunknDD2Struct198 : EFXAttribute, IBoneRelationAttribute
 {
 	public EFXAttributeunknDD2Struct198() : base(EfxAttributeType.unknDD2Struct198) { }
@@ -249,7 +263,7 @@ public partial class EFXAttributeunknDD2Struct198 : EFXAttribute, IBoneRelationA
 
 	public string? ParentBone { get; set; }
 }
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.unknDD2Struct197, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknDD2Struct197, EfxVersion.DD2)]
 public partial class EFXAttributeunknDD2Struct197 : EFXAttribute
 {
 	public EFXAttributeunknDD2Struct197() : base(EfxAttributeType.unknDD2Struct197) { }
@@ -261,7 +275,7 @@ public partial class EFXAttributeunknDD2Struct197 : EFXAttribute
 	public uint unkn1_5;
 	public uint unkn1_6;
 }
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.unknDD2Struct224, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknDD2Struct224, EfxVersion.DD2)]
 public partial class EFXAttributeunknDD2Struct224 : EFXAttribute
 {
 	public EFXAttributeunknDD2Struct224() : base(EfxAttributeType.unknDD2Struct224) { }
@@ -274,7 +288,7 @@ public partial class EFXAttributeunknDD2Struct224 : EFXAttribute
 	public float null5;
 	public float unkn6;
 }
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.unknDD2Struct152, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknDD2Struct152, EfxVersion.DD2)]
 public partial class EFXAttributeunknDD2Struct152 : EFXAttribute
 {
 	public EFXAttributeunknDD2Struct152() : base(EfxAttributeType.unknDD2Struct152) { }
@@ -306,7 +320,7 @@ public struct EFX_DD2_263_substruct
 	public float unkn6;
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.unknDD2Struct263, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknDD2Struct263, EfxVersion.DD2)]
 public partial class EFXAttributeunknDD2Struct263 : EFXAttribute
 {
 	public EFXAttributeunknDD2Struct263() : base(EfxAttributeType.unknDD2Struct263) { }
@@ -359,7 +373,7 @@ public partial class EFXAttributeunknDD2Struct263 : EFXAttribute
 	[RszInlineWString, RszList(nameof(texCount))] public string[]? texPaths;
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.unknDD2Struct265Expression, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknDD2Struct265Expression, EfxVersion.DD2)]
 public partial class EFXAttributeunknDD2Struct265Expression : EFXAttribute
 {
 	public EFXAttributeunknDD2Struct265Expression() : base(EfxAttributeType.unknDD2Struct265Expression) { }
@@ -374,7 +388,7 @@ public partial class EFXAttributeunknDD2Struct265Expression : EFXAttribute
 	[RszClassInstance] public EFXExpressionListWrapper2 expressions2 = null!;
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.unknDD2Struct219, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknDD2Struct219, EfxVersion.DD2)]
 public partial class EFXAttributeunknDD2Struct219 : EFXAttribute
 {
 	public EFXAttributeunknDD2Struct219() : base(EfxAttributeType.unknDD2Struct219) { }
@@ -384,7 +398,7 @@ public partial class EFXAttributeunknDD2Struct219 : EFXAttribute
 	[RszFixedSizeArray(18)] public float[]? unkn2;
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.unknDD2Struct225Expression, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknDD2Struct225Expression, EfxVersion.DD2)]
 public partial class EFXAttributeunknDD2Struct225 : EFXAttribute
 {
 	public EFXAttributeunknDD2Struct225() : base(EfxAttributeType.unknDD2Struct224) { }
@@ -403,7 +417,7 @@ public partial class EFXAttributeunknDD2Struct225 : EFXAttribute
 	public EFXExpressionListWrapperBase expressions = null!;
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.unknDD2Struct241, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknDD2Struct241, EfxVersion.DD2)]
 public partial class EFXAttributeunknDD2Struct241 : EFXAttribute
 {
 	public EFXAttributeunknDD2Struct241() : base(EfxAttributeType.unknDD2Struct241) { }
@@ -421,7 +435,7 @@ public partial class EFXAttributeunknDD2Struct241 : EFXAttribute
 	byte c;
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.unknDD2Struct247, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknDD2Struct247, EfxVersion.DD2)]
 public partial class EFXAttributeunknDD2Struct247 : EFXAttribute
 {
 	public EFXAttributeunknDD2Struct247() : base(EfxAttributeType.unknDD2Struct247) { }
@@ -442,7 +456,7 @@ public partial class EFXAttributeunknDD2Struct247 : EFXAttribute
 	public float unkn13;
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.unknDD2Struct256, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknDD2Struct256, EfxVersion.DD2)]
 public partial class EFXAttributeunknDD2Struct256 : EFXAttribute
 {
 	public EFXAttributeunknDD2Struct256() : base(EfxAttributeType.unknDD2Struct256) { }
@@ -464,7 +478,7 @@ public partial class EFXAttributeunknDD2Struct256 : EFXAttribute
 	public float unkn15;
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.unknDD2Struct253Expression, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknDD2Struct253Expression, EfxVersion.DD2)]
 public partial class EFXAttributeunknDD2Struct253 : EFXAttribute
 {
 	public EFXAttributeunknDD2Struct253() : base(EfxAttributeType.unknDD2Struct253Expression) { }
@@ -491,7 +505,7 @@ public partial class EFXAttributeunknDD2Struct253 : EFXAttribute
 	public EFXExpressionListWrapperBase expressions = null!;
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.TypeRibbonLength, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonLength, EfxVersion.DD2)]
 public partial class EFXAttributeTypeRibbonLength_DD2 : EFXAttribute
 {
 	public EFXAttributeTypeRibbonLength_DD2() : base(EfxAttributeType.TypeRibbonLength) { }
@@ -509,7 +523,7 @@ public partial class EFXAttributeTypeRibbonLength_DD2 : EFXAttribute
 	public float unkn1_9;
 	public float unkn1_10;
 	public float unkn1_11;
-	[RszConditional(nameof(Version), ">=", EfxVersion.RERT)]
+	[RszVersion(EfxVersion.RERT)]
 	public float sb_unkn0;
 	public float unkn1_12;
 	public float unkn1_13;
@@ -537,16 +551,16 @@ public partial class EFXAttributeTypeRibbonLength_DD2 : EFXAttribute
 	public float unkn1_33;
 	public float unkn1_34;
 	public float unkn1_35;
-	[RszConditional(nameof(Version), ">=", EfxVersion.RERT, EndAt = nameof(sb_unkn2))]
+	[RszVersion(EfxVersion.RERT, EndAt = nameof(sb_unkn2))]
 	public float sb_unkn1;
 	public float sb_unkn2;
-	[RszConditional(nameof(Version), ">=", EfxVersion.RE4)]
+	[RszVersion(EfxVersion.RE4)]
 	public float re4_unkn0;
-	[RszConditional(nameof(Version), ">=", EfxVersion.DD2)]
+	[RszVersion(EfxVersion.DD2)]
 	public uint dd2_null;
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.unknDD2Struct260, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknDD2Struct260, EfxVersion.DD2)]
 public partial class EFXAttributeunknDD2Struct260 : EFXAttribute
 {
 	public EFXAttributeunknDD2Struct260() : base(EfxAttributeType.unknDD2Struct260) { }
@@ -567,7 +581,7 @@ public partial class EFXAttributeunknDD2Struct260 : EFXAttribute
 	[RszInlineWString, RszList(nameof(texCount))] public string[]? texPaths;
 }
 
-[RszGenerate, RszAutoReadWrite, EfxStruct(EfxAttributeType.unknDD2Struct262Expression, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknDD2Struct262Expression, EfxVersion.DD2)]
 public partial class EFXAttributeunknDD2Struct262 : EFXAttribute
 {
 	public EFXAttributeunknDD2Struct262() : base(EfxAttributeType.unknDD2Struct262Expression) { }
@@ -602,7 +616,7 @@ public partial class EFXAttributeunknDD2Struct262 : EFXAttribute
 		typeof(EFXExpressionListWrapper)
 	)]
 	public EFXExpressionListWrapperBase expressions = null!;
-	// [RszConditional(nameof(Version), ">=", EfxVersion.RE4)]
+	// [RszVersion(EfxVersion.RE4)]
 	// public uint unkn5_24;
 	// [RszFixedSizeArray(nameof(substructCount))] public uint[]? extra;
 	// [RszFixedSizeArray(nameof(substruct2Count))] public uint[]? extra2;

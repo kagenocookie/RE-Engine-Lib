@@ -86,3 +86,38 @@ public enum EfxFieldFlags
     /// </summary>
     StructSize = 6,
 }
+
+public struct UndeterminedFieldType
+{
+	public int value;
+
+	public UndeterminedFieldType() { }
+	public UndeterminedFieldType(int value)
+	{
+		this.value = value;
+	}
+	public UndeterminedFieldType(uint value)
+	{
+		this.value = (int)value;
+	}
+	public UndeterminedFieldType(float value)
+	{
+		this.value = MemoryUtils.SingleToInt32(value);
+	}
+
+	public string GetMostLikelyValueTypeString()
+	{
+		static bool LooksLikeFloat(int n) => BitConverter.Int32BitsToSingle(n) is float f && Math.Abs(f) > 0.00001f && Math.Abs(f) < 10000f;
+
+		if (value == 0) return "0";
+		if (value > 0 && value < 10000) {
+			return value.ToString();
+		}
+		if (LooksLikeFloat(value)) {
+			return BitConverter.Int32BitsToSingle(value).ToString("0.0#");
+		}
+		return ToString();
+	}
+
+	public override string ToString() => $"{value} {value.ToString("X")} {MemoryUtils.Int32ToSingle(value).ToString("0.0#", System.Globalization.CultureInfo.InvariantCulture)}";
+}

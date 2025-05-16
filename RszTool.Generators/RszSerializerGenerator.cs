@@ -284,14 +284,14 @@ public class RszSerializerGenerator : IIncrementalGenerator
                 ctx.Indent().AppendLine($"if ({name} == 0) {name} = global::RszTool.Common.MurMur3HashUtils.GetUTF8Hash({str3});");
             }
             if (EvaluateExpressionString(ctx, field.GetAttribute("RszStringLengthField")?.ArgumentList?.Arguments.FirstOrDefault()?.Expression) is string str4) {
-                ctx.Indent().AppendLine($"{name} = {str4}.Length;");
+                ctx.Indent().AppendLine($"{name} = {str4}?.Length ?? 0;");
             }
             if (EvaluateExpressionString(ctx, field.GetAttribute("RszArraySizeField")?.ArgumentList?.Arguments.FirstOrDefault()?.Expression) is string str5) {
                 var targetField = ctx.context.ClassDecl.GetFields().FirstOrDefault(f => f.GetFieldName() == str5);
                 if (targetField != null && targetField.GetFieldType() is GenericNameSyntax generic) {
-                    ctx.Indent().AppendLine($"{name} = {str5}.Count;");
+                    ctx.Indent().AppendLine($"{name} = {str5}?.Count ?? 0;");
                 } else {
-                    ctx.Indent().AppendLine($"{name} = {str5}.Length;");
+                    ctx.Indent().AppendLine($"{name} = {str5}?.Length ?? 0;");
                 }
             }
         }

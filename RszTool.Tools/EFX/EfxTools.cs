@@ -237,7 +237,7 @@ public static class EfxTools
         }
 
         if (type == typeof(UndeterminedFieldType)) {
-            info.FieldType = RszFieldType.U32;
+            info.FieldType = RszFieldType.ukn_type;
             return;
         }
 
@@ -250,4 +250,6 @@ public static class EfxTools
         }
     }
 
+    public static IEnumerable<EFXAttribute> GetAttributesAndActions(this EfxFile file)
+        => file.Entries.SelectMany(e => e.Attributes).Concat(file.Actions.SelectMany(a => a.Attributes));
 }

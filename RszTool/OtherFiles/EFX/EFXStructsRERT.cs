@@ -1,25 +1,15 @@
 using System.Numerics;
 using RszTool;
+using RszTool.Efx.Structs.Common;
 using RszTool.Efx.Structs.RE4;
 using RszTool.InternalAttributes;
 
 namespace RszTool.Efx.Structs.RERT;
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknRERTStruct168, EfxVersion.RERT)]
-public partial class EFXAttributeunknRERTStruct168 : EFXAttribute
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnknownRERT_215, EfxVersion.RERT)]
+public partial class EFXAttributeUnknownRERT_215 : EFXAttribute
 {
-	public EFXAttributeunknRERTStruct168() : base(EfxAttributeType.unknRERTStruct168) { }
-
-    public uint ukn0;
-    public float ukn1;
-    public float ukn2;
-    public float ukn3;
-}
-
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknRERTStruct215, EfxVersion.RERT)]
-public partial class EFXAttributeunknRERTStruct215 : EFXAttribute
-{
-	public EFXAttributeunknRERTStruct215() : base(EfxAttributeType.unknRERTStruct215) { }
+	public EFXAttributeUnknownRERT_215() : base(EfxAttributeType.UnknownRERT_215) { }
 
     public uint ukn0;
     public uint ukn1;
@@ -38,22 +28,22 @@ public partial class EFXAttributeunknRERTStruct215 : EFXAttribute
     public uint ukn14;
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknRERTStruct219, EfxVersion.RERT)]
-public partial class EFXAttributeunknRERTStruct219 : EFXAttribute
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnknownRERT_219, EfxVersion.RERT)]
+public partial class EFXAttributeUnknownRERT_219 : EFXAttribute
 {
     // similar to TypeGpuPolygon
-	public EFXAttributeunknRERTStruct219() : base(EfxAttributeType.unknRERTStruct219) { }
+	public EFXAttributeUnknownRERT_219() : base(EfxAttributeType.UnknownRERT_219) { }
 
     public uint ukn0;
     public uint ukn1;
     public uint ukn2;
-    public via.Color ukn3; // rert 3207412549, 3213004694, 3221225471, 3212865134, 3207476021, 3103784959, 3210191284, 3099517439
-    public via.Color ukn4; // rert 3207476021, 3103784959
+    public via.Color ukn3;
+    public via.Color ukn4;
     public float ukn5;
     public uint ukn6;
     public uint ukn7;
-    public float ukn8; // rert 1065749138, 1070141403, 3217625051, 1076333878, 1078530011
-    public float ukn9; // rert: 1078530011, 1086918619, 1043511491, 1057360530, 1051900099, 1060288707, 1061752795
+    public float ukn8;
+    public float ukn9;
     public float ukn10;
     public float ukn11;
     public float ukn12;
@@ -82,18 +72,18 @@ public partial class EFXAttributeScreenSpaceEmitter : EFXAttribute
 {
 	public EFXAttributeScreenSpaceEmitter() : base(EfxAttributeType.ScreenSpaceEmitter) { }
 
-    public UndeterminedFieldType unkn0;
-    public UndeterminedFieldType unkn1;
+    public uint unkn0;
+    public uint unkn1;
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknRERTStruct159, EfxVersion.RERT)]
-public partial class EFXAttributeunknRERTStruct159 : EFXAttribute
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnknownRERT_159, EfxVersion.RERT)]
+public partial class EFXAttributeUnknownRERT_159 : EFXAttribute
 {
-	public EFXAttributeunknRERTStruct159() : base(EfxAttributeType.unknRERTStruct159) { }
+	public EFXAttributeUnknownRERT_159() : base(EfxAttributeType.UnknownRERT_159) { }
 
     public UndeterminedFieldType unkn0;
     public UndeterminedFieldType unkn1;
-    public float unkn2;
+    public UndeterminedFieldType unkn2;
     public float unkn3;
     public float unkn4;
     public float unkn5;
@@ -107,8 +97,8 @@ public partial class EFXAttributeunknRERTStruct159 : EFXAttribute
     public float unkn13;
     public float unkn14;
     public float unkn15;
-    public float unkn16;
-    public float unkn17;
+    public UndeterminedFieldType unkn16;
+    public UndeterminedFieldType unkn17;
     public uint ukn6;
     public uint ukn7;
 }
@@ -191,38 +181,20 @@ public partial class EFXAttributePtVelocity2DClip : EFXAttribute
     public uint ukn3;
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknRERTStruct136, EfxVersion.RERT)]
-public partial class EFXAttributeunknRERTStruct136 : EFXAttribute
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnknownRERT_153, EfxVersion.RERT)]
+public partial class EFXAttributeUnknownRERT_153 : EFXAttribute
 {
-    // note: looks eerily similar to UnitCulling, except for the extra last field
-	public EFXAttributeunknRERTStruct136() : base(EfxAttributeType.unknRERTStruct136) { }
-
-	public uint unkn1_0;
-	public float unkn1_1;
-	public float unkn1_2;
-	public float unkn1_3;
-	public float unkn1_4;
-	public float unkn1_5;
-	public float unkn1_6;
-	public float unkn1_7;
-	public float unkn1_8;
-	public float unkn1_9;
-}
-
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknRERTStruct151_PtColor, EfxVersion.RERT)]
-public partial class EFXAttributeunknRERTStruct151_PtColor : EFXAttribute
-{
-	public EFXAttributeunknRERTStruct151_PtColor() : base(EfxAttributeType.unknRERTStruct151_PtColor) { }
+	public EFXAttributeUnknownRERT_153() : base(EfxAttributeType.UnknownRERT_153) { }
 
 	public uint unkn1;
 	public uint unkn2;
 	public via.Color color0;
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknRERTStruct152_PtColorClip, EfxVersion.RERT)]
-public partial class EFXAttributeunknRERTStruct152_PtColorClip : EFXAttribute
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnknownRERT_154Clip, EfxVersion.RERT)]
+public partial class EFXAttributeUnknownRERT_154Clip : EFXAttribute
 {
-    public EFXAttributeunknRERTStruct152_PtColorClip() : base(EfxAttributeType.unknRERTStruct152_PtColorClip) { }
+    public EFXAttributeUnknownRERT_154Clip() : base(EfxAttributeType.UnknownRERT_154Clip) { }
 
     uint unkn0;
     uint unkn1;
@@ -239,10 +211,10 @@ public partial class EFXAttributeunknRERTStruct152_PtColorClip : EFXAttribute
     [RszFixedSizeArray(nameof(substruct3Length), '/', 4)] public float[]? substruct3;
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.unknRERTStruct220Expression, EfxVersion.RERT)]
-public partial class EFXAttributeunknRERTStruct220Expression : EFXAttribute
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnknownRERT_220Expression, EfxVersion.RERT)]
+public partial class EFXAttributeUnknownRERT_220Expression : EFXAttribute
 {
-	public EFXAttributeunknRERTStruct220Expression() : base(EfxAttributeType.unknRERTStruct220Expression) { }
+	public EFXAttributeUnknownRERT_220Expression() : base(EfxAttributeType.UnknownRERT_220Expression) { }
 
 	public uint unkn1;
 	public uint unkn2;
@@ -261,7 +233,7 @@ public partial class EFXAttributeunknRERTStruct220Expression : EFXAttribute
 	[RszClassInstance] public EFXExpressionListWrapper expressions = new();
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonChainExpression, EfxVersion.RE2, EfxVersion.RERT)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonChainExpression, EfxVersion.RE2, EfxVersion.RERT, EfxVersion.DD2)]
 public partial class EFXAttributeTypeRibbonChainExpression : EFXAttribute
 {
 	public EFXAttributeTypeRibbonChainExpression() : base(EfxAttributeType.TypeRibbonChainExpression) { }
@@ -274,8 +246,21 @@ public partial class EFXAttributeTypeRibbonChainExpression : EFXAttribute
     public uint unkn5;
     public uint unkn6;
     public uint unkn7;
-    [RszVersion('>', EfxVersion.RE3, EndAt = nameof(unkn9))]
+    [RszVersion(EfxVersion.RE8, EndAt = nameof(unkn9))]
     public uint unkn8;
     public uint unkn9;
-	[RszClassInstance] public EFXExpressionListWrapper expressions = new();
+    [RszVersion(EfxVersion.DD2, EndAt = nameof(unkn17))]
+    public uint unkn10;
+    public uint unkn11;
+    public uint unkn12;
+    public uint unkn13;
+    public uint unkn14;
+    public uint unkn15;
+    public uint unkn16;
+    public uint unkn17;
+	[RszSwitch(
+		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXExpressionListWrapper3),
+		typeof(EFXExpressionListWrapper)
+	)]
+	public EFXExpressionListWrapperBase expressions = null!;
 }

@@ -1,5 +1,6 @@
 using System.Numerics;
 using RszTool;
+using RszTool.Efx.Structs.Common;
 using RszTool.Efx.Structs.DMC5;
 using RszTool.Efx.Structs.RE4;
 using RszTool.Efx.Structs.RERT;
@@ -7,8 +8,7 @@ using RszTool.InternalAttributes;
 
 namespace RszTool.Efx.Structs.RE8;
 
-
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.WindInfluence3D, EfxVersion.RE8)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.WindInfluence3D, EfxVersion.RE8, EfxVersion.RE4)]
 public partial class EFXAttributeWindInfluence3D : EFXAttribute
 {
 	public EFXAttributeWindInfluence3D() : base(EfxAttributeType.WindInfluence3D) { }
@@ -26,7 +26,7 @@ public partial class EFXAttributeDepthOcclusion : EFXAttribute
 {
 	public EFXAttributeDepthOcclusion() : base(EfxAttributeType.DepthOcclusion) { }
 
-	public uint occlude;
+	public uint unkn;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtAngularVelocity3D, EfxVersion.RE8)]
@@ -65,19 +65,19 @@ public partial class EFXAttributeDirectionalFieldParameter : EFXAttribute
 	public UndeterminedFieldType unkn14;
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypePolygonMaterial, EfxVersion.RE8)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypePolygonMaterial, EfxVersion.RE8, EfxVersion.DD2)]
 public partial class EFXAttributeTypePolygonMaterial : EFXAttribute
 {
 	public EFXAttributeTypePolygonMaterial() : base(EfxAttributeType.TypePolygonMaterial) { }
 
-	public UndeterminedFieldType unkn1;
+	public uint unkn1;
 	public via.Color unkn2;
 	public via.Color unkn3;
 	public int unkn4;
 	public float unkn5;
 	public UndeterminedFieldType unkn6;
 	public float unkn7;
-	public UndeterminedFieldType unkn8;
+	public float unkn8;
 	public float unkn9;
 	public UndeterminedFieldType unkn10;
 	public float unkn11;
@@ -87,21 +87,13 @@ public partial class EFXAttributeTypePolygonMaterial : EFXAttribute
 	public float unkn15;
 	public UndeterminedFieldType unkn16;
 	public UndeterminedFieldType unkn17;
-	public UndeterminedFieldType unkn18;
+	public float unkn18;
 
-	public uint maxPropertyIndex;
-	public uint unknTexCount;
-	public int substructCount;
-	public uint texCount;
-    public uint uknLength;
-	public uint mdfPathLength;
-    public uint mmtrPathLength;
-	public uint texBlockLength;
-    [RszClassInstance, RszList(nameof(substructCount)), RszConstructorParams(nameof(Version))]
-    public List<MdfProperty_DMC5> properties = new();
-    [RszInlineWString(nameof(mdfPathLength))] public string? mdfPath;
-    [RszInlineWString(nameof(mmtrPathLength))] public string? mmtrPath;
-	[RszInlineWString, RszList(nameof(texCount))] public string[]? texPaths;
+	[RszConstructorParams(nameof(Version)), RszSwitch(
+		nameof(Version), ">=", EfxVersion.DD2, typeof(EfxMaterialStructV2),
+		typeof(EfxMaterialStructV1)
+	)]
+	public EfxMaterialStructBase? material;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonLengthMaterial, EfxVersion.RE8)]
@@ -116,11 +108,17 @@ public partial class EFXAttributeTypeRibbonLengthMaterial : EFXAttribute
 	public UndeterminedFieldType unkn5;
 	public UndeterminedFieldType unkn6;
 	public float unkn7;
-	public UndeterminedFieldType unkn8;
+	public uint unkn8;
 	public float unkn9;
 	public UndeterminedFieldType unkn10;
 	public float unkn11;
 	public UndeterminedFieldType unkn12;
+	[RszVersion(EfxVersion.DD2)]
+	public float dd2_unkn1;
+	[RszVersion(EfxVersion.DD2)]
+	public float dd2_unkn2;
+	[RszVersion(EfxVersion.DD2)]
+	public float dd2_unkn3;
 	public uint unkn13;
 	public float unkn14;
 	public UndeterminedFieldType unkn15;
@@ -133,7 +131,7 @@ public partial class EFXAttributeTypeRibbonLengthMaterial : EFXAttribute
 	public UndeterminedFieldType unkn22;
 	public float unkn23;
 	public UndeterminedFieldType unkn24;
-	public UndeterminedFieldType unkn25;
+	public float unkn25;
 	public UndeterminedFieldType unkn26;
 
 	public via.Color unkn27;
@@ -150,19 +148,16 @@ public partial class EFXAttributeTypeRibbonLengthMaterial : EFXAttribute
 	public UndeterminedFieldType unkn38;
 	public UndeterminedFieldType unkn39;
 
-	public uint maxPropertyIndex;
-	public uint unknTexCount;
-	public int substructCount;
-	public uint texCount; // maybe
-    public uint uknLength;
-	public uint mdfPathLength;
-    public uint mmtrPathLength;
-	public uint texBlockLength;
-    [RszClassInstance, RszList(nameof(substructCount)), RszConstructorParams(nameof(Version))]
-    public List<MdfProperty_DMC5> properties = new();
-    [RszInlineWString(nameof(mdfPathLength))] public string? mdfPath;
-    [RszInlineWString(nameof(mmtrPathLength))] public string? mmtrPath;
-	[RszInlineWString, RszList(nameof(texCount))] public string[]? texPaths;
+	[RszConstructorParams(nameof(Version)), RszSwitch(
+		nameof(Version), ">=", EfxVersion.DD2, typeof(EfxMaterialStructV2),
+		typeof(EfxMaterialStructV1)
+	)]
+	public EfxMaterialStructBase? material;
+	// [RszSwitch(
+	// 	nameof(Version), ">=", EfxVersion.DD2, typeof(EfxMaterialStruct),
+	// 	typeof(EfxMaterialStructV1)
+	// )]
+	// [RszClassInstance, RszConstructorParams(nameof(Version))] public EfxMaterialStructV1? material;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtTransform2DClip, EfxVersion.RE8)]
@@ -239,10 +234,13 @@ public partial class EFXAttributeTypeGpuMeshTrail : EFXAttribute
 	[RszInlineWString] public string? uknPath;
 	[RszInlineWString] public string? mdfPath;
 
-    [RszFixedSizeArray(2)] public uint[]? rest;
+    public uint dataSize;
+	// [RszFixedSizeArray(nameof(dataSize), '/', 4)] public uint[]? data;
+    public uint texBlockLength;
+	// [RszInlineWString, RszList(nameof(texCount))] public string[]? texPaths;
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PlaneCollider, EfxVersion.RE8)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PlaneCollider, EfxVersion.RE8, EfxVersion.RE4)]
 public partial class EFXAttributePlaneCollider : EFXAttribute
 {
 	public EFXAttributePlaneCollider() : base(EfxAttributeType.PlaneCollider) { }
@@ -253,7 +251,7 @@ public partial class EFXAttributePlaneCollider : EFXAttribute
 	public UndeterminedFieldType unkn4;
 	public UndeterminedFieldType unkn5;
 	public UndeterminedFieldType unkn6;
-	public UndeterminedFieldType unkn7;
+	public float unkn7;
 	public uint unkn8;
 	public uint unkn9;
 	public float unkn10;

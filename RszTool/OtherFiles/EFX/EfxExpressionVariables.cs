@@ -2,7 +2,7 @@ using System.Numerics;
 using RszTool;
 using RszTool.InternalAttributes;
 
-namespace RszTool.Efx.Structs;
+namespace RszTool.Efx.Structs.Common;
 
 public abstract partial class EFXExpressionDataBase : BaseModel
 {
@@ -153,6 +153,32 @@ public partial class EFXExpressionListWrapper2 : EFXExpressionListWrapperBase
 
 [RszGenerate]
 public partial class EFXExpressionListWrapper3 : EFXExpressionListWrapperBase
+{
+	[RszClassInstance, RszList(nameof(solverSize))]
+	public List<EFXExpression3> expressions = new();
+
+    protected override bool DoRead(FileHandler handler)
+    {
+		handler.Read(ref solverSize);
+		var end = handler.Tell() + solverSize;
+		while (handler.Tell() < end) {
+			var expr = new EFXExpression3();
+			expr.Read(handler);
+			expressions.Add(expr);
+		}
+		return true;
+    }
+
+    protected override bool DoWrite(FileHandler handler)
+    {
+		expressions.Write(handler);
+		handler.Write(Start, (uint)(handler.Tell() - Start));
+		return true;
+    }
+}
+
+[RszGenerate]
+public partial class EFXExpressionListWrapper4 : EFXExpressionListWrapperBase
 {
 	[RszClassInstance, RszList(nameof(solverSize))]
 	public List<EFXExpression4> expressions = new();

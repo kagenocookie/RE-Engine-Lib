@@ -126,6 +126,7 @@ internal sealed class Program
                 CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EfxFile.cs"))),
                 CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/EfxAttributeTypes.cs"))),
                 CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/EfxExpressionVariables.cs"))),
+                CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/EfxCommon.cs"))),
                 CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/EfxStructsRE7.cs"))),
                 CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/EFXStructsDMC5.cs"))),
                 CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/EFXStructsRE8.cs"))),
@@ -199,7 +200,7 @@ internal sealed class Program
         var constSection = """
                 local int currentAttributeIndex = -1;
                 uint itemType;
-                uint unknSeqNum;
+                uint unknSeqNum <read=Str("%d = X: %d, Y: %d, Z: %d", this, this & 0xff, (this & 0xff00)>>8, (this & 0xff0000)>>16)>;
 
             """;
 
@@ -212,8 +213,12 @@ internal sealed class Program
                 "EFXExpressionListWrapper3",
             };
         var structCases = new Dictionary<string, string>();
+        var runResult = driver.GetRunResult();
+        if (runResult.Diagnostics.Any()) {
+            throw new Exception(runResult.Diagnostics.First().ToString());
+        }
 
-        foreach (var res in driver.GetRunResult().Results) {
+        foreach (var res in runResult.Results) {
             foreach (var src in res.GeneratedSources) {
                 var isAttr = src.HintName.StartsWith("EFXAttribute");
                 var isEnum = src.HintName.StartsWith("Enum_");

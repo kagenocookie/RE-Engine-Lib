@@ -175,6 +175,12 @@ public class Rsz010TemplateGenerator : IIncrementalGenerator
 
     private static void Write010Members(ClassBuildContext ctx, ClassDeclarationSyntax classDecl, IEnumerable<FieldDeclarationSyntax> fields)
     {
+        if (classDecl.Identifier.Text == "EFXAttributePlayEmitter") {
+            ctx.Indent().AppendLine("uint efxrSize;");
+            ctx.Indent().AppendLine("if (efxrSize > 0) EFXR embedded_efxr <optimize=false>;");
+            return;
+        }
+
         var baseClass = classDecl.BaseList?.Types.FirstOrDefault();
         if (baseClass != null) {
             var baseName = (baseClass.Type as SimpleNameSyntax)?.Identifier.Text;
@@ -242,7 +248,8 @@ public class Rsz010TemplateGenerator : IIncrementalGenerator
 
     private static void HandleStruct(StructDeclarationSyntax data, ClassBuildContext ctx)
     {
-        ctx.Indent().AppendLine("typedef struct " + data.Identifier.Text + " {");
+        var meta = "";
+        ctx.Indent().AppendLine("typedef struct " + data.Identifier.Text + "_t {");
         ctx.AddIndent();
         foreach (var field in data.Members.OfType<FieldDeclarationSyntax>()) {
             var type = RemapType(field.GetFieldType()?.GetElementTypeName());
@@ -250,7 +257,7 @@ public class Rsz010TemplateGenerator : IIncrementalGenerator
             ctx.Indent().AppendLine($"{type} {name};");
         }
         ctx.ReduceIndent();
-        ctx.Indent().AppendLine("};");
+        ctx.Indent().AppendLine($"}} {data.Identifier.Text} {meta};");
     }
 
     private static void HandleMember(FieldDeclarationSyntax field, ClassBuildContext ctx)
@@ -303,7 +310,8 @@ public class Rsz010TemplateGenerator : IIncrementalGenerator
                     ctx.Indent().AppendLine($"if ({size} > 0) {fieldType} {name}[{size}] <read=str,optimize=false>;");
                 }
             } else {
-                var meta = isClass ? " <optimize=false>" : "";
+                // var meta = isClass ? " <optimize=false>" : "";
+                var meta = " <optimize=false>";
                 var fieldType = RemapType(field.GetFieldType()?.GetArrayElementType(true));
                 if (int.TryParse(size, out _)) {
                     ctx.Indent().AppendLine($"{fieldType} {name}[{size}]{meta};");

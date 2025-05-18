@@ -55,6 +55,18 @@ public static class EfxTools
             };
             info.Hash = (uint)GetStableStringHashCode(info.Classname);
             GenerateStructFields(instanceType, info, efxVersion, unhandledReferencedTypes);
+            if (instanceType == typeof(EFXAttributePlayEmitter)) {
+                info.Fields.Last().Flag = EfxFieldFlags.StructSize;
+                info.Fields.Last().FlagTarget = nameof(EFXAttributePlayEmitter.efxrData);
+                info.Fields.Add(new EfxFieldInfo() {
+                    Classname = typeof(EfxFile).FullName,
+                    FieldType = RszFieldType.Data,
+                    Name = nameof(EFXAttributePlayEmitter.efxrData),
+                    Flag = EfxFieldFlags.EmbeddedEFX,
+                    IsArray = true,
+                });
+                ExtendHash(info, info.Fields.Last());
+            }
 
             output.AttributeTypes[efxType.ToString()] = info;
         }
@@ -250,6 +262,20 @@ public static class EfxTools
         }
     }
 
-    public static IEnumerable<EFXAttribute> GetAttributesAndActions(this EfxFile file)
-        => file.Entries.SelectMany(e => e.Attributes).Concat(file.Actions.SelectMany(a => a.Attributes));
+    public static IEnumerable<EFXAttribute> GetAttributesAndActions(this EfxFile file, bool includeEmbeddedEfx = false)
+    {
+        foreach (var e in file.Entries) {
+            foreach (var a in e.Attributes) yield return a;
+        }
+        foreach (var e in file.Actions) {
+            foreach (var a in e.Attributes) {
+                yield return a;
+                if (includeEmbeddedEfx && a is EFXAttributePlayEmitter emitter && emitter.efxrData != null) {
+                    foreach (var child in emitter.efxrData.GetAttributesAndActions(includeEmbeddedEfx)) {
+                        yield return child;
+                    }
+                }
+            }
+        }
+    }
 }

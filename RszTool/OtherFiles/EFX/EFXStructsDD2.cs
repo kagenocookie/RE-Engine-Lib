@@ -323,65 +323,6 @@ public partial class EFXAttributeTypeRibbonLength : EFXAttribute
 	public uint dd2_null;
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonLengthMaterial, EfxVersion.DD2)]
-public partial class EFXAttributeTypeRibbonLengthMaterial : EFXAttribute
-{
-	public EFXAttributeTypeRibbonLengthMaterial() : base(EfxAttributeType.TypeRibbonLengthMaterial) { }
-
-	public UndeterminedFieldType unkn1;
-	public via.Color unkn2;
-	public via.Color unkn3;
-	public float unkn4;
-	public UndeterminedFieldType unkn5;
-	public UndeterminedFieldType unkn6;
-	public float unkn7;
-	public uint unkn8;
-	public float unkn9;
-	public float unkn10;
-	public float unkn11;
-	public float unkn12;
-	[RszVersion(EfxVersion.DD2)]
-	public float dd2_unkn1;
-	[RszVersion(EfxVersion.DD2)]
-	public float dd2_unkn2;
-	[RszVersion(EfxVersion.DD2)]
-	public float dd2_unkn3;
-	public uint unkn13;
-	public float unkn14;
-	public float unkn15;
-	public int unkn16;
-	public float unkn17;
-	public float unkn18;
-	public UndeterminedFieldType unkn19;
-	public UndeterminedFieldType unkn20;
-	public UndeterminedFieldType unkn21;
-	public float unkn22;
-	public float unkn23;
-	public float unkn24;
-	public float unkn25;
-	public float unkn26;
-
-	public via.Color unkn27;
-	public via.Color unkn28;
-	public via.Color unkn29;
-	public float unkn30;
-	public float unkn31;
-	public float unkn32;
-	public float unkn33;
-	public float unkn34;
-	public float unkn35;
-	public float unkn36;
-	public float unkn37;
-	public UndeterminedFieldType unkn38;
-	public uint unkn39;
-
-	[RszConstructorParams(nameof(Version)), RszSwitch(
-		nameof(Version), ">=", EfxVersion.DD2, typeof(EfxMaterialStructV2),
-		typeof(EfxMaterialStructV1)
-	)]
-	public EfxMaterialStructBase? material;
-}
-
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonLengthMaterialExpression, EfxVersion.DD2)]
 public partial class EFXAttributeTypeRibbonLengthMaterialExpression : EFXAttribute
 {
@@ -1474,6 +1415,24 @@ public partial class EFXAttributeUnknownDD2_243 : EFXAttribute
 	public UndeterminedFieldType unkn9;
 }
 
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnknownDD2_245Efcsv, EfxVersion.DD2)]
+public partial class EFXAttributeUnknownDD2_245Efcsv : EFXAttribute
+{
+	public EFXAttributeUnknownDD2_245Efcsv() : base(EfxAttributeType.UnknownDD2_245Efcsv) { }
+
+	public uint unkn0;
+	public UndeterminedFieldType unkn1;
+	public UndeterminedFieldType unkn2;
+	public uint unkn3;
+	public UndeterminedFieldType unkn4;
+	public UndeterminedFieldType unkn5;
+	public UndeterminedFieldType unkn6;
+	[RszInlineWString] public string? efcsvPath;
+	[RszInlineWString] public string? unknPath2;
+	[RszInlineWString] public string? unknPath3;
+	[RszInlineWString] public string? unknPath4;
+}
+
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnknownDD2_247, EfxVersion.DD2)]
 public partial class EFXAttributeUnknownDD2_247 : EFXAttribute
 {
@@ -1757,7 +1716,7 @@ public partial class EFXAttributeUnknownDD2_263 : EFXAttribute
 	public float unkn52;
 	public float unkn53;
 	public UndeterminedFieldType unkn54;
-	public UndeterminedFieldType unkn55;
+	public float unkn55;
 	public UndeterminedFieldType unkn56;
 	[RszInlineWString] public string? meshPath;
 	[RszInlineWString] public string? unkPath;

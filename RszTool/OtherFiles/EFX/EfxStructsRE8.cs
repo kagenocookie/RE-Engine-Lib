@@ -44,6 +44,24 @@ public partial class EFXAttributePtAngularVelocity3D : EFXAttribute
 	public float unkn8;
 }
 
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.GlobalVectorField, EfxVersion.RE8)]
+public partial class EFXAttributeGlobalVectorField : EFXAttribute
+{
+	public EFXAttributeGlobalVectorField() : base(EfxAttributeType.GlobalVectorField) { }
+
+	public uint unkn1;
+	public float unkn2;
+	public float unkn3;
+	public float unkn4;
+	public UndeterminedFieldType unkn5;
+	public UndeterminedFieldType unkn6;
+	public UndeterminedFieldType unkn7;
+	public UndeterminedFieldType unkn8;
+	public UndeterminedFieldType unkn9;
+	public UndeterminedFieldType unkn10;
+	public UndeterminedFieldType unkn11;
+}
+
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.DirectionalFieldParameter, EfxVersion.RE8)]
 public partial class EFXAttributeDirectionalFieldParameter : EFXAttribute
 {

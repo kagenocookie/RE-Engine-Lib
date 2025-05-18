@@ -161,6 +161,7 @@ public enum EfxAttributeType
     UnknownRE4_226,
     UnknownRE4_228,
     UnknownRE4_231EfCsv,
+    UnknownDD2_245Efcsv,
     UnknownRE4_243_UnknGPUBillboard,
     UnknownRE4_244Expression,
     UnknownRE4_245_UnknType,
@@ -2702,6 +2703,9 @@ public static partial class EfxAttributeTypeRemapper
         [EfxAttributeType.UnknownRE4_231EfCsv] = new() {
             [EfxVersion.RE4] = 231,
             [EfxVersion.DD2] = 244,
+        },
+        [EfxAttributeType.UnknownDD2_245Efcsv] = new() {
+            [EfxVersion.DD2] = 245,
         },
 
         [EfxAttributeType.AssignCSV] = new() {

@@ -81,8 +81,8 @@ public partial class EFXAttributeUnknownRERT_159 : EFXAttribute
 {
 	public EFXAttributeUnknownRERT_159() : base(EfxAttributeType.UnknownRERT_159) { }
 
-    public UndeterminedFieldType unkn0;
-    public UndeterminedFieldType unkn1;
+    public float unkn0;
+    public float unkn1;
     public UndeterminedFieldType unkn2;
     public float unkn3;
     public float unkn4;

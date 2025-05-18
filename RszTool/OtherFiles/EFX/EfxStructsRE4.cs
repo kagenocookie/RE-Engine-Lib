@@ -2565,10 +2565,10 @@ public partial class EFXAttributeVectorFieldParameter : EFXAttribute
 	public float unkn1_14;
 	[RszVersion(EfxVersion.RE8, EndAt = nameof(unkn1_17))]
 	public float unkn1_15;
-	public uint unkn1_16;
-	public uint unkn1_17;
+	public UndeterminedFieldType unkn1_16;
+	public float unkn1_17;
 	public uint unkn1_18;
-	public uint unkn1_19;
+	public int unkn1_19;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.VectorFieldParameterExpression, EfxVersion.DMC5, EfxVersion.RE8, EfxVersion.RE4, EfxVersion.DD2)]
@@ -2839,13 +2839,39 @@ public partial class EFXAttributeAngularVelocity3DDelayFrame : EFXAttribute
 	public uint unkn1;
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PlayEmitter, EfxVersion.DMC5, EfxVersion.RE4)]
-public partial class EFXAttributePlayEmitter : EFXAttribute
+[RszGenerate, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PlayEmitter, EfxVersion.DMC5, EfxVersion.RE4)]
+public sealed partial class EFXAttributePlayEmitter : EFXAttribute, IDisposable
 {
 	public EFXAttributePlayEmitter() : base(EfxAttributeType.PlayEmitter) { }
 
-	[RszByteSizeField(nameof(efxrData))] public uint fileSize;
-	[RszFixedSizeArray(nameof(fileSize))] public byte[]? efxrData;
+	public uint efxrSize;
+	[RszIgnore] public EfxFile? efxrData;
+
+    protected override bool DoRead(FileHandler handler)
+    {
+		handler.Read(ref efxrSize);
+		var end = handler.Position + efxrSize;
+		efxrData = new EfxFile(handler.WithOffset(handler.Position));
+		efxrData.Embedded = true;
+		efxrData.Read();
+		// if (handler.Position != end) throw new Exception("Probably misread embedded efx!");
+		handler.Seek(end);
+		return true;
+    }
+
+    protected override bool DoWrite(FileHandler handler)
+    {
+		var start = handler.Position;
+		handler.Skip(sizeof(uint));
+		efxrData?.WriteTo(handler.WithOffset(handler.Position), false);
+		handler.Write(start, (uint)(handler.Position - start));
+		return true;
+    }
+
+    public void Dispose()
+    {
+		efxrData?.FileHandler.Dispose();
+    }
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Distortion, EfxVersion.RE7, EfxVersion.RE2, EfxVersion.DMC5, EfxVersion.RE3, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.RE4)]

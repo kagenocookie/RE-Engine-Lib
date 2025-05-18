@@ -85,6 +85,10 @@ public enum EfxFieldFlags
     /// Field contains the size or length of another field / struct.
     /// </summary>
     StructSize = 6,
+    /// <summary>
+    /// Field is an embedded EFX file.
+    /// </summary>
+    EmbeddedEFX = 7,
 }
 
 public struct UndeterminedFieldType

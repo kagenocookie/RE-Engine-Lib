@@ -150,6 +150,11 @@ namespace RszTool.Efx
     {
         public EfxAttributeType type;
         public int unknSeqNum;
+        public via.Int3 NodePosition => new via.Int3() {
+            x = (unknSeqNum % 0xff),
+            y = (unknSeqNum % 0xff00) >> 8,
+            z = (unknSeqNum & 0xff0000) >> 16,
+        };
 
         public EfxVersion Version;
 
@@ -166,6 +171,8 @@ namespace RszTool.Efx
         protected EFXAttribute(EfxAttributeType type)
         {
         }
+
+        public override string ToString() => type.ToString();
     }
 
     public class EFXEntry : BaseModel
@@ -231,7 +238,7 @@ namespace RszTool.Efx
 
     public class EFXAction : BaseModel
     {
-        public uint actionUnkn0;
+        public int actionUnkn0;
         public uint actionNameHash;
         public int actionAttributeCount;
         public List<EFXAttribute> Attributes { get; } = new();
@@ -259,6 +266,8 @@ namespace RszTool.Efx
         protected override bool DoWrite(FileHandler handler)
         {
             actionAttributeCount = Attributes.Count;
+            actionNameHash = MurMur3HashUtils.GetUTF8Hash(name ?? string.Empty); // TODO RE7: different hash (ascii?)
+
             handler.Write(ref actionUnkn0);
             handler.Write(ref actionNameHash);
             handler.Write(ref actionAttributeCount);
@@ -301,8 +310,8 @@ namespace RszTool.Efx
                 handler.Read(ref value_ukn4);
                 handler.Read(ref value_ukn5);
                 handler.Read(ref value_ukn6);
-            if (type is 110 or 144 or 183 or 184 or 202 or 194 or 215) {
-                filePath = handler.ReadWString(-1, handler.Read<int>(), false);
+                if (type is 110 or 144 or 183 or 184 or 202 or 194 or 215) {
+                    filePath = handler.ReadWString(-1, handler.Read<int>(), false);
                 }
             }
             return true;
@@ -316,16 +325,16 @@ namespace RszTool.Efx
                 DefaultWrite(handler);
                 handler.WriteWString(filePath);
             } else {
-            DefaultWrite(handler);
+                DefaultWrite(handler);
                 handler.Write(ref value_ukn2);
                 handler.Write(ref value_ukn3);
                 handler.Write(ref value_ukn4);
                 handler.Write(ref value_ukn5);
                 handler.Write(ref value_ukn6);
                 if (type is 110 or 144 or 183 or 184 or 202 or 194 or 215) {
-                filePath ??= "";
-                handler.Write(filePath.Length);
-                handler.WriteWString(filePath);
+                    filePath ??= "";
+                    handler.Write(filePath.Length);
+                    handler.WriteWString(filePath);
                 }
             }
             return true;
@@ -357,6 +366,7 @@ namespace RszTool.Efx
 namespace RszTool
 {
     using RszTool.Efx;
+    using RszTool.Efx.Structs.RE4;
 
     public partial class EfxFile : BaseFile
     {
@@ -366,6 +376,7 @@ namespace RszTool
         public EfxHeader? Header;
         public Strings? Strings;
 
+        public List<short> BoneRelations { get; } = new();
         public List<EFXExpressionParameter> ExpressionParameters = new();
         public List<EFXAction> Actions = new();
         public List<EFXFieldParameterValue> FieldParameterValues = new();
@@ -453,17 +464,13 @@ namespace RszTool
                     value = data.value,
                 });
             }
-            var boneRelations = new List<short>();
-            for (int i = 0; i < Header.boneAttributeEntryCount; ++i) boneRelations.Add(handler.Read<short>());
+            BoneRelations.Clear();
+            for (int i = 0; i < Header.boneAttributeEntryCount; ++i) BoneRelations.Add(handler.Read<short>());
 
             if (Header.Version > EfxVersion.RE7) {
-                for (int i = 0; i < Header.actionCount; ++i) {
-                    var action = new EFXAction() { Version = Header.Version };
-                    action.name = Strings.ActionNames[i];
-                    action.Read(handler);
-                    Actions.Add(action);
-                }
+                ReadActions(handler);
             }
+
             for (int i = 0; i < Header.fieldParameterCount; ++i) {
                 var entry = new EFXFieldParameterValue();
                 entry.Version = Header.Version;
@@ -472,13 +479,9 @@ namespace RszTool
                 FieldParameterValues.Add(entry);
             }
             if (Header.Version <= EfxVersion.RE7) {
-                for (int i = 0; i < Header.actionCount; ++i) {
-                    var action = new EFXAction() { Version = Header.Version };
-                    action.name = Strings.ActionNames[i];
-                    action.Read(handler);
-                    Actions.Add(action);
-                }
+                ReadActions(handler);
             }
+
             Entries.Clear();
             for (int i = 0; i < Header.entryCount; ++i) {
                 var entry = new EFXEntry() { Version = Header.Version };
@@ -499,31 +502,57 @@ namespace RszTool
                 // note: found these as either 0 or 1 in DD2, sometimes other numbers too
                 // always 0 for RE4,DMC5,RERT
 
-                // if (uvarCount != 0) {
-                //     throw new Exception("Unexpected non-0 uvar count at EFX EOF");
-                // }
-                var end = handler.Read<int>();
-                // if (end != 0) {
-                //     throw new Exception("Unexpected non-0 at EFX EOF");
-                // }
+                if (uvarCount > 1) {
+                    throw new Exception("Found more UVARs than we know how to handle");
+                }
+                var uvarType = handler.Read<int>();
+                // uvarType == 1 => no extra data
+                if (uvarType == 2) {
+                    if (handler.Position != handler.Stream.Length - 12) {
+                        throw new Exception("Uvar handling is not OK?");
+                    }
+                    handler.Read<int>();
+                    handler.Read<int>();
+                    handler.Read<int>();
+                } else if (uvarType > 2) {
+                    throw new Exception("Found unhandled uvar type? " + uvarType);
+                }
             } else if (Header.expressionParameterSize > 0) {
                 expressionData = handler.ReadArray<int>(Header.expressionParameterSize);
             }
 
             if (Header.Version > EfxVersion.DMC5)
             {
-            SetupReferences(boneRelations);
+                SetupReferences();
             }
             return true;
         }
 
-        private void SetupReferences(List<short> boneRelations)
+        private void ReadActions(FileHandler handler)
         {
+            for (int i = 0; i < Header!.actionCount; ++i) {
+                var action = new EFXAction() { Version = Header.Version };
+                action.name = Strings!.ActionNames[i];
+                action.Read(handler);
+                foreach (var a in action.Attributes.OfType<EFXAttributePlayEmitter>()) {
+                    if (a.efxrData != null) {
+                        a.efxrData.Bones.AddRange(Bones);
+                        a.efxrData.SetupReferences();
+                    }
+                }
+                Actions.Add(action);
+            }
+        }
+
+        private void SetupReferences()
+        {
+            if (Bones.Count == 0) return;
+
             int index = 0;
             foreach (var entry in Entries) {
                 foreach (var attr in entry.Attributes) {
                     if (attr is IBoneRelationAttribute parented) {
-                        var parentBoneIndex = boneRelations[index++];
+                        var parentBoneIndex = BoneRelations[index++];
                         parented.ParentBone = parentBoneIndex == -1 ? null : Bones[parentBoneIndex].name;
                     }
                 }
@@ -607,11 +636,13 @@ namespace RszTool
                 handler.Write(0); // Uvar count
                 handler.Write(0); // 0x00 EOF bytes x4
             }
+
+            var endPosition = handler.Tell();
             handler.Seek(0);
 
             // write header again to update the length params
             Header.Write(handler);
-
+            handler.Seek(endPosition);
             return true;
         }
     }

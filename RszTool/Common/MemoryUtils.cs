@@ -92,7 +92,7 @@ namespace RszTool.Common
         public static unsafe float Int32ToSingle(int value) => *(float*)(&value);
 #else
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe int SingleToInt32(float value) => BitConverter.SingleToInt32Bits(value);
+        public static int SingleToInt32(float value) => BitConverter.SingleToInt32Bits(value);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Int32ToSingle(int value) => BitConverter.Int32BitsToSingle(value);
 #endif

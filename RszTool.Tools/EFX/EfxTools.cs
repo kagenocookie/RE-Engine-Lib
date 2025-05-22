@@ -169,18 +169,17 @@ public static class EfxTools
 
     private static void ExtendHash(EfxStructInfo structInfo, EfxFieldInfo field)
     {
-        structInfo.Hash = (uint)HashCode.Combine(
-            structInfo.Hash,
-            field.FieldType,
-            field.IsArray,
-            field.Flag,
-            field.FlagTarget,
-            GetStableStringHashCode(field.Name),
-            GetStableStringHashCode(field.Classname ?? string.Empty));
+        structInfo.Hash = structInfo.Hash * 31 + (uint)field.FieldType;
+        structInfo.Hash = structInfo.Hash * 31 + (field.IsArray ? 1u : 0u);
+        structInfo.Hash = structInfo.Hash * 31 + (uint)field.Flag;
+        structInfo.Hash = structInfo.Hash * 31 + (uint)GetStableStringHashCode(field.FlagTarget);
+        structInfo.Hash = structInfo.Hash * 31 + (uint)GetStableStringHashCode(field.Name);
+        structInfo.Hash = structInfo.Hash * 31 + (uint)GetStableStringHashCode(field.Classname);
     }
 
-    private static int GetStableStringHashCode(string str)
+    private static int GetStableStringHashCode(string? str)
     {
+        if (str == null) return 0;
         // https://stackoverflow.com/a/36845864/4721768
         unchecked {
             int hash1 = 5381;

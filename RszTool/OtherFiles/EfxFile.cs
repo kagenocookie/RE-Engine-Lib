@@ -31,9 +31,9 @@ namespace RszTool.Efx
         public int actionCount;
         public int fieldParameterCount;
         public int expressionParameterCount;
-        [RszVersion(">", EfxVersion.RE7, EndAt = nameof(collisionEffectLength))]
-        public int collisionEffectCount;
-        public int collisionEffectLength;
+        [RszVersion(">", EfxVersion.RE7, EndAt = nameof(effectGroupsLength))]
+        public int effectGroupsCount;
+        public int effectGroupsLength;
         [RszVersion("<=", EfxVersion.RE7)]
         public int expressionParameterSize;
         [RszVersion(">", EfxVersion.DMC5, EndAt = nameof(uknFlag))]
@@ -89,7 +89,7 @@ namespace RszTool.Efx
         public string[] ActionNames = Array.Empty<string>();
         public string[] FieldParameterNames = Array.Empty<string>();
         public string[] EfxNames = Array.Empty<string>();
-        public string[] CollisionEffectNames = Array.Empty<string>();
+        public string[] GroupNames = Array.Empty<string>();
 
         public EfxHeader Header { get; }
 
@@ -141,7 +141,7 @@ namespace RszTool.Efx
             if (Header.Version > EfxVersion.RE7) ActionNames = ReadStrings(Header.actionCount, handler, false);
             FieldParameterNames = ReadStrings(Header.fieldParameterCount, handler, Header.Version <= EfxVersion.RE7);
             EfxNames = ReadStrings(Header.entryCount, handler, false);
-            CollisionEffectNames = ReadStrings(Header.collisionEffectCount, handler, false);
+            GroupNames = ReadStrings(Header.effectGroupsCount, handler, false);
             if (Header.Version <= EfxVersion.RE7) ActionNames = ReadStrings(Header.actionCount, handler, false);
             return true;
         }
@@ -153,7 +153,7 @@ namespace RszTool.Efx
             if (Header.Version > EfxVersion.RE7) WriteStrings(ActionNames, handler, false);
             WriteStrings(FieldParameterNames, handler, Header.Version <= EfxVersion.RE7);
             WriteStrings(EfxNames, handler, false);
-            WriteStrings(CollisionEffectNames, handler, false);
+            WriteStrings(GroupNames, handler, false);
             if (Header.Version <= EfxVersion.RE7) WriteStrings(ActionNames, handler, false);
             return true;
         }
@@ -161,7 +161,7 @@ namespace RszTool.Efx
 
     public enum EfxEntryEnum {
         AssignToCollisionEffect = 0,
-        Unknown1 = 1,
+        Root = 1,
         NoAssignment = 2,
     }
 
@@ -204,6 +204,7 @@ namespace RszTool.Efx
         public EfxEntryEnum entryAssignment;
         public string? name;
         public List<EFXAttribute> Attributes { get; } = new();
+        public List<string> Groups { get; } = new();
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -382,12 +383,12 @@ namespace RszTool.Efx
     }
 
     [RszGenerate, RszAutoReadWrite]
-    public partial class CollisionEffect : BaseModel
+    public partial class EffectGroup : BaseModel
     {
         [RszStringHash(nameof(conditionalEffectGroupName))] public uint conditionalEffectGroupNameHashUTF16;
         [RszStringUTF8Hash(nameof(conditionalEffectGroupName))] public uint conditionalEffectGroupNameHashUTF8;
         [RszArraySizeField(nameof(efxEntryIndexes))] public int valueCount;
-        [RszFixedSizeArray(nameof(valueCount))] public uint[]? efxEntryIndexes;
+        [RszFixedSizeArray(nameof(valueCount))] public int[]? efxEntryIndexes;
         [RszIgnore] public string? conditionalEffectGroupName;
     }
 
@@ -420,7 +421,7 @@ namespace RszTool
         public List<EFXExpressionParameter> ExpressionParameters = new();
         public List<EFXAction> Actions = new();
         public List<EFXFieldParameterValue> FieldParameterValues = new();
-        public List<CollisionEffect> CollisionEffects = new();
+        private List<EffectGroup>? _effectGroups;
         public List<string> UvarStrings = new();
         /// <summary>
         /// RE7
@@ -530,11 +531,14 @@ namespace RszTool
                 Entries.Add(entry);
             }
 
-            for (int i = 0; i < Header.collisionEffectCount; ++i) {
-                var effect = new CollisionEffect();
-                effect.conditionalEffectGroupName = Strings.CollisionEffectNames[i];
+            for (int i = 0; i < Header.effectGroupsCount; ++i) {
+                var effect = new EffectGroup();
+                var groupName = Strings.GroupNames[i];
                 effect.Read(handler);
-                CollisionEffects.Add(effect);
+                if (effect.efxEntryIndexes == null) continue;
+                foreach (var index in effect.efxEntryIndexes) {
+                    Entries[index].Groups.Add(groupName);
+                }
             }
 
             if (Header.Version > EfxVersion.DMC5) {
@@ -563,7 +567,7 @@ namespace RszTool
 
             if (Header.Version > EfxVersion.DMC5)
             {
-                SetupReferences();
+                SetupBoneReferences();
             }
             return true;
         }
@@ -577,14 +581,14 @@ namespace RszTool
                 foreach (var a in action.Attributes.OfType<EFXAttributePlayEmitter>()) {
                     if (a.efxrData != null) {
                         a.efxrData.Bones.AddRange(Bones);
-                        a.efxrData.SetupReferences();
+                        a.efxrData.SetupBoneReferences();
                     }
                 }
                 Actions.Add(action);
             }
         }
 
-        private void SetupReferences()
+        private void SetupBoneReferences()
         {
             if (Bones.Count == 0) return;
 
@@ -599,6 +603,30 @@ namespace RszTool
             }
         }
 
+        private void UpdateEffectGroups()
+        {
+            var dict = new Dictionary<string, List<int>>();
+            for (var i = 0; i < Entries.Count; i++)
+            {
+                foreach (var grp in Entries[i].Groups)
+                {
+                    if (!dict.TryGetValue(grp, out var ids)) {
+                        dict[grp] = ids = new List<int>();
+                    }
+
+                    ids.Add(i);
+                }
+            }
+
+            _effectGroups = dict.Select(kv => new EffectGroup() {
+                conditionalEffectGroupName = kv.Key,
+                valueCount = kv.Value.Count,
+                efxEntryIndexes = kv.Value.ToArray(),
+                conditionalEffectGroupNameHashUTF16 = MurMur3HashUtils.GetHash(kv.Key),
+                conditionalEffectGroupNameHashUTF8 = MurMur3HashUtils.GetAsciiHash(kv.Key)
+            }).ToList();
+        }
+
         private void UpdateHeaderData(EfxVersion version)
         {
             if (Header == null || Header.Version != version) {
@@ -609,7 +637,7 @@ namespace RszTool
             Header.expressionParameterCount = ExpressionParameters.Count;
             Header.boneCount = Bones.Count;
             Header.entryCount = Entries.Count;
-            Header.collisionEffectCount = CollisionEffects.Count;
+            Header.effectGroupsCount = _effectGroups?.Count ?? 0;
             Header.actionCount = Actions.Count;
             Header.fieldParameterCount = FieldParameterValues.Count;
             Header.boneAttributeEntryCount = Bones.Count;
@@ -617,7 +645,8 @@ namespace RszTool
             Strings ??= new(Header);
 
             Strings.EfxNames = Entries.Select(e => e.name ?? string.Empty).ToArray();
-            Strings.CollisionEffectNames = CollisionEffects.Select(e => e.conditionalEffectGroupName ?? string.Empty).ToArray();
+            Strings.GroupNames = _effectGroups?.Select(e => e.conditionalEffectGroupName ?? string.Empty).ToArray()
+                ?? Array.Empty<string>();
             Strings.BoneNames = Bones.Select(b => b.name ?? string.Empty).ToArray();
             Strings.ActionNames = Actions.Select(a => a.name ?? string.Empty).ToArray();
             Strings.FieldParameterNames = FieldParameterValues.Select(a => a.name ?? string.Empty).ToArray();
@@ -629,6 +658,7 @@ namespace RszTool
             if (Header == null) return false;
             var handler = FileHandler;
 
+            UpdateEffectGroups();
             UpdateHeaderData(Header.Version);
 
             Header.Write(handler);
@@ -669,8 +699,8 @@ namespace RszTool
             Entries.Write(handler);
 
             writeStart = handler.Tell();
-            CollisionEffects.Write(handler);
-            Header.collisionEffectLength = (int)(handler.Tell() - writeStart);
+            _effectGroups?.Write(handler);
+            Header.effectGroupsLength = (int)(handler.Tell() - writeStart);
 
             if (Header.Version > EfxVersion.DMC5) {
                 handler.Write(0); // Uvar count

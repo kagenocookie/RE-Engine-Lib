@@ -278,4 +278,16 @@ public static class EfxTools
             }
         }
     }
+
+    public static IEnumerable<EfxFile> GetEmbeddedFiles(this EfxFile file)
+    {
+        yield return file;
+        foreach (var e in file.Actions) {
+            foreach (var a in e.Attributes) {
+                if (a is EFXAttributePlayEmitter emitter && emitter.efxrData != null) {
+                    yield return emitter.efxrData;
+                }
+            }
+        }
+    }
 }

@@ -56,6 +56,8 @@ public class EfxFieldInfo
 
     public EfxFieldFlags Flag { get; set; }
     public string? FlagTarget { get; set; }
+
+    public override string ToString() => $"{FieldType} {Name}";
 }
 
 public enum EfxFieldFlags

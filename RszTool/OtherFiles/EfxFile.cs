@@ -1,4 +1,4 @@
-using System.Reflection;
+using System.Numerics;
 using RszTool.Common;
 using RszTool.InternalAttributes;
 
@@ -60,6 +60,26 @@ namespace RszTool.Efx
         }
 
         protected override bool DoWrite(FileHandler handler) => DefaultWrite(handler);
+    }
+
+    public enum EfxExpressionParameterType // TODO: enum confirmed "not wrong" with dmc5 and re4, dd2, what about the rest?
+    {
+        /// <summary>
+        /// A single float value.
+        /// </summary>
+        Float = 0,
+        /// <summary>
+        /// A single color value (stored as a 32 bit value on the first field).
+        /// </summary>
+        Color = 1,
+        /// <summary>
+        /// 3 float values - X seems to always be within the Y-Z range, so it's probably {X = InitialValue, Y = MinValue, Z = MaxValue}.
+        /// </summary>
+        Range = 2,
+        /// <summary>
+        /// Seems to always be a single float value, same as <see cref="Float"/>, though I've only found 0.0 and 1.0 cases here.
+        /// </summary>
+        Float2 = 3,
     }
 
     public class Strings : BaseModel
@@ -223,11 +243,31 @@ namespace RszTool.Efx
     {
         public uint expressionParameterNameUTF16Hash;
         public uint expressionParameterNameUTF8Hash;
-        public uint unkn1;
-        public int unkn2;
-        public uint unkn3;
-        public uint unkn4;
+        public EfxExpressionParameterType type;
+        public float value1;
+        public float value2;
+        public float value3;
         [RszIgnore] public string? name;
+
+        public via.Color Color
+        {
+            get => type == EfxExpressionParameterType.Color ? new via.Color() { rgba = (uint)MemoryUtils.SingleToInt32(value1) } : throw new Exception("Expression parameter is not a color");
+            set {
+                type = EfxExpressionParameterType.Color;
+                value1 = MemoryUtils.Int32ToSingle((int)value.rgba);
+            }
+        }
+
+        public Vector3 Range
+        {
+            get => type == EfxExpressionParameterType.Range ? new Vector3(value1, value2, value3) : throw new Exception("Expression parameter is not a range");
+            set {
+                type = EfxExpressionParameterType.Range;
+                value1 = value.X;
+                value2 = value.Y;
+                value3 = value.Z;
+            }
+        }
     }
 
     internal struct EFXBoneNameValuePair

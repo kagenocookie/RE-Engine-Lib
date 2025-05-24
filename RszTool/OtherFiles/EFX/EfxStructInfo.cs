@@ -45,6 +45,8 @@ public class EfxStructInfo
     /// List of fields that this struct contains.
     /// </summary>
     public List<EfxFieldInfo> Fields { get; set; } = new();
+
+    public override string ToString() => $"{TypeID} {Name}";
 }
 
 public class EfxFieldInfo

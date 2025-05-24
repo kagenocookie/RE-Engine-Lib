@@ -363,8 +363,10 @@ public partial class EFXAttributePtColorClip : RszTool.Efx.EFXAttribute
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonFixEndExpression, EfxVersion.RE8, EfxVersion.DD2)]
-public partial class EFXAttributeTypeRibbonFixEndExpression : RszTool.Efx.EFXAttribute
+public partial class EFXAttributeTypeRibbonFixEndExpression : RszTool.Efx.EFXAttribute, IExpressionAttribute
 {
+    public EFXExpressionContainer? Expression => expressions;
+
     public EFXAttributeTypeRibbonFixEndExpression() : base(EfxAttributeType.TypeRibbonFixEndExpression) { }
 
     public uint ukn1_0;
@@ -388,10 +390,10 @@ public partial class EFXAttributeTypeRibbonFixEndExpression : RszTool.Efx.EFXAtt
     public uint ukn1_16;
     public uint ukn1_17;
 	[RszSwitch(
-		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXExpressionListWrapper3),
-		typeof(EFXExpressionListWrapper)
+		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXExpressionListWrapper2),
+		typeof(EFXExpressionListWrapper1)
 	)]
-	public EFXExpressionListWrapperBase expressions = null!;
+	public EFXExpressionContainer expressions = null!;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeBillboard2D, EfxVersion.RE7, EfxVersion.RE2, EfxVersion.DMC5, EfxVersion.RERT, EfxVersion.RE4)]
 public partial class EFXAttributeTypeBillboard2D : RszTool.Efx.EFXAttribute
@@ -507,8 +509,10 @@ public partial class EFXAttributeTypeStrainRibbon : RszTool.Efx.EFXAttribute
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.MeshEmitterExpression, EfxVersion.DMC5)]
-public partial class EFXAttributeMeshEmitterExpression : RszTool.Efx.EFXAttribute
+public partial class EFXAttributeMeshEmitterExpression : RszTool.Efx.EFXAttribute, IExpressionAttribute
 {
+    public EFXExpressionContainer? Expression => expressions;
+
     public EFXAttributeMeshEmitterExpression() : base(EfxAttributeType.MeshEmitterExpression) { }
 
     public uint unkn0;
@@ -528,11 +532,13 @@ public partial class EFXAttributeMeshEmitterExpression : RszTool.Efx.EFXAttribut
     public uint unkn14;
     public uint unkn15;
     public uint unkn16;
-	[RszClassInstance] public EFXExpressionListWrapper expressions = new();
+	[RszClassInstance] public EFXExpressionListWrapper1 expressions = new();
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.ShaderSettingsExpression, EfxVersion.DMC5, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.DD2)]
-public partial class EFXAttributeShaderSettingsExpression : RszTool.Efx.EFXAttribute
+public partial class EFXAttributeShaderSettingsExpression : RszTool.Efx.EFXAttribute, IExpressionAttribute
 {
+    public EFXExpressionContainer? Expression => expressions;
+
     public EFXAttributeShaderSettingsExpression() : base(EfxAttributeType.ShaderSettingsExpression) { }
 
     public uint ukn0;
@@ -552,10 +558,10 @@ public partial class EFXAttributeShaderSettingsExpression : RszTool.Efx.EFXAttri
     public uint dd2_ukn4;
 
 	[RszSwitch(
-		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXExpressionListWrapper3),
-		typeof(EFXExpressionListWrapper)
+		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXExpressionListWrapper2),
+		typeof(EFXExpressionListWrapper1)
 	)]
-	[RszClassInstance] public EFXExpressionListWrapperBase? expressions;
+	[RszClassInstance] public EFXExpressionContainer? expressions;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.MeshEmitterClip, EfxVersion.DMC5)]
 public partial class EFXAttributeMeshEmitterClip : RszTool.Efx.EFXAttribute
@@ -578,8 +584,10 @@ public partial class EFXAttributeMeshEmitterClip : RszTool.Efx.EFXAttribute
     [RszFixedSizeArray(nameof(part4Size))] public byte[]? part4;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypePolygonExpression, EfxVersion.RE7, EfxVersion.RE2, EfxVersion.DMC5, EfxVersion.RE3, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
-public partial class EFXAttributeTypePolygonExpression : RszTool.Efx.EFXAttribute
+public partial class EFXAttributeTypePolygonExpression : RszTool.Efx.EFXAttribute, IExpressionAttribute
 {
+    public EFXExpressionContainer? Expression => expressions;
+
     public EFXAttributeTypePolygonExpression() : base(EfxAttributeType.TypePolygonExpression) { }
 
     public uint unkn0;
@@ -604,10 +612,10 @@ public partial class EFXAttributeTypePolygonExpression : RszTool.Efx.EFXAttribut
 	[RszVersion(EfxVersion.RE4)]
 	public uint unkn1_20;
 	[RszSwitch(
-		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXExpressionListWrapper3),
-		typeof(EFXExpressionListWrapper)
+		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXExpressionListWrapper2),
+		typeof(EFXExpressionListWrapper1)
 	)]
-	[RszClassInstance] public EFXExpressionListWrapperBase? expressions;
+	[RszClassInstance] public EFXExpressionContainer? expressions;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeLightning3D, EfxVersion.RE7, EfxVersion.RE2, EfxVersion.DMC5)]
 public partial class EFXAttributeTypeLightning3D : RszTool.Efx.EFXAttribute

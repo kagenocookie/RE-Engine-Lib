@@ -124,6 +124,7 @@ internal sealed class Program
             .AddSyntaxTrees(
                 // CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/RszFile/RSZFile.cs")))
                 CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EfxFile.cs"))),
+                CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/ParsedExpressions.cs"))),
                 CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/EfxAttributeTypes.cs"))),
                 CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/EfxExpressionVariables.cs"))),
                 CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/EfxCommon.cs"))),
@@ -149,45 +150,7 @@ internal sealed class Program
         var enumsContent = new StringBuilder();
         var switchContent = new StringBuilder();
         structsContent.AppendLine("""
-            struct EFXExpression;
-            struct EFXExpression3;
-
-            typedef struct EFXExpressionListWrapper
-            {
-                uint solverSize;
-                local long start = FTell();
-                local long end = FTell() + solverSize;
-                while (FTell() < end) {
-                    EFXExpression expression;
-                }
-            };
-            typedef struct EFXExpressionListWrapper3
-            {
-                uint solverSize;
-                local long start = FTell();
-                local long end = FTell() + solverSize;
-                while (FTell() < end) {
-                    EFXExpression3 expression;
-                }
-            };
-
-            typedef struct UndeterminedFieldType_t {
-                local float flt = ReadFloat();
-                uint value;
-            } UndeterminedFieldType <read=ReadUndeterminedFT, optimize=false>;
-            string ReadUndeterminedFT(UndeterminedFieldType &ft) {
-                if (ft.value == 0) {
-                    return "0";
-                }
-                if (ft.value > -1000 && ft.value < 1000) {
-                    return Str("INT: %d", ft.value);
-                }
-                if (ft.flt > -1000.0&& ft.value < -0.0001 || ft.flt > 0.0001 && ft.flt < 1000.0) {
-                    return Str("FLT: %f", ft.flt);
-                }
-
-                return Str("INT: %d   FLT: %f", ft.value, ft.flt);
-            }
+            #include "EFX_Fixed_structs.bt";
 
             """);
         switchContent.AppendLine("""
@@ -207,10 +170,9 @@ internal sealed class Program
         var ignoredEnums = new HashSet<string>() { };
 
         var ignoredStructs = new HashSet<string>() {
-                "CollisionEffect",
+                "EffectGroup",
                 "UndeterminedFieldType",
-                "EFXExpressionListWrapper",
-                "EFXExpressionListWrapper3",
+                "EFXFieldParameterValue",
             };
         var structCases = new Dictionary<string, string>();
         var runResult = driver.GetRunResult();
@@ -230,7 +192,7 @@ internal sealed class Program
                         enumsContent.AppendLine(source);
                     }
                 } else {
-                    if (ignoredStructs.Contains(name)) continue;
+                    if (ignoredStructs.Contains(name) || name.StartsWith("EFXExpression") || name.StartsWith("EFXMaterialExpression")) continue;
                     if (isAttr) {
                         source = source.Insert(source.IndexOf('{') + 2, constSection);
                     }
@@ -313,7 +275,6 @@ internal sealed class Program
         remapContent.AppendLine($$"""
             string GetEFXStructName(uint itemType)
             {
-                local string structName = "Unknown";
                 switch(Version)
                 {
                     {{mainSwitchContent}}

@@ -282,8 +282,10 @@ public partial class EFXAttributePlaneCollider : EFXAttribute
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuMeshExpression, EfxVersion.RE8)]
-public partial class EFXAttributeTypeGpuMeshExpression : EFXAttribute
+public partial class EFXAttributeTypeGpuMeshExpression : EFXAttribute, IExpressionAttribute
 {
+    public EFXExpressionContainer? Expression => expressions;
+
 	public EFXAttributeTypeGpuMeshExpression() : base(EfxAttributeType.TypeGpuMeshExpression) { }
 
 	public uint unkn1_0;
@@ -307,5 +309,5 @@ public partial class EFXAttributeTypeGpuMeshExpression : EFXAttribute
 	public uint unkn1_18;
 	public uint unkn1_19;
 
-	[RszClassInstance] public EFXExpressionListWrapper expressions = new();
+	[RszClassInstance] public EFXExpressionListWrapper1 expressions = new();
 }

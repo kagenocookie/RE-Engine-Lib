@@ -321,6 +321,7 @@ public class RszSerializerGenerator : IIncrementalGenerator
                         ctx.Indent().AppendLine($"{name}.Read(handler, (int)({size}));");
                     } else {
                         var fieldType = field.GetFieldType()?.GetArrayElementType();
+                        ctx.Indent().AppendLine($"{name} ??= new();");
                         ctx.Indent().AppendLine($"for (int i = 0; i < {size}; ++i) {{ var item = new {fieldType}({constructor}); item.Read(handler); {name}.Add(item); }}");
                     }
                 } else if (isString || isWString) {

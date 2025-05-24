@@ -1,6 +1,3 @@
-using RszTool.Common;
-using System.Collections.ObjectModel;
-
 namespace RszTool
 {
     public class CfilFile : BaseFile

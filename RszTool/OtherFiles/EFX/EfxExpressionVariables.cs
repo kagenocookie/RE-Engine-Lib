@@ -1,6 +1,3 @@
-using System.Globalization;
-using System.Numerics;
-using RszTool;
 using RszTool.InternalAttributes;
 
 namespace RszTool.Efx.Structs.Common;

@@ -1,6 +1,4 @@
 using RszTool.Common;
-using RszTool.Efx;
-using RszTool.Efx.Structs.RE4;
 
 namespace RszTool;
 

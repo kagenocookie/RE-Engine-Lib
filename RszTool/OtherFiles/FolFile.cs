@@ -1,6 +1,4 @@
-using RszTool.Common;
 using RszTool.via;
-using System.Collections.ObjectModel;
 using System.Numerics;
 
 namespace RszTool

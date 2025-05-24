@@ -1,6 +1,4 @@
-using RszTool.Common;
 using RszTool.InternalAttributes;
-using System.Collections.ObjectModel;
 
 namespace RszTool.Cdef
 {

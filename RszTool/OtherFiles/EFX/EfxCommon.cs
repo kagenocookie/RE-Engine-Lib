@@ -1,5 +1,3 @@
-using RszTool.Efx.Structs.RE4;
-using RszTool.Efx.Structs.RE8;
 using RszTool.InternalAttributes;
 
 namespace RszTool.Efx.Structs.Common;

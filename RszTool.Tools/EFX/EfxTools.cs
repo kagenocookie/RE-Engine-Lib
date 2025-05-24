@@ -2,10 +2,8 @@ using System.Reflection;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using RszTool.Common;
 using RszTool.Efx;
 using RszTool.Efx.Structs.RE4;
-using RszTool.Efx.Structs.RERT;
 using RszTool.InternalAttributes;
 
 namespace RszTool.Tools;

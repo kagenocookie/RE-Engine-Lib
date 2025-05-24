@@ -1,15 +1,7 @@
-﻿using System.Diagnostics;
-using System.Reflection;
-using System.Text;
-using System.Text.Encodings.Web;
-using System.Text.Json;
-using System.Text.Json.Serialization;
+﻿using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using RszTool.Common;
 using RszTool.Efx;
-using RszTool.Efx.Structs.RE4;
-using RszTool.Efx.Structs.RERT;
 
 namespace RszTool.Tools;
 

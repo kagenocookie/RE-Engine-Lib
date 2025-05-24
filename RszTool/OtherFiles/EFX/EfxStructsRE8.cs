@@ -1,9 +1,4 @@
-using System.Numerics;
-using RszTool;
 using RszTool.Efx.Structs.Common;
-using RszTool.Efx.Structs.DMC5;
-using RszTool.Efx.Structs.RE4;
-using RszTool.Efx.Structs.RERT;
 using RszTool.InternalAttributes;
 
 namespace RszTool.Efx.Structs.RE8;

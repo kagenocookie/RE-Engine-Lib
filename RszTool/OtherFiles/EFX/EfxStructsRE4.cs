@@ -1,7 +1,5 @@
 using System.Numerics;
-using RszTool;
 using RszTool.Efx.Structs.Common;
-using RszTool.Efx.Structs.RERT;
 using RszTool.InternalAttributes;
 
 namespace RszTool.Efx.Structs.RE4;

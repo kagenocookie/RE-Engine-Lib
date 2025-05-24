@@ -1,10 +1,6 @@
-using System.Collections.ObjectModel;
 using System.Numerics;
 using System.Runtime.InteropServices;
-using System.Security.Principal;
 using RszTool.Aimp;
-using RszTool.Common;
-using RszTool.Pfb;
 
 
 namespace RszTool.Aimp

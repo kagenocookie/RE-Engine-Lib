@@ -1,7 +1,6 @@
 namespace RszTool.Efx;
 
 using System.Reflection;
-using RszTool.Efx.Structs;
 using RszTool.InternalAttributes;
 
 public enum EfxAttributeType

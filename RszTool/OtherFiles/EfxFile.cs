@@ -418,6 +418,15 @@ namespace RszTool.Efx
     public interface IExpressionObject
     {
         IList<EFXExpressionData> Components { get; }
+        IEnumerable<EFXExpressionParameterName> Parameters { get; set; }
+
+        EFXExpressionParameterName? GetParameterByHash(uint hash)
+        {
+            foreach (var p in Parameters) {
+                if (p.parameterNameHash == hash) return p;
+            }
+            return null;
+        }
     }
 }
 
@@ -444,6 +453,8 @@ namespace RszTool
         /// RE7
         /// </summary>
         public int[]? expressionData;
+
+        public EfxFile? parentFile;
 
         public const int Magic = 0x72786665;
 
@@ -602,7 +613,10 @@ namespace RszTool
 
             foreach (var action in Actions) {
                 foreach (var a in action.Attributes.OfType<EFXAttributePlayEmitter>()) {
-                    a.efxrData?.ParseExpressions();
+                    if (a.efxrData != null) {
+                        a.efxrData.parentFile = this;
+                        a.efxrData.ParseExpressions();
+                    }
                 }
             }
         }
@@ -611,26 +625,26 @@ namespace RszTool
         {
             var list = new List<EFXExpressionTree>();
             foreach (var expr in container.Expressions) {
-                var tree = BuildExpressionTree(expr);
+                var tree = ReconstructExpressionTree(expr);
                 list.Add(tree);
-                if (expr.Components.Count > 0) {
+                if (expr.Components.Count > 1) {
                     Console.WriteLine("Expression: " + tree);
                 }
             }
             return list;
         }
 
-        public EFXExpressionTree BuildExpressionTree(IExpressionObject expression)
+        public EFXExpressionTree ReconstructExpressionTree(IExpressionObject expression)
         {
             var tree = new EFXExpressionTree();
             var comps = expression.Components;
             if (comps.Count == 0) return tree;
 
             var i = comps.Count - 1;
-            tree.root = EvalExpressionAtom(comps, ref i);
+            tree.root = EvalExpressionAtom(expression, ref i);
             if (i >= 0) {
                 // two DMC5 files fail this due to having an extra float at the start - Capcom user error?
-                // throw new Exception("Incomplete expression!");
+                throw new Exception("Incomplete expression!");
             }
 
             return tree;
@@ -651,21 +665,34 @@ namespace RszTool
             [2703807999] = "roll",
         };
 
-        private ExpressionAtom EvalExpressionAtom(IList<EFXExpressionData> components, ref int index)
+        private ExpressionAtom EvalExpressionAtom(IExpressionObject expression, ref int index)
         {
-            var comp = components[index--];
+            var comp = expression.Components[index--];
             if (comp.data is EFXExpressionDataParameterHash param) {
-                // note: we could optimize this by also using the "parameters" array to see what kind of parameter it is
-                // for now just bruteforcing for simplicity
-                var exprParam = ExpressionParameters.FirstOrDefault(exp => exp.expressionParameterNameUTF8Hash == param.parameterHash);
-                if (exprParam != null) {
-                    return new ExpressionParameter() { hash = param.parameterHash, name = exprParam.name };
+                var paramType = expression.GetParameterByHash(param.parameterHash)?.source ?? ExpressionParameterSource.Unknown;
+                string? name;
+                switch (paramType) {
+                    case ExpressionParameterSource.External:
+                    case ExpressionParameterSource.Constant:
+                        if (KnownExternalHashes.TryGetValue(param.parameterHash, out name)) {
+                            return new ExpressionParameter() { hash = param.parameterHash, name = name, source = paramType };
+                        }
+                        UnknownParameterHashes.Add(param.parameterHash);
+                        return new ExpressionParameter() { hash = param.parameterHash, source = paramType };
+                    case ExpressionParameterSource.Unknown:
+                    case ExpressionParameterSource.Parameter:
+                        var exprParam = (parentFile ?? this).ExpressionParameters.FirstOrDefault(exp => exp.expressionParameterNameUTF8Hash == param.parameterHash);
+                        if (exprParam != null) {
+                            return new ExpressionParameter() { hash = param.parameterHash, name = exprParam.name, source = ExpressionParameterSource.Parameter };
+                        }
+                        var fieldParam = (parentFile ?? this).FieldParameterValues.FirstOrDefault(exp => exp.fieldParameterNameHash == param.parameterHash);
+                        if (fieldParam != null) {
+                            return new ExpressionParameter() { hash = param.parameterHash, name = fieldParam.name, source = ExpressionParameterSource.Parameter };
+                        }
+                        break;
                 }
-                var fieldParam = FieldParameterValues.FirstOrDefault(exp => exp.fieldParameterNameHash == param.parameterHash);
-                if (fieldParam != null) {
-                    return new ExpressionParameter() { hash = param.parameterHash, name = fieldParam.name };
-                }
-                if (KnownExternalHashes.TryGetValue(param.parameterHash, out var name)) {
+                if (paramType == ExpressionParameterSource.Unknown) paramType = ExpressionParameterSource.External;
+                if (KnownExternalHashes.TryGetValue(param.parameterHash, out name)) {
                     return new ExpressionParameter() { hash = param.parameterHash, name = name };
                 }
                 UnknownParameterHashes.Add(param.parameterHash);
@@ -674,8 +701,8 @@ namespace RszTool
             if (comp.data is EFXExpressionDataBinaryOperator binary) {
                 var item = new ExpressionBinaryOperation();
                 item.oper = binary.value;
-                item.left = EvalExpressionAtom(components, ref index);
-                item.right = EvalExpressionAtom(components, ref index);
+                item.left = EvalExpressionAtom(expression, ref index);
+                item.right = EvalExpressionAtom(expression, ref index);
                 return item;
             }
             if (comp.data is EFXExpressionDataFloat floatType) {
@@ -685,15 +712,15 @@ namespace RszTool
                 if (intType.value is EfxExpressionFunction.Ternary15 or EfxExpressionFunction.Ternary16 or EfxExpressionFunction.Ternary17) {
                     var item = new ExpressionTernaryOperation();
                     item.oper = intType.value;
-                    item.left = EvalExpressionAtom(components, ref index);
-                    item.arg2 = EvalExpressionAtom(components, ref index);
-                    item.arg3 = EvalExpressionAtom(components, ref index);
+                    item.left = EvalExpressionAtom(expression, ref index);
+                    item.arg2 = EvalExpressionAtom(expression, ref index);
+                    item.arg3 = EvalExpressionAtom(expression, ref index);
                     return item;
                 } else {
                     // other found values: 0, 1, 2, 4, 5, 6, 7, 8, 9, 10
                     var item = new ExpressionUnaryOperation();
                     item.oper = ((int)intType.value);
-                    item.atom = EvalExpressionAtom(components, ref index);
+                    item.atom = EvalExpressionAtom(expression, ref index);
                     return item;
                 }
             }
@@ -703,7 +730,7 @@ namespace RszTool
                     throw new Exception("Found non-0 type 2 efx expression data");
                 }
                 var item = new ExpressionNegation();
-                item.atom = EvalExpressionAtom(components, ref index);
+                item.atom = EvalExpressionAtom(expression, ref index);
                 return item;
             }
 

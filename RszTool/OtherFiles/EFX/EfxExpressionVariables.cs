@@ -51,10 +51,11 @@ public partial class EFXExpressionData : BaseModel
 	public EFXExpressionDataBase data = null!;
 }
 
-public struct EFXExpressionParameterName {
+public struct EFXExpressionParameterName
+{
 	public uint parameterNameHash;
-	public uint unkn1;
-	public uint unkn2;
+	public float constantValue;
+	public ExpressionParameterSource source;
 }
 
 /// <summary>
@@ -71,6 +72,10 @@ public partial class EFXExpression : BaseModel, IExpressionObject
 	public List<EFXExpressionData> components = new();
 
     public IList<EFXExpressionData> Components => components;
+    public IEnumerable<EFXExpressionParameterName> Parameters {
+		get => parameters ?? Array.Empty<EFXExpressionParameterName>();
+		set => parameters = value is EFXExpressionParameterName[] arr ? arr : value?.ToArray() ?? Array.Empty<EFXExpressionParameterName>();
+	}
 }
 
 /// <summary>
@@ -89,6 +94,10 @@ public partial class EFXExpression2 : BaseModel, IExpressionObject
 	public List<EFXExpressionData> components = new();
 
     public IList<EFXExpressionData> Components => components;
+    public IEnumerable<EFXExpressionParameterName> Parameters {
+		get => parameters ?? Array.Empty<EFXExpressionParameterName>();
+		set => parameters = value is EFXExpressionParameterName[] arr ? arr : value?.ToArray() ?? Array.Empty<EFXExpressionParameterName>();
+	}
 }
 
 /// <summary>
@@ -106,6 +115,10 @@ public partial class EFXExpression3 : BaseModel, IExpressionObject
 	public List<EFXExpressionData> components = new();
 
     public IList<EFXExpressionData> Components => components;
+    public IEnumerable<EFXExpressionParameterName> Parameters {
+		get => parameters ?? Array.Empty<EFXExpressionParameterName>();
+		set => parameters = value is EFXExpressionParameterName[] arr ? arr : value?.ToArray() ?? Array.Empty<EFXExpressionParameterName>();
+	}
 }
 
 /// <summary>
@@ -128,6 +141,10 @@ public partial class EFXMaterialExpression1 : BaseModel, IExpressionObject
 	[RszClassInstance] public EFXExpression? expression;
 
     public IList<EFXExpressionData> Components => expression?.Components ?? Array.Empty<EFXExpressionData>();
+    public IEnumerable<EFXExpressionParameterName> Parameters {
+		get => expression?.Parameters ?? Array.Empty<EFXExpressionParameterName>();
+		set => (expression ??= new()).Parameters = value;
+	}
 }
 
 /// <summary>
@@ -143,6 +160,10 @@ public partial class EFXMaterialExpression2 : BaseModel, IExpressionObject
 	[RszClassInstance] public EFXExpression2? expression;
 
     public IList<EFXExpressionData> Components => expression?.Components ?? Array.Empty<EFXExpressionData>();
+    public IEnumerable<EFXExpressionParameterName> Parameters {
+		get => expression?.Parameters ?? Array.Empty<EFXExpressionParameterName>();
+		set => (expression ??= new()).Parameters = value;
+	}
 }
 
 [RszGenerate, RszAutoReadWrite]

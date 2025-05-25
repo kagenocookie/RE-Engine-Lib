@@ -3,22 +3,29 @@ using System.Text;
 
 namespace RszTool.Efx.Structs.Common;
 
+public enum UnaryExpressionOperator
+{
+	Negation = 0,
+}
+
 /// <summary>
 /// Am not 100% sure on the exact operators for 1-4 but they seem reasonable.
 /// </summary>
 public enum BinaryExpressionOperator
 {
+	Max = 0,
 	Add = 1,
 	Sub = 2,
 	Mul = 3,
 	Div = 4,
-	ClampMax = 5,
-	UknSix = 6,
+	Min = 5,
 }
 
 public enum EfxExpressionFunction
 {
-	Unary0 = 0, // unary potential candidates: sin/cos/tan/atan2/inverse/reciprocial
+	// unary potential candidates: sin/cos/tan/atan2/inverse/reciprocial/sqrt/pow2/pow3/root3/exp/abs/ceil/floor/clamp01/log
+	// When changing any of these names, also add the previous name to EfxExpressionParser.functionArgCount for compatiblity
+	Unary0 = 0,
 	Unary1 = 1,
 	Unary2 = 2,
 	Unary4 = 4,
@@ -28,9 +35,9 @@ public enum EfxExpressionFunction
 	Unary8 = 8,
 	Unary9 = 9,
 	Unary10 = 10,
-	Ternary15 = 15, // ternary candidates: lerp, clamp
-	Ternary16 = 16,
-	Ternary17 = 17,
+	Lerp = 15,
+	InvLerp = 16,
+	Clamp = 17,
 }
 
 public enum ExpressionParameterSource
@@ -44,6 +51,7 @@ public enum ExpressionParameterSource
 public class EFXExpressionTree
 {
 	public ExpressionAtom root = ExpressionAtom.Null;
+	public List<EFXExpressionParameterName> parameters = new();
 
 	public override string ToString()
 	{
@@ -62,9 +70,9 @@ public abstract class ExpressionAtom
         sb.Append(ToString());
     }
 
-    private class ExpressionNull : ExpressionAtom
+    private sealed class ExpressionNull : ExpressionAtom
 	{
-        public override string ToString() => "---";
+        public override string ToString() => "";
 	}
 }
 
@@ -95,23 +103,14 @@ public class ExpressionFloat : ExpressionAtom
 {
 	public float value;
 
-    public override string ToString() => value.ToString(CultureInfo.InvariantCulture);
+    public override string ToString()
+	{
+		var str = value.ToString("F6", CultureInfo.InvariantCulture).TrimEnd('0');
+		if (str.EndsWith('.')) return str.Substring(0, str.Length - 1);
+		return str;
+	}
 
-    internal override void AppendString(StringBuilder sb) => sb.Append(value);
-}
-public class ExpressionUnaryOperation : ExpressionAtom
-{
-	public int oper;
-	public ExpressionAtom atom = ExpressionAtom.Null;
-
-    public override string ToString() => $"Unary{oper}({atom})";
-
-    internal override void AppendString(StringBuilder sb)
-    {
-		sb.Append("Unary").Append(oper).Append('(');
-		atom.AppendString(sb);
-		sb.Append(')');
-    }
+    internal override void AppendString(StringBuilder sb) => sb.Append(ToString());
 }
 public class ExpressionNegation : ExpressionAtom
 {
@@ -138,20 +137,12 @@ public class ExpressionBinaryOperation : ExpressionAtom
 	public ExpressionAtom left = ExpressionAtom.Null;
 	public ExpressionAtom right = ExpressionAtom.Null;
 
-	public static string OperatorToSign(BinaryExpressionOperator op) => op switch {
-		BinaryExpressionOperator.Add => "+",
-		BinaryExpressionOperator.Sub => "-",
-		BinaryExpressionOperator.Mul => "*",
-		BinaryExpressionOperator.Div => "/",
-		_ => "??"
-	};
-
     public override string ToString() => oper switch {
         BinaryExpressionOperator.Add => $"({left} + {right})",
         BinaryExpressionOperator.Sub => $"({left} - {right})",
         BinaryExpressionOperator.Mul => $"({left} * {right})",
         BinaryExpressionOperator.Div => $"({left} / {right})",
-        _ => $"Min({left}, {right})",
+        _ => $"{oper}({left}, {right})",
     };
 
 	public static int GetPrecedence(BinaryExpressionOperator op)
@@ -161,7 +152,8 @@ public class ExpressionBinaryOperation : ExpressionAtom
 			BinaryExpressionOperator.Sub => 1,
 			BinaryExpressionOperator.Mul => 2,
 			BinaryExpressionOperator.Div => 2,
-			BinaryExpressionOperator.ClampMax => 3,
+			BinaryExpressionOperator.Max => 3,
+			BinaryExpressionOperator.Min => 3,
 			_ => 4,
 		};
 	}
@@ -187,7 +179,13 @@ public class ExpressionBinaryOperation : ExpressionAtom
 					left.AppendString(sb);
 				}
 				sb.Append(' ');
-				sb.Append(OperatorToSign(oper));
+				sb.Append(oper switch {
+					BinaryExpressionOperator.Add => "+",
+					BinaryExpressionOperator.Sub => "-",
+					BinaryExpressionOperator.Mul => "*",
+					BinaryExpressionOperator.Div => "/",
+					_ => "?"
+				});
 				sb.Append(' ');
 				if (right is ExpressionBinaryOperation r) {
 					var p2 = GetPrecedence(r.oper);
@@ -203,36 +201,47 @@ public class ExpressionBinaryOperation : ExpressionAtom
 				}
 
 				break;
-			case BinaryExpressionOperator.ClampMax:
-				sb.Append("Min(");
+			case BinaryExpressionOperator.Min:
+			case BinaryExpressionOperator.Max:
+				sb.Append(oper);
+				sb.Append('(');
 				left.AppendString(sb);
 				sb.Append(", ");
 				right.AppendString(sb);
 				sb.Append(')');
 				break;
 			default:
-				sb.Append($"Binary{(int)oper}(");
-				left.AppendString(sb);
-				sb.Append(", ");
-				right.AppendString(sb);
-				sb.Append(')');
-				break;
+				throw new Exception("Unsupported binary operator " + oper);
 		}
     }
 }
 
+public class ExpressionUnaryOperation : ExpressionAtom
+{
+	public EfxExpressionFunction func;
+	public ExpressionAtom atom = ExpressionAtom.Null;
+
+    public override string ToString() => $"{func}({atom})";
+
+    internal override void AppendString(StringBuilder sb)
+    {
+		sb.Append(func).Append('(');
+		atom.AppendString(sb);
+		sb.Append(')');
+    }
+}
 public class ExpressionTernaryOperation : ExpressionAtom
 {
-	public EfxExpressionFunction oper;
+	public EfxExpressionFunction func;
 	public ExpressionAtom left = ExpressionAtom.Null;
 	public ExpressionAtom arg2 = ExpressionAtom.Null;
 	public ExpressionAtom arg3 = ExpressionAtom.Null;
 
-    public override string ToString() => $"Func{(int)oper}({left}, {arg2}, {arg3})";
+    public override string ToString() => $"{func}({left}, {arg2}, {arg3})";
 
     internal override void AppendString(StringBuilder sb)
     {
-		sb.Append($"Func{(int)oper}(");
+		sb.Append($"{func}(");
 		left.AppendString(sb);
 		sb.Append(", ");
 		arg2.AppendString(sb);

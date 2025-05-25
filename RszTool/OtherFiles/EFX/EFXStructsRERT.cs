@@ -211,7 +211,7 @@ public partial class EFXAttributeUnknownRERT_154Clip : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnknownRERT_220Expression, EfxVersion.RERT)]
 public partial class EFXAttributeUnknownRERT_220Expression : EFXAttribute, IExpressionAttribute
 {
-    public EFXExpressionContainer? Expression => expressions;
+    public EFXExpressionList? Expression => expressions;
 
 	public EFXAttributeUnknownRERT_220Expression() : base(EfxAttributeType.UnknownRERT_220Expression) { }
 
@@ -229,13 +229,13 @@ public partial class EFXAttributeUnknownRERT_220Expression : EFXAttribute, IExpr
     public uint unkn3_9;
     public uint unkn3_10;
     public uint unkn3_11;
-	[RszClassInstance] public EFXExpressionListWrapper1 expressions = new();
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonChainExpression, EfxVersion.RE2, EfxVersion.RERT, EfxVersion.DD2)]
 public partial class EFXAttributeTypeRibbonChainExpression : EFXAttribute, IExpressionAttribute
 {
-    public EFXExpressionContainer? Expression => expressions;
+    public EFXExpressionList? Expression => expressions;
 
 	public EFXAttributeTypeRibbonChainExpression() : base(EfxAttributeType.TypeRibbonChainExpression) { }
 
@@ -259,9 +259,5 @@ public partial class EFXAttributeTypeRibbonChainExpression : EFXAttribute, IExpr
     public uint unkn15;
     public uint unkn16;
     public uint unkn17;
-	[RszSwitch(
-		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXExpressionListWrapper2),
-		typeof(EFXExpressionListWrapper1)
-	)]
-	public EFXExpressionContainer expressions = null!;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }

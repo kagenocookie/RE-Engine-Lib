@@ -77,6 +77,16 @@ public static class SyntaxHelpers
         return field.DescendantNodes().OfType<VariableDeclarationSyntax>().FirstOrDefault()?.Type;
     }
 
+    public static TypeSyntax GetElementType(this TypeSyntax type)
+    {
+        if (type is NullableTypeSyntax nullable) {
+            return nullable.ElementType;
+        }
+
+        return type;
+    }
+    public static string? GetElementTypeName(this TypeSyntax type) => GetElementType(type).ToString();
+
     public static string? GetArrayElementType(this TypeSyntax type, bool ignoreNamespace = false)
     {
         if (type is NullableTypeSyntax nullable1) {
@@ -97,14 +107,6 @@ public static class SyntaxHelpers
 
         if (ignoreNamespace && type is QualifiedNameSyntax colon) {
             type = colon.Right;
-        }
-
-        return type.ToString();
-    }
-    public static string? GetElementTypeName(this TypeSyntax type)
-    {
-        if (type is NullableTypeSyntax nullable) {
-            type = nullable.ElementType;
         }
 
         return type.ToString();

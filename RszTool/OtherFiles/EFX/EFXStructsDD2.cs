@@ -1,12 +1,12 @@
 using RszTool.Efx.Structs.Common;
 using RszTool.InternalAttributes;
 
-namespace RszTool.Efx.Structs.RERT;
+namespace RszTool.Efx.Structs.DD2;
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.ParentOptionsExpression, EfxVersion.DD2)]
 public partial class EFXAttributeParentOptionsExpression : EFXAttribute, IExpressionAttribute
 {
-    public EFXExpressionContainer? Expression => expressions;
+    public EFXExpressionList? Expression => expressions;
 
 	public EFXAttributeParentOptionsExpression() : base(EfxAttributeType.ParentOptionsExpression) { }
 
@@ -18,17 +18,13 @@ public partial class EFXAttributeParentOptionsExpression : EFXAttribute, IExpres
     public uint unkn1_5;
     public uint unkn1_6;
     public uint unkn1_7;
-	[RszSwitch(
-		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXExpressionListWrapper2),
-		typeof(EFXExpressionListWrapper1)
-	)]
-	public EFXExpressionContainer expressions = null!;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TextureUnitExpression, EfxVersion.DD2)]
 public partial class EFXAttributeTextureUnitExpression : EFXAttribute, IExpressionAttribute
 {
-    public EFXExpressionContainer? Expression => expressions;
+    public EFXExpressionList? Expression => expressions;
 
 	public EFXAttributeTextureUnitExpression() : base(EfxAttributeType.TextureUnitExpression) { }
 
@@ -37,11 +33,7 @@ public partial class EFXAttributeTextureUnitExpression : EFXAttribute, IExpressi
 	public UndeterminedFieldType ukn2;
 	public UndeterminedFieldType ukn3;
 	[RszFixedSizeArray(114)] public uint[]? expressionArgs;
-	[RszSwitch(
-		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXExpressionListWrapper2),
-		typeof(EFXExpressionListWrapper1)
-	)]
-	public EFXExpressionContainer expressions = null!;}
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;}
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.WindInfluence3DDelayFrame, EfxVersion.DD2)]
 public partial class EFXAttributeWindInfluence3DDelayFrame : EFXAttribute
@@ -163,11 +155,12 @@ public partial class EFXAttributeTypeStrainRibbonMaterialClip : EFXAttribute
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeStrainRibbonMaterialExpression, EfxVersion.DD2)]
-public partial class EFXAttributeTypeStrainRibbonMaterialExpression : EFXAttribute, IExpressionAttribute
+public partial class EFXAttributeTypeStrainRibbonMaterialExpression : EFXAttribute, IExpressionAttribute, IMaterialExpressionAttribute
 {
-	public EFXExpressionContainer? Expression => expressions;
+	public EFXExpressionList? Expression => expressions;
+    public EFXMaterialExpressionList? MaterialExpressions => materialExpressions;
 
-	public EFXAttributeTypeStrainRibbonMaterialExpression() : base(EfxAttributeType.TypeStrainRibbonMaterialExpression) { }
+    public EFXAttributeTypeStrainRibbonMaterialExpression() : base(EfxAttributeType.TypeStrainRibbonMaterialExpression) { }
 
 	public uint unkn0;
 	public uint unkn1;
@@ -190,25 +183,17 @@ public partial class EFXAttributeTypeStrainRibbonMaterialExpression : EFXAttribu
 	public uint unkn19;
 	public uint unkn20;
 	public uint unkn21;
-	[RszSwitch(
-		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXExpressionListWrapper2),
-		typeof(EFXExpressionListWrapper1)
-	)]
-	public EFXExpressionContainer expressions = null!;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 	public uint ukn14;
 	public uint ukn15;
-	[RszVersion(EfxVersion.DD2)]
-	[RszSwitch(
-		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXMaterialExpressionListWrapper2),
-		typeof(EFXMaterialExpressionListWrapper1)
-	)]
-	public EFXExpressionContainer? expression2;
+	[RszVersion(EfxVersion.DD2), RszClassInstance, RszConstructorParams(nameof(Version))]
+	public EFXMaterialExpressionList? materialExpressions;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnknownDD2_117TypeStrainRibbonExpression, EfxVersion.DD2)]
 public partial class EFXAttributeUnknownDD2_117Expression : EFXAttribute, IExpressionAttribute
 {
-    public EFXExpressionContainer? Expression => expressions;
+    public EFXExpressionList? Expression => expressions;
 
 	public EFXAttributeUnknownDD2_117Expression() : base(EfxAttributeType.UnknownDD2_117TypeStrainRibbonExpression) { }
 
@@ -236,17 +221,13 @@ public partial class EFXAttributeUnknownDD2_117Expression : EFXAttribute, IExpre
     public uint unkn22;
     public uint unkn23;
     public uint unkn24;
-	[RszSwitch(
-		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXExpressionListWrapper2),
-		typeof(EFXExpressionListWrapper1)
-	)]
-	public EFXExpressionContainer expressions = null!;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtTransform3DExpression, EfxVersion.DD2)]
 public partial class EFXAttributePtTransform3DExpression : EFXAttribute, IExpressionAttribute
 {
-    public EFXExpressionContainer? Expression => expressions;
+    public EFXExpressionList? Expression => expressions;
 
 	public EFXAttributePtTransform3DExpression() : base(EfxAttributeType.PtTransform3DExpression) { }
 
@@ -260,28 +241,20 @@ public partial class EFXAttributePtTransform3DExpression : EFXAttribute, IExpres
 	public uint unkn7;
 	public uint unkn9;
 	public uint unkn10;
-	[RszSwitch(
-		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXExpressionListWrapper2),
-		typeof(EFXExpressionListWrapper1)
-	)]
-	public EFXExpressionContainer expressions = null!;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.FluidEmitter2DExpression, EfxVersion.DD2)]
 public partial class EFXAttributeFluidEmitter2DExpression : EFXAttribute, IExpressionAttribute
 {
-    public EFXExpressionContainer? Expression => expressions;
+    public EFXExpressionList? Expression => expressions;
 
 	public EFXAttributeFluidEmitter2DExpression() : base(EfxAttributeType.FluidEmitter2DExpression) { }
 
 	public uint unkn1;
 	public uint unkn2;
 	public uint unkn3;
-	[RszSwitch(
-		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXExpressionListWrapper2),
-		typeof(EFXExpressionListWrapper1)
-	)]
-	public EFXExpressionContainer expressions = null!;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonLength, EfxVersion.DD2)]
@@ -340,9 +313,10 @@ public partial class EFXAttributeTypeRibbonLength : EFXAttribute
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonLengthMaterialExpression, EfxVersion.DD2)]
-public partial class EFXAttributeTypeRibbonLengthMaterialExpression : EFXAttribute, IExpressionAttribute
+public partial class EFXAttributeTypeRibbonLengthMaterialExpression : EFXAttribute, IExpressionAttribute, IMaterialExpressionAttribute
 {
-    public EFXExpressionContainer? Expression => expressions;
+    public EFXExpressionList? Expression => expressions;
+    public EFXMaterialExpressionList? MaterialExpressions => materialExpressions;
 
 	public EFXAttributeTypeRibbonLengthMaterialExpression() : base(EfxAttributeType.TypeRibbonLengthMaterialExpression) { }
 
@@ -362,20 +336,12 @@ public partial class EFXAttributeTypeRibbonLengthMaterialExpression : EFXAttribu
     public uint unkn13;
     public uint unkn14;
 
-	[RszSwitch(
-		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXExpressionListWrapper2),
-		typeof(EFXExpressionListWrapper1)
-	)]
-	public EFXExpressionContainer expressions = null!;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 
 	public uint extra1;
 	public uint extra2;
 
-	[RszSwitch(
-		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXMaterialExpressionListWrapper2),
-		typeof(EFXMaterialExpressionListWrapper1)
-	)]
-	public EFXExpressionContainer? expression2;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXMaterialExpressionList? materialExpressions;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonChainMaterial, EfxVersion.DD2)]
@@ -484,9 +450,9 @@ public partial class EFXAttributeTypeRibbonChainMaterialClip : EFXAttribute
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonChainMaterialExpression, EfxVersion.DD2)]
-public partial class EFXAttributeTypeRibbonChainMaterialExpression : EFXAttribute, IExpressionAttribute
+public partial class EFXAttributeTypeRibbonChainMaterialExpression : EFXAttribute, IMaterialExpressionAttribute
 {
-    public EFXExpressionContainer? Expression => expressions;
+    public EFXMaterialExpressionList? MaterialExpressions => materialExpressions;
 
 	public EFXAttributeTypeRibbonChainMaterialExpression() : base(EfxAttributeType.TypeRibbonChainMaterialExpression) { }
 
@@ -509,11 +475,7 @@ public partial class EFXAttributeTypeRibbonChainMaterialExpression : EFXAttribut
     public uint unkn1_17;
     public uint unkn1_18;
 
-	[RszSwitch(
-		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXMaterialExpressionListWrapper2),
-		typeof(EFXMaterialExpressionListWrapper1)
-	)]
-	public EFXExpressionContainer? expressions;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXMaterialExpressionList? materialExpressions;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonFixEndMaterial, EfxVersion.DD2)]
@@ -590,9 +552,9 @@ public partial class EFXAttributeTypeRibbonFixEndMaterialClip : EFXAttribute
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonFixEndMaterialExpression, EfxVersion.DD2)]
-public partial class EFXAttributeTypeRibbonFixEndMaterialExpression : EFXAttribute, IExpressionAttribute
+public partial class EFXAttributeTypeRibbonFixEndMaterialExpression : EFXAttribute, IMaterialExpressionAttribute
 {
-    public EFXExpressionContainer? Expression => expressions;
+    public EFXMaterialExpressionList? MaterialExpressions => materialExpressions;
 
 	public EFXAttributeTypeRibbonFixEndMaterialExpression() : base(EfxAttributeType.TypeRibbonFixEndMaterialExpression) { }
 
@@ -615,17 +577,13 @@ public partial class EFXAttributeTypeRibbonFixEndMaterialExpression : EFXAttribu
     public uint unkn1_17;
     public uint unkn1_18;
 
-	[RszSwitch(
-		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXMaterialExpressionListWrapper2),
-		typeof(EFXMaterialExpressionListWrapper1)
-	)]
-	public EFXExpressionContainer? expressions;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXMaterialExpressionList? materialExpressions;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuRibbonLengthExpression, EfxVersion.DD2)]
 public partial class EFXAttributeTypeGpuRibbonLengthExpression : EFXAttribute, IExpressionAttribute
 {
-    public EFXExpressionContainer? Expression => expressions;
+    public EFXExpressionList? Expression => expressions;
 
 	public EFXAttributeTypeGpuRibbonLengthExpression() : base(EfxAttributeType.TypeGpuRibbonLengthExpression) { }
 
@@ -652,11 +610,7 @@ public partial class EFXAttributeTypeGpuRibbonLengthExpression : EFXAttribute, I
     public uint unkn1_21;
     public uint unkn1_22;
     public uint unkn1_23;
-	[RszSwitch(
-		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXExpressionListWrapper2),
-		typeof(EFXExpressionListWrapper1)
-	)]
-	public EFXExpressionContainer expressions = null!;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuBillboardClip, EfxVersion.RE4)]
@@ -755,9 +709,10 @@ public partial class EFXAttributeTypeRibbonFollowMaterialClip : EFXAttribute
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonFollowMaterialExpression, EfxVersion.DD2)]
-public partial class EFXAttributeTypeRibbonFollowMaterialExpression : EFXAttribute, IExpressionAttribute
+public partial class EFXAttributeTypeRibbonFollowMaterialExpression : EFXAttribute, IExpressionAttribute, IMaterialExpressionAttribute
 {
-    public EFXExpressionContainer? Expression => expressions;
+    public EFXExpressionList? Expression => expressions;
+    public EFXMaterialExpressionList? MaterialExpressions => materialExpressions;
 
 	public EFXAttributeTypeRibbonFollowMaterialExpression() : base(EfxAttributeType.TypeRibbonFollowMaterialExpression) { }
 
@@ -777,20 +732,12 @@ public partial class EFXAttributeTypeRibbonFollowMaterialExpression : EFXAttribu
     public uint unkn13;
     public uint unkn14;
 
-	[RszSwitch(
-		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXExpressionListWrapper2),
-		typeof(EFXExpressionListWrapper1)
-	)]
-	public EFXExpressionContainer expressions = null!;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 
 	public uint extra1;
 	public uint extra2;
 
-	[RszSwitch(
-		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXMaterialExpressionListWrapper2),
-		typeof(EFXMaterialExpressionListWrapper1)
-	)]
-	public EFXExpressionContainer? expressions2;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXMaterialExpressionList? materialExpressions;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeBillboard3DMaterial, EfxVersion.DD2)]
@@ -844,9 +791,10 @@ public partial class EFXAttributeTypeBillboard3DMaterialClip : EFXAttribute
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeBillboard3DMaterialExpression, EfxVersion.DD2)]
-public partial class EFXAttributeTypeBillboard3DMaterialExpression : EFXAttribute, IExpressionAttribute
+public partial class EFXAttributeTypeBillboard3DMaterialExpression : EFXAttribute, IExpressionAttribute, IMaterialExpressionAttribute
 {
-    public EFXExpressionContainer? Expression => expressions;
+    public EFXExpressionList? Expression => expressions;
+    public EFXMaterialExpressionList? MaterialExpressions => materialExpressions;
 
 	public EFXAttributeTypeBillboard3DMaterialExpression() : base(EfxAttributeType.TypeBillboard3DMaterialExpression) { }
 
@@ -863,18 +811,10 @@ public partial class EFXAttributeTypeBillboard3DMaterialExpression : EFXAttribut
 	public uint ukn10;
 	public uint ukn11;
 	public uint ukn12;
-	[RszSwitch(
-		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXExpressionListWrapper2),
-		typeof(EFXExpressionListWrapper1)
-	)]
-	public EFXExpressionContainer expressions = null!;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 	public uint ukn14;
 	public uint ukn15;
-	[RszSwitch(
-		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXMaterialExpressionListWrapper2),
-		typeof(EFXMaterialExpressionListWrapper1)
-	)]
-	[RszVersion(EfxVersion.DD2), RszClassInstance] public EFXExpressionContainer? expression2;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXMaterialExpressionList? materialExpressions;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonParticle, EfxVersion.DD2)]
@@ -922,7 +862,7 @@ public partial class EFXAttributeTypeRibbonParticle : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonParticleExpression, EfxVersion.DD2)]
 public partial class EFXAttributeTypeRibbonParticleExpression : EFXAttribute, IExpressionAttribute
 {
-    public EFXExpressionContainer? Expression => expressions;
+    public EFXExpressionList? Expression => expressions;
 
 	public EFXAttributeTypeRibbonParticleExpression() : base(EfxAttributeType.TypeRibbonParticleExpression) { }
 
@@ -944,11 +884,7 @@ public partial class EFXAttributeTypeRibbonParticleExpression : EFXAttribute, IE
     public uint unkn15;
     public uint unkn16;
     public uint unkn17;
-	[RszSwitch(
-		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXExpressionListWrapper2),
-		typeof(EFXExpressionListWrapper1)
-	)]
-	public EFXExpressionContainer expressions = null!;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypePolygonTrailMaterial, EfxVersion.DD2)]
@@ -981,9 +917,10 @@ public partial class EFXAttributeTypePolygonTrailMaterial : EFXAttribute
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypePolygonTrailMaterialExpression, EfxVersion.DD2)]
-public partial class EFXAttributeTypePolygonTrailMaterialExpression : EFXAttribute, IExpressionAttribute
+public partial class EFXAttributeTypePolygonTrailMaterialExpression : EFXAttribute, IExpressionAttribute, IMaterialExpressionAttribute
 {
-    public EFXExpressionContainer? Expression => expressions;
+    public EFXExpressionList? Expression => expressions;
+    public EFXMaterialExpressionList? MaterialExpressions => materialExpressions;
 
 	public EFXAttributeTypePolygonTrailMaterialExpression() : base(EfxAttributeType.TypePolygonTrailMaterialExpression) { }
 
@@ -994,19 +931,11 @@ public partial class EFXAttributeTypePolygonTrailMaterialExpression : EFXAttribu
     public uint unkn1_4;
     public uint unkn1_5;
     public uint unkn1_6;
-	[RszSwitch(
-		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXExpressionListWrapper2),
-		typeof(EFXExpressionListWrapper1)
-	)]
-	public EFXExpressionContainer expressions = null!;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 
 	public uint extra1;
 	public uint extra2;
-	[RszSwitch(
-		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXMaterialExpressionListWrapper2),
-		typeof(EFXMaterialExpressionListWrapper1)
-	)]
-	public EFXExpressionContainer? expression2;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXMaterialExpressionList? materialExpressions;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeLightning3DMaterial, EfxVersion.DD2)]
@@ -1122,9 +1051,10 @@ public partial class EFXAttributeTypeLightning3DMaterialClip : EFXAttribute
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeLightning3DMaterialExpression, EfxVersion.DD2)]
-public partial class EFXAttributeTypeLightning3DMaterialExpression : EFXAttribute, IExpressionAttribute
+public partial class EFXAttributeTypeLightning3DMaterialExpression : EFXAttribute, IExpressionAttribute, IMaterialExpressionAttribute
 {
-    public EFXExpressionContainer? Expression => expressions;
+    public EFXExpressionList? Expression => expressions;
+    public EFXMaterialExpressionList? MaterialExpressions => materialExpressions;
 
 	public EFXAttributeTypeLightning3DMaterialExpression() : base(EfxAttributeType.TypeLightning3DMaterialExpression) { }
 
@@ -1172,19 +1102,11 @@ public partial class EFXAttributeTypeLightning3DMaterialExpression : EFXAttribut
     public uint unkn43;
     public uint unkn44;
     public uint unkn45;
-	[RszSwitch(
-		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXExpressionListWrapper2),
-		typeof(EFXExpressionListWrapper1)
-	)]
-	public EFXExpressionContainer expressions = null!;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 
 	public uint unkn2_1;
 	public uint unkn2_2;
-	[RszSwitch(
-		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXMaterialExpressionListWrapper2),
-		typeof(EFXMaterialExpressionListWrapper1)
-	)]
-	public EFXExpressionContainer? expression2;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXMaterialExpressionList? materialExpressions;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnknownDD2_133, EfxVersion.DD2)]
@@ -1208,7 +1130,7 @@ public partial class EFXAttributeUnknownDD2_133 : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnknownDD2_134Expression, EfxVersion.DD2)]
 public partial class EFXAttributeUnknownDD2_134Expression : EFXAttribute, IExpressionAttribute
 {
-    public EFXExpressionContainer? Expression => expressions;
+    public EFXExpressionList? Expression => expressions;
 
 	public EFXAttributeUnknownDD2_134Expression() : base(EfxAttributeType.UnknownDD2_134Expression) { }
 
@@ -1224,11 +1146,7 @@ public partial class EFXAttributeUnknownDD2_134Expression : EFXAttribute, IExpre
     public uint unkn1_9;
     public uint unkn1_10;
     public uint unkn1_11;
-	[RszSwitch(
-		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXExpressionListWrapper2),
-		typeof(EFXExpressionListWrapper1)
-	)]
-	public EFXExpressionContainer expressions = null!;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnknownDD2_146New, EfxVersion.DD2)]
@@ -1322,7 +1240,7 @@ public partial class EFXAttributeUnknownDD2_220 : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnknownDD2_221Expression, EfxVersion.DD2)]
 public partial class EFXAttributeUnknownDD2_221Expression : EFXAttribute, IExpressionAttribute
 {
-    public EFXExpressionContainer? Expression => expressions;
+    public EFXExpressionList? Expression => expressions;
 
 	public EFXAttributeUnknownDD2_221Expression() : base(EfxAttributeType.UnknownDD2_221Expression) { }
 
@@ -1334,11 +1252,7 @@ public partial class EFXAttributeUnknownDD2_221Expression : EFXAttribute, IExpre
 	public uint unkn6;
 	public uint unkn7;
 	public uint unkn8;
-	[RszSwitch(
-		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXExpressionListWrapper2),
-		typeof(EFXExpressionListWrapper1)
-	)]
-	public EFXExpressionContainer expressions = null!;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnknownDD2_223, EfxVersion.DD2)]
@@ -1389,11 +1303,7 @@ public partial class EFXAttributeUnknownDD2_225 : EFXAttribute
 	public uint unkn5;
 	public uint unkn6;
 	public uint unkn7;
-	[RszSwitch(
-		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXExpressionListWrapper2),
-		typeof(EFXExpressionListWrapper1)
-	)]
-	public EFXExpressionContainer expressions = null!;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnknownDD2_226, EfxVersion.DD2)]
@@ -1537,7 +1447,7 @@ public partial class EFXAttributeUnknownDD2_250 : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnknownDD2_255Expression, EfxVersion.DD2)]
 public partial class EFXAttributeUnknownDD2_255Expression : EFXAttribute, IExpressionAttribute
 {
-    public EFXExpressionContainer? Expression => expressions;
+    public EFXExpressionList? Expression => expressions;
 
 	public EFXAttributeUnknownDD2_255Expression() : base(EfxAttributeType.UnknownDD2_255Expression) { }
 
@@ -1562,17 +1472,13 @@ public partial class EFXAttributeUnknownDD2_255Expression : EFXAttribute, IExpre
     public uint unkn18;
     public uint unkn19;
 
-	[RszSwitch(
-		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXExpressionListWrapper2),
-		typeof(EFXExpressionListWrapper1)
-	)]
-	public EFXExpressionContainer expressions = null!;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnknownDD2_259Expression, EfxVersion.DD2)]
 public partial class EFXAttributeUnknownDD2_259Expression : EFXAttribute, IExpressionAttribute
 {
-    public EFXExpressionContainer? Expression => expressions;
+    public EFXExpressionList? Expression => expressions;
 
 	public EFXAttributeUnknownDD2_259Expression() : base(EfxAttributeType.UnknownDD2_259Expression) { }
 
@@ -1591,11 +1497,7 @@ public partial class EFXAttributeUnknownDD2_259Expression : EFXAttribute, IExpre
 	public uint unkn12;
 	public uint unkn13;
 
-	[RszSwitch(
-		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXExpressionListWrapper2),
-		typeof(EFXExpressionListWrapper1)
-	)]
-	public EFXExpressionContainer expressions = null!;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnknownDD2_260_TypeMeshUkn, EfxVersion.DD2)]
@@ -1710,11 +1612,7 @@ public partial class EFXAttributeUnknownDD2_262 : EFXAttribute
 	public uint unkn4_14;
 	public uint substruct2Count; // [2]   maybe?
 
-	[RszSwitch(
-		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXExpressionListWrapper2),
-		typeof(EFXExpressionListWrapper1)
-	)]
-	public EFXExpressionContainer expressions = null!;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 	// [RszVersion(EfxVersion.RE4)]
 	// public uint unkn5_24;
 	// [RszFixedSizeArray(nameof(substructCount))] public uint[]? extra;
@@ -1798,10 +1696,10 @@ public partial class EFXAttributeUnknownDD2_263 : EFXAttribute
 	[RszInlineWString, RszList(nameof(texCount))] public string[]? texPaths;
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnknownDD2_264Clip, EfxVersion.DD2)]
-public partial class EFXAttributeUnknownDD2_264Clip : EFXAttribute
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnknownDD2_264MaterialClip, EfxVersion.DD2)]
+public partial class EFXAttributeUnknownDD2_264MaterialClip : EFXAttribute
 {
-    public EFXAttributeUnknownDD2_264Clip() : base(EfxAttributeType.UnknownDD2_264Clip) { }
+    public EFXAttributeUnknownDD2_264MaterialClip() : base(EfxAttributeType.UnknownDD2_264MaterialClip) { }
 
     public uint unkn0;
     public uint unkn1;
@@ -1822,12 +1720,13 @@ public partial class EFXAttributeUnknownDD2_264Clip : EFXAttribute
     [RszFixedSizeArray(nameof(substruct5Count))] public uint[]? substruct5;
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnknownDD2_265Expression, EfxVersion.DD2)]
-public partial class EFXAttributeUnknownDD2_265Expression : EFXAttribute, IExpressionAttribute
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnknownDD2_265MaterialExpression, EfxVersion.DD2)]
+public partial class EFXAttributeUnknownDD2_265MaterialExpression : EFXAttribute, IExpressionAttribute, IMaterialExpressionAttribute
 {
-    public EFXExpressionContainer? Expression => expressions;
+    public EFXExpressionList? Expression => expressions;
+    public EFXMaterialExpressionList? MaterialExpressions => materialExpressions;
 
-	public EFXAttributeUnknownDD2_265Expression() : base(EfxAttributeType.UnknownDD2_265Expression) { }
+	public EFXAttributeUnknownDD2_265MaterialExpression() : base(EfxAttributeType.UnknownDD2_265MaterialExpression) { }
 
     public uint unkn0;
     public uint unkn1;
@@ -1850,17 +1749,9 @@ public partial class EFXAttributeUnknownDD2_265Expression : EFXAttribute, IExpre
     public uint unkn19;
     public uint unkn20;
     public uint unkn21;
-	[RszSwitch(
-		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXExpressionListWrapper2),
-		typeof(EFXExpressionListWrapper1)
-	)]
-	public EFXExpressionContainer expressions = null!;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 	public uint unkn22;
-	[RszSwitch(
-		nameof(Version), ">=", EfxVersion.DD2, typeof(EFXMaterialExpressionListWrapper2),
-		typeof(EFXMaterialExpressionListWrapper1)
-	)]
-	public EFXExpressionContainer? expression2;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXMaterialExpressionList? materialExpressions;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnknownDD2_266, EfxVersion.DD2)]

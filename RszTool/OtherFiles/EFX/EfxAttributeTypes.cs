@@ -304,8 +304,8 @@ public enum EfxAttributeType
     UnknownDD2_261,
     UnknownDD2_262Expression,
     UnknownDD2_263,
-    UnknownDD2_264Clip,
-    UnknownDD2_265Expression,
+    UnknownDD2_264MaterialClip,
+    UnknownDD2_265MaterialExpression,
     UnknownDD2_266,
 }
 
@@ -2801,10 +2801,10 @@ public static partial class EfxAttributeTypeRemapper
         [EfxAttributeType.UnknownDD2_263] = new() {
             [EfxVersion.DD2] = 263, // TypeGpuMeshTrail?
         },
-        [EfxAttributeType.UnknownDD2_264Clip] = new() {
+        [EfxAttributeType.UnknownDD2_264MaterialClip] = new() {
             [EfxVersion.DD2] = 264,
         },
-        [EfxAttributeType.UnknownDD2_265Expression] = new() {
+        [EfxAttributeType.UnknownDD2_265MaterialExpression] = new() {
             [EfxVersion.DD2] = 265,
         },
         [EfxAttributeType.UnknownDD2_266] = new() {

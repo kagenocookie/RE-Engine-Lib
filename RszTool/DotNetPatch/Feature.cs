@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
 #if !NET5_0_OR_GREATER
 namespace System.Runtime.CompilerServices
@@ -61,3 +62,18 @@ namespace System.Diagnostics.CodeAnalysis
     internal sealed class SetsRequiredMembersAttribute : Attribute {}
 }
 #endif
+
+namespace RszTool
+{
+    public static class EnumHelper
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TEnum Parse<TEnum>(ReadOnlySpan<char> span, bool ignoreCase = false) where TEnum : struct, Enum
+#if !NET5_0_OR_GREATER
+            => (TEnum)Enum.Parse(typeof(TEnum), span.ToString(), ignoreCase);
+#else
+            => Enum.Parse<TEnum>(span, ignoreCase);
+#endif
+
+    }
+}

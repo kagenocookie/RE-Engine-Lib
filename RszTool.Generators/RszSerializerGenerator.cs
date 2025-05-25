@@ -113,19 +113,22 @@ public class RszSerializerGenerator : IIncrementalGenerator
         sb.Append(methodBodyIndent).AppendLine("return true;");
         sb.Append(memberIndent).AppendLine("}");
 
+        var fieldListMethod = context.ClassDecl.Members.Any(m => m is MethodDeclarationSyntax meth && meth.Identifier.Text == "GetFieldList")
+            ? "GetFieldListDefault"
+            : "GetFieldList";
         if (context.ClassDecl.TryGetAttribute("RszVersionedObject", out var vvo)) {
             var versionType = (vvo.ArgumentList?.Arguments.FirstOrDefault()?.Expression as TypeOfExpressionSyntax)?.Type.GetElementTypeName();
             if (versionType != null) {
                 buildCtx.versionParam = EvaluateExpressionIdentifier(buildCtx, vvo.ArgumentList?.Arguments.Skip(1).FirstOrDefault()?.Expression)
                     ?? "Version";
-                sb.Append(memberIndent).AppendLine($"public static IEnumerable<(string name, Type type)> GetFieldList({versionType} {buildCtx.versionParam})");
+                sb.Append(memberIndent).AppendLine($"public static IEnumerable<(string name, Type type)> {fieldListMethod}({versionType} {buildCtx.versionParam})");
                 sb.Append(memberIndent).AppendLine("{");
                 WriteFieldList(buildCtx);
                 buildCtx.Indent().AppendLine("yield break;");
                 sb.Append(memberIndent).AppendLine("}");
             }
         } else {
-            sb.Append(memberIndent).AppendLine($"public static IEnumerable<(string name, Type type)> GetFieldList()");
+            sb.Append(memberIndent).AppendLine($"public static IEnumerable<(string name, Type type)> {fieldListMethod}()");
             sb.Append(memberIndent).AppendLine("{");
             WriteFieldList(buildCtx);
             buildCtx.Indent().AppendLine("yield break;");
@@ -287,7 +290,7 @@ public class RszSerializerGenerator : IIncrementalGenerator
             }
             if (EvaluateExpressionString(ctx, field.GetAttribute("RszArraySizeField")?.ArgumentList?.Arguments.FirstOrDefault()?.Expression) is string str5) {
                 var targetField = ctx.context.ClassDecl.GetFields().FirstOrDefault(f => f.GetFieldName() == str5);
-                if (targetField != null && targetField.GetFieldType() is GenericNameSyntax generic) {
+                if (targetField != null && targetField.GetFieldType()?.GetElementType() is GenericNameSyntax generic) {
                     ctx.Indent().AppendLine($"{name} = {str5}?.Count ?? 0;");
                 } else {
                     ctx.Indent().AppendLine($"{name} = {str5}?.Length ?? 0;");
@@ -308,7 +311,8 @@ public class RszSerializerGenerator : IIncrementalGenerator
                     ctx.Indent().AppendLine($"{name} ??= Array.Empty<string>();");
                     ctx.Indent().AppendLine($"foreach (var str in {name}) handler.{strMethod}(str);");
                 } else {
-                    ctx.source.ReportDiagnostic(Diagnostic.Create(Diagnostics.UnhandledFailure, field.GetLocation(), "unsupported list type"));
+                    ctx.Indent().AppendLine($"{name} ??= new();");
+                    ctx.Indent().AppendLine($"foreach (var val in {name}) handler.Write(val);");
                 }
             } else if (handle == HandleType.Read) {
                 var size = EvaluateAttributeExpressionList(ctx, mainAttr.GetPositionalArguments());
@@ -328,7 +332,10 @@ public class RszSerializerGenerator : IIncrementalGenerator
                     var strMethod = isString ? "ReadAsciiString" : "ReadWString";
                     ctx.Indent().AppendLine($"for (int i = 0; i < {size}; ++i) {name}[i] = handler.{strMethod}(-1, -1, false);");
                 } else {
-                    ctx.source.ReportDiagnostic(Diagnostic.Create(Diagnostics.UnhandledFailure, field.GetLocation(), "unsupported list type"));
+                    var fieldType = field.GetFieldType()?.GetArrayElementType();
+                    ctx.Indent().AppendLine($"{name} ??= new();");
+                    ctx.Indent().AppendLine($"for (int i = 0; i < {size}; ++i) {name}.Add(handler.Read<{fieldType}>());");
+                    // ctx.source.ReportDiagnostic(Diagnostic.Create(Diagnostics.UnhandledFailure, field.GetLocation(), "unsupported list type"));
                 }
             } else if (handle == HandleType.FieldList) {
                 var size = EvaluateAttributeExpressionList(ctx, mainAttr.GetPositionalArguments());

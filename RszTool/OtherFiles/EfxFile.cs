@@ -213,8 +213,14 @@ namespace RszTool.Efx
             handler.Read(ref effectNameHash);
             handler.Read(ref entryAssignment);
             var attributeCount = handler.Read<int>();
+            int lastAttributeTypeId = -1;
             for (int i = 0; i < attributeCount; ++i) {
-                var type = Version.GetAttributeType(handler.Read<int>());
+                var typeId = handler.Read<int>();
+                if (typeId < lastAttributeTypeId)
+                {
+                    throw new Exception($"EFX attribute ID {typeId} is out of order from previous {lastAttributeTypeId}");
+                }
+                var type = Version.GetAttributeType(lastAttributeTypeId = typeId);
                 var seqNum = handler.Read<int>();
                 var attr = EFXAttribute.Create(Version, type, seqNum);
                 attr.Version = Version;
@@ -308,7 +314,7 @@ namespace RszTool.Efx
         protected override bool DoWrite(FileHandler handler)
         {
             actionAttributeCount = Attributes.Count;
-            actionNameHash = MurMur3HashUtils.GetUTF8Hash(name ?? string.Empty); // TODO RE7: different hash (ascii?)
+            actionNameHash = MurMur3HashUtils.GetUTF8Hash(name ?? string.Empty);
 
             handler.Write(ref actionUnkn0);
             handler.Write(ref actionNameHash);
@@ -407,11 +413,28 @@ namespace RszTool.Efx
     public interface IExpressionAttribute
     {
         EFXExpressionList? Expression { get; }
+        BitSet ExpressionBits { get; }
     }
 
     public interface IMaterialExpressionAttribute
     {
         EFXMaterialExpressionList? MaterialExpressions { get; }
+    }
+
+    public interface IClipAttribute
+    {
+        EfxClipData Clip { get; }
+        BitSet ClipBits { get; }
+    }
+
+    public interface IColorClipAttribute
+    {
+        EfxColorClipData Clip { get; }
+    }
+
+    public interface IMaterialClipAttribute
+    {
+        EfxMaterialClipData MaterialClip { get; }
     }
 
     public static class EfxExtensions
@@ -635,177 +658,19 @@ namespace RszTool
             if (expression.ParsedExpressions == null) return;
 
             foreach (var expr in expression.ParsedExpressions) {
-                var target = FlattenExpressionTree(expr, null);
+                var target = FlattenExpressionTree(expr);
                 expression.AddExpression(target);
             }
         }
 
-        public EFXExpressionObject FlattenExpressionTree(EFXExpressionTree tree, EFXExpressionObject? target)
+        public EFXExpressionObject FlattenExpressionTree(EFXExpressionTree tree)
         {
-            target ??= new();
+            var target = new EFXExpressionObject();
             if (tree.root == ExpressionAtom.Null) return target;
             target.components ??= new();
             FlattenExpressions(target.components, tree);
             target.parameters = tree.parameters.ToList();
             return target;
-        }
-
-        private void FlattenExpressions(List<EFXExpressionData> list, EFXExpressionTree tree)
-            => FlattenExpression(list, tree.parameters, tree.root, tree);
-
-        private void FlattenExpression(List<EFXExpressionData> components, List<EFXExpressionParameterName> parameters, ExpressionAtom item, EFXExpressionTree tree)
-        {
-            if (item is ExpressionFloat flt) {
-                components.Add(new EFXExpressionData(flt.value));
-                return;
-            }
-            if (item is ExpressionParameter param) {
-                components.Add(new EFXExpressionData(new EFXExpressionDataParameterHash() {
-                    parameterHash = param.hash,
-                }));
-                var existing = tree.parameters.GetParameterByHash(param.hash);
-                if (existing == null) {
-                    var definition = this.ExpressionParameters.FirstOrDefault(p => p.expressionParameterNameUTF8Hash == param.hash);
-                    tree.parameters.Add(new EFXExpressionParameterName() {
-                        parameterNameHash = param.hash,
-                        source = definition != null ? ExpressionParameterSource.Parameter : ExpressionParameterSource.External,
-                    });
-                }
-                return;
-            }
-            if (item is ExpressionNegation neg) {
-                FlattenExpression(components, parameters, neg.atom, tree);
-                components.Add(new EFXExpressionData(new EFXExpressionDataUnaryOperator()));
-                return;
-            }
-            if (item is ExpressionUnaryOperation unary) {
-                FlattenExpression(components, parameters, unary.atom, tree);
-                components.Add(new EFXExpressionData(new EFXExpressionDataFunction() { value = unary.func }));
-                return;
-            }
-            if (item is ExpressionBinaryOperation binary) {
-                FlattenExpression(components, parameters, binary.right, tree);
-                FlattenExpression(components, parameters, binary.left, tree);
-                components.Add(new EFXExpressionData(new EFXExpressionDataBinaryOperator() { value = binary.oper }));
-                return;
-            }
-            if (item is ExpressionTernaryOperation ternary) {
-                FlattenExpression(components, parameters, ternary.arg3, tree);
-                FlattenExpression(components, parameters, ternary.arg2, tree);
-                FlattenExpression(components, parameters, ternary.left, tree);
-                components.Add(new EFXExpressionData(new EFXExpressionDataFunction() { value = ternary.func }));
-                return;
-            }
-            throw new ArgumentException("Unknown expression for reserialize: " + item.GetType().FullName);
-        }
-
-        public EFXExpressionTree ReconstructExpressionTree(EFXExpressionObject expression)
-        {
-            var tree = new EFXExpressionTree();
-            var comps = expression.Components;
-            if (comps.Count == 0) return tree;
-
-            var i = comps.Count - 1;
-            tree.root = UnflattenExpression(expression, ref i);
-            tree.parameters = expression.Parameters.ToList();
-            if (i >= 0) {
-                // two DMC5 files get caught here due to having an extra float at the start - Capcom user error?
-                // maybe it's a feature where you can specify two values, and they get used as a min-max random range?
-                // ignoring this for now since they're inconsequential
-                var root2 = UnflattenExpression(expression, ref i);
-                if (i >= 0) {
-                    throw new Exception("Incomplete expression!!");
-                }
-            }
-
-            return tree;
-        }
-
-        public static readonly HashSet<uint> UnknownParameterHashes = new();
-        private static readonly Dictionary<uint, string> KnownExternalHashes = new() {
-            [4068760923] = "PI",
-            [2715150528] = "speed",
-            [4102950055] = "Speed",
-            [3351123696] = "scale",
-            [2589222962] = "TIMER",
-            [124194757] = "alpha",
-            [1124845316] = "Color",
-            [2521345197] = "color",
-            [1703575233] = "pitch",
-            [3888230594] = "yaw",
-            [2703807999] = "roll",
-        };
-
-        private ExpressionAtom UnflattenExpression(EFXExpressionObject expression, ref int index)
-        {
-            var comp = expression.Components[index--];
-            if (comp.data is EFXExpressionDataParameterHash param) {
-                var paramType = expression.parameters?.GetParameterByHash(param.parameterHash)?.source ?? ExpressionParameterSource.Unknown;
-                string? name;
-                switch (paramType) {
-                    case ExpressionParameterSource.External:
-                    case ExpressionParameterSource.Constant:
-                        if (KnownExternalHashes.TryGetValue(param.parameterHash, out name)) {
-                            return new ExpressionParameter() { hash = param.parameterHash, name = name, source = paramType };
-                        }
-                        UnknownParameterHashes.Add(param.parameterHash);
-                        return new ExpressionParameter() { hash = param.parameterHash, source = paramType };
-                    case ExpressionParameterSource.Unknown:
-                    case ExpressionParameterSource.Parameter:
-                        var exprParam = (parentFile ?? this).ExpressionParameters.FirstOrDefault(exp => exp.expressionParameterNameUTF8Hash == param.parameterHash);
-                        if (exprParam != null) {
-                            return new ExpressionParameter() { hash = param.parameterHash, name = exprParam.name, source = ExpressionParameterSource.Parameter };
-                        }
-                        var fieldParam = (parentFile ?? this).FieldParameterValues.FirstOrDefault(exp => exp.fieldParameterNameHash == param.parameterHash);
-                        if (fieldParam != null) {
-                            return new ExpressionParameter() { hash = param.parameterHash, name = fieldParam.name, source = ExpressionParameterSource.Parameter };
-                        }
-                        break;
-                }
-                if (paramType == ExpressionParameterSource.Unknown) paramType = ExpressionParameterSource.External;
-                if (KnownExternalHashes.TryGetValue(param.parameterHash, out name)) {
-                    return new ExpressionParameter() { hash = param.parameterHash, name = name };
-                }
-                UnknownParameterHashes.Add(param.parameterHash);
-                return new ExpressionParameter() { hash = param.parameterHash };
-            }
-            if (comp.data is EFXExpressionDataBinaryOperator binary) {
-                var item = new ExpressionBinaryOperation();
-                item.oper = binary.value;
-                item.left = UnflattenExpression(expression, ref index);
-                item.right = UnflattenExpression(expression, ref index);
-                return item;
-            }
-            if (comp.data is EFXExpressionDataFloat floatType) {
-                return new ExpressionFloat() { value = floatType.value };
-            }
-            if (comp.data is EFXExpressionDataFunction intType) {
-                if (intType.value is EfxExpressionFunction.Lerp or EfxExpressionFunction.InvLerp or EfxExpressionFunction.Clamp) {
-                    var item = new ExpressionTernaryOperation();
-                    item.func = intType.value;
-                    item.left = UnflattenExpression(expression, ref index);
-                    item.arg2 = UnflattenExpression(expression, ref index);
-                    item.arg3 = UnflattenExpression(expression, ref index);
-                    return item;
-                } else {
-                    // other found values: 0, 1, 2, 4, 5, 6, 7, 8, 9, 10
-                    var item = new ExpressionUnaryOperation();
-                    item.func = intType.value;
-                    item.atom = UnflattenExpression(expression, ref index);
-                    return item;
-                }
-            }
-
-            if (comp.data is EFXExpressionDataUnaryOperator unary) {
-                if (unary.value != 0) {
-                    throw new Exception("Found non-0 type 2 efx expression data");
-                }
-                var item = new ExpressionNegation();
-                item.atom = UnflattenExpression(expression, ref index);
-                return item;
-            }
-
-            throw new Exception("Found unsupported expression component");
         }
 
         private void ReadActions(FileHandler handler)
@@ -950,6 +815,165 @@ namespace RszTool
             Header.Write(handler);
             handler.Seek(endPosition);
             return true;
+        }
+
+
+        private void FlattenExpressions(List<EFXExpressionData> list, EFXExpressionTree tree)
+            => FlattenExpression(list, tree.parameters, tree.root, tree);
+
+        private void FlattenExpression(List<EFXExpressionData> components, List<EFXExpressionParameterName> parameters, ExpressionAtom item, EFXExpressionTree tree)
+        {
+            if (item is ExpressionFloat flt) {
+                components.Add(new EFXExpressionData(flt.value));
+                return;
+            }
+            if (item is ExpressionParameter param) {
+                components.Add(new EFXExpressionData(new EFXExpressionDataParameterHash() {
+                    parameterHash = param.hash,
+                }));
+                var existing = tree.parameters.GetParameterByHash(param.hash);
+                if (existing == null) {
+                    var definition = (parentFile ?? this).ExpressionParameters.FirstOrDefault(p => p.expressionParameterNameUTF8Hash == param.hash);
+                    tree.parameters.Add(new EFXExpressionParameterName() {
+                        parameterNameHash = param.hash,
+                        source = definition != null ? ExpressionParameterSource.Parameter : ExpressionParameterSource.External,
+                    });
+                }
+                return;
+            }
+            if (item is ExpressionNegation neg) {
+                FlattenExpression(components, parameters, neg.atom, tree);
+                components.Add(new EFXExpressionData(new EFXExpressionDataUnaryOperator()));
+                return;
+            }
+            if (item is ExpressionUnaryOperation unary) {
+                FlattenExpression(components, parameters, unary.atom, tree);
+                components.Add(new EFXExpressionData(new EFXExpressionDataFunction() { value = unary.func }));
+                return;
+            }
+            if (item is ExpressionBinaryOperation binary) {
+                FlattenExpression(components, parameters, binary.right, tree);
+                FlattenExpression(components, parameters, binary.left, tree);
+                components.Add(new EFXExpressionData(new EFXExpressionDataBinaryOperator() { value = binary.oper }));
+                return;
+            }
+            if (item is ExpressionTernaryOperation ternary) {
+                FlattenExpression(components, parameters, ternary.arg3, tree);
+                FlattenExpression(components, parameters, ternary.arg2, tree);
+                FlattenExpression(components, parameters, ternary.left, tree);
+                components.Add(new EFXExpressionData(new EFXExpressionDataFunction() { value = ternary.func }));
+                return;
+            }
+            throw new ArgumentException("Unknown expression for reserialize: " + item.GetType().FullName);
+        }
+
+        public EFXExpressionTree ReconstructExpressionTree(EFXExpressionObject expression)
+        {
+            var tree = new EFXExpressionTree();
+            var comps = expression.Components;
+            if (comps.Count == 0) return tree;
+
+            var i = comps.Count - 1;
+            tree.root = UnflattenExpression(expression, ref i);
+            tree.parameters = expression.Parameters.ToList();
+            if (i >= 0) {
+                // two DMC5 files get caught here due to having an extra float at the start - Capcom user error?
+                // maybe it's a feature where you can specify two values, and they get used as a min-max random range?
+                // ignoring this for now since they're inconsequential
+                var root2 = UnflattenExpression(expression, ref i);
+                if (i >= 0) {
+                    throw new Exception("Incomplete expression!!");
+                }
+            }
+
+            return tree;
+        }
+
+        public static readonly HashSet<uint> UnknownParameterHashes = new();
+        private static readonly Dictionary<uint, string> KnownExternalHashes = new() {
+            [4068760923] = "PI",
+            [2715150528] = "speed",
+            [4102950055] = "Speed",
+            [3351123696] = "scale",
+            [2589222962] = "TIMER",
+            [124194757] = "alpha",
+            [1124845316] = "Color",
+            [2521345197] = "color",
+            [1703575233] = "pitch",
+            [3888230594] = "yaw",
+            [2703807999] = "roll",
+        };
+
+        private ExpressionAtom UnflattenExpression(EFXExpressionObject expression, ref int index)
+        {
+            var comp = expression.Components[index--];
+            if (comp.data is EFXExpressionDataParameterHash param) {
+                var paramType = expression.parameters?.GetParameterByHash(param.parameterHash)?.source ?? ExpressionParameterSource.Unknown;
+                string? name;
+                switch (paramType) {
+                    case ExpressionParameterSource.External:
+                    case ExpressionParameterSource.Constant:
+                        if (KnownExternalHashes.TryGetValue(param.parameterHash, out name)) {
+                            return new ExpressionParameter() { hash = param.parameterHash, name = name, source = paramType };
+                        }
+                        UnknownParameterHashes.Add(param.parameterHash);
+                        return new ExpressionParameter() { hash = param.parameterHash, source = paramType };
+                    case ExpressionParameterSource.Unknown:
+                    case ExpressionParameterSource.Parameter:
+                        var exprParam = (parentFile ?? this).ExpressionParameters.FirstOrDefault(exp => exp.expressionParameterNameUTF8Hash == param.parameterHash);
+                        if (exprParam != null) {
+                            return new ExpressionParameter() { hash = param.parameterHash, name = exprParam.name, source = ExpressionParameterSource.Parameter };
+                        }
+                        var fieldParam = (parentFile ?? this).FieldParameterValues.FirstOrDefault(exp => exp.fieldParameterNameHash == param.parameterHash);
+                        if (fieldParam != null) {
+                            return new ExpressionParameter() { hash = param.parameterHash, name = fieldParam.name, source = ExpressionParameterSource.Parameter };
+                        }
+                        break;
+                }
+                if (paramType == ExpressionParameterSource.Unknown) paramType = ExpressionParameterSource.External;
+                if (KnownExternalHashes.TryGetValue(param.parameterHash, out name)) {
+                    return new ExpressionParameter() { hash = param.parameterHash, name = name };
+                }
+                UnknownParameterHashes.Add(param.parameterHash);
+                return new ExpressionParameter() { hash = param.parameterHash };
+            }
+            if (comp.data is EFXExpressionDataBinaryOperator binary) {
+                var item = new ExpressionBinaryOperation();
+                item.oper = binary.value;
+                item.left = UnflattenExpression(expression, ref index);
+                item.right = UnflattenExpression(expression, ref index);
+                return item;
+            }
+            if (comp.data is EFXExpressionDataFloat floatType) {
+                return new ExpressionFloat() { value = floatType.value };
+            }
+            if (comp.data is EFXExpressionDataFunction intType) {
+                if (intType.value is EfxExpressionFunction.Lerp or EfxExpressionFunction.InvLerp or EfxExpressionFunction.Clamp) {
+                    var item = new ExpressionTernaryOperation();
+                    item.func = intType.value;
+                    item.left = UnflattenExpression(expression, ref index);
+                    item.arg2 = UnflattenExpression(expression, ref index);
+                    item.arg3 = UnflattenExpression(expression, ref index);
+                    return item;
+                } else {
+                    // other found values: 0, 1, 2, 4, 5, 6, 7, 8, 9, 10
+                    var item = new ExpressionUnaryOperation();
+                    item.func = intType.value;
+                    item.atom = UnflattenExpression(expression, ref index);
+                    return item;
+                }
+            }
+
+            if (comp.data is EFXExpressionDataUnaryOperator unary) {
+                if (unary.value != 0) {
+                    throw new Exception("Found non-0 type 2 efx expression data");
+                }
+                var item = new ExpressionNegation();
+                item.atom = UnflattenExpression(expression, ref index);
+                return item;
+            }
+
+            throw new Exception("Found unsupported expression component");
         }
     }
 }

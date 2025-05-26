@@ -96,7 +96,10 @@ public class RszSerializerGenerator : IIncrementalGenerator
         var methodBodyIndent = new string('\t', parents.Count() + 2);
         buildCtx.indent = methodBodyIndent;
 
-        sb.Append(classIndent).Append(string.Join(" ", context.ClassDecl.Modifiers.Select(m => m.Text))).Append(" class ").AppendLine(context.ClassDecl.Identifier.Text);
+        sb.Append(classIndent).Append(string.Join(" ", context.ClassDecl.Modifiers.Select(m => m.Text))).Append(" class ").Append(context.ClassDecl.Identifier.Text);
+        sb.Append(context.ClassDecl.TypeParameterList?.ToString() ?? string.Empty);
+        sb.Append(context.ClassDecl.BaseList?.ToString() ?? string.Empty);
+        sb.AppendLine();
         sb.Append(classIndent).AppendLine("{");
 
         sb.Append(memberIndent).AppendLine("[System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
@@ -386,17 +389,23 @@ public class RszSerializerGenerator : IIncrementalGenerator
             var elementType = fieldType?.GetArrayElementType();
             var size = EvaluateAttributeExpressionList(ctx, mainAttr.GetPositionalArguments());
             if (handle == HandleType.Write) {
-                ctx.Indent().AppendLine($"{name} ??= new {elementType}[{size}];");
-                ctx.Indent().AppendLine($"if ({name}.Length != ({size})) {{");
-                ctx.AddIndent();
-                ctx.Indent().AppendLine($"var tmpArray_{name} = new {elementType}[{size}];");
-                ctx.Indent().AppendLine($"Array.Copy({name}, tmpArray_{name}, Math.Min({size}, {name}.Length));");
-                ctx.Indent().AppendLine($"{name} = tmpArray_{name};");
-                ctx.ReduceIndent();
-                ctx.Indent().AppendLine($"}}");
+                if (!field.IsReadonly()) {
+                    ctx.Indent().AppendLine($"{name} ??= new {elementType}[{size}];");
+                    ctx.Indent().AppendLine($"if ({name}.Length != ({size})) {{");
+                    ctx.AddIndent();
+                    ctx.Indent().AppendLine($"var tmpArray_{name} = new {elementType}[{size}];");
+                    ctx.Indent().AppendLine($"Array.Copy({name}, tmpArray_{name}, Math.Min({size}, {name}.Length));");
+                    ctx.Indent().AppendLine($"{name} = tmpArray_{name};");
+                    ctx.ReduceIndent();
+                    ctx.Indent().AppendLine($"}}");
+                }
                 ctx.Indent().AppendLine($"handler.WriteArray({name});");
             } else if (handle == HandleType.Read) {
-                ctx.Indent().AppendLine($"{name} = handler.ReadArray<{elementType}>((int)({size}));");
+                if (field.IsReadonly()) {
+                    ctx.Indent().AppendLine($"handler.ReadArray({name});");
+                } else {
+                    ctx.Indent().AppendLine($"{name} = handler.ReadArray<{elementType}>((int)({size}));");
+                }
             }
         } else if (handle == HandleType.FieldList) {
             ctx.Indent().AppendLine($"yield return (nameof({name}), typeof({field.GetFieldType()?.GetElementTypeName()}));");
@@ -444,7 +453,11 @@ public class RszSerializerGenerator : IIncrementalGenerator
                 ctx.Indent().AppendLine($"{name}?.Write(handler);");
             } else if (handle == HandleType.Read) {
                 var constructor = EvaluateAttributeExpressionList(ctx, field.GetAttribute("RszConstructorParams"));
-                ctx.Indent().AppendLine($"{name} ??= new({constructor});");
+                if (!field.IsReadonly()) {
+                    ctx.Indent().AppendLine($"{name} ??= new({constructor});");
+                } else if (constructor != null) {
+                    ctx.Indent().AppendLine($"{name}.{constructor} = {constructor};");
+                }
                 ctx.Indent().AppendLine($"{name}.Read(handler);");
             }
         } else {

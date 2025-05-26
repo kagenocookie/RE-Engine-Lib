@@ -12,6 +12,8 @@ public class Rsz010TemplateGenerator : IIncrementalGenerator
     {
     }
 
+    private static HashSet<string> IgnoredIgnoreClasses = ["EFXAttributeTypeMeshExpression"];
+
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var classes = context.SyntaxProvider
@@ -19,7 +21,7 @@ public class Rsz010TemplateGenerator : IIncrementalGenerator
                 predicate: static (s, _) => s is ClassDeclarationSyntax classDecl && classDecl.HasAttribute("RszGenerate"),
                 transform: static (ctx, _) => new TemplateGeneratorContext() {
                     ClassDecl = (ClassDeclarationSyntax)ctx.Node,
-                    Fields = ctx.Node.ChildNodes().OfType<FieldDeclarationSyntax>().Where(field => !field.HasAttribute("RszIgnore")).ToList(),
+                    Fields = ctx.Node.ChildNodes().OfType<FieldDeclarationSyntax>().Where(field => field.Parent is ClassDeclarationSyntax clsd && (IgnoredIgnoreClasses.Contains(clsd.Identifier.Text) || !field.HasAttribute("RszIgnore"))).ToList(),
                 }
             )
             .Where(ctx => ctx is not null);
@@ -262,8 +264,6 @@ public class Rsz010TemplateGenerator : IIncrementalGenerator
 
     private static void HandleMember(FieldDeclarationSyntax field, ClassBuildContext ctx)
     {
-        if (field.HasAttribute("RszIgnore")) return;
-
         var name = field.GetFieldName();
         if (name == null) return;
 
@@ -291,6 +291,7 @@ public class Rsz010TemplateGenerator : IIncrementalGenerator
         }
 
         AttributeSyntax mainAttr;
+        var fieldtypename = field.GetFieldType()?.GetElementTypeName();
         if (field.TryGetAttribute("RszFixedSizeArray", out mainAttr) || field.TryGetAttribute("RszList", out mainAttr)) {
             var isClass = field.HasAttribute("RszClassInstance");
             var stringAttr = !isClass ? field.GetAttribute("RszInlineString") : null;
@@ -367,8 +368,15 @@ public class Rsz010TemplateGenerator : IIncrementalGenerator
                     ctx.Indent().AppendLine($"}}");
                 }
             }
+        } else if (fieldtypename == "BitSet" && field.TryGetAttribute("RszConstructorParams", out mainAttr)) {
+            var consargs = string.Join(" ", mainAttr.GetPositionalArguments().Select(p => EvaluateExpressionString(ctx, p?.Expression)));
+            ctx.Indent().Append(RemapType(fieldtypename)).Append(' ').Append(name).Append('(').Append(consargs).Append(')').AppendLine(";");
         } else {
-            ctx.Indent().Append(RemapType(field.GetFieldType()?.GetElementTypeName())).Append(' ').Append(name).AppendLine(";");
+            if (fieldtypename == "BitSet" && field.Declaration.Variables.First().Initializer?.Value is ObjectCreationExpressionSyntax createSyntax) {
+                ctx.Indent().Append(RemapType(fieldtypename)).Append(' ').Append(name).Append(createSyntax.ArgumentList?.ToString()).AppendLine(";");
+            } else {
+                ctx.Indent().Append(RemapType(fieldtypename)).Append(' ').Append(name).AppendLine(";");
+            }
         }
 
         if (field.TryGetAttribute("RszPaddingAfter", out mainAttr)) {

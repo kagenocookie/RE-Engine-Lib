@@ -166,31 +166,19 @@ public partial class EFXAttributeTypeRibbonLengthMaterial : EFXAttribute
 		typeof(EfxMaterialStructV1)
 	)]
 	public EfxMaterialStructBase? material;
-	// [RszSwitch(
-	// 	nameof(Version), ">=", EfxVersion.DD2, typeof(EfxMaterialStruct),
-	// 	typeof(EfxMaterialStructV1)
-	// )]
-	// [RszClassInstance, RszConstructorParams(nameof(Version))] public EfxMaterialStructV1? material;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtTransform2DClip, EfxVersion.RE8)]
-public partial class EFXAttributePtTransform2DClip : EFXAttribute
+public partial class EFXAttributePtTransform2DClip : EFXAttribute, IClipAttribute
 {
+    public EfxClipData Clip => clipData;
+    public BitSet ClipBits => clipBits;
+
 	public EFXAttributePtTransform2DClip() : base(EfxAttributeType.PtTransform2DClip) { }
 
-    public uint unkn0;
-    public uint null1;
-    public int unkn2;
-    public float unkn3;
-    public uint unkn4;
-    public uint unkn5;
-    public uint null6;
-	[RszArraySizeField(nameof(substruct1))] public int substruct1Length;
-	[RszArraySizeField(nameof(substruct2))] public int substruct2Length;
-	[RszArraySizeField(nameof(substruct3))] public int substruct3Length;
-    [RszFixedSizeArray(nameof(substruct1Length), '/', 4)] public int[]? substruct1;
-    [RszFixedSizeArray(nameof(substruct2Length), '/', 4)] public int[]? substruct2;
-    [RszFixedSizeArray(nameof(substruct3Length), '/', 4)] public float[]? substruct3;
+	[RszClassInstance] public readonly BitSet clipBits = new BitSet(4);
+    public UndeterminedFieldType unkn1;
+	[RszClassInstance] public EfxClipData clipData = new();
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuMeshTrail, EfxVersion.RE8)]
@@ -280,29 +268,30 @@ public partial class EFXAttributePlaneCollider : EFXAttribute
 public partial class EFXAttributeTypeGpuMeshExpression : EFXAttribute, IExpressionAttribute
 {
     public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeTypeGpuMeshExpression() : base(EfxAttributeType.TypeGpuMeshExpression) { }
 
-	public uint unkn1_0;
-	public uint unkn1_1;
-	public uint unkn1_2;
-	public uint unkn1_3;
-	public uint unkn1_4;
-	public uint unkn1_5;
-	public uint unkn1_6;
-	public uint unkn1_7;
-	public uint unkn1_8;
-	public uint unkn1_9;
-	public uint unkn1_10;
-	public uint unkn1_11;
-	public uint unkn1_12;
-	public uint unkn1_13;
-	public uint unkn1_14;
-	public uint unkn1_15;
-	public uint unkn1_16;
-	public uint unkn1_17;
-	public uint unkn1_18;
-	public uint unkn1_19;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(19);
+	public ExpressionAssignType unkn1;
+	public ExpressionAssignType unkn2;
+	public ExpressionAssignType unkn3;
+	public ExpressionAssignType unkn4;
+	public ExpressionAssignType unkn5;
+	public ExpressionAssignType unkn6;
+	public ExpressionAssignType unkn7;
+	public ExpressionAssignType unkn8;
+	public ExpressionAssignType unkn9;
+	public ExpressionAssignType unkn10;
+	public ExpressionAssignType unkn11;
+	public ExpressionAssignType unkn12;
+	public ExpressionAssignType unkn13;
+	public ExpressionAssignType unkn14;
+	public ExpressionAssignType unkn15;
+	public ExpressionAssignType unkn16;
+	public ExpressionAssignType unkn17;
+	public ExpressionAssignType unkn18;
+	public ExpressionAssignType unkn19;
 
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }

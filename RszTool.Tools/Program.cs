@@ -116,9 +116,10 @@ internal sealed class Program
             .AddSyntaxTrees(
                 // CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/RszFile/RSZFile.cs")))
                 CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EfxFile.cs"))),
-                CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/ParsedExpressions.cs"))),
+                CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/ExpressionTree.cs"))),
                 CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/EfxAttributeTypes.cs"))),
-                CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/EfxExpressionVariables.cs"))),
+                CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/ExpressionData.cs"))),
+                CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/ClipSubstructs.cs"))),
                 CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/EfxCommon.cs"))),
                 CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/EfxStructsRE7.cs"))),
                 CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/EFXStructsDMC5.cs"))),

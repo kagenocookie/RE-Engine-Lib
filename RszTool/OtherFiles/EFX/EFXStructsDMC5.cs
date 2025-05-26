@@ -16,11 +16,6 @@ public struct large_cc {
 	public float  Brightness;
 }
 
-public enum Cycle_Loop {
-    LOOP = -1,
-    NOT_LOOP = 2
-}
-
 enum Animation_Mode : uint {
     starting_frame_only = 0,
 	looped_animation = 1,
@@ -187,204 +182,52 @@ public partial class EFXAttributeTransform3DModifier : RszTool.Efx.EFXAttribute
     public UndeterminedFieldType unkn54;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtColorClip, EfxVersion.DMC5)]
-public partial class EFXAttributePtColorClip : RszTool.Efx.EFXAttribute
+public partial class EFXAttributePtColorClip : RszTool.Efx.EFXAttribute, IColorClipAttribute
 {
+    public EfxColorClipData Clip => clipData;
+
     public EFXAttributePtColorClip() : base(EfxAttributeType.PtColorClip) { }
 
-    public uint secChunkID;
-    public uint unkn2;
-    public Cycle_Loop loop;
-    public float loopTime;
-    public uint unkn3;
-    public uint unkn4;
-    public uint unkn5;
+    /// <summary>
+    /// This flag tells us which color channels have a clip:
+    /// 1 = R, 2 = G, 4 = B, 8 = A
+    /// </summary>
+    // public uint colorClipBits;
+	[RszClassInstance] public readonly BitSet clipBits = new BitSet(4) { BitNames = ["R", "G", "B", "A"] };
+    public uint unkn1;
+	[RszClassInstance] public EfxColorClipData clipData = new();
 
-	[RszArraySizeField(nameof(substruct1))] public int substruct1Length;
-	[RszArraySizeField(nameof(substruct2))] public int substruct2Length;
-	[RszArraySizeField(nameof(substruct3))] public int substruct3Length;
-    [RszFixedSizeArray(nameof(substruct1Length), '/', 4)] public int[]? substruct1; // colorBitCount + intCount, apparently
-    [RszFixedSizeArray(nameof(substruct2Length), '/', 4)] public int[]? substruct2; // TODO very varying content
-    [RszFixedSizeArray(nameof(substruct3Length), '/', 4)] public float[]? substruct3;
-
-    // private void Read() {
-    //     if(0 < secondChunkSize){
-    //         backPoseSC = FTell();
-    //         switch (secChunkID) {
-    //             case 0x0000000F:
-    //                 struct{
-    //                     for(e = 0; e < 4; e++){
-    //                         switch(e+1){
-    //                             case 1:
-    //                                 for(c5it = 0; c5it < colorBitCount_arr[e]; c5it++){
-    //                                     struct{
-    //                                         float appearTime;
-    //                                         uint ukn;
-    //                                         if( colorBitCount_arr[3] > c5it){
-    //                                             redPos[red] = FTell();
-    //                                             red++;
-    //                                         } else {
-    //                                             alphaLessRedPos[alphaLessRed] = FTell();
-    //                                             alphaLessRed++;
-    //                                         }
-    //                                         byte red;
-    //                                         [RszFixedSizeArray(3)] byte[]? ukn2;
-    //                                     } redSt;
-    //                                 }
-    //                                 break;
-
-    //                             case 2:
-    //                                 for(c5it = 0; c5it < colorBitCount_arr[e]; c5it++){
-    //                                     struct{
-    //                                         float appearTime;
-    //                                         uint ukn;
-    //                                         if( colorBitCount_arr[3] > c5it){
-    //                                             greenPos[green] = FTell();
-    //                                             green++;
-    //                                         } else {
-    //                                             alphaLessGreenPos[alphaLessGreen] = FTell();
-    //                                             alphaLessGreen++;
-    //                                         }
-    //                                         byte green;
-    //                                         [RszFixedSizeArray(3)] byte[]? ukn2;
-    //                                     } greenSt;
-    //                                 }
-    //                                 break;
-
-    //                             case 3:
-    //                                 for(c5it = 0; c5it < colorBitCount_arr[e]; c5it++){
-    //                                     struct{
-    //                                         float appearTime;
-    //                                         uint ukn;
-    //                                         if( colorBitCount_arr[3] > c5it){
-    //                                             bluePos[blue] = FTell();
-    //                                             blue++;
-    //                                         } else {
-    //                                             alphaLessBluePos[alphaLessBlue] = FTell();
-    //                                             alphaLessBlue++;
-    //                                         }
-    //                                         byte blue;
-    //                                         [RszFixedSizeArray(3)] byte[]? ukn2;
-    //                                     } blueSt;
-    //                                 }
-    //                                 break;
-
-    //                             case 4:
-    //                                 for(c5it = 0; c5it < colorBitCount_arr[e]; c5it++){
-    //                                     struct{
-    //                                         float appearTime;
-    //                                         uint ukn;
-    //                                         alphaPos[alpha] = FTell();
-    //                                         alpha++;
-    //                                         byte alpha;
-    //                                         [RszFixedSizeArray(3)] byte[]? ukn2;
-    //                                     } alphaSt;
-    //                                 }
-    //                                 break;
-    //                             default:
-    //                                 break;
-    //                         }
-    //                     }
-    //                 }secondChunk;
-    //                 break;
-    //             case 0x00000008:
-    //                 for(c5it = 0; c5it < colorBitCount_arr[0]; c5it++){
-    //                     struct{
-    //                         float appearTime;
-    //                         uint ukn;
-    //                         onlyAlphaPos[onlyAlpha]= FTell();
-    //                         onlyAlpha++;
-    //                         byte alpha;
-    //                         [RszFixedSizeArray(3)] byte[]? ukn2;
-    //                     } alphaSt;
-    //                 }
-    //                 break;
-    //             case 0x00000007:
-    //             case 0x0000000E:
-    //                 struct{
-    //                     for(e = 0; e < 3; e++){
-    //                         switch(e+1){
-    //                             case 1:
-    //                                 for(c5it = 0; c5it < colorBitCount_arr[e]; c5it++){
-    //                                     struct{
-    //                                         float appearTime;
-    //                                         uint ukn;
-    //                                         alphaLessRedPos[alphaLessRed] = FTell();
-    //                                         alphaLessRed++;
-    //                                         byte red;
-    //                                         [RszFixedSizeArray(3)] byte[]? ukn2;
-    //                                     } redSt;
-    //                                 }
-    //                                 break;
-
-    //                             case 2:
-    //                                 for(c5it = 0; c5it < colorBitCount_arr[e]; c5it++){
-    //                                     struct{
-    //                                         float appearTime;
-    //                                         uint ukn;
-    //                                         alphaLessGreenPos[alphaLessGreen] = FTell();
-    //                                         alphaLessGreen++;
-    //                                         byte green;
-    //                                         [RszFixedSizeArray(3)] byte[]? ukn2;
-    //                                     } greenSt;
-    //                                 }
-    //                                 break;
-
-    //                             case 3:
-    //                                 for(c5it = 0; c5it < colorBitCount_arr[e]; c5it++){
-    //                                     struct{
-    //                                         float appearTime;
-    //                                         uint ukn;
-    //                                         alphaLessBluePos[alphaLessBlue] = FTell();
-    //                                         alphaLessBlue++;
-    //                                         byte blue;
-    //                                         [RszFixedSizeArray(3)] byte[]? ukn2;
-    //                                     } blueSt;
-    //                                 }
-    //                                 break;
-
-    //                             default:
-    //                                 break;
-    //                         }
-    //                     }
-    //                 }secondChunk;
-    //                 break;
-    //             default:
-    //                 struct{
-    //                     uint ukn[secondChunkSize/4];
-    //                 } secondChunk;
-    //                 break;
-    //         }
-    //     }
-    // }
+    public override string ToString() => $"PtColorClip: {clipBits}";
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonFixEndExpression, EfxVersion.RE8, EfxVersion.DD2)]
 public partial class EFXAttributeTypeRibbonFixEndExpression : RszTool.Efx.EFXAttribute, IExpressionAttribute
 {
     public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
 
     public EFXAttributeTypeRibbonFixEndExpression() : base(EfxAttributeType.TypeRibbonFixEndExpression) { }
 
-    public uint ukn1_0;
-    public uint ukn1_1;
-    public uint ukn1_2;
-    public uint ukn1_3;
-    public uint ukn1_4;
-    public uint ukn1_5;
-    public uint ukn1_6;
-    public uint ukn1_7;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(17);
+    public ExpressionAssignType ukn1_1;
+    public ExpressionAssignType ukn1_2;
+    public ExpressionAssignType ukn1_3;
+    public ExpressionAssignType ukn1_4;
+    public ExpressionAssignType ukn1_5;
+    public ExpressionAssignType ukn1_6;
+    public ExpressionAssignType ukn1_7;
     [RszVersion(EfxVersion.RE8, EndAt = nameof(ukn1_9))]
-    public uint ukn1_8;
-    public uint ukn1_9;
+    public ExpressionAssignType ukn1_8;
+    public ExpressionAssignType ukn1_9;
     [RszVersion(EfxVersion.RE4, EndAt = nameof(ukn1_17))]
-    public uint ukn1_10;
-    public uint ukn1_11;
-    public uint ukn1_12;
-    public uint ukn1_13;
-    public uint ukn1_14;
-    public uint ukn1_15;
-    public uint ukn1_16;
-    public uint ukn1_17;
+    public ExpressionAssignType ukn1_10;
+    public ExpressionAssignType ukn1_11;
+    public ExpressionAssignType ukn1_12;
+    public ExpressionAssignType ukn1_13;
+    public ExpressionAssignType ukn1_14;
+    public ExpressionAssignType ukn1_15;
+    public ExpressionAssignType ukn1_16;
+    public ExpressionAssignType ukn1_17;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeBillboard2D, EfxVersion.RE7, EfxVersion.RE2, EfxVersion.DMC5, EfxVersion.RERT, EfxVersion.RE4)]
@@ -504,101 +347,96 @@ public partial class EFXAttributeTypeStrainRibbon : RszTool.Efx.EFXAttribute
 public partial class EFXAttributeMeshEmitterExpression : RszTool.Efx.EFXAttribute, IExpressionAttribute
 {
     public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
 
     public EFXAttributeMeshEmitterExpression() : base(EfxAttributeType.MeshEmitterExpression) { }
 
-    public uint unkn0;
-    public uint unkn1;
-    public uint unkn2;
-    public uint unkn3;
-    public uint unkn4;
-    public uint unkn5;
-    public uint unkn6;
-    public uint unkn7;
-    public uint unkn8;
-    public uint unkn9;
-    public uint unkn10;
-    public uint unkn11;
-    public uint unkn12;
-    public uint unkn13;
-    public uint unkn14;
-    public uint unkn15;
-    public uint unkn16;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(16);
+    public ExpressionAssignType unkn1;
+    public ExpressionAssignType unkn2;
+    public ExpressionAssignType unkn3;
+    public ExpressionAssignType unkn4;
+    public ExpressionAssignType unkn5;
+    public ExpressionAssignType unkn6;
+    public ExpressionAssignType unkn7;
+    public ExpressionAssignType unkn8;
+    public ExpressionAssignType unkn9;
+    public ExpressionAssignType unkn10;
+    public ExpressionAssignType unkn11;
+    public ExpressionAssignType unkn12;
+    public ExpressionAssignType unkn13;
+    public ExpressionAssignType unkn14;
+    public ExpressionAssignType unkn15;
+    public ExpressionAssignType unkn16;
 	[RszClassInstance] public EFXExpressionList expressions = new();
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.ShaderSettingsExpression, EfxVersion.DMC5, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.DD2)]
 public partial class EFXAttributeShaderSettingsExpression : RszTool.Efx.EFXAttribute, IExpressionAttribute
 {
     public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
 
     public EFXAttributeShaderSettingsExpression() : base(EfxAttributeType.ShaderSettingsExpression) { }
 
-    public uint ukn0;
-    public uint ukn1;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(12);
+    public ExpressionAssignType ukn1;
     [RszVersion(EfxVersion.RE8, EndAt = nameof(ukn7))]
-    public uint ukn2;
-    public uint ukn3;
-    public uint ukn4;
-    public uint ukn5;
-    public uint ukn6;
-    public uint ukn7;
-    [RszVersion(EfxVersion.DD2, EndAt = nameof(dd2_ukn4))]
-    public uint dd2_ukn0;
-    public uint dd2_ukn1;
-    public uint dd2_ukn2;
-    public uint dd2_ukn3;
-    public uint dd2_ukn4;
+    public ExpressionAssignType ukn2;
+    public ExpressionAssignType ukn3;
+    public ExpressionAssignType ukn4;
+    public ExpressionAssignType ukn5;
+    public ExpressionAssignType ukn6;
+    public ExpressionAssignType ukn7;
+    [RszVersion(EfxVersion.DD2, EndAt = nameof(ukn12))]
+    public ExpressionAssignType ukn8;
+    public ExpressionAssignType ukn9;
+    public ExpressionAssignType ukn10;
+    public ExpressionAssignType ukn11;
+    public ExpressionAssignType ukn12;
 
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.MeshEmitterClip, EfxVersion.DMC5)]
-public partial class EFXAttributeMeshEmitterClip : RszTool.Efx.EFXAttribute
+public partial class EFXAttributeMeshEmitterClip : RszTool.Efx.EFXAttribute, IClipAttribute
 {
+    public EfxClipData Clip => clipData;
+    public BitSet ClipBits => clipBits;
+
     public EFXAttributeMeshEmitterClip() : base(EfxAttributeType.MeshEmitterClip) { }
 
-    public uint unkn0;
+	[RszClassInstance] public readonly BitSet clipBits = new BitSet(8);
     public uint unkn1;
-    public uint unkn2;
-    public float unkn3;
-    public uint unkn4;
-    public uint unkn5;
-    public uint unkn6;
-    uint part2Size;
-    uint part3Size;
-    uint part4Size;
-
-    [RszFixedSizeArray(nameof(part2Size))] public byte[]? part2;
-    [RszFixedSizeArray(nameof(part3Size))] public byte[]? part3;
-    [RszFixedSizeArray(nameof(part4Size))] public byte[]? part4;
+	[RszClassInstance] public EfxClipData clipData = new();
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypePolygonExpression, EfxVersion.RE7, EfxVersion.RE2, EfxVersion.DMC5, EfxVersion.RE3, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
 public partial class EFXAttributeTypePolygonExpression : RszTool.Efx.EFXAttribute, IExpressionAttribute
 {
     public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
 
     public EFXAttributeTypePolygonExpression() : base(EfxAttributeType.TypePolygonExpression) { }
 
-    public uint unkn0;
-    public uint unkn1;
-    public uint unkn2;
-    public uint unkn3;
-    public uint unkn4;
-    public uint unkn5;
-    public uint unkn6;
-    public uint unkn7;
-    public uint unkn8;
-    public uint unkn9;
-    public uint unkn10;
-    public uint unkn11;
-    public uint unkn12;
-    public uint unkn13;
-    public uint unkn14;
-    public uint unkn15;
-    public uint unkn16;
-    public uint unkn17;
-    public uint unkn18;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(19);
+    public ExpressionAssignType unkn1;
+    public ExpressionAssignType unkn2;
+    public ExpressionAssignType unkn3;
+    public ExpressionAssignType unkn4;
+    public ExpressionAssignType unkn5;
+    public ExpressionAssignType unkn6;
+    public ExpressionAssignType unkn7;
+    public ExpressionAssignType unkn8;
+    public ExpressionAssignType unkn9;
+    public ExpressionAssignType unkn10;
+    public ExpressionAssignType unkn11;
+    public ExpressionAssignType unkn12;
+    public ExpressionAssignType unkn13;
+    public ExpressionAssignType unkn14;
+    public ExpressionAssignType unkn15;
+    public ExpressionAssignType unkn16;
+    public ExpressionAssignType unkn17;
+    public ExpressionAssignType unkn18;
 	[RszVersion(EfxVersion.RE4)]
-	public uint unkn1_20;
+	public ExpressionAssignType unkn19;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeLightning3D, EfxVersion.RE7, EfxVersion.RE2, EfxVersion.DMC5)]

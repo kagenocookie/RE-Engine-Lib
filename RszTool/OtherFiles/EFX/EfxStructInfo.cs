@@ -53,6 +53,7 @@ public class EfxFieldInfo
     public RszFieldType FieldType { get; set; }
     public string? Classname { get; set; }
     public bool IsArray { get; set; }
+    public int FixedLength { get; set; }
 
     public EfxFieldFlags Flag { get; set; }
     public string? FlagTarget { get; set; }
@@ -91,9 +92,13 @@ public enum EfxFieldFlags
     /// Field is an embedded EFX file.
     /// </summary>
     EmbeddedEFX = 7,
+    /// <summary>
+    /// Field is a fixed size BitSet.
+    /// </summary>
+    BitSet = 8,
 }
 
-public struct UndeterminedFieldType
+public struct UndeterminedFieldType : IConvertible
 {
 	public int value;
 
@@ -111,6 +116,20 @@ public struct UndeterminedFieldType
 		this.value = MemoryUtils.SingleToInt32(value);
 	}
 
+	public object? GetMostLikelyValueTypeObject()
+	{
+		static bool LooksLikeFloat(int n) => BitConverter.Int32BitsToSingle(n) is float f && Math.Abs(f) > 0.00001f && Math.Abs(f) < 10000f;
+
+		if (value == 0) return null;
+		if (value > 0 && value < 10000) {
+			return value;
+		}
+		if (LooksLikeFloat(value)) {
+			return BitConverter.Int32BitsToSingle(value);
+		}
+		return (uint)value;
+	}
+
 	public string GetMostLikelyValueTypeString()
 	{
 		static bool LooksLikeFloat(int n) => BitConverter.Int32BitsToSingle(n) is float f && Math.Abs(f) > 0.00001f && Math.Abs(f) < 10000f;
@@ -125,5 +144,23 @@ public struct UndeterminedFieldType
 		return ToString();
 	}
 
-	public override string ToString() => $"{value} {value.ToString("X")} {MemoryUtils.Int32ToSingle(value).ToString("0.0#", System.Globalization.CultureInfo.InvariantCulture)}";
+    public TypeCode GetTypeCode() => TypeCode.Int32;
+
+    public bool ToBoolean(IFormatProvider? provider) => value != 0;
+    public byte ToByte(IFormatProvider? provider) => (byte)value;
+    public char ToChar(IFormatProvider? provider) => (char)value;
+    public DateTime ToDateTime(IFormatProvider? provider) => DateTime.UnixEpoch.AddSeconds(value);
+    public decimal ToDecimal(IFormatProvider? provider) => (decimal)value;
+    public double ToDouble(IFormatProvider? provider) => BitConverter.Int32BitsToSingle(value);
+    public short ToInt16(IFormatProvider? provider) => (short)value;
+    public int ToInt32(IFormatProvider? provider) => value;
+    public long ToInt64(IFormatProvider? provider) => (long)value;
+    public sbyte ToSByte(IFormatProvider? provider) => (sbyte)value;
+    public float ToSingle(IFormatProvider? provider) => BitConverter.Int32BitsToSingle(value);
+    public override string ToString() => $"{value} {value.ToString("X")} {MemoryUtils.Int32ToSingle(value).ToString("0.0#", System.Globalization.CultureInfo.InvariantCulture)}";
+    public string ToString(IFormatProvider? provider) => ToString();
+    public object ToType(Type conversionType, IFormatProvider? provider) =>throw new NotImplementedException();
+    public ushort ToUInt16(IFormatProvider? provider) => (ushort)value;
+    public uint ToUInt32(IFormatProvider? provider) => (uint)value;
+    public ulong ToUInt64(IFormatProvider? provider) => (ulong)value;
 }

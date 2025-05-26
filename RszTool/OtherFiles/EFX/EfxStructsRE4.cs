@@ -4,25 +4,6 @@ using RszTool.InternalAttributes;
 
 namespace RszTool.Efx.Structs.RE4;
 
-public enum ExpressionOperator
-{
-	Addition = 0,
-	Subtraction = 1,
-	Multiplication = 2,
-	Division = 3,
-	Assign = 4,
-	ForceWord = -1
-}
-
-public enum ValueExpressionType
-{
-	Unknown = 0,
-	Unknown1 = 1,
-	Constant = 2,
-	Unknown3 = 3,
-	Expression = 4,
-}
-
 public enum DistortionType
 {
 	Blur = 0,
@@ -114,16 +95,16 @@ public partial class EFXAttributeTransform2DModifierDelayFrame : EFXAttribute
 public partial class EFXAttributeTransform2DExpression : EFXAttribute, IExpressionAttribute
 {
     public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeTransform2DExpression() : base(EfxAttributeType.Transform2DExpression) { }
 
-	public uint unkn1_0;
-	public uint unkn1_1;
-	[RszVersion("!=", EfxVersion.DMC5, EndAt = nameof(unkn1_5))]
-	public uint unkn1_2;
-	public uint unkn1_3;
-	public uint unkn1_4;
-	public uint unkn1_5;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(5);
+	public ExpressionAssignType unkn1;
+	public ExpressionAssignType unkn2;
+	public ExpressionAssignType unkn3;
+	public ExpressionAssignType unkn4;
+	public ExpressionAssignType unkn5;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
@@ -152,19 +133,23 @@ public partial class EFXAttributeTransform3DModifierDelayFrame : EFXAttribute
 public partial class EFXAttributeTransform3DExpression : EFXAttribute, IExpressionAttribute
 {
     public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeTransform3DExpression() : base(EfxAttributeType.Transform3DExpression) { }
 
-	public uint unkn1;
-	public ValueExpressionType unkn2;
-	public ValueExpressionType unkn3;
-	public ValueExpressionType unkn4;
-	public ValueExpressionType unkn5;
-	public ValueExpressionType unkn6;
-	public ValueExpressionType unkn7;
-	public ValueExpressionType unkn8;
-	public ValueExpressionType unkn9;
-	public ValueExpressionType unkn10;
+	/// <summary>
+	/// Up to 9 bits, in order: pos X/Y/Z, rot X/Y/Z, scale X/Y/Z
+	/// </summary>
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(9);
+	public ExpressionAssignType translationX;
+	public ExpressionAssignType translationY;
+	public ExpressionAssignType translationZ;
+	public ExpressionAssignType rotationX;
+	public ExpressionAssignType rotationY;
+	public ExpressionAssignType rotationZ;
+	public ExpressionAssignType scaleX;
+	public ExpressionAssignType scaleY;
+	public ExpressionAssignType scaleZ;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
@@ -234,25 +219,26 @@ public partial class EFXAttributeSpawn : EFXAttribute
 public partial class EFXAttributeTypeBillboard2DExpression : EFXAttribute, IExpressionAttribute
 {
 	public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeTypeBillboard2DExpression() : base(EfxAttributeType.TypeBillboard2DExpression) { }
 
-	public uint unkn1_0;
-	public uint unkn1_1;
-	public uint unkn1_2;
-	public uint unkn1_3;
-	public uint unkn1_4;
-	public uint unkn1_5;
-    public uint unkn1_6;
-    public uint unkn1_7;
-	[RszVersion(EfxVersion.RERT, EndAt = nameof(unkn1_13))]
-    public uint unkn1_8;
-    public uint unkn1_9;
-    public uint unkn1_10;
-    public uint unkn1_11;
-    public uint unkn1_12;
-	[RszVersion(">", EfxVersion.RERT, EndAt = nameof(unkn1_13))]
-    public uint unkn1_13;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(13);
+	public ExpressionAssignType unkn1;
+	public ExpressionAssignType unkn2;
+	public ExpressionAssignType unkn3;
+	public ExpressionAssignType unkn4;
+	public ExpressionAssignType unkn5;
+    public ExpressionAssignType unkn6;
+    public ExpressionAssignType unkn7;
+	[RszVersion(EfxVersion.RERT, EndAt = nameof(unkn13))]
+    public ExpressionAssignType unkn8;
+    public ExpressionAssignType unkn9;
+    public ExpressionAssignType unkn10;
+    public ExpressionAssignType unkn11;
+    public ExpressionAssignType unkn12;
+	[RszVersion(">", EfxVersion.RERT)]
+    public ExpressionAssignType unkn13;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
@@ -358,20 +344,21 @@ public partial class EFXAttributeAttractor : EFXAttribute, IBoneRelationAttribut
 public partial class EFXAttributeAttractorExpression : EFXAttribute, IExpressionAttribute
 {
 	public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeAttractorExpression() : base(EfxAttributeType.AttractorExpression) { }
 
-	public uint unkn1_0;
-	public uint unkn1_1;
-	public uint unkn1_2;
-	public uint unkn1_3;
-	public uint unkn1_4;
-	public uint unkn1_5;
-	public uint unkn1_6;
-	public uint unkn1_7;
-	public uint unkn1_8;
-	public uint unkn1_9;
-	public uint unkn1_10;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(10);
+	public ExpressionAssignType unkn1;
+	public ExpressionAssignType unkn2;
+	public ExpressionAssignType unkn3;
+	public ExpressionAssignType unkn4;
+	public ExpressionAssignType unkn5;
+	public ExpressionAssignType unkn6;
+	public ExpressionAssignType unkn7;
+	public ExpressionAssignType unkn8;
+	public ExpressionAssignType unkn9;
+	public ExpressionAssignType unkn10;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Blink, EfxVersion.RE4, EfxVersion.DD2)]
@@ -424,15 +411,16 @@ public partial class EFXAttributeContrastHighlighter : EFXAttribute
 public partial class EFXAttributeDistortionExpression : EFXAttribute, IExpressionAttribute
 {
 	public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeDistortionExpression() : base(EfxAttributeType.DistortionExpression) { }
 
-	public uint unkn1_0;
-	public uint unkn1_1;
-	public uint unkn1_2;
-	public uint unkn1_3;
-	public uint unkn1_4;
-	public uint unkn1_5;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(5);
+	public ExpressionAssignType unkn1;
+	public ExpressionAssignType unkn2;
+	public ExpressionAssignType unkn3;
+	public ExpressionAssignType unkn4;
+	public ExpressionAssignType unkn5;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
@@ -489,15 +477,16 @@ public partial class EFXAttributeEmitterShape2D : EFXAttribute
 public partial class EFXAttributeEmitterShape2DExpression : EFXAttribute, IExpressionAttribute
 {
 	public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeEmitterShape2DExpression() : base(EfxAttributeType.EmitterShape2DExpression) { }
 
-	public uint unkn1_0;
-	public uint unkn1_1;
-	public uint unkn1_2;
-	public uint unkn1_3;
-	public uint unkn1_4;
-	public uint unkn1_5;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(5);
+	public ExpressionAssignType unkn1;
+	public ExpressionAssignType unkn2;
+	public ExpressionAssignType unkn3;
+	public ExpressionAssignType unkn4;
+	public ExpressionAssignType unkn5;
 	[RszClassInstance] public EFXExpressionList expressions = new();
 
 }
@@ -506,21 +495,22 @@ public partial class EFXAttributeEmitterShape2DExpression : EFXAttribute, IExpre
 public partial class EFXAttributeEmitterShape3DExpression : EFXAttribute, IExpressionAttribute
 {
 	public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeEmitterShape3DExpression() : base(EfxAttributeType.EmitterShape3DExpression) { }
 
-	public uint unkn1_0;
-	public ValueExpressionType rangeXMin;
-	public ValueExpressionType rangeXMax;
-	public ValueExpressionType rangeYMin;
-	public ValueExpressionType rangeYMax;
-	public ValueExpressionType rangeZMin;
-	public ValueExpressionType rangeZMax;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(9);
+	public ExpressionAssignType rangeXMin;
+	public ExpressionAssignType rangeXMax;
+	public ExpressionAssignType rangeYMin;
+	public ExpressionAssignType rangeYMax;
+	public ExpressionAssignType rangeZMin;
+	public ExpressionAssignType rangeZMax;
 	[RszVersion('>', EfxVersion.RE7)]
-	public ValueExpressionType unkn1_7;
+	public ExpressionAssignType unkn1_7;
 	[RszVersion('>', EfxVersion.RE3, EndAt = nameof(unkn1_9))]
-	public ValueExpressionType unkn1_8;
-	public ValueExpressionType unkn1_9;
+	public ExpressionAssignType unkn1_8;
+	public ExpressionAssignType unkn1_9;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.FadeByAngle, EfxVersion.DMC5, EfxVersion.RE4)]
@@ -541,12 +531,13 @@ public partial class EFXAttributeFadeByAngle : EFXAttribute
 public partial class EFXAttributeFadeByAngleExpression : EFXAttribute, IExpressionAttribute
 {
 	public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeFadeByAngleExpression() : base(EfxAttributeType.FadeByAngleExpression) { }
 
-    public uint unkn0;
-    public uint unkn1;
-    public uint unkn2;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(2);
+    public ExpressionAssignType unkn1;
+    public ExpressionAssignType unkn2;
 	[RszClassInstance] public EFXExpressionList expressions = new();
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.FadeByDepth, EfxVersion.DMC5, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
@@ -564,14 +555,15 @@ public partial class EFXAttributeFadeByDepth : EFXAttribute
 public partial class EFXAttributeFadeByDepthExpression : EFXAttribute, IExpressionAttribute
 {
 	public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeFadeByDepthExpression() : base(EfxAttributeType.FadeByDepthExpression) { }
 
-	public uint unkn1_0;
-	public uint unkn1_1;
-	public uint unkn1_2;
-	public uint unkn1_3;
-	public uint unkn1_4;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(4);
+	public ExpressionAssignType unkn1;
+	public ExpressionAssignType unkn2;
+	public ExpressionAssignType unkn3;
+	public ExpressionAssignType unkn4;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
@@ -611,17 +603,18 @@ public partial class EFXAttributeIgnorePlayerColor : EFXAttribute
 public partial class EFXAttributeLifeExpression : EFXAttribute, IExpressionAttribute
 {
 	public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeLifeExpression() : base(EfxAttributeType.LifeExpression) { }
 
-	public uint unkn1_0;
-	public uint unkn1_1;
-	public uint unkn1_2;
-	public uint unkn1_3;
-	[RszVersion(nameof(Version), ">=", EfxVersion.DD2, "||", nameof(Version), "==", EfxVersion.RE7, EndAt = nameof(dd2_unkn3))]
-	public uint dd2_unkn1;
-	public uint dd2_unkn2;
-	public uint dd2_unkn3;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(6);
+	public ExpressionAssignType unkn1;
+	public ExpressionAssignType unkn2;
+	public ExpressionAssignType unkn3;
+	[RszVersion(nameof(Version), ">=", EfxVersion.DD2, "||", nameof(Version), "==", EfxVersion.RE7, EndAt = nameof(unkn6))]
+	public ExpressionAssignType unkn4;
+	public ExpressionAssignType unkn5;
+	public ExpressionAssignType unkn6;
 
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 
@@ -662,18 +655,19 @@ public partial class EFXAttributeNoise : EFXAttribute
 public partial class EFXAttributeNoiseExpression : EFXAttribute, IExpressionAttribute
 {
 	public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeNoiseExpression() : base(EfxAttributeType.NoiseExpression) { }
 
-    public uint unkn0;
-    public uint unkn1;
-    public uint unkn2;
-    public uint unkn3;
-    public uint unkn4;
-    public uint unkn5;
-    public uint unkn6;
-    public uint unkn7;
-    public uint unkn8;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(8);
+    public ExpressionAssignType unkn1;
+    public ExpressionAssignType unkn2;
+    public ExpressionAssignType unkn3;
+    public ExpressionAssignType unkn4;
+    public ExpressionAssignType unkn5;
+    public ExpressionAssignType unkn6;
+    public ExpressionAssignType unkn7;
+    public ExpressionAssignType unkn8;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
@@ -845,22 +839,23 @@ public partial class EFXAttributeRotateAnimDelayFrame : EFXAttribute
 public partial class EFXAttributeRotateAnimExpression : EFXAttribute, IExpressionAttribute
 {
 	public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeRotateAnimExpression() : base(EfxAttributeType.RotateAnimExpression) { }
 
-	public uint ukn1_0;
-	public uint ukn1_1;
-	public uint ukn1_2;
-	public uint ukn1_3;
-	public uint ukn1_4;
-	public uint ukn1_5;
-	public uint ukn1_6;
-	public uint ukn1_7;
-	public uint ukn1_8;
-	public uint ukn1_9;
-	public uint ukn1_10;
-	public uint ukn1_11;
-	public uint ukn1_12;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(12);
+	public ExpressionAssignType ukn1_1;
+	public ExpressionAssignType ukn1_2;
+	public ExpressionAssignType ukn1_3;
+	public ExpressionAssignType ukn1_4;
+	public ExpressionAssignType ukn1_5;
+	public ExpressionAssignType ukn1_6;
+	public ExpressionAssignType ukn1_7;
+	public ExpressionAssignType ukn1_8;
+	public ExpressionAssignType ukn1_9;
+	public ExpressionAssignType ukn1_10;
+	public ExpressionAssignType ukn1_11;
+	public ExpressionAssignType ukn1_12;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
@@ -902,19 +897,20 @@ public partial class EFXAttributeScaleAnimDelayFrame : EFXAttribute
 public partial class EFXAttributeScaleAnimExpression : EFXAttribute, IExpressionAttribute
 {
 	public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeScaleAnimExpression() : base(EfxAttributeType.ScaleAnimExpression) { }
 
-	public uint unkn1;
-	public uint unkn2;
-	public uint unkn3;
-    [RszVersion(EfxVersion.RERT, EndAt = nameof(sb_unkn5))]
-	public uint sb_unkn0;
-	public uint sb_unkn1;
-	public uint sb_unkn2;
-	public uint sb_unkn3;
-	public uint sb_unkn4;
-	public uint sb_unkn5;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(8);
+	public ExpressionAssignType unkn1;
+	public ExpressionAssignType unkn2;
+    [RszVersion(EfxVersion.RERT, EndAt = nameof(unkn8))]
+	public ExpressionAssignType unkn3;
+	public ExpressionAssignType unkn4;
+	public ExpressionAssignType unkn5;
+	public ExpressionAssignType unkn6;
+	public ExpressionAssignType unkn7;
+	public ExpressionAssignType unkn8;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
@@ -1007,19 +1003,20 @@ public partial class EFXAttributeShaderSettings : EFXAttribute
 public partial class EFXAttributeSpawnExpression : EFXAttribute, IExpressionAttribute
 {
 	public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeSpawnExpression() : base(EfxAttributeType.SpawnExpression) { }
 
-	public uint flags;
-	ExpressionOperator spawnNum;
-	ExpressionOperator spawnNumRange;
-	ExpressionOperator intervalFrame;
-	ExpressionOperator intervalFrameRange;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(7);
+	public ExpressionAssignType spawnNum;
+	public ExpressionAssignType spawnNumRange;
+	public ExpressionAssignType intervalFrame;
+	public ExpressionAssignType intervalFrameRange;
 	[RszVersion(EfxVersion.RE3, EndAt = nameof(emitterDelayFrameRange))]
-	ExpressionOperator emitterDelayFrame;
-	ExpressionOperator emitterDelayFrameRange;
+	public ExpressionAssignType emitterDelayFrame;
+	public ExpressionAssignType emitterDelayFrameRange;
     [RszVersion(EfxVersion.RERT)]
-	ExpressionOperator sb_unkn0;
+	public ExpressionAssignType sb_unkn0;
 
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
@@ -1244,26 +1241,27 @@ public partial class EFXAttributeTypeBillboard3D : EFXAttribute
 public partial class EFXAttributeTypeBillboard3DExpression : EFXAttribute, IExpressionAttribute
 {
 	public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeTypeBillboard3DExpression() : base(EfxAttributeType.TypeBillboard3DExpression) { }
 
-	public uint unkn1_0;
-	public ValueExpressionType unkn1_1;
-	public ValueExpressionType unkn1_2;
-	public ValueExpressionType unkn1_3;
-	public ValueExpressionType unkn1_4;
-	public ValueExpressionType unkn1_5;
-	public ValueExpressionType unkn1_6;
-	public ValueExpressionType unkn1_7;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(13);
+	public ExpressionAssignType unkn1;
+	public ExpressionAssignType unkn2;
+	public ExpressionAssignType unkn3;
+	public ExpressionAssignType unkn4;
+	public ExpressionAssignType unkn5;
+	public ExpressionAssignType unkn6;
+	public ExpressionAssignType unkn7;
     [RszVersion(EfxVersion.RE2)]
-	public ValueExpressionType unkn1_8;
-    [RszVersion(EfxVersion.RE3, EndAt = nameof(unkn1_12))]
-	public ValueExpressionType unkn1_9;
-	public ValueExpressionType unkn1_10;
-	public ValueExpressionType unkn1_11;
-	public ValueExpressionType unkn1_12;
+	public ExpressionAssignType unkn8;
+    [RszVersion(EfxVersion.RE3, EndAt = nameof(unkn12))]
+	public ExpressionAssignType unkn9;
+	public ExpressionAssignType unkn10;
+	public ExpressionAssignType unkn11;
+	public ExpressionAssignType unkn12;
     [RszVersion(EfxVersion.RE4)]
-	public ValueExpressionType unkn1_13;
+	public ExpressionAssignType unkn13;
 
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 
@@ -1305,30 +1303,31 @@ public partial class EFXAttributeTypeGpuBillboard : EFXAttribute
 public partial class EFXAttributeTypeGpuBillboardExpression : EFXAttribute, IExpressionAttribute
 {
 	public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeTypeGpuBillboardExpression() : base(EfxAttributeType.TypeGpuBillboardExpression) { }
 
-	public uint unkn1_0;
-	public uint unkn1_1;
-	public uint unkn1_2;
-	public uint unkn1_3;
-	public uint unkn1_4;
-	public uint unkn1_5;
-	public uint unkn1_6;
-	public uint unkn1_7;
-    [RszVersion(EfxVersion.RERT, EndAt = nameof(sb_unkn5))]
-	public uint sb_unkn0;
-	public uint sb_unkn1;
-	public uint sb_unkn2;
-	public uint sb_unkn3;
-	public uint sb_unkn4;
-	public uint sb_unkn5;
-    [RszVersion(EfxVersion.DD2, EndAt = nameof(dd2_unkn5))]
-	public uint dd2_unkn1;
-	public uint dd2_unkn2;
-	public uint dd2_unkn3;
-	public uint dd2_unkn4;
-	public uint dd2_unkn5;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(18);
+	public ExpressionAssignType unkn1;
+	public ExpressionAssignType unkn2;
+	public ExpressionAssignType unkn3;
+	public ExpressionAssignType unkn4;
+	public ExpressionAssignType unkn5;
+	public ExpressionAssignType unkn6;
+	public ExpressionAssignType unkn7;
+    [RszVersion(EfxVersion.RERT, EndAt = nameof(unkn13))]
+	public ExpressionAssignType unkn8;
+	public ExpressionAssignType unkn9;
+	public ExpressionAssignType unkn10;
+	public ExpressionAssignType unkn11;
+	public ExpressionAssignType unkn12;
+	public ExpressionAssignType unkn13;
+    [RszVersion(EfxVersion.DD2, EndAt = nameof(unkn18))]
+	public ExpressionAssignType unkn14;
+	public ExpressionAssignType unkn15;
+	public ExpressionAssignType unkn16;
+	public ExpressionAssignType unkn17;
+	public ExpressionAssignType unkn18;
 
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
@@ -1617,61 +1616,65 @@ public partial class EFXAttributeTypeLightning3D : EFXAttribute, IBoneRelationAt
 public partial class EFXAttributeTypeLightning3DExpression : EFXAttribute, IExpressionAttribute
 {
 	public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeTypeLightning3DExpression() : base(EfxAttributeType.TypeLightning3DExpression) { }
 
-	public uint unkn0;
-	public uint unkn1;
-	public uint unkn2;
-	public uint unkn3;
-	public uint unkn4;
-	public uint unkn5;
-	public uint unkn6;
-	public uint unkn7;
-	public uint unkn8;
-	public uint unkn9;
-	public uint unkn10;
-	public uint unkn11;
-	public uint unkn12;
-	public uint unkn13;
-	public uint unkn14;
-	public uint unkn15;
-	public uint unkn16;
-	public uint unkn17;
-	public uint unkn18;
-	public uint unkn19;
-	public uint unkn20;
-	public uint unkn21;
-	public uint unkn22;
-	public uint unkn23;
-	public uint unkn24;
-	public uint unkn25;
-	public uint unkn26;
-	public uint unkn27;
-	public uint unkn28;
-	public uint unkn29;
+	// NOTE: may need to add a dynamic size constructor call for pre-DD2 if it was ever present there
+	/// <summary>
+	/// Bits: 7,8,9: some position X/Y/Z
+	/// </summary>
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(48);
+	public ExpressionAssignType unkn1;
+	public ExpressionAssignType unkn2;
+	public ExpressionAssignType unkn3;
+	public ExpressionAssignType unkn4;
+	public ExpressionAssignType unkn5;
+	public ExpressionAssignType unkn6;
+	public ExpressionAssignType unkn7;
+	public ExpressionAssignType unkn8;
+	public ExpressionAssignType unkn9;
+	public ExpressionAssignType unkn10;
+	public ExpressionAssignType unkn11;
+	public ExpressionAssignType unkn12;
+	public ExpressionAssignType unkn13;
+	public ExpressionAssignType unkn14;
+	public ExpressionAssignType unkn15;
+	public ExpressionAssignType unkn16;
+	public ExpressionAssignType unkn17;
+	public ExpressionAssignType unkn18;
+	public ExpressionAssignType unkn19;
+	public ExpressionAssignType unkn20;
+	public ExpressionAssignType unkn21;
+	public ExpressionAssignType unkn22;
+	public ExpressionAssignType unkn23;
+	public ExpressionAssignType unkn24;
+	public ExpressionAssignType unkn25;
+	public ExpressionAssignType unkn26;
+	public ExpressionAssignType unkn27;
+	public ExpressionAssignType unkn28;
 
-	[RszVersion(EfxVersion.DD2, EndAt = nameof(unkn49))]
-    public uint unkn30;
-    public uint unkn31;
-    public uint unkn32;
-    public uint unkn33;
-    public uint unkn34;
-    public uint unkn35;
-    public uint unkn36;
-    public uint unkn37;
-    public uint unkn38;
-    public uint unkn39;
-    public uint unkn40;
-    public uint unkn41;
-    public uint unkn42;
-    public uint unkn43;
-    public uint unkn44;
-    public uint unkn45;
-    public uint unkn46;
-    public uint unkn47;
-    public uint unkn48;
-    public uint unkn49;
+	[RszVersion(EfxVersion.DD2, EndAt = nameof(unkn48))]
+	public ExpressionAssignType unkn29;
+    public ExpressionAssignType unkn30;
+    public ExpressionAssignType unkn31;
+    public ExpressionAssignType unkn32;
+    public ExpressionAssignType unkn33;
+    public ExpressionAssignType unkn34;
+    public ExpressionAssignType unkn35;
+    public ExpressionAssignType unkn36;
+    public ExpressionAssignType unkn37;
+    public ExpressionAssignType unkn38;
+    public ExpressionAssignType unkn39;
+    public ExpressionAssignType unkn40;
+    public ExpressionAssignType unkn41;
+    public ExpressionAssignType unkn42;
+    public ExpressionAssignType unkn43;
+    public ExpressionAssignType unkn44;
+    public ExpressionAssignType unkn45;
+    public ExpressionAssignType unkn46;
+    public ExpressionAssignType unkn47;
+    public ExpressionAssignType unkn48;
 
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 
@@ -1681,27 +1684,28 @@ public partial class EFXAttributeTypeLightning3DExpression : EFXAttribute, IExpr
 public partial class EFXAttributeTypeNoDrawExpression : EFXAttribute, IExpressionAttribute
 {
 	public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeTypeNoDrawExpression() : base(EfxAttributeType.TypeNoDrawExpression) { }
 
-    public uint unkn0;
-    public uint unkn1;
-    public uint unkn2;
-    public uint unkn3;
-    public uint unkn4;
-    public uint unkn5;
-    public uint unkn6;
-    public uint unkn7;
-    public uint unkn8;
-    public uint unkn9;
-    public uint unkn10;
-    public uint unkn11;
-    public uint unkn12;
-    public uint unkn13;
-    public uint unkn14;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(16);
+    public ExpressionAssignType unkn1;
+    public ExpressionAssignType unkn2;
+    public ExpressionAssignType unkn3;
+    public ExpressionAssignType unkn4;
+    public ExpressionAssignType unkn5;
+    public ExpressionAssignType unkn6;
+    public ExpressionAssignType unkn7;
+    public ExpressionAssignType unkn8;
+    public ExpressionAssignType unkn9;
+    public ExpressionAssignType unkn10;
+    public ExpressionAssignType unkn11;
+    public ExpressionAssignType unkn12;
+    public ExpressionAssignType unkn13;
+    public ExpressionAssignType unkn14;
 	[RszVersion('>', EfxVersion.RE3, EndAt = nameof(unkn16))]
-    public uint unkn15;
-    public uint unkn16;
+    public ExpressionAssignType unkn15;
+    public ExpressionAssignType unkn16;
 
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 
@@ -1795,53 +1799,53 @@ public partial class EFXAttributeTypeNodeBillboard : EFXAttribute
 public partial class EFXAttributeTypeNodeBillboardExpression : EFXAttribute, IExpressionAttribute
 {
 	public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeTypeNodeBillboardExpression() : base(EfxAttributeType.TypeNodeBillboardExpression) { }
 
-	public uint unkn1_0;
-	public uint unkn1_1;
-	public uint unkn1_2;
-	public uint unkn1_3;
-	public uint unkn1_4;
-	public uint unkn1_5;
-	public uint unkn1_6;
-	public uint unkn1_7;
-	public uint unkn1_8;
-	public uint unkn1_9;
-	public uint unkn1_10;
-	public uint unkn1_11;
-	public uint unkn1_12;
-	public uint unkn1_13;
-	public uint unkn1_14;
-	public uint unkn1_15;
-	public uint unkn1_16;
-	public uint unkn1_17;
-	public uint unkn1_18;
-	public uint unkn1_19;
-	public uint unkn1_20;
-	public uint unkn1_21;
-	public uint unkn1_22;
-	public uint unkn1_23;
-	public uint unkn1_24;
-	public uint unkn1_25;
-	public uint unkn1_26;
-	public uint unkn1_27;
-	public uint unkn1_28;
-	public uint unkn1_29;
-	public uint unkn1_30;
-	public uint unkn1_31;
-	public uint unkn1_32;
-	public uint unkn1_33;
-	public uint unkn1_34;
-	public uint unkn1_35;
-	public uint unkn1_36;
-	public uint unkn1_37;
-	public uint unkn1_38;
-	public uint unkn1_39;
-	public uint unkn1_40;
-	public uint unkn1_41;
-	public uint unkn1_42;
-	public uint unkn1_43;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(42);
+	public ExpressionAssignType unkn1;
+	public ExpressionAssignType unkn2;
+	public ExpressionAssignType unkn3;
+	public ExpressionAssignType unkn4;
+	public ExpressionAssignType unkn5;
+	public ExpressionAssignType unkn6;
+	public ExpressionAssignType unkn7;
+	public ExpressionAssignType unkn8;
+	public ExpressionAssignType unkn9;
+	public ExpressionAssignType unkn10;
+	public ExpressionAssignType unkn11;
+	public ExpressionAssignType unkn12;
+	public ExpressionAssignType unkn13;
+	public ExpressionAssignType unkn14;
+	public ExpressionAssignType unkn15;
+	public ExpressionAssignType unkn16;
+	public ExpressionAssignType unkn17;
+	public ExpressionAssignType unkn18;
+	public ExpressionAssignType unkn19;
+	public ExpressionAssignType unkn20;
+	public ExpressionAssignType unkn21;
+	public ExpressionAssignType unkn22;
+	public ExpressionAssignType unkn23;
+	public ExpressionAssignType unkn24;
+	public ExpressionAssignType unkn25;
+	public ExpressionAssignType unkn26;
+	public ExpressionAssignType unkn27;
+	public ExpressionAssignType unkn28;
+	public ExpressionAssignType unkn29;
+	public ExpressionAssignType unkn30;
+	public ExpressionAssignType unkn31;
+	public ExpressionAssignType unkn32;
+	public ExpressionAssignType unkn33;
+	public ExpressionAssignType unkn34;
+	public ExpressionAssignType unkn35;
+	public ExpressionAssignType unkn36;
+	public ExpressionAssignType unkn37;
+	public ExpressionAssignType unkn38;
+	public ExpressionAssignType unkn39;
+	public ExpressionAssignType unkn40;
+	public ExpressionAssignType unkn41;
+	public ExpressionAssignType unkn42;
 	[RszClassInstance] public EFXExpressionList expressions = new();
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypePolygon, EfxVersion.RE7, EfxVersion.RE2, EfxVersion.DMC5, EfxVersion.RE4)]
@@ -2020,32 +2024,30 @@ public partial class EFXAttributeTypeRibbonFollow : EFXAttribute
 public partial class EFXAttributeTypeRibbonFollowExpression : EFXAttribute, IExpressionAttribute
 {
 	public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeTypeRibbonFollowExpression() : base(EfxAttributeType.TypeRibbonFollowExpression) { }
 
-	public uint unkn1_0;
-	public uint unkn1_1;
-	public uint unkn1_2;
-	public uint unkn1_3;
-	public uint unkn1_4;
-	public uint unkn1_5;
-	public uint unkn1_6;
-	public uint unkn1_7;
-    [RszVersion("==", EfxVersion.MHRiseSB, EndAt = nameof(sb_unkn1))]
-	public float sb_unkn0;
-	public float sb_unkn1;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(17);
+	public ExpressionAssignType unkn1;
+	public ExpressionAssignType unkn2;
+	public ExpressionAssignType unkn3;
+	public ExpressionAssignType unkn4;
+	public ExpressionAssignType unkn5;
+	public ExpressionAssignType unkn6;
+	public ExpressionAssignType unkn7;
 
-    [RszVersion(EfxVersion.DD2, EndAt = nameof(unkn1_17))]
-	public uint unkn1_8;
-	public uint unkn1_9;
-	public uint unkn1_10;
-	public uint unkn1_11;
-	public uint unkn1_12;
-	public uint unkn1_13;
-	public uint unkn1_14;
-	public uint unkn1_15;
-	public uint unkn1_16;
-	public uint unkn1_17;
+    [RszVersion(EfxVersion.DD2, EndAt = nameof(unkn17))]
+	public ExpressionAssignType unkn8;
+	public ExpressionAssignType unkn9;
+	public ExpressionAssignType unkn10;
+	public ExpressionAssignType unkn11;
+	public ExpressionAssignType unkn12;
+	public ExpressionAssignType unkn13;
+	public ExpressionAssignType unkn14;
+	public ExpressionAssignType unkn15;
+	public ExpressionAssignType unkn16;
+	public ExpressionAssignType unkn17;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
@@ -2107,33 +2109,34 @@ public partial class EFXAttributeTypeRibbonLength : EFXAttribute
 public partial class EFXAttributeTypeRibbonLengthExpression : EFXAttribute, IExpressionAttribute
 {
 	public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeTypeRibbonLengthExpression() : base(EfxAttributeType.TypeRibbonLengthExpression) { }
 
-	public uint unkn1;
-	public ValueExpressionType unkn2;
-	public ValueExpressionType unkn3;
-	public ValueExpressionType unkn4;
-	public ValueExpressionType unkn5;
-	public ValueExpressionType unkn6;
-	[RszVersion(EfxVersion.RE2, EndAt = nameof(unkn8))]
-	public ValueExpressionType unkn7;
-	public ValueExpressionType unkn8;
-    [RszVersion(EfxVersion.RE8, EndAt = nameof(sb_unkn1))]
-	public ValueExpressionType sb_unkn0;
-	public ValueExpressionType sb_unkn1;
-    [RszVersion(">", EfxVersion.RERT, EndAt = nameof(sb_unkn7))]
-	public ValueExpressionType sb_unkn2;
-	public ValueExpressionType sb_unkn3;
-	public ValueExpressionType sb_unkn4;
-	public ValueExpressionType sb_unkn5;
-	public ValueExpressionType sb_unkn6;
-	public ValueExpressionType sb_unkn7;
-    [RszVersion(EfxVersion.RE4, EndAt = nameof(re4_unkn4))]
-	public ValueExpressionType re4_unkn1;
-	public ValueExpressionType re4_unkn2;
-	public ValueExpressionType re4_unkn3;
-	public ValueExpressionType re4_unkn4;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(19);
+	public ExpressionAssignType unkn1;
+	public ExpressionAssignType unkn2;
+	public ExpressionAssignType unkn3;
+	public ExpressionAssignType unkn4;
+	public ExpressionAssignType unkn5;
+	[RszVersion(EfxVersion.RE2, EndAt = nameof(unkn7))]
+	public ExpressionAssignType unkn6;
+	public ExpressionAssignType unkn7;
+    [RszVersion(EfxVersion.RE8, EndAt = nameof(unkn9))]
+	public ExpressionAssignType unkn8;
+	public ExpressionAssignType unkn9;
+    [RszVersion(">", EfxVersion.RERT, EndAt = nameof(unkn15))]
+	public ExpressionAssignType unkn10;
+	public ExpressionAssignType unkn11;
+	public ExpressionAssignType unkn12;
+	public ExpressionAssignType unkn13;
+	public ExpressionAssignType unkn14;
+	public ExpressionAssignType unkn15;
+    [RszVersion(EfxVersion.RE4, EndAt = nameof(unkn19))]
+	public ExpressionAssignType unkn16;
+	public ExpressionAssignType unkn17;
+	public ExpressionAssignType unkn18;
+	public ExpressionAssignType unkn19;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
@@ -2288,26 +2291,27 @@ public partial class EFXAttributeTypeStrainRibbon : EFXAttribute, IBoneRelationA
 public partial class EFXAttributeTypeStrainRibbonExpression : EFXAttribute, IExpressionAttribute
 {
 	public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeTypeStrainRibbonExpression() : base(EfxAttributeType.TypeStrainRibbonExpression) { }
 
-	public uint unkn1_0;
-	public uint unkn1_1;
-	public uint unkn1_2;
-	public uint unkn1_3;
-	public uint unkn1_4;
-	public uint unkn1_5;
-	public uint unkn1_6;
-	public uint unkn1_7;
-	public uint unkn1_8;
-	public uint unkn1_9;
-	public uint unkn1_10;
-	public uint unkn1_11;
-	public uint unkn1_12;
-	public uint unkn1_13;
-    [RszVersion(EfxVersion.RE8, EndAt = nameof(sb_unkn1))]
-	public uint sb_unkn0;
-	public uint sb_unkn1;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(15);
+	public ExpressionAssignType unkn1;
+	public ExpressionAssignType unkn2;
+	public ExpressionAssignType unkn3;
+	public ExpressionAssignType unkn4;
+	public ExpressionAssignType unkn5;
+	public ExpressionAssignType unkn6;
+	public ExpressionAssignType unkn7;
+	public ExpressionAssignType unkn8;
+	public ExpressionAssignType unkn9;
+	public ExpressionAssignType unkn10;
+	public ExpressionAssignType unkn11;
+	public ExpressionAssignType unkn12;
+	public ExpressionAssignType unkn13;
+    [RszVersion(EfxVersion.RE8, EndAt = nameof(unkn15))]
+	public ExpressionAssignType unkn14;
+	public ExpressionAssignType unkn15;
 
 	[RszClassInstance] public EFXExpressionList expressions = new();
 }
@@ -2363,16 +2367,17 @@ public partial class EFXAttributeUVSequenceModifier : EFXAttribute
 public partial class EFXAttributeUVSequenceExpression : EFXAttribute, IExpressionAttribute
 {
 	public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeUVSequenceExpression() : base(EfxAttributeType.UVSequenceExpression) { }
 
-	public uint unkn1_0;
-	public uint unkn1_1;
-	public uint unkn1_2;
-	public uint unkn1_3;
-	public uint unkn1_4;
-	public uint unkn1_5;
-	public uint unkn1_6;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(6);
+	public ExpressionAssignType unkn1;
+	public ExpressionAssignType unkn2;
+	public ExpressionAssignType unkn3;
+	public ExpressionAssignType unkn4;
+	public ExpressionAssignType unkn5;
+	public ExpressionAssignType unkn6;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnitCulling, EfxVersion.DMC5, EfxVersion.RE3, EfxVersion.RERT)]
@@ -2419,24 +2424,25 @@ public partial class EFXAttributeVanishArea3D : EFXAttribute, IBoneRelationAttri
 public partial class EFXAttributeVanishArea3DExpression : EFXAttribute, IExpressionAttribute
 {
 	public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeVanishArea3DExpression() : base(EfxAttributeType.VanishArea3DExpression) { }
 
-	public uint unkn1_0;
-	public uint unkn1_1;
-	public uint unkn1_2;
-	public uint unkn1_3;
-	public uint unkn1_4;
-	public uint unkn1_5;
-	public uint unkn1_6;
-	public uint unkn1_7;
-	public uint unkn1_8;
-	public uint unkn1_9;
-	public uint unkn1_10;
-	public uint unkn1_11;
-	public uint unkn1_12;
-	public uint unkn1_13;
-	public uint unkn1_14;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(14);
+	public ExpressionAssignType unkn1;
+	public ExpressionAssignType unkn2;
+	public ExpressionAssignType unkn3;
+	public ExpressionAssignType unkn4;
+	public ExpressionAssignType unkn5;
+	public ExpressionAssignType unkn6;
+	public ExpressionAssignType unkn7;
+	public ExpressionAssignType unkn8;
+	public ExpressionAssignType unkn9;
+	public ExpressionAssignType unkn10;
+	public ExpressionAssignType unkn11;
+	public ExpressionAssignType unkn12;
+	public ExpressionAssignType unkn13;
+	public ExpressionAssignType unkn14;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
@@ -2472,31 +2478,32 @@ public partial class EFXAttributeVectorFieldParameter : EFXAttribute
 public partial class EFXAttributeVectorFieldParameterExpression : EFXAttribute, IExpressionAttribute
 {
 	public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeVectorFieldParameterExpression() : base(EfxAttributeType.VectorFieldParameterExpression) { }
 
-	public uint unkn1_0;
-	public uint unkn1_1;
-	public uint unkn1_2;
-	public uint unkn1_3;
-	public uint unkn1_4;
-	public uint unkn1_5;
-	public uint unkn1_6;
-	public uint unkn1_7;
-	public uint unkn1_8;
-	public uint unkn1_9;
-	public uint unkn1_10;
-	public uint unkn1_11;
-	[RszVersion('>', EfxVersion.DMC5, EndAt = nameof(unkn1_20))]
-	public uint unkn1_12;
-	public uint unkn1_13;
-	public uint unkn1_14;
-	public uint unkn1_15;
-	public uint unkn1_16;
-	public uint unkn1_17;
-	public uint unkn1_18;
-	public uint unkn1_19;
-	public uint unkn1_20;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(20);
+	public ExpressionAssignType unkn1;
+	public ExpressionAssignType unkn2;
+	public ExpressionAssignType unkn3;
+	public ExpressionAssignType unkn4;
+	public ExpressionAssignType unkn5;
+	public ExpressionAssignType unkn6;
+	public ExpressionAssignType unkn7;
+	public ExpressionAssignType unkn8;
+	public ExpressionAssignType unkn9;
+	public ExpressionAssignType unkn10;
+	public ExpressionAssignType unkn11;
+	[RszVersion('>', EfxVersion.DMC5, EndAt = nameof(unkn20))]
+	public ExpressionAssignType unkn12;
+	public ExpressionAssignType unkn13;
+	public ExpressionAssignType unkn14;
+	public ExpressionAssignType unkn15;
+	public ExpressionAssignType unkn16;
+	public ExpressionAssignType unkn17;
+	public ExpressionAssignType unkn18;
+	public ExpressionAssignType unkn19;
+	public ExpressionAssignType unkn20;
 
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
@@ -2534,25 +2541,25 @@ public partial class EFXAttributeVelocity2D : EFXAttribute
 public partial class EFXAttributeVelocity2DExpression : EFXAttribute, IExpressionAttribute
 {
 	public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeVelocity2DExpression() : base(EfxAttributeType.Velocity2DExpression) { }
 
-    public uint unkn0;
-    public uint unkn1;
-    public uint unkn2;
-    public uint unkn3;
-    public uint unkn4;
-    public uint unkn5;
-    public uint unkn6;
-    public uint unkn7;
-    public uint unkn8;
-
-    [RszVersion(EfxVersion.RE4, EndAt = nameof(unkn2_4))]
-    public uint unkn2_0;
-    public uint unkn2_1;
-    public uint unkn2_2;
-    public uint unkn2_3;
-    public uint unkn2_4;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(13);
+    public ExpressionAssignType unkn1;
+    public ExpressionAssignType unkn2;
+    public ExpressionAssignType unkn3;
+    public ExpressionAssignType unkn4;
+    public ExpressionAssignType unkn5;
+    public ExpressionAssignType unkn6;
+    public ExpressionAssignType unkn7;
+    public ExpressionAssignType unkn8;
+    [RszVersion(EfxVersion.RE4, EndAt = nameof(unkn13))]
+    public ExpressionAssignType unkn9;
+    public ExpressionAssignType unkn10;
+    public ExpressionAssignType unkn11;
+    public ExpressionAssignType unkn12;
+    public ExpressionAssignType unkn13;
 
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
@@ -2615,45 +2622,44 @@ public partial class EFXAttributeVelocity3DDelayFrame : EFXAttribute
 public partial class EFXAttributeVelocity3DExpression : EFXAttribute, IExpressionAttribute
 {
 	public EFXExpressionList? Expression => expressions;
+    public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeVelocity3DExpression() : base(EfxAttributeType.Velocity3DExpression) { }
 
-	public uint unkn1_0;
-	public uint indicesCount;
-    [RszVersion(EfxVersion.RE8, EndAt = nameof(rert_unkn1_7))]
-	public float rert_unkn1_1;
-	public float rert_unkn1_2;
-	public float rert_unkn1_3;
-	public float rert_unkn1_4;
-	public float rert_unkn1_5;
-	public float rert_unkn1_6;
-	public uint rert_unkn1_7;
+    [RszVersion(EfxVersion.RE8, EndAt = nameof(max3))]
+	public uint rert_unkn0; // 5 => 0 or 4.0; 1 => 00 => 180.0; 1 => 30.0
+	public uint rert_unkn1;
+	public float min1;
+	public float max1;
+	public float min2;
+	public float max2;
+	public float min3;
+	public float max3;
 
-	public uint unkn1_2;
-	public uint unkn1_3;
-	public uint unkn1_4;
-	public uint unkn1_5;
-	public uint unkn1_6;
-	public uint unkn1_7;
-	public uint unkn1_8;
-	public uint unkn1_9;
-	public uint unkn1_10;
-	public uint unkn1_11;
-	public uint unkn1_12;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(19);
+	public ExpressionAssignType unkn1;
+	public ExpressionAssignType unkn2;
+	public ExpressionAssignType unkn3;
+	public ExpressionAssignType unkn4;
+	public ExpressionAssignType unkn5;
+	public ExpressionAssignType unkn6;
+	public ExpressionAssignType unkn7;
+	public ExpressionAssignType unkn8;
+	public ExpressionAssignType unkn9;
+	public ExpressionAssignType unkn10;
+	public ExpressionAssignType unkn11;
+	public ExpressionAssignType unkn12;
 
-    [RszVersion(">", EfxVersion.RE3, EndAt = nameof(re4_unkn3))]
-	public uint unkn1_20;
+    [RszVersion(">", EfxVersion.RERT, EndAt = nameof(unkn14))]
+	public ExpressionAssignType unkn13;
+	public ExpressionAssignType unkn14;
 
-    [RszVersion(">", EfxVersion.RERT, EndAt = nameof(sb_unkn2))]
-	public uint sb_unkn0;
-	public uint sb_unkn1;
-	public uint sb_unkn2;
-
-    [RszVersion(EfxVersion.RE4, EndAt = nameof(re4_unkn3))]
-	public uint re4_unkn0;
-	public uint re4_unkn1;
-	public uint re4_unkn2;
-	public uint re4_unkn3;
+    [RszVersion(EfxVersion.RE4, EndAt = nameof(unkn19))]
+	public ExpressionAssignType unkn15;
+	public ExpressionAssignType unkn16;
+	public ExpressionAssignType unkn17;
+	public ExpressionAssignType unkn18;
+	public ExpressionAssignType unkn19;
 
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 
@@ -2870,104 +2876,75 @@ public partial class EFXAttributeTypeRibbonChain : EFXAttribute
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.AttractorClip, EfxVersion.RE8)]
-public partial class EFXAttributeAttractorClip : EFXAttribute
+public partial class EFXAttributeAttractorClip : EFXAttribute, IClipAttribute
 {
+    public EfxClipData Clip => clipData;
+    public BitSet ClipBits => clipBits;
+
 	public EFXAttributeAttractorClip() : base(EfxAttributeType.AttractorClip) { }
 
-	public uint unkn0;
+	[RszClassInstance] public readonly BitSet clipBits = new BitSet(7);
 	public uint unkn1;
-	public uint unkn2;
-	public float unkn3;
-	public uint unkn4;
-	public uint unkn5;
-	public uint unkn6;
-	[RszArraySizeField(nameof(substruct1))] public int substruct1Length;
-	[RszArraySizeField(nameof(substruct2))] public int substruct2Length;
-	[RszArraySizeField(nameof(substruct3))] public int substruct3Length;
-	[RszFixedSizeArray(nameof(substruct1Length), '/', 4)] public int[]? substruct1;
-	[RszFixedSizeArray(nameof(substruct2Length), '/', 4)] public int[]? substruct2;
-	[RszFixedSizeArray(nameof(substruct3Length), '/', 4)] public float[]? substruct3;
+	[RszClassInstance] public EfxClipData clipData = new();
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.EmitterColorClip, EfxVersion.RE4)]
-public partial class EFXAttributeEmitterColorClip : EFXAttribute
+public partial class EFXAttributeEmitterColorClip : EFXAttribute, IColorClipAttribute
 {
+    public EfxColorClipData Clip => clipData;
+
 	public EFXAttributeEmitterColorClip() : base(EfxAttributeType.EmitterColorClip) { }
 
-	public uint unkn0;
+    /// <summary>
+    /// This flag tells us which color channels have a clip:
+    /// 1 = R, 2 = G, 4 = B, 8 = A
+    /// </summary>
+	// public uint colorClipBits;
+	[RszClassInstance] public readonly BitSet clipBits = new BitSet(4) { BitNames = ["R", "G", "B", "A"] };
 	public uint unkn1;
-	public uint unkn2;
-	public float unkn3;
-	public uint unkn4;
-	public uint unkn5;
-	public uint unkn6;
-	[RszArraySizeField(nameof(substruct1))] public int substruct1Length;
-	[RszArraySizeField(nameof(substruct2))] public int substruct2Length;
-	[RszArraySizeField(nameof(substruct3))] public int substruct3Length;
-	[RszFixedSizeArray(nameof(substruct1Length), '/', 4)] public int[]? substruct1;
-	[RszFixedSizeArray(nameof(substruct2Length), '/', 4)] public int[]? substruct2;
-	[RszFixedSizeArray(nameof(substruct3Length), '/', 4)] public float[]? substruct3;
+	[RszClassInstance] public EfxColorClipData clipData = new();
+
+    public override string ToString() => $"PtColorClip: {clipBits}";
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.ProceduralDistortionClip, EfxVersion.RE4, EfxVersion.DD2)]
-public partial class EFXAttributeProceduralDistortionClip : EFXAttribute
+public partial class EFXAttributeProceduralDistortionClip : EFXAttribute, IClipAttribute
 {
+    public EfxClipData Clip => clipData;
+    public BitSet ClipBits => clipBits;
+
     public EFXAttributeProceduralDistortionClip() : base(EfxAttributeType.ProceduralDistortionClip) { }
 
-    public uint unkn0;
+	[RszClassInstance] public readonly BitSet clipBits = new BitSet(1);
     public uint unkn1;
     public int unkn2;
-    public float unkn3;
-    public uint unkn4;
-    public uint unkn5;
-    public uint unkn6;
-	[RszArraySizeField(nameof(substruct1))] public int substruct1Length;
-	[RszArraySizeField(nameof(substruct2))] public int substruct2Length;
-	[RszArraySizeField(nameof(substruct3))] public int substruct3Length;
-    [RszFixedSizeArray(nameof(substruct1Length), '/', 4)] public int[]? substruct1;
-    [RszFixedSizeArray(nameof(substruct2Length), '/', 4)] public int[]? substruct2;
-    [RszFixedSizeArray(nameof(substruct3Length), '/', 4)] public float[]? substruct3;
+	[RszClassInstance] public EfxClipData clipData = new();
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtTransform3DClip, EfxVersion.RE7, EfxVersion.RE2, EfxVersion.DMC5, EfxVersion.RE3, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.RE4)]
-public partial class EFXAttributePtTransform3DClip : EFXAttribute
+public partial class EFXAttributePtTransform3DClip : EFXAttribute, IClipAttribute
 {
+    public EfxClipData Clip => clipData;
+    public BitSet ClipBits => clipBits;
+
     public EFXAttributePtTransform3DClip() : base(EfxAttributeType.PtTransform3DClip) { }
 
-    public uint unkn0;
+	[RszClassInstance] public readonly BitSet clipBits = new BitSet(9);
     public uint unkn1;
-    public int unkn2;
-    public float unkn3;
-    public uint unkn4;
-    public uint unkn5;
-    public uint unkn6;
-	[RszArraySizeField(nameof(substruct1))] public int substruct1Length;
-	[RszArraySizeField(nameof(substruct2))] public int substruct2Length;
-	[RszArraySizeField(nameof(substruct3))] public int substruct3Length;
-    [RszFixedSizeArray(nameof(substruct1Length), '/', 4)] public int[]? substruct1;
-    [RszFixedSizeArray(nameof(substruct2Length), '/', 4)] public int[]? substruct2;
-    [RszFixedSizeArray(nameof(substruct3Length), '/', 4)] public float[]? substruct3;
+	[RszClassInstance] public EfxClipData clipData = new();
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtUvSequenceClip, EfxVersion.DMC5, EfxVersion.RE4)]
-public partial class EFXAttributePtUvSequenceClip : EFXAttribute
+public partial class EFXAttributePtUvSequenceClip : EFXAttribute, IClipAttribute
 {
+    public EfxClipData Clip => clipData;
+    public BitSet ClipBits => clipBits;
+
     public EFXAttributePtUvSequenceClip() : base(EfxAttributeType.PtUvSequenceClip) { }
 
-    uint unkn0;
+	[RszClassInstance] public readonly BitSet clipBits = new BitSet(2);
     uint unkn1;
-    int unkn2;
-    float unkn3;
-    uint unkn4;
-    uint unkn5;
-    uint unkn6;
-
-	[RszArraySizeField(nameof(substruct1))] public int substruct1Length;
-	[RszArraySizeField(nameof(substruct2))] public int substruct2Length;
-	[RszArraySizeField(nameof(substruct3))] public int substruct3Length;
-    [RszFixedSizeArray(nameof(substruct1Length), '/', 4)] public int[]? substruct1;
-    [RszFixedSizeArray(nameof(substruct2Length), '/', 4)] public int[]? substruct2;
-    [RszFixedSizeArray(nameof(substruct3Length), '/', 4)] public float[]? substruct3;
+	[RszClassInstance] public EfxClipData clipData = new();
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.MeshEmitter, EfxVersion.DMC5, EfxVersion.RE4)]
@@ -3023,64 +3000,42 @@ public partial class EFXAttributeMeshEmitter : EFXAttribute
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtVelocity3DClip, EfxVersion.DMC5, EfxVersion.RE4)]
-public partial class EFXAttributePtVelocity3DClip : EFXAttribute
+public partial class EFXAttributePtVelocity3DClip : EFXAttribute, IClipAttribute
 {
+    public EfxClipData Clip => clipData;
+    public BitSet ClipBits => clipBits;
+
     public EFXAttributePtVelocity3DClip() : base(EfxAttributeType.PtVelocity3DClip) { }
 
-    uint unkn0;
+	[RszClassInstance] public readonly BitSet clipBits = new BitSet(4);
     uint unkn1;
-    int unkn2;
-    float unkn3;
-    uint unkn4;
-    uint unkn5;
-    uint unkn6;
-
-	[RszArraySizeField(nameof(substruct1))] public int substruct1Length;
-	[RszArraySizeField(nameof(substruct2))] public int substruct2Length;
-	[RszArraySizeField(nameof(substruct3))] public int substruct3Length;
-    [RszFixedSizeArray(nameof(substruct1Length), '/', 4)] public int[]? substruct1;
-    [RszFixedSizeArray(nameof(substruct2Length), '/', 4)] public int[]? substruct2;
-    [RszFixedSizeArray(nameof(substruct3Length), '/', 4)] public float[]? substruct3;
+	[RszClassInstance] public EfxClipData clipData = new();
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TexelChannelOperatorClip, EfxVersion.RE4)]
-public partial class EFXAttributeTexelChannelOperatorClip : EFXAttribute
+public partial class EFXAttributeTexelChannelOperatorClip : EFXAttribute, IClipAttribute
 {
+    public EfxClipData Clip => clipData;
+    public BitSet ClipBits => clipBits;
+
     public EFXAttributeTexelChannelOperatorClip() : base(EfxAttributeType.TexelChannelOperatorClip) { }
 
-    uint unkn0;
+	[RszClassInstance] public readonly BitSet clipBits = new BitSet(1);
     uint unkn1;
-    uint unkn2;
-    float unkn3;
-    uint unkn4;
-    uint unkn5;
-    uint unkn6;
-	[RszArraySizeField(nameof(substruct1))] public int substruct1Length;
-	[RszArraySizeField(nameof(substruct2))] public int substruct2Length;
-	[RszArraySizeField(nameof(substruct3))] public int substruct3Length;
-    [RszFixedSizeArray(nameof(substruct1Length), '/', 4)] public int[]? substruct1;
-    [RszFixedSizeArray(nameof(substruct2Length), '/', 4)] public int[]? substruct2;
-    [RszFixedSizeArray(nameof(substruct3Length), '/', 4)] public float[]? substruct3;
+	[RszClassInstance] public EfxClipData clipData = new();
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Transform3DClip, EfxVersion.DMC5, EfxVersion.RE4)]
-public partial class EFXAttributeTransform3DClip : EFXAttribute
+public partial class EFXAttributeTransform3DClip : EFXAttribute, IClipAttribute
 {
+    public EfxClipData Clip => clipData;
+    public BitSet ClipBits => clipBits;
+
     public EFXAttributeTransform3DClip() : base(EfxAttributeType.Transform3DClip) { }
 
-	uint unkn0;
+	[RszClassInstance] public readonly BitSet clipBits = new BitSet(9);
     uint unkn1;
-    int unkn2;
-    float unkn3;
-    uint unkn4;
-    uint unkn5;
-    uint unkn6;
-	[RszArraySizeField(nameof(substruct1))] public int substruct1Length;
-	[RszArraySizeField(nameof(substruct2))] public int substruct2Length;
-	[RszArraySizeField(nameof(substruct3))] public int substruct3Length;
-    [RszFixedSizeArray(nameof(substruct1Length), '/', 4)] public int[]? substruct1;
-    [RszFixedSizeArray(nameof(substruct2Length), '/', 4)] public int[]? substruct2;
-    [RszFixedSizeArray(nameof(substruct3Length), '/', 4)] public float[]? substruct3;
+	[RszClassInstance] public EfxClipData clipData = new();
 }
 
 [RszGenerate, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeMeshExpression, EfxVersion.RE7, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
@@ -3088,6 +3043,7 @@ public partial class EFXAttributeTypeMeshExpression : EFXAttribute, IExpressionA
 {
 	public EFXExpressionList? Expression => expressions;
     public EFXMaterialExpressionList? MaterialExpressions => materialExpressions;
+	public BitSet ExpressionBits => expressionBits;
 
     public EFXAttributeTypeMeshExpression() : base(EfxAttributeType.TypeMeshExpression) { }
 
@@ -3098,35 +3054,35 @@ public partial class EFXAttributeTypeMeshExpression : EFXAttribute, IExpressionA
 	[RszVersion(nameof(Version), ">=", EfxVersion.RE3, "&&", nameof(Version), "<", EfxVersion.RE4)]
     public int indicesCount;
 
-    public uint unkn4;
-    public uint unkn5_0;
-    public uint unkn5_1;
-    public uint unkn5_2;
-    public uint unkn5_3;
-    public uint unkn5_4;
-    public uint unkn5_5;
-    public uint unkn5_6;
-    public uint unkn5_7;
-    public uint unkn5_8;
-    public uint unkn5_9;
-    public uint unkn5_10;
-    public uint unkn5_11;
-    public uint unkn5_12;
-    public uint unkn5_13;
-    public uint unkn5_14;
-    public uint unkn5_15;
-    public uint unkn5_16;
-    public uint unkn5_17;
-    public uint unkn5_18;
-    public uint unkn5_19;
-    public uint unkn5_20;
-	[RszVersion(">", EfxVersion.RE3, EndAt = nameof(unkn5_22))]
-    public uint unkn5_21;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(25);
+    public ExpressionAssignType unkn1;
+    public ExpressionAssignType unkn2;
+    public ExpressionAssignType unkn3;
+    public ExpressionAssignType unkn4;
+    public ExpressionAssignType unkn5;
+    public ExpressionAssignType unkn6;
+    public ExpressionAssignType unkn7;
+    public ExpressionAssignType unkn8;
+    public ExpressionAssignType unkn9;
+    public ExpressionAssignType unkn10;
+    public ExpressionAssignType unkn11;
+    public ExpressionAssignType unkn12;
+    public ExpressionAssignType unkn13;
+    public ExpressionAssignType unkn14;
+    public ExpressionAssignType unkn15;
+    public ExpressionAssignType unkn16;
+    public ExpressionAssignType unkn17;
+    public ExpressionAssignType unkn18;
+    public ExpressionAssignType unkn19;
+    public ExpressionAssignType unkn20;
+    public ExpressionAssignType unkn21;
+	[RszVersion(">", EfxVersion.RE3, EndAt = nameof(unkn22))]
+    public ExpressionAssignType unkn22;
 	[RszVersion(EfxVersion.RE8)]
-    public uint unkn5_22;
-	[RszVersion(EfxVersion.RE4, EndAt = nameof(unkn5_24))]
-    public uint unkn5_23;
-    public uint unkn5_24;
+    public ExpressionAssignType unkn23;
+	[RszVersion(EfxVersion.RE4, EndAt = nameof(unkn25))]
+    public ExpressionAssignType unkn24;
+    public ExpressionAssignType unkn25;
 
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 
@@ -3137,8 +3093,12 @@ public partial class EFXAttributeTypeMeshExpression : EFXAttribute, IExpressionA
 
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXMaterialExpressionList? materialExpressions;
 
-	[RszIgnore] public List<EFXMaterialExpression>? materialExpressionsList;
-	[RszIgnore] public uint[]? materialIndices;
+	[RszList(nameof(matExpressionCount)), RszClassInstance, RszVersion(nameof(Version), ">=", EfxVersion.RE2, "&&", nameof(Version), '<', EfxVersion.RE4)]
+	[RszIgnore]
+	public List<EFXMaterialExpression>? materialExpressionsList;
+	[RszFixedSizeArray(nameof(indicesCount)), RszVersion(nameof(Version), ">=", EfxVersion.RE3, "&&", nameof(Version), "<", EfxVersion.RE4)]
+	[RszIgnore]
+	public uint[]? materialIndices;
 
     protected override bool DoRead(FileHandler handler)
     {
@@ -3217,8 +3177,10 @@ public partial class EFXAttributeTypeMeshExpression : EFXAttribute, IExpressionA
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypePolygonClip, EfxVersion.DMC5)]
-public partial class EFXAttributeTypePolygonClip : EFXAttribute
+public partial class EFXAttributeTypePolygonClip : EFXAttribute//TODO, IClipAttribute
 {
+    // public EfxClipData Clip => clipData;
+
     public EFXAttributeTypePolygonClip() : base(EfxAttributeType.TypePolygonClip) { }
 
     public uint unkn0;
@@ -3238,23 +3200,16 @@ public partial class EFXAttributeTypePolygonClip : EFXAttribute
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.VectorFieldParameterClip, EfxVersion.DMC5, EfxVersion.RE4)]
-public partial class EFXAttributeVectorFieldParameterClip : EFXAttribute
+public partial class EFXAttributeVectorFieldParameterClip : EFXAttribute, IClipAttribute
 {
+    public EfxClipData Clip => clipData;
+    public BitSet ClipBits => clipBits;
+
     public EFXAttributeVectorFieldParameterClip() : base(EfxAttributeType.VectorFieldParameterClip) { }
 
-    uint unkn0;
+	[RszClassInstance] public readonly BitSet clipBits = new BitSet(13);
     uint unkn1;
-    int unkn2;
-    float unkn3;
-    uint unkn4;
-    uint unkn5;
-    uint unkn6;
-	[RszArraySizeField(nameof(substruct1))] public int substruct1Length;
-	[RszArraySizeField(nameof(substruct2))] public int substruct2Length;
-	[RszArraySizeField(nameof(substruct3))] public int substruct3Length;
-    [RszFixedSizeArray(nameof(substruct1Length), '/', 4)] public int[]? substruct1;
-    [RszFixedSizeArray(nameof(substruct2Length), '/', 4)] public int[]? substruct2;
-    [RszFixedSizeArray(nameof(substruct3Length), '/', 4)] public float[]? substruct3;
+	[RszClassInstance] public EfxClipData clipData = new();
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtColliderAction, EfxVersion.DMC5, EfxVersion.RE4)]
@@ -3330,77 +3285,19 @@ public partial class EFXAttributePtCollision : EFXAttribute
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeMeshClip, EfxVersion.RE3, EfxVersion.RERT, EfxVersion.RE4)]
-public partial class EFXAttributeTypeMeshClip : EFXAttribute
+public partial class EFXAttributeTypeMeshClip : EFXAttribute, IMaterialClipAttribute
 {
+    public EfxMaterialClipData MaterialClip => clipData;
+
     public EFXAttributeTypeMeshClip() : base(EfxAttributeType.TypeMeshClip) { }
 
 	public uint unkn1;
-    public uint part2Size;
-    public int unkn3;
-    public float unkn4;
-	[RszArraySizeField(nameof(substruct1))] public int substruct1Count;
-	[RszArraySizeField(nameof(substruct2))] public int substruct2Count;
-	[RszArraySizeField(nameof(substruct3))] public int substruct3Count;
-
-    public uint substruct1Length;
-    public uint substruct2Length;
-    public uint substruct3Length;
+	[RszVersion('<', EfxVersion.RE4)]
+    public uint substruct1SizeSeparate; // <= DMC5: equal to substruct1Count; >= RE3 && < RE4: substruct1Count * 2
 	[RszVersion(EfxVersion.RE4)]
-    public uint substruct4CountMaybe;
-    [RszVersion(EfxVersion.RE3), RszArraySizeField(nameof(indices))] public int indicesCount;
+    public uint unkn2;
 
-    [RszFixedSizeArray(nameof(substruct1Count))] public MeshClip_Struct1[]? substruct1;
-    [RszFixedSizeArray(nameof(substruct2Count))] public MeshClip_Struct2[]? substruct2;
-    [RszFixedSizeArray(nameof(substruct3Count))] public MeshClip_Struct3[]? substruct3;
-    [RszFixedSizeArray(nameof(substruct1Count))] public MeshClip_Struct4[]? substruct4;
-    [RszVersion(EfxVersion.RE3), RszFixedSizeArray(nameof(indicesCount))] public uint[]? indices;
-
-    public struct MeshClip_Struct0
-    {
-        public uint unkn0;
-        public uint unkn1;
-        public uint unkn2;
-        public uint unkn3;
-    }
-
-    public struct MeshClip_Struct1
-    {
-        public uint unkn0;
-        public uint unkn1;
-    }
-
-    public struct MeshClip_Struct2
-    {
-        public float unkn0;
-        public uint unkn1;
-
-		// RE3RT
-        public float unkn2;
-		// RE4?
-        // public uint unkn2;
-    }
-
-    public struct MeshClip_Struct3
-    {
-		// RE3RT
-        public float unkn0;
-        public float unkn1;
-        public float unkn2;
-        public float unkn3;
-		// RE4?
-        // public float unkn0;
-        // public uint unkn1;
-        // public uint unkn2;
-        // public int unkn3;
-    }
-
-    public struct MeshClip_Struct4
-    {
-        public uint hash;
-        public uint unkn1;
-        public uint unkn2;
-        public int unkn3;
-    }
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public readonly EfxMaterialClipData clipData = new();
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnknownSB_195, EfxVersion.MHRiseSB)]
@@ -4085,25 +3982,28 @@ public partial class EFXAttributeUnknownRE4_243_UnknGPUBillboard : EFXAttribute
     public float unkn79;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnknownRE4_244Expression, EfxVersion.RE4)]
-public partial class EFXAttributeUnknownRE4_244 : EFXAttribute
+public partial class EFXAttributeUnknownRE4_244 : EFXAttribute, IExpressionAttribute
 {
+    public EFXExpressionList? Expression => expressions;
+    public BitSet ExpressionBits => expressionBits;
+
 	public EFXAttributeUnknownRE4_244() : base(EfxAttributeType.UnknownRE4_244Expression) { }
 
-    public uint unkn1_0;
-    public uint unkn1_1;
-    public uint unkn1_2;
-    public uint unkn1_3;
-    public uint unkn1_4;
-    public uint unkn1_5;
-    public uint unkn1_6;
-    public uint unkn1_7;
-    public uint unkn1_8;
-    public uint unkn1_9;
-    public uint unkn1_10;
-    public uint unkn1_12;
-    public uint unkn1_13;
-    public uint unkn1_14;
-    public uint unkn1_15;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(15);
+    public ExpressionAssignType unkn1;
+    public ExpressionAssignType unkn2;
+    public ExpressionAssignType unkn3;
+    public ExpressionAssignType unkn4;
+    public ExpressionAssignType unkn5;
+    public ExpressionAssignType unkn6;
+    public ExpressionAssignType unkn7;
+    public ExpressionAssignType unkn8;
+    public ExpressionAssignType unkn9;
+    public ExpressionAssignType unkn10;
+    public ExpressionAssignType unkn12;
+    public ExpressionAssignType unkn13;
+    public ExpressionAssignType unkn14;
+    public ExpressionAssignType unkn15;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
@@ -4165,20 +4065,23 @@ public partial class EFXAttributeUnknownRE4_247_UnknTypeGPU : EFXAttribute
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnknownRE4_248_UnknTypeGpuExpression, EfxVersion.RE4)]
-public partial class EFXAttributeUnknownRE4_248 : EFXAttribute
+public partial class EFXAttributeUnknownRE4_248 : EFXAttribute, IExpressionAttribute
 {
-	public EFXAttributeUnknownRE4_248() : base(EfxAttributeType.UnknownRE4_248_UnknTypeGpuExpression) { }
+    public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
 
-	public uint unkn1;
-	public uint unkn2;
-	public uint unkn3;
-	public uint unkn4;
-	public uint unkn5;
-	public uint unkn6;
-	public uint unkn7;
-	public uint unkn8;
-	public uint unkn9;
-	public uint unkn10;
+    public EFXAttributeUnknownRE4_248() : base(EfxAttributeType.UnknownRE4_248_UnknTypeGpuExpression) { }
+
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(9);
+	public ExpressionAssignType unkn1;
+	public ExpressionAssignType unkn2;
+	public ExpressionAssignType unkn3;
+	public ExpressionAssignType unkn4;
+	public ExpressionAssignType unkn5;
+	public ExpressionAssignType unkn6;
+	public ExpressionAssignType unkn7;
+	public ExpressionAssignType unkn8;
+	public ExpressionAssignType unkn9;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnknownRE4_249_UnknTypeB, EfxVersion.RE4, EfxVersion.DD2)]

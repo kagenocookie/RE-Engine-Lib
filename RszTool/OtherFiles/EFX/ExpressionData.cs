@@ -142,8 +142,11 @@ public partial class EFXMaterialExpression : EFXExpressionObject
 
     public uint unkn1;
 	public uint unkn2;
-	public uint hash3;
-	public uint unkn4;
+	public uint mdfPropertyHash;
+	/// <summary>
+	/// Represents which component of the value this expression targets (e.g. 0/1/2 for the X/Y/Z of a Vector3 property)
+	/// </summary>
+	public uint propertyComponentIndex;
 	[RszVersion(EfxVersion.RE4)]
 	public UndeterminedFieldType unkn5;
 
@@ -220,6 +223,7 @@ public partial class EFXMaterialExpressionList : EFXExpressionContainer
     public override int ExpressionCount => expressions.Count;
     public override IEnumerable<EFXExpressionObject> Expressions => expressions;
 	public override void AddExpression(EFXExpressionObject obj) => expressions.Add((EFXMaterialExpression)obj);
+	// convenience method to simplify codegen
 	public int Length => expressions.Count;
 
 	[RszIgnore] public EfxVersion Version;

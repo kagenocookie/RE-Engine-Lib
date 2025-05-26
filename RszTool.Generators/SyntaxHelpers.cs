@@ -26,6 +26,10 @@ public static class SyntaxHelpers
     {
         return node.AttributeLists.Any(al => al.Attributes.Any(a => a.Name.ToString() == name));
     }
+    public static bool IsReadonly(this MemberDeclarationSyntax node)
+    {
+        return node.Modifiers.Any(Microsoft.CodeAnalysis.CSharp.SyntaxKind.ReadOnlyKeyword);
+    }
 
     public static IEnumerable<AttributeSyntax> GetAttributesWhere(this MemberDeclarationSyntax node, Func<AttributeSyntax, bool> filter)
     {

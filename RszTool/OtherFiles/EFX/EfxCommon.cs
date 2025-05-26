@@ -2,6 +2,16 @@ using RszTool.InternalAttributes;
 
 namespace RszTool.Efx.Structs.Common;
 
+public enum ExpressionAssignType
+{
+	Add = 0,
+	Subtract = 1,
+	Multiply = 2,
+	Divide = 3,
+	Assign = 4,
+	ForceWord = -1
+}
+
 public enum MaterialParameterType : short
 {
 	None = 0,
@@ -13,7 +23,7 @@ public enum MaterialParameterType : short
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion))]
 public partial class MdfProperty : BaseModel
 {
-    [RszIgnore] public EfxVersion Version; // TODO assign version
+    [RszIgnore] public EfxVersion Version;
 
     public MdfProperty() { }
     public MdfProperty(EfxVersion version)
@@ -38,7 +48,7 @@ public partial class MdfProperty : BaseModel
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion))]
 public partial class EfxMaterialStructBase : BaseModel
 {
-    [RszIgnore] public EfxVersion Version; // TODO assign version
+    [RszIgnore] public EfxVersion Version;
 
     public EfxMaterialStructBase() { }
     public EfxMaterialStructBase(EfxVersion version)

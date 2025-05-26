@@ -108,8 +108,7 @@ public static class EfxTools
                             Flag = EfxFieldFlags.None,
                             FlagTarget = null,
                         };
-                        // GenerateStructFields(field.FieldType, structInfo, efxVersion, unhandled);
-                        MapEfxFieldType(field.FieldType, info, unhandled, field);
+                        MapEfxFieldType(field.FieldType, info, unhandled, field, type);
                         ExtendHash(structInfo, info);
                         structInfo.Fields.Add(info);
                     }
@@ -137,7 +136,7 @@ public static class EfxTools
                 Flag = EfxFieldFlags.None,
                 FlagTarget = null,
             };
-            MapEfxFieldType(field.type, info, referencedTypes, fieldInfo);
+            MapEfxFieldType(field.type, info, referencedTypes, fieldInfo, instanceType);
 
             if (fieldInfo.GetCustomAttribute<RszSwitchAttribute>() is RszSwitchAttribute switchAttr) {
                 foreach (var subtype in switchAttr.Args.OfType<Type>()) {
@@ -194,11 +193,14 @@ public static class EfxTools
         }
     }
 
-    private static void MapEfxFieldType(Type type, EfxFieldInfo info, HashSet<Type> referencedTypes, FieldInfo? fieldInfo)
+    private static void MapEfxFieldType(Type type, EfxFieldInfo info, HashSet<Type> referencedTypes, FieldInfo? fieldInfo, Type ownerType)
     {
         if (type.IsArray) {
             info.IsArray = true;
             type = type.GetElementType()!;
+            if (fieldInfo != null && fieldInfo.GetCustomAttribute<RszFixedSizeArrayAttribute>() is RszFixedSizeArrayAttribute fixedSize && fixedSize.SizeFunc.Length == 1 && fixedSize.SizeFunc.All(n => n is int)) {
+                info.FixedLength = (int)fixedSize.SizeFunc[0];
+            }
         } else if (type.IsGenericType && (
             type.GetGenericTypeDefinition() == typeof(IEnumerable<>)
             || type.GetGenericTypeDefinition() == typeof(List<>)
@@ -228,6 +230,21 @@ public static class EfxTools
 
         if (type == typeof(string)) {
             info.FieldType = RszFieldType.String;
+            return;
+        }
+
+        if (type == typeof(BitSet)) {
+            info.FieldType = RszFieldType.U32;
+            info.IsArray = true;
+            info.Flag = EfxFieldFlags.BitSet;
+            if (fieldInfo != null) {
+                var inst = Activator.CreateInstance(ownerType);
+                var defaultValue = (BitSet?)fieldInfo.GetValue(inst);
+                if (defaultValue != null) {
+                    info.FixedLength = defaultValue.Bits.Length;
+                    info.FlagTarget = defaultValue.BitCount.ToString();
+                }
+            }
             return;
         }
 

@@ -65,7 +65,7 @@ namespace RszTool.Cdef
         public uint nameHash;
         public uint ukn1;
         public uint ukn2;
-        public uint colorRgba;
+        public via.Color color;
         public uint ukn3;
         public uint ukn4;
     }
@@ -91,7 +91,7 @@ namespace RszTool.Cdef
         [RszPaddingAfter(4, "handler.FileVersion >= 7")]
         public uint nameHash;
         [RszPaddingAfter(4, "handler.FileVersion >= 7")]
-        public uint colorRgba;
+        public via.Color color;
     }
 
     [RszGenerate, RszAutoReadWrite]
@@ -113,7 +113,7 @@ namespace RszTool.Cdef
         [RszStringHash(nameof(name))]
         public uint nameHash;
         public uint maskBits;
-        public uint colorRgba;
+        public via.Color color;
         public int ukn1;
         public int ukn2;
         [RszPaddingAfter(8, "handler.FileVersion >= 4")]

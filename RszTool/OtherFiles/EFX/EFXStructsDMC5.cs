@@ -75,8 +75,8 @@ public partial class EFXAttributeTypeMesh : RszTool.Efx.EFXAttribute
 
     uint ukn1;
     uint overriddenHashCount;
-    public via.Color color0;
     public via.Color color1;
+    public via.Color color2;
     public float unkn2;
     [RszVersion(EfxVersion.RE2)]
     public uint frameCount;
@@ -185,6 +185,7 @@ public partial class EFXAttributeTransform3DModifier : RszTool.Efx.EFXAttribute
 public partial class EFXAttributePtColorClip : RszTool.Efx.EFXAttribute, IColorClipAttribute
 {
     public EfxColorClipData Clip => clipData;
+    public BitSet ClipBits => clipBits;
 
     public EFXAttributePtColorClip() : base(EfxAttributeType.PtColorClip) { }
 

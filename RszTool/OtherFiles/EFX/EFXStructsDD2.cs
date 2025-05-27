@@ -135,10 +135,11 @@ public partial class EFXAttributeTypeStrainRibbonMaterial : EFXAttribute
 public partial class EFXAttributeTypeStrainRibbonMaterialClip : EFXAttribute, IMaterialClipAttribute
 {
     public EfxMaterialClipData MaterialClip => clipData;
+    public BitSet ClipBits => clipBits;
 
     public EFXAttributeTypeStrainRibbonMaterialClip() : base(EfxAttributeType.TypeStrainRibbonMaterialClip) { }
 
-    public uint unkn0;
+	[RszClassInstance] public readonly BitSet clipBits = new BitSet(1);
     public uint unkn1;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public readonly EfxMaterialClipData clipData = new();
 }
@@ -424,10 +425,11 @@ public partial class EFXAttributeTypeRibbonChainMaterial : EFXAttribute
 public partial class EFXAttributeTypeRibbonChainMaterialClip : EFXAttribute, IMaterialClipAttribute
 {
     public EfxMaterialClipData MaterialClip => clipData;
+    public BitSet ClipBits => clipBits;
 
     public EFXAttributeTypeRibbonChainMaterialClip() : base(EfxAttributeType.TypeRibbonChainMaterialClip) { }
 
-    public uint unkn0;
+	[RszClassInstance] public readonly BitSet clipBits = new BitSet(6);
     public uint unkn1;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public readonly EfxMaterialClipData clipData = new();
 }
@@ -514,10 +516,11 @@ public partial class EFXAttributeTypeRibbonFixEndMaterial : EFXAttribute
 public partial class EFXAttributeTypeRibbonFixEndMaterialClip : EFXAttribute, IMaterialClipAttribute
 {
     public EfxMaterialClipData MaterialClip => clipData;
+    public BitSet ClipBits => clipBits;
 
     public EFXAttributeTypeRibbonFixEndMaterialClip() : base(EfxAttributeType.TypeRibbonFixEndMaterialClip) { }
 
-    public uint unkn0;
+	[RszClassInstance] public readonly BitSet clipBits = new BitSet(1);
     public uint unkn1;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public readonly EfxMaterialClipData clipData = new();
 }
@@ -593,7 +596,7 @@ public partial class EFXAttributeTypeGpuBillboardClip : EFXAttribute, IClipAttri
 
     public EFXAttributeTypeGpuBillboardClip() : base(EfxAttributeType.TypeGpuBillboardClip) { }
 
-	[RszClassInstance] public readonly BitSet clipBits = new BitSet(6);
+	[RszClassInstance] public readonly BitSet clipBits = new BitSet(7);
     public UndeterminedFieldType unkn1;
 	[RszClassInstance] public EfxClipData clipData = new();
 }
@@ -653,10 +656,11 @@ public partial class EFXAttributeTypeRibbonFollowMaterial : EFXAttribute
 public partial class EFXAttributeTypeRibbonFollowMaterialClip : EFXAttribute, IMaterialClipAttribute
 {
     public EfxMaterialClipData MaterialClip => clipData;
+    public BitSet ClipBits => clipBits;
 
     public EFXAttributeTypeRibbonFollowMaterialClip() : base(EfxAttributeType.TypeRibbonFollowMaterialClip) { }
 
-    public uint unkn0;
+	[RszClassInstance] public readonly BitSet clipBits = new BitSet(10);
     public uint unkn1;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public readonly EfxMaterialClipData clipData = new();
 }
@@ -724,10 +728,11 @@ public partial class EFXAttributeTypeBillboard3DMaterial : EFXAttribute
 public partial class EFXAttributeTypeBillboard3DMaterialClip : EFXAttribute, IMaterialClipAttribute
 {
     public EfxMaterialClipData MaterialClip => clipData;
+    public BitSet ClipBits => clipBits;
 
     public EFXAttributeTypeBillboard3DMaterialClip() : base(EfxAttributeType.TypeBillboard3DMaterialClip) { }
 
-    public uint unkn0;
+	[RszClassInstance] public readonly BitSet clipBits = new BitSet(5);
     public uint unkn1;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public readonly EfxMaterialClipData clipData = new();
 }
@@ -1581,8 +1586,8 @@ public partial class EFXAttributeUnknownDD2_263 : EFXAttribute
 	public uint unknFlags;
 	public uint unkn1;
 	public uint unkn2;
-	public uint unkn3;
-	public uint unkn4;
+	public via.Color color1;
+	public via.Color color2;
 	public float unkn5;
 	public uint unkn6;
 	public uint unkn7;
@@ -1639,8 +1644,9 @@ public partial class EFXAttributeUnknownDD2_263 : EFXAttribute
 	[RszInlineWString] public string? meshPath;
 	[RszInlineWString] public string? unkPath;
 	[RszInlineWString] public string? mdfPath;
-	public uint dataSize;
-	[RszFixedSizeArray(nameof(dataSize), '/', 4)] public uint[]? data;
+	[RszArraySizeField(nameof(properties))] public int propertiesDataSize;
+	[RszClassInstance, RszList(nameof(propertiesDataSize), '/', 32), RszConstructorParams(nameof(Version))]
+	public List<MdfProperty> properties = new();
 	public uint texBlockLength;
 	[RszInlineWString, RszList(nameof(texCount))] public string[]? texPaths;
 }
@@ -1649,15 +1655,24 @@ public partial class EFXAttributeUnknownDD2_263 : EFXAttribute
 public partial class EFXAttributeUnknownDD2_264MaterialClip : EFXAttribute, IMaterialClipAttribute
 {
     public EfxMaterialClipData MaterialClip => clipData;
+    public BitSet ClipBits => clipBits;
 
     public EFXAttributeUnknownDD2_264MaterialClip() : base(EfxAttributeType.UnknownDD2_264MaterialClip) { }
 
 	/// <summary>
 	/// Marks what is clipped with this attributes.
 	/// Bit: 0x4: unknown non-mdf property
-	/// Bits 0x0f00 (and possibly all bits after as well): up to 4 mdf properties
+	/// Bits 0x0f0000 (and possibly all bits after as well): up to 4 mdf properties
 	/// </summary>
-    public uint clipBits;
+	[RszClassInstance] public readonly BitSet clipBits = new BitSet(23) { BitNameDict = new() {
+		[17] = "MdfProperty1",
+		[18] = "MdfProperty2",
+		[19] = "MdfProperty3",
+		[20] = "MdfProperty4",
+		[21] = "MdfProperty5",
+		[22] = "MdfProperty6",
+		[23] = "MdfProperty7",
+	}};
     public uint unkn1;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public readonly EfxMaterialClipData clipData = new();
 }
@@ -1671,11 +1686,15 @@ public partial class EFXAttributeUnknownDD2_265MaterialExpression : EFXAttribute
 
 	public EFXAttributeUnknownDD2_265MaterialExpression() : base(EfxAttributeType.UnknownDD2_265MaterialExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(21);
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(21) { BitNameDict = new () {
+		[2] = nameof(color1R),
+		[3] = nameof(color1G),
+		[4] = nameof(color1B),
+	}};
     public ExpressionAssignType unkn1;
-    public ExpressionAssignType unkn2;
-    public ExpressionAssignType unkn3;
-    public ExpressionAssignType unkn4;
+    public ExpressionAssignType color1R;
+    public ExpressionAssignType color1G;
+    public ExpressionAssignType color1B;
     public ExpressionAssignType unkn5;
     public ExpressionAssignType unkn6;
     public ExpressionAssignType unkn7;

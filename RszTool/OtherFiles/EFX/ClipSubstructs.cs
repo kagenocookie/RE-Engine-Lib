@@ -2,10 +2,6 @@ using RszTool.InternalAttributes;
 
 namespace RszTool.Efx.Structs.Common;
 
-// still unhandled:
-// EFXAttributeTypePolygonClip
-// EFXAttributeTypeMeshClip: may have resolved the basic structure there?
-
 // might be coded as a "Playback / loop trigger" flag enum; -1 = everything triggers a loop, 0 = nothing does (manual?)
 public enum EfxClipPlaybackType {
     Looping = -1,
@@ -55,19 +51,11 @@ public struct EfxColorClipFrame
 
 public struct EfxClip_Struct3
 {
+    // sometimes float, sometimes hashes -- figure out when and why
     public float unkn0;
     public float unkn1;
     public float unkn2;
-    public float unkn3; // may not be a float but bits instead?
-
-    // cases:
-    // 1 0 -1 0 (s1 = 3 5)
-    // 196.639 -0.03484659 -1 0 (s1 = 2 5; pre-value: -1 385.0; probably hashes 1128571796 3171859275)
-    // 196.639 -0.03484659 -1 0 (s1 = 3 5; pre-value: -1 385.0; probably hashes 1128571796 3171859275) (Transform3DClip)
-    // when pre-values are both 0, the contents are too ?
-
-    // 2 0 -1 385 -> 3 5 / 0 5 + 49 5 + 385 2 / 1128571796 3171859275 -1.0 0
-    // 2 0 -1 440 -> 3 5 / 0 2 + 250 5 + 440 5 / 1 0 -1 0
+    public float unkn3;
 }
 
 public struct EfxMaterialClip_Struct4
@@ -118,6 +106,8 @@ public partial class EfxMaterialClipData : BaseModel
     {
         Version = version;
     }
+
+    public int Length => clipCount;
 
     public EfxClipPlaybackType loopType;
     public float clipDuration;

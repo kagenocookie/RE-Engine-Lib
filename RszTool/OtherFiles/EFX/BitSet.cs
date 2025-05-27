@@ -10,15 +10,19 @@ public class BitSet : BaseModel
     public int[] Bits { get; }
 
     public int Count => Bits.Sum(b => BitOperations.PopCount((uint)b));
-    public int HighestBitIndex => GetHighestBitIndex();
+    public int HighestBit => GetHighestBit();
     public string[]? BitNames { get; init; }
+
+    /// <summary>
+    /// Dictionary for 1-based bit index to name mapping.
+    /// </summary>
     public Dictionary<int, string> BitNameDict
     {
         init {
             var max = value.Keys.Max();
             BitNames = new string[max];
             for (int i = 0; i < max; ++i) {
-                BitNames[i] = value.GetValueOrDefault(i) ?? i.ToString();
+                BitNames[i] = value.GetValueOrDefault(i + 1) ?? (i + 1).ToString();
             }
         }
     }
@@ -37,8 +41,8 @@ public class BitSet : BaseModel
     protected override bool DoRead(FileHandler handler)
     {
         handler.ReadArray(Bits);
-        if (HighestBitIndex > BitCount) {
-            Console.Error.WriteLine($"Read bitset exceeds expected max bit count: {HighestBitIndex} > {BitCount}");
+        if (HighestBit > BitCount) {
+            Console.Error.WriteLine($"Read bitset exceeds expected max bit count: {HighestBit} > {BitCount}");
         }
         return true;
     }
@@ -73,10 +77,10 @@ public class BitSet : BaseModel
         }
     }
 
-    public int GetHighestBitIndex()
+    public int GetHighestBit()
     {
         for (int i = Bits.Length - 1; i >= 0; --i) {
-            var po2 = BitOperations.Log2((uint)Bits[i]);
+            var po2 = BitOperations.Log2(BitOperations.RoundUpToPowerOf2((uint)Bits[i]));
             if (po2 != 0) {
                 return i * 32 + po2;
             }
@@ -84,19 +88,18 @@ public class BitSet : BaseModel
         return 0;
     }
 
-    public override string ToString() => $"BitSet: {Count} / {BitCount} {StringifyBits()} <Max: {HighestBitIndex}>";
+    public override string ToString() => $"BitSet: {Count} / {BitCount} {StringifyBits()} <Max: {HighestBit}>";
 
     private string StringifyBits()
     {
         var nameCount = BitNames?.Length ?? 0;
-        // if (nameCount == 0) return "";
         var sb = new StringBuilder();
         var first = true;
         for (int i = 0; i < BitCount;++i) {
             if (HasBit(i)) {
                 if (!first) sb.Append(", ");
                 first = false;
-                sb.Append(i < nameCount ? BitNames![i] : i.ToString());
+                sb.Append(i < nameCount ? BitNames![i] : (i + 1).ToString());
             }
         }
         if (!first) {

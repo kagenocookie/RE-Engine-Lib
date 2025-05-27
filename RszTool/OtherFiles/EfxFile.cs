@@ -430,11 +430,13 @@ namespace RszTool.Efx
     public interface IColorClipAttribute
     {
         EfxColorClipData Clip { get; }
+        BitSet ClipBits { get; }
     }
 
     public interface IMaterialClipAttribute
     {
         EfxMaterialClipData MaterialClip { get; }
+        BitSet ClipBits { get; }
     }
 
     public static class EfxExtensions

@@ -2892,6 +2892,7 @@ public partial class EFXAttributeAttractorClip : EFXAttribute, IClipAttribute
 public partial class EFXAttributeEmitterColorClip : EFXAttribute, IColorClipAttribute
 {
     public EfxColorClipData Clip => clipData;
+    public BitSet ClipBits => clipBits;
 
 	public EFXAttributeEmitterColorClip() : base(EfxAttributeType.EmitterColorClip) { }
 
@@ -3054,10 +3055,14 @@ public partial class EFXAttributeTypeMeshExpression : EFXAttribute, IExpressionA
 	[RszVersion(nameof(Version), ">=", EfxVersion.RE3, "&&", nameof(Version), "<", EfxVersion.RE4)]
     public int indicesCount;
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(25);
-    public ExpressionAssignType unkn1;
-    public ExpressionAssignType unkn2;
-    public ExpressionAssignType unkn3;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(25) { BitNameDict = new () {
+		[1] = nameof(color1R),
+		[2] = nameof(color1G),
+		[3] = nameof(color1B),
+	}};
+    public ExpressionAssignType color1R;
+    public ExpressionAssignType color1G;
+    public ExpressionAssignType color1B;
     public ExpressionAssignType unkn4;
     public ExpressionAssignType unkn5;
     public ExpressionAssignType unkn6;
@@ -3177,26 +3182,16 @@ public partial class EFXAttributeTypeMeshExpression : EFXAttribute, IExpressionA
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypePolygonClip, EfxVersion.DMC5)]
-public partial class EFXAttributeTypePolygonClip : EFXAttribute//TODO, IClipAttribute
+public partial class EFXAttributeTypePolygonClip : EFXAttribute, IClipAttribute
 {
-    // public EfxClipData Clip => clipData;
+    public EfxClipData Clip => clipData;
+    public BitSet ClipBits => clipBits;
 
     public EFXAttributeTypePolygonClip() : base(EfxAttributeType.TypePolygonClip) { }
 
-    public uint unkn0;
+	[RszClassInstance] public readonly BitSet clipBits = new BitSet(8);
     public uint unkn1;
-    public int unkn2;
-    public float unkn3;
-    public uint unkn4;
-    public uint unkn5;
-	[RszArraySizeField(nameof(substruct0))] public int substruct0Length;
-	[RszArraySizeField(nameof(substruct1))] public int substruct1Length;
-	[RszArraySizeField(nameof(substruct2))] public int substruct2Length;
-	[RszArraySizeField(nameof(substruct3))] public int substruct3Length;
-    [RszFixedSizeArray(nameof(substruct0Length))] public byte[]? substruct0;
-    [RszFixedSizeArray(nameof(substruct1Length), '/', 4)] public int[]? substruct1;
-    [RszFixedSizeArray(nameof(substruct2Length), '/', 4)] public int[]? substruct2;
-    [RszFixedSizeArray(nameof(substruct3Length), '/', 4)] public float[]? substruct3;
+	[RszClassInstance] public EfxClipData clipData = new();
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.VectorFieldParameterClip, EfxVersion.DMC5, EfxVersion.RE4)]
@@ -3288,14 +3283,19 @@ public partial class EFXAttributePtCollision : EFXAttribute
 public partial class EFXAttributeTypeMeshClip : EFXAttribute, IMaterialClipAttribute
 {
     public EfxMaterialClipData MaterialClip => clipData;
+    public BitSet ClipBits => clipBits;
 
     public EFXAttributeTypeMeshClip() : base(EfxAttributeType.TypeMeshClip) { }
 
-	public uint unkn1;
-	[RszVersion('<', EfxVersion.RE4)]
-    public uint substruct1SizeSeparate; // <= DMC5: equal to substruct1Count; >= RE3 && < RE4: substruct1Count * 2
-	[RszVersion(EfxVersion.RE4)]
-    public uint unkn2;
+	/// <summary>
+	/// Always 0 pre-RE4
+	/// </summary>
+	[RszClassInstance] public readonly BitSet clipBits = new BitSet(13);
+
+	[RszVersion("<=", EfxVersion.DMC5), RszArraySizeField(nameof(clipData))] public int mdfPropertyCount;
+	[RszVersion(nameof(Version), ">=", EfxVersion.RE3, "&&", nameof(Version), "<=", EfxVersion.RERT), RszArraySizeField(nameof(clipData))] // else if
+	public int mdfPropertyCountDouble;
+	[RszVersion(EfxVersion.RE4)] public uint unkn1; // else
 
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public readonly EfxMaterialClipData clipData = new();
 }
@@ -3588,10 +3588,10 @@ public partial class EFXAttributeTypeMesh : EFXAttribute
     public byte unkn1_D;
     [RszVersion(EfxVersion.RE4)]
 	public uint re4_unkn0;
-    public via.Color color0;
     public via.Color color1;
-    public float unkn4;
     public via.Color color2;
+    public float unkn4;
+    public via.Color color3;
     public float unkn6;
     public uint frameCount;
     public uint startingFrameMin;

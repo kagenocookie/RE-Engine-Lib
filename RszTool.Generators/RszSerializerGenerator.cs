@@ -253,7 +253,7 @@ public class RszSerializerGenerator : IIncrementalGenerator
         var name = field.GetFieldName();
         if (name == null) return;
 
-        foreach (var conditionAttr in field.GetAttributesWhere(attr => attr.Name.ToString() == "RszConditional" || attr.Name.ToString() == "RszVersion")) {
+        foreach (var conditionAttr in field.GetAttributesWhere(attr => attr.Name.ToString() == "RszConditional" || attr.Name.ToString() == "RszVersion" || attr.Name.ToString() == "RszVersionExact")) {
             var args = conditionAttr.ArgumentList!.Arguments;
             var positional = conditionAttr.GetPositionalArguments();
             var optional = conditionAttr.GetOptionalArguments();
@@ -266,6 +266,9 @@ public class RszSerializerGenerator : IIncrementalGenerator
                 } else if (argCount == 2 && (condition.StartsWith("<") || condition.StartsWith(">") || condition.StartsWith("=") || condition.StartsWith("!="))) {
                     condition = $"{ctx.versionParam} {condition}";
                 }
+            } else if (conditionAttr.Name.ToString() == "RszVersionExact") {
+                var argCount = positional.Count();
+                condition = string.Join(" || ", positional.Select(p => $"{ctx.versionParam} == {p}"));
             } else if (handle == HandleType.FieldList) {
                 continue;
             }

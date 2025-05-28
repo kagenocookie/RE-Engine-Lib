@@ -112,25 +112,12 @@ internal sealed class Program
         var basedir = Directory.GetCurrentDirectory();
         basedir = basedir.Substring(0, basedir.IndexOf("\\RszTool.Tools"));
 
+        var files = new SyntaxTree [] {
+            CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EfxFile.cs")))
+        }.Concat(Directory.GetFiles(Path.Combine(basedir, "RszTool/OtherFiles/EFX")).Select(fn => CSharpSyntaxTree.ParseText(File.ReadAllText(fn))));
+
         var compilation = CSharpCompilation.Create("CSharpCodeGen.GenerateAssembly")
-            .AddSyntaxTrees(
-                // CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/RszFile/RSZFile.cs")))
-                CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EfxFile.cs"))),
-                CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/ExpressionTree.cs"))),
-                CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/EfxAttributeTypes.cs"))),
-                CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/ExpressionData.cs"))),
-                CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/ClipSubstructs.cs"))),
-                CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/EfxCommon.cs"))),
-                CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/EfxStructsRE7.cs"))),
-                CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/EFXStructsDMC5.cs"))),
-                CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/EFXStructsRE8.cs"))),
-                CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/EFXStructsRERT.cs"))),
-                CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/EfxStructsRE4.cs"))),
-                CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/EFX/EFXStructsDD2.cs")))
-            // CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/OtherFiles/CdefFile.cs")))
-            // CSharpSyntaxTree.ParseText(TestCsharp)
-            // CSharpSyntaxTree.ParseText(File.ReadAllText(Path.Combine(basedir, "RszTool/Models.cs")))
-            )
+            .AddSyntaxTrees(files)
             .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
             .AddReferences(MetadataReference.CreateFromFile(typeof(BaseModel).Assembly.Location))
             .WithOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));

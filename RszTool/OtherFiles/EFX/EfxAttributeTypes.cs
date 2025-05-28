@@ -74,7 +74,7 @@ public enum EfxAttributeType
     TypePolygonTrailMaterial,
     TypePolygonTrailMaterialExpression,
     TypeRibbonTrail,
-    UnknownRE4_70New,
+    TypePolygonTrailLike_RE470,
     TypeNoDraw,
     Velocity2D,
     Velocity2DDelayFrame,
@@ -109,13 +109,10 @@ public enum EfxAttributeType
     UnknownDD2_117TypeStrainRibbonExpression,
     ShaderSettings,
     Distortion,
-    UnknownDD2_128,
-    UnknownRE4_130,
-    UnknownDD2_134Expression,
+    UnitCulling,
+    UnitCullingExpression,
     PtLife,
     PtBehavior,
-    UnknownDD2_133,
-    UnknownRE4_134,
     FadeByAngle,
     FadeByDepth,
     FadeByDepthExpression,
@@ -135,7 +132,6 @@ public enum EfxAttributeType
     PtColorClip,
     PtUvSequence,
     PtUvSequenceClip,
-    UnknownRE4_170Mesh,
     VectorFieldParameter,
     VectorFieldParameterClip,
     VectorFieldParameterExpression,
@@ -149,34 +145,17 @@ public enum EfxAttributeType
     AngularVelocity2D,
     AngularVelocity3DDelayFrame,
     AngularVelocity3D,
-    UnknownRE4_210AngularVelocity2D,
-    UnknownRE4_213,
-    UnknownSB_195,
     ProceduralDistortionDelayFrame,
     ProceduralDistortion,
     ProceduralDistortionClip,
     ProceduralDistortionExpression,
     StretchBlur,
-    UnknownRE4_226,
-    UnknownRE4_228,
-    UnknownRE4_231EfCsv,
-    UnknownDD2_245Efcsv,
-    UnknownRE4_243_UnknGPUBillboard,
-    UnknownRE4_244Expression,
-    UnknownRE4_245_UnknType,
-    UnknownDD2_255Expression,
-    UnknownRE4_247_UnknTypeGPU,
-    UnknownRE4_248_UnknTypeGpuExpression,
-    UnknownRE4_249_UnknTypeB,
-    UnknownDD2_259Expression,
-    TypeGpuMesh,
     AttractorExpression,
     ColorGrading,
     ContrastHighlighter,
     CustomComputeShader,
     DepthOcclusion,
     DepthOperator,
-    UnknownRE4_184DepthOperator,
     DirectionalField,
     DirectionalFieldParameter,
     DirectionalFieldParameterClip,
@@ -222,7 +201,6 @@ public enum EfxAttributeType
     ScaleAnimExpression,
     ScaleByDepth,
     ScreenSpaceEmitter,
-    UnknownRERT_159,
     ShaderSettingsExpression,
     ShapeOperator,
     ShapeOperatorExpression,
@@ -245,6 +223,8 @@ public enum EfxAttributeType
     TypeGpuBillboardClip,
     TypeGpuBillboardExpression,
     TypeGpuLightning3D,
+    TypeGpuMesh,
+    TypeGpuMeshClip,
     TypeGpuMeshExpression,
     TypeGpuMeshTrail,
     TypeGpuMeshTrailClip,
@@ -261,6 +241,7 @@ public enum EfxAttributeType
     TypeModularRibbonLength,
     TypeModularPolygon,
     TypeModularMesh,
+
     TypeNoDrawExpression,
     TypeNodeBillboard,
     TypeNodeBillboardExpression,
@@ -268,7 +249,6 @@ public enum EfxAttributeType
     TypeStrainRibbon,
     TypeStrainRibbonExpression,
 
-    UnitCulling,
     VanishArea3DExpression,
     VectorField,
     VolumeField,
@@ -276,13 +256,15 @@ public enum EfxAttributeType
     WindInfluence3D,
     WindInfluence3DDelayFrame,
 
-    UnknownRERT_215,
-    UnknownRERT_219, // similar to TypeGpuPolygon
-    UnknownRERT_220Expression, // expression for UnknownRERT_219
-    UnknownRERT_181,
+    UnknownRERT_233,
 
-    UnknownRERT_153,
-    UnknownRERT_154Clip,
+    UnknownRE4_213,
+    UnknownSB_195,
+
+    UnknownRE4_226,
+    UnknownRE4_228,
+    UnknownRE4_231EfCsv,
+    UnknownDD2_245Efcsv,
 
     UnknownDD2_146New,
     UnknownDD2_214,
@@ -294,19 +276,15 @@ public enum EfxAttributeType
     UnknownDD2_224,
     UnknownDD2_226,
     UnknownDD2_225Expression,
+    UnknownDD2_230,
+    UnknownDD2_231Clip,
+    UnknownDD2_232Expression,
     UnknownDD2_239,
+    UnknownDD2_240Expression,
     UnknownDD2_243,
     UnknownDD2_247,
     UnknownDD2_249,
     UnknownDD2_250,
-
-    UnknownDD2_260_TypeMeshUkn,
-    UnknownDD2_261,
-    UnknownDD2_262Expression,
-    UnknownDD2_263,
-    UnknownDD2_264MaterialClip,
-    UnknownDD2_265MaterialExpression,
-    UnknownDD2_266,
 }
 
 public static partial class EfxAttributeTypeRemapper
@@ -337,6 +315,20 @@ public static partial class EfxAttributeTypeRemapper
         return AttributeTypeIDs.TryGetValue(type, out var lookup) && lookup.TryGetValue(version, out var id)
             ? id
             : throw new ArgumentException($"Unsupported {version} EFX attribute type {type}", nameof(type));
+    }
+
+    public static bool HasAttributeType(this EfxVersion version, EfxAttributeType type)
+    {
+        return AttributeTypeIDs.TryGetValue(type, out var lookup) && lookup.TryGetValue(version, out var typeId) && typeId > 0;
+    }
+
+    public static IEnumerable<(EfxVersion version, int typeId)> GetVersionsOfType(this EfxAttributeType type)
+    {
+        foreach (var ver in GameOrder) {
+            if (HasAttributeType(ver, type)) {
+                yield return (ver, ToAttributeTypeID(ver, type));
+            }
+        }
     }
 
     public static EFXAttribute? Create(EfxAttributeType type, EfxVersion version)
@@ -1061,7 +1053,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.RE7] = 26,
             [EfxVersion.MHRise] = 59,
             [EfxVersion.RE8] = 61,
-            [EfxVersion.RERT] = 61,
+            [EfxVersion.RERT] = 61, // ok
             [EfxVersion.MHRiseSB] = 61,
             [EfxVersion.RE4] = 65, // ok
             [EfxVersion.DD2] = 67, // ok
@@ -1069,16 +1061,17 @@ public static partial class EfxAttributeTypeRemapper
         [EfxAttributeType.TypePolygonMaterial] = new() {
             [EfxVersion.MHRise] = 60,
             [EfxVersion.RE8] = 62,
-            [EfxVersion.RERT] = 62,
+            [EfxVersion.RERT] = 62, // guess
             [EfxVersion.MHRiseSB] = 62,
             [EfxVersion.RE4] = UNKNOWN, // 66
-            [EfxVersion.DD2] = 68,
+            [EfxVersion.DD2] = 68, // ok
             // [EfxVersion.DD2] = 74, // guess
         },
         [EfxAttributeType.TypePolygonMaterialExpression] = new() {
             [EfxVersion.RE8] = 63,
+            [EfxVersion.RERT] = 63, // guess
             [EfxVersion.RE4] = UNKNOWN, // 67
-            [EfxVersion.DD2] = 69,
+            // [EfxVersion.DD2] = 69, // guess
         },
         [EfxAttributeType.TypeRibbonTrail] = new() {
             [EfxVersion.RE3] = 39,
@@ -1086,17 +1079,12 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.DMC5] = 32,
             [EfxVersion.RE7] = 27,
             [EfxVersion.RE8] = 64,
+            [EfxVersion.RERT] = 65, // testing
             [EfxVersion.MHRise] = 61,
             [EfxVersion.RE4] = 69, // ok
-            [EfxVersion.DD2] = 70, // guess, unused
+            // [EfxVersion.DD2] = 70, // guess
         },
 
-        [EfxAttributeType.UnknownRE4_70New] = new() { // struct looks identical to TypePolygonTrail, except for a field type change
-            [EfxVersion.RERT] = 65,
-            [EfxVersion.MHRiseSB] = 65,
-            [EfxVersion.RE4] = 70,
-            [EfxVersion.DD2] = 71, // guess, unused
-        },
         [EfxAttributeType.TypePolygonTrail] = new() {
             [EfxVersion.RE3] = 40,
             [EfxVersion.RE2] = 33, // ok
@@ -1106,24 +1094,26 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.RE8] = 65,
             [EfxVersion.RERT] = 66, // ok
             [EfxVersion.MHRiseSB] = 66,
-            [EfxVersion.RE4] = UNKNOWN, // 71?
+            [EfxVersion.RE4] = 70,
+            // [EfxVersion.RE4] = UNKNOWN, // 71?
             [EfxVersion.DD2] = 72, // ok
         },
         [EfxAttributeType.TypePolygonTrailExpression] = new() {
             [EfxVersion.RE8] = 66,
-            [EfxVersion.RE4] = UNKNOWN, //72?
+            [EfxVersion.RE4] = 71,
+            [EfxVersion.DD2] = 73, // probably
         },
         [EfxAttributeType.TypePolygonTrailMaterial] = new() {
             [EfxVersion.MHRise] = 63,
             [EfxVersion.RE8] = 67,
             [EfxVersion.RERT] = 67, // guess
             [EfxVersion.MHRiseSB] = 67,
-            [EfxVersion.RE4] = UNKNOWN, //73?
+            [EfxVersion.RE4] = 73, // guess
             [EfxVersion.DD2] = 74,
         },
         [EfxAttributeType.TypePolygonTrailMaterialExpression] = new() {
             [EfxVersion.RE8] = 68,
-            [EfxVersion.RE4] = UNKNOWN, //74?
+            [EfxVersion.RE4] = 74, // guess
             [EfxVersion.DD2] = 76,
         },
 
@@ -1513,7 +1503,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.RE8] = 104,
             [EfxVersion.RERT] = 106,
             [EfxVersion.MHRiseSB] = 106,
-            [EfxVersion.RE4] = 112, // unused
+            [EfxVersion.RE4] = 112, // guess
             [EfxVersion.DD2] = 114, // probably
         },
         [EfxAttributeType.TexelChannelOperatorExpression] = new() {
@@ -1522,7 +1512,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.RE8] = 105,
             [EfxVersion.RERT] = 107,
             [EfxVersion.MHRiseSB] = 107,
-            [EfxVersion.RE4] = 113, // unused
+            [EfxVersion.RE4] = 113, // guess
             [EfxVersion.DD2] = 115, // probably
         },
         [EfxAttributeType.TypeStrainRibbon] = new() {
@@ -1652,11 +1642,20 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.RE4] = 128,
             [EfxVersion.DD2] = UNKNOWN, // 131
         },
-        [EfxAttributeType.UnknownRE4_130] = new() {
+        [EfxAttributeType.UnitCulling] = new() {
+            [EfxVersion.RE3] = 98,
+            [EfxVersion.RE2] = 77,
+            [EfxVersion.DMC5] = 77,
+            [EfxVersion.RE7] = 67,
+            [EfxVersion.MHRise] = 128,
+            [EfxVersion.RE8] = 133,
+            [EfxVersion.RERT] = 135,
+            [EfxVersion.MHRiseSB] = 136,
             [EfxVersion.RE4] = 130,
-            [EfxVersion.DD2] = 133,
+            [EfxVersion.DD2] = 133, // guess based on UnitCullingExpression parameter names; struct is also identical
         },
-        [EfxAttributeType.UnknownDD2_134Expression] = new() {
+        [EfxAttributeType.UnitCullingExpression] = new() {
+            [EfxVersion.RE4] = UNSUPPORTED,
             [EfxVersion.DD2] = 134,
         },
         [EfxAttributeType.PtLife] = new() { // ok
@@ -1849,17 +1848,6 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.RE4] = UNKNOWN,
             [EfxVersion.DD2] = UNKNOWN, // 151
         },
-        [EfxAttributeType.UnitCulling] = new() {
-            [EfxVersion.RE3] = 98,
-            [EfxVersion.RE2] = 77,
-            [EfxVersion.DMC5] = 77,
-            [EfxVersion.RE7] = 67,
-            [EfxVersion.MHRise] = 128,
-            [EfxVersion.RE8] = 133,
-            [EfxVersion.RERT] = 135,
-            [EfxVersion.MHRiseSB] = 136,
-            [EfxVersion.RE4] = UNKNOWN,
-        },
         [EfxAttributeType.FluidEmitter2D] = new() {
             [EfxVersion.RE3] = 99,
             [EfxVersion.RE2] = 78,
@@ -2043,15 +2031,6 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.RE4] = 165,
             [EfxVersion.DD2] = 171,
         },
-        [EfxAttributeType.UnknownRERT_153] = new() {
-            [EfxVersion.RERT] = 153,
-            // [EfxVersion.MHRiseSB] = 154,
-            [EfxVersion.DD2] = UNKNOWN, // 172
-        },
-        [EfxAttributeType.UnknownRERT_154Clip] = new() {
-            [EfxVersion.RERT] = 154,
-            [EfxVersion.DD2] = UNKNOWN, // 173
-        },
         [EfxAttributeType.PtUvSequence] = new() {
             [EfxVersion.RE3] = 114,
             [EfxVersion.RE2] = 93,
@@ -2059,6 +2038,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.RE7] = 83,
             [EfxVersion.MHRise] = 144,
             [EfxVersion.RE8] = 151,
+            [EfxVersion.RERT] = 153,
             [EfxVersion.MHRiseSB] = 154,
             [EfxVersion.RE4] = 168,
             [EfxVersion.DD2] = 174, // ok
@@ -2070,6 +2050,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.RE7] = 84,
             [EfxVersion.MHRise] = 145,
             [EfxVersion.RE8] = 152,
+            [EfxVersion.RERT] = 154,
             [EfxVersion.RE4] = 169,
             [EfxVersion.MHRiseSB] = 155,
             [EfxVersion.DD2] = 175, // ok
@@ -2108,22 +2089,19 @@ public static partial class EfxAttributeTypeRemapper
         [EfxAttributeType.ScreenSpaceEmitter] = new() {
             [EfxVersion.MHRise] = 149,
             [EfxVersion.RE8] = 156,
-            [EfxVersion.RERT] = 158,
+            [EfxVersion.RERT] = 158, // guess
             [EfxVersion.MHRiseSB] = 159, // guess
             [EfxVersion.RE4] = 173,
             [EfxVersion.DD2] = 179,
         },
-        [EfxAttributeType.UnknownRERT_159] = new() {
-            [EfxVersion.RERT] = 159,
-            [EfxVersion.DD2] = 180, // guess
-        },
+        // ScreenSpaceEmitterExpression in between maybe?
         [EfxAttributeType.VectorFieldParameter] = new() {
             [EfxVersion.RE3] = 119,
             [EfxVersion.RE2] = 98,
             [EfxVersion.DMC5] = 98,
             [EfxVersion.MHRise] = 150,
             [EfxVersion.RE8] = 157,
-            [EfxVersion.RERT] = 160,
+            [EfxVersion.RERT] = 159,
             [EfxVersion.MHRiseSB] = 160,
             [EfxVersion.RE4] = 175,
             [EfxVersion.DD2] = 181,
@@ -2154,37 +2132,37 @@ public static partial class EfxAttributeTypeRemapper
         [EfxAttributeType.GlobalVectorField] = new() {
             [EfxVersion.MHRise] = 153,
             [EfxVersion.RE8] = 160,
-            [EfxVersion.RE4] = UNKNOWN,
+            [EfxVersion.RE4] = UNKNOWN, // 178
             [EfxVersion.DD2] = UNKNOWN, // 184
         },
         [EfxAttributeType.GlobalVectorFieldClip] = new() {
             [EfxVersion.MHRise] = 154,
             [EfxVersion.RE8] = 161,
-            [EfxVersion.RE4] = UNKNOWN,
+            [EfxVersion.RE4] = UNKNOWN, // 179
             [EfxVersion.DD2] = UNKNOWN, // 185
         },
         [EfxAttributeType.GlobalVectorFieldExpression] = new() {
             [EfxVersion.MHRise] = 155,
             [EfxVersion.RE8] = 162,
-            [EfxVersion.RE4] = UNKNOWN,
+            [EfxVersion.RE4] = UNKNOWN, // 180
             [EfxVersion.DD2] = UNKNOWN, // 186
         },
         [EfxAttributeType.DirectionalFieldParameter] = new() {
             [EfxVersion.MHRise] = 156,
             [EfxVersion.RE8] = 163,
-            [EfxVersion.RE4] = UNKNOWN,
+            [EfxVersion.RE4] = UNKNOWN, // 181
             [EfxVersion.DD2] = UNKNOWN, // 187
         },
         [EfxAttributeType.DirectionalFieldParameterClip] = new() {
             [EfxVersion.MHRise] = 157,
             [EfxVersion.RE8] = 164,
-            [EfxVersion.RE4] = UNKNOWN,
+            [EfxVersion.RE4] = UNKNOWN, // 182
             [EfxVersion.DD2] = UNKNOWN, // 188
         },
         [EfxAttributeType.DirectionalFieldParameterExpression] = new() {
             [EfxVersion.MHRise] = 158,
             [EfxVersion.RE8] = 165,
-            [EfxVersion.RE4] = UNKNOWN,
+            [EfxVersion.RE4] = UNKNOWN, //183
             [EfxVersion.DD2] = UNKNOWN, // 189
         },
         [EfxAttributeType.DepthOperator] = new() {
@@ -2195,11 +2173,6 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.RE8] = 166,
             [EfxVersion.RERT] = 168,
             [EfxVersion.MHRiseSB] = 168,
-            [EfxVersion.RE4] = UNKNOWN,
-            [EfxVersion.DD2] = UNKNOWN, // 190
-        },
-        [EfxAttributeType.UnknownRE4_184DepthOperator] = new() {
-            // several extra fields compared to previous DepthOperator, although very possibly the same thing
             [EfxVersion.RE4] = 184,
             [EfxVersion.DD2] = 190,
         },
@@ -2295,134 +2268,11 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.RE4] = 197,
             [EfxVersion.DD2] = UNKNOWN, // 203
         },
-        [EfxAttributeType.UnknownRERT_219] = new() {
-            [EfxVersion.RERT] = 219,
-            [EfxVersion.MHRiseSB] = 219,
-        },
-        [EfxAttributeType.UnknownRERT_220Expression] = new() {
-            [EfxVersion.RERT] = 220,
-            [EfxVersion.MHRiseSB] = 220,
-        },
 
         [EfxAttributeType.CustomComputeShader] = new() {
             [EfxVersion.RE3] = 133,
             [EfxVersion.MHRise] = 170,
             [EfxVersion.RE8] = 177,
-        },
-        [EfxAttributeType.TypeGpuBillboard] = new() {
-            [EfxVersion.RE3] = 134,
-            [EfxVersion.RE2] = 105,
-            [EfxVersion.DMC5] = 105,
-            [EfxVersion.RE7] = 85,
-            [EfxVersion.MHRise] = 171,
-            [EfxVersion.RE8] = 178,
-            [EfxVersion.RERT] = 221,
-            [EfxVersion.MHRiseSB] = 221,
-            [EfxVersion.RE4] = UNKNOWN,
-            [EfxVersion.DD2] = UNKNOWN, // likely wrong: 230
-        },
-        [EfxAttributeType.TypeGpuBillboardClip] = new() {
-            [EfxVersion.DD2] = 231, // likely wrong
-        },
-        [EfxAttributeType.TypeGpuBillboardExpression] = new() {
-            [EfxVersion.RE3] = 135,
-            [EfxVersion.RE2] = 106,
-            [EfxVersion.DMC5] = 106,
-            [EfxVersion.MHRise] = 172,
-            [EfxVersion.RE8] = 179,
-            [EfxVersion.RERT] = 222,
-            [EfxVersion.MHRiseSB] = 222,
-            [EfxVersion.RE4] = UNKNOWN,
-            [EfxVersion.DD2] = 232, // likely wrong
-        },
-        [EfxAttributeType.TypeGpuPolygon] = new() {
-            [EfxVersion.RE3] = 136,
-            [EfxVersion.MHRise] = 173,
-            [EfxVersion.RE8] = 180,
-            [EfxVersion.RERT] = 223,
-            [EfxVersion.MHRiseSB] = 223,
-            [EfxVersion.RE4] = UNKNOWN,
-        },
-        [EfxAttributeType.TypeGpuPolygonExpression] = new() {
-            [EfxVersion.RE8] = 181,
-            [EfxVersion.RE4] = UNKNOWN,
-        },
-        [EfxAttributeType.TypeGpuRibbonFollow] = new() {
-            [EfxVersion.RE3] = 137,
-            [EfxVersion.RE2] = 107,
-            [EfxVersion.DMC5] = 107,
-            [EfxVersion.MHRise] = 174,
-            [EfxVersion.RE8] = 182,
-            [EfxVersion.RERT] = 225,
-            [EfxVersion.MHRiseSB] = 225,
-            [EfxVersion.RE4] = UNKNOWN,
-        },
-        [EfxAttributeType.TypeGpuRibbonFollowExpression] = new() {
-            [EfxVersion.RE8] = 183,
-            [EfxVersion.RE4] = UNKNOWN,
-        },
-        [EfxAttributeType.TypeGpuRibbonLength] = new() {
-            [EfxVersion.RE3] = 138,
-            [EfxVersion.MHRise] = 175,
-            [EfxVersion.RE8] = 184,
-            [EfxVersion.RERT] = 227,
-            [EfxVersion.MHRiseSB] = 227,
-            [EfxVersion.RE4] = UNKNOWN,
-            [EfxVersion.DD2] = UNKNOWN, // guess was 239, but seems wrong
-        },
-        [EfxAttributeType.TypeGpuRibbonLengthExpression] = new() {
-            [EfxVersion.RE8] = 185,
-            [EfxVersion.RE4] = UNKNOWN,
-            [EfxVersion.DD2] = 240,
-        },
-        [EfxAttributeType.TypeGpuMesh] = new() {
-            [EfxVersion.RE3] = 139,
-            [EfxVersion.MHRise] = 176,
-            [EfxVersion.RE8] = 186,
-            [EfxVersion.RERT] = 229,
-            [EfxVersion.MHRiseSB] = 229,
-            [EfxVersion.RE4] = 251,
-        },
-        [EfxAttributeType.TypeGpuMeshExpression] = new() {
-            [EfxVersion.RE3] = 140,
-            [EfxVersion.MHRise] = 177,
-            [EfxVersion.RE8] = 187,
-            [EfxVersion.RERT] = 230,
-            [EfxVersion.MHRiseSB] = 230,
-            [EfxVersion.RE4] = 252, // unused
-        },
-        [EfxAttributeType.TypeGpuMeshTrail] = new() {
-            [EfxVersion.MHRise] = 178,
-            [EfxVersion.RE8] = 188,
-            [EfxVersion.RERT] = 231, // guess
-            [EfxVersion.MHRiseSB] = 231,
-            [EfxVersion.RE4] = UNKNOWN,
-            // [EfxVersion.DD2] = 263, // guess
-        },
-        [EfxAttributeType.TypeGpuMeshTrailClip] = new() {
-            [EfxVersion.MHRise] = 179,
-            [EfxVersion.RE8] = 189,
-            [EfxVersion.RERT] = 232, // guess
-            [EfxVersion.MHRiseSB] = 232,
-            [EfxVersion.RE4] = UNKNOWN,
-            // [EfxVersion.DD2] = 264, // guess
-        },
-        [EfxAttributeType.TypeGpuMeshTrailExpression] = new() {
-            [EfxVersion.MHRise] = 180,
-            [EfxVersion.RE8] = 190,
-            [EfxVersion.RERT] = 233,
-            [EfxVersion.MHRiseSB] = 233,
-            [EfxVersion.RE4] = UNKNOWN,
-            // [EfxVersion.DD2] = 265, // guess
-        },
-        [EfxAttributeType.TypeGpuLightning3D] = new() {
-            [EfxVersion.RE3] = 141,
-            [EfxVersion.MHRise] = 181,
-            [EfxVersion.RE8] = 191,
-            [EfxVersion.RERT] = 234,
-            [EfxVersion.MHRiseSB] = 234,
-            [EfxVersion.RE4] = UNKNOWN,
-            // [EfxVersion.DD2] = 266,
         },
         [EfxAttributeType.EmitterPriority] = new() {
             [EfxVersion.RE3] = 142,
@@ -2516,10 +2366,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.RE8] = 202,
             [EfxVersion.RERT] = 192,
             [EfxVersion.MHRiseSB] = 192,
-            [EfxVersion.RE4] = UNKNOWN, // 210
-        },
-        [EfxAttributeType.UnknownRE4_210AngularVelocity2D] = new() {
-            [EfxVersion.RE4] = 210,
+            [EfxVersion.RE4] = 210, // ok
         },
         [EfxAttributeType.PtAngularVelocity2D] = new() {
             [EfxVersion.RE3] = 152,
@@ -2615,7 +2462,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.RERT] = 200,
             [EfxVersion.MHRiseSB] = 200,
             // [EfxVersion.RE4] = 218, // guess
-            [EfxVersion.DD2] = UNKNOWN, // 216
+            [EfxVersion.DD2] = UNKNOWN, // 231
         },
         [EfxAttributeType.ProceduralDistortionExpression] = new() {
             [EfxVersion.RE3] = 158,
@@ -2624,7 +2471,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.RERT] = 201,
             [EfxVersion.MHRiseSB] = 201,
             [EfxVersion.RE4] = 219, // guess
-            [EfxVersion.DD2] = UNKNOWN, // 217
+            [EfxVersion.DD2] = UNKNOWN, // 232
         },
         [EfxAttributeType.TestBehaviorUpdater] = new() {
             [EfxVersion.RE3] = 159,
@@ -2661,21 +2508,16 @@ public static partial class EfxAttributeTypeRemapper
         [EfxAttributeType.FlowMap] = new() {
             [EfxVersion.MHRise] = 205,
             [EfxVersion.RE8] = 215,
-            [EfxVersion.MHRiseSB] = 207,
             [EfxVersion.RE4] = UNKNOWN,
         },
         [EfxAttributeType.RgbCommon] = new() {
             [EfxVersion.MHRise] = 206,
             [EfxVersion.RE8] = 216,
-            [EfxVersion.RERT] = 208,
-            [EfxVersion.MHRiseSB] = 208,
             [EfxVersion.RE4] = UNKNOWN,
         },
         [EfxAttributeType.RgbWater] = new() {
             [EfxVersion.MHRise] = 207,
             [EfxVersion.RE8] = 217,
-            [EfxVersion.RERT] = 209,
-            [EfxVersion.MHRiseSB] = 209,
             [EfxVersion.RE4] = UNKNOWN,
         },
         [EfxAttributeType.PtFreezer] = new() {
@@ -2684,38 +2526,15 @@ public static partial class EfxAttributeTypeRemapper
         },
 
         [EfxAttributeType.UnknownDD2_239] = new() {
-            [EfxVersion.DD2] = 239,
+            [EfxVersion.DD2] = 239, // rgbcommon?
         },
 
         [EfxAttributeType.UnknownRE4_226] = new() {
             [EfxVersion.RE4] = 226,
         },
-        [EfxAttributeType.UnknownRE4_228] = new() {
-            [EfxVersion.RE4] = 228, // looks awfully similar to TypeStrainRibbon
-            [EfxVersion.DD2] = 241, // alternatively, RgbWater?
-        },
-
-        [EfxAttributeType.UnknownDD2_243] = new() { // PtFreezer?
-            [EfxVersion.DD2] = 243,
-        },
-
-        [EfxAttributeType.UnknownRE4_231EfCsv] = new() {
-            [EfxVersion.RE4] = 231,
-            [EfxVersion.DD2] = 244,
-        },
-        [EfxAttributeType.UnknownDD2_245Efcsv] = new() {
-            [EfxVersion.DD2] = 245,
-        },
-
-        [EfxAttributeType.AssignCSV] = new() {
-            [EfxVersion.RE8] = 219,
-            [EfxVersion.RE4] = UNKNOWN,
-        },
         [EfxAttributeType.EmitMask] = new() {
             [EfxVersion.MHRise] = 208,
             [EfxVersion.RE8] = 220,
-            [EfxVersion.RERT] = 213,
-            [EfxVersion.MHRiseSB] = 213,
             [EfxVersion.RE4] = UNKNOWN,
         },
         [EfxAttributeType.TypeModularBillboard] = new() {
@@ -2739,13 +2558,37 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.RE8] = 225,
             [EfxVersion.RE4] = UNKNOWN,
         },
-        [EfxAttributeType.ItemNum] = new() {
-            [EfxVersion.RE3] = 160,
-            [EfxVersion.RE2] = 117,
-            [EfxVersion.DMC5] = 121,
-            [EfxVersion.RE7] = 87,
-            [EfxVersion.RE8] = 226,
-            [EfxVersion.RE4] = UNKNOWN,
+
+        [EfxAttributeType.UnknownDD2_231Clip] = new() {
+            [EfxVersion.DD2] = 231,
+        },
+
+        [EfxAttributeType.UnknownDD2_232Expression] = new() {
+            [EfxVersion.DD2] = 232,
+        },
+
+        [EfxAttributeType.UnknownDD2_240Expression] = new() {
+            [EfxVersion.DD2] = 240,
+        },
+
+        [EfxAttributeType.UnknownRE4_228] = new() {
+            [EfxVersion.RE4] = 228,
+            [EfxVersion.DD2] = 241, // alternatively, RgbWater?
+        },
+
+        [EfxAttributeType.UnknownDD2_243] = new() { // PtFreezer?
+            [EfxVersion.DD2] = 243,
+        },
+
+        [EfxAttributeType.AssignCSV] = new() {
+            [EfxVersion.RE8] = 219,
+        },
+        [EfxAttributeType.UnknownRE4_231EfCsv] = new() {
+            [EfxVersion.RE4] = 231,
+            [EfxVersion.DD2] = 244,
+        },
+        [EfxAttributeType.UnknownDD2_245Efcsv] = new() {
+            [EfxVersion.DD2] = 245,
         },
 
         [EfxAttributeType.UnknownDD2_247] = new() {
@@ -2758,59 +2601,150 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.DD2] = 250,
         },
 
-        [EfxAttributeType.UnknownRE4_243_UnknGPUBillboard] = new() {
-            [EfxVersion.RE4] = 243,
-            [EfxVersion.DD2] = 252,
+#region TypeGpu
+        [EfxAttributeType.TypeGpuBillboard] = new() {
+            [EfxVersion.RE3] = 134,
+            [EfxVersion.RE2] = 105,
+            [EfxVersion.DMC5] = 105,
+            [EfxVersion.RE7] = 85,
+            [EfxVersion.MHRise] = 171,
+            [EfxVersion.RE8] = 178,
+            [EfxVersion.RERT] = 219, // testing
+            [EfxVersion.MHRiseSB] = 221,
+            [EfxVersion.RE4] = 243, // seems ok
+            [EfxVersion.DD2] = 252, // seems ok
         },
-        [EfxAttributeType.UnknownRE4_244Expression] = new() {
-            [EfxVersion.RE4] = 244,
-            [EfxVersion.DD2] = 253,
+        [EfxAttributeType.TypeGpuBillboardExpression] = new() {
+            [EfxVersion.RE3] = 135,
+            [EfxVersion.RE2] = 106,
+            [EfxVersion.DMC5] = 106,
+            [EfxVersion.MHRise] = 172,
+            [EfxVersion.RE8] = 179,
+            [EfxVersion.RERT] = 220,
+            [EfxVersion.MHRiseSB] = 222,
+            [EfxVersion.RE4] = 244, // testing
+            [EfxVersion.DD2] = 253, // testing
         },
-        [EfxAttributeType.UnknownRE4_245_UnknType] = new() {
-            [EfxVersion.RE4] = 245,
-            [EfxVersion.DD2] = 254,
+        [EfxAttributeType.TypeGpuPolygon] = new() {
+            [EfxVersion.RE3] = 136,
+            [EfxVersion.MHRise] = 173,
+            [EfxVersion.RE8] = 180,
+            [EfxVersion.RERT] = 221, // guess
+            [EfxVersion.MHRiseSB] = 223,
+            [EfxVersion.RE4] = 245, // seems ok
+            [EfxVersion.DD2] = 254, // seems ok
         },
-        [EfxAttributeType.UnknownDD2_255Expression] = new() {
+        [EfxAttributeType.TypeGpuPolygonExpression] = new() {
+            [EfxVersion.RE8] = 181,
+            [EfxVersion.RERT] = 222, // guess
+            [EfxVersion.RE4] = UNKNOWN,
             [EfxVersion.DD2] = 255,
         },
-        [EfxAttributeType.UnknownRE4_247_UnknTypeGPU] = new() {
-            [EfxVersion.RE4] = 247,
-            [EfxVersion.DD2] = 256,
+        [EfxAttributeType.TypeGpuRibbonFollow] = new() {
+            [EfxVersion.RE3] = 137,
+            [EfxVersion.RE2] = 107,
+            [EfxVersion.DMC5] = 107,
+            [EfxVersion.MHRise] = 174,
+            [EfxVersion.RE8] = 182,
+            [EfxVersion.RERT] = 223, // testing
+            // [EfxVersion.RERT] = 225,
+            [EfxVersion.MHRiseSB] = 225,
+            [EfxVersion.RE4] = 247, // seems fine
+            [EfxVersion.DD2] = 256, // seems fine
         },
-        [EfxAttributeType.UnknownRE4_248_UnknTypeGpuExpression] = new() {
+        [EfxAttributeType.TypeGpuRibbonFollowExpression] = new() {
+            [EfxVersion.RE8] = 183,
+            [EfxVersion.RERT] = 224, // guess
             [EfxVersion.RE4] = 248,
             [EfxVersion.DD2] = 257,
         },
-        [EfxAttributeType.UnknownRE4_249_UnknTypeB] = new() {
-            [EfxVersion.RE4] = 249,
-            [EfxVersion.DD2] = 258,
+        [EfxAttributeType.TypeGpuRibbonLength] = new() {
+            [EfxVersion.RE3] = 138,
+            [EfxVersion.MHRise] = 175,
+            [EfxVersion.RE8] = 184,
+            [EfxVersion.RERT] = 225, // guess
+            [EfxVersion.MHRiseSB] = 227,
+            [EfxVersion.RE4] = 249, // seems ok
+            [EfxVersion.DD2] = 258, // seems ok
         },
-        [EfxAttributeType.UnknownDD2_259Expression] = new() {
+        [EfxAttributeType.TypeGpuRibbonLengthExpression] = new() {
+            [EfxVersion.RE8] = 185,
+            [EfxVersion.RERT] = 226, // guess
+            [EfxVersion.RE4] = UNKNOWN,
             [EfxVersion.DD2] = 259,
         },
-
-        [EfxAttributeType.UnknownDD2_260_TypeMeshUkn] = new() {
+        [EfxAttributeType.TypeGpuMesh] = new() {
+            [EfxVersion.RE3] = 139,
+            [EfxVersion.MHRise] = 176,
+            [EfxVersion.RE8] = 186,
+            [EfxVersion.RERT] = 227, // guess
+            [EfxVersion.MHRiseSB] = 229,
+            [EfxVersion.RE4] = 251,
             [EfxVersion.DD2] = 260,
         },
-        [EfxAttributeType.UnknownDD2_261] = new() {
+        [EfxAttributeType.TypeGpuMeshClip] = new() {
             [EfxVersion.DD2] = 261,
         },
-        [EfxAttributeType.UnknownDD2_262Expression] = new() {
+        [EfxAttributeType.TypeGpuMeshExpression] = new() {
+            [EfxVersion.RE3] = 140,
+            [EfxVersion.MHRise] = 177,
+            [EfxVersion.RE8] = 187,
+            [EfxVersion.RERT] = 228, // guess
+            [EfxVersion.MHRiseSB] = 230,
+            [EfxVersion.RE4] = 252, // unused
             [EfxVersion.DD2] = 262,
         },
-        [EfxAttributeType.UnknownDD2_263] = new() {
-            [EfxVersion.DD2] = 263, // TypeGpuMeshTrail?
+        [EfxAttributeType.TypeGpuMeshTrail] = new() {
+            [EfxVersion.MHRise] = 178,
+            [EfxVersion.RE8] = 188,
+            [EfxVersion.RERT] = 229, // guess
+            [EfxVersion.MHRiseSB] = 231,
+            [EfxVersion.RE4] = UNKNOWN,
+            [EfxVersion.DD2] = 263, // guess
         },
-        [EfxAttributeType.UnknownDD2_264MaterialClip] = new() {
-            [EfxVersion.DD2] = 264,
+        [EfxAttributeType.TypeGpuMeshTrailClip] = new() {
+            [EfxVersion.MHRise] = 179,
+            [EfxVersion.RE8] = 189,
+            [EfxVersion.RERT] = 230, // guess
+            [EfxVersion.MHRiseSB] = 232,
+            [EfxVersion.RE4] = UNKNOWN,
+            [EfxVersion.DD2] = 264, // guess
         },
-        [EfxAttributeType.UnknownDD2_265MaterialExpression] = new() {
-            [EfxVersion.DD2] = 265,
+        [EfxAttributeType.TypeGpuMeshTrailExpression] = new() {
+            [EfxVersion.MHRise] = 180,
+            [EfxVersion.RE8] = 190,
+            [EfxVersion.RERT] = 231, // guess
+            [EfxVersion.MHRiseSB] = 233,
+            [EfxVersion.RE4] = UNKNOWN,
+            [EfxVersion.DD2] = 265, // guess
         },
-        [EfxAttributeType.UnknownDD2_266] = new() {
+        [EfxAttributeType.UnknownRERT_233] = new() {
+            [EfxVersion.RERT] = 233,
+        },
+        [EfxAttributeType.TypeGpuLightning3D] = new() {
+            [EfxVersion.RE3] = 141,
+            [EfxVersion.MHRise] = 181,
+            [EfxVersion.RE8] = 191,
+            [EfxVersion.MHRiseSB] = 234,
+            [EfxVersion.RE4] = UNKNOWN,
             [EfxVersion.DD2] = 266,
         },
-        // TODO try match previous entries
-    };
+        #endregion
 
+        // max item marker enum entry, not an actual object type
+        [EfxAttributeType.ItemNum] = new() {
+            [EfxVersion.RE7] = 87,
+            [EfxVersion.RE2] = 117,
+            [EfxVersion.DMC5] = 121,
+            [EfxVersion.RE3] = 160,
+            [EfxVersion.MHRise] = UNKNOWN,
+            [EfxVersion.RE8] = 226,
+            [EfxVersion.RERT] = UNKNOWN,
+            [EfxVersion.MHRiseSB] = UNKNOWN,
+            [EfxVersion.SF6] = UNKNOWN,
+            [EfxVersion.RE4] = 253,
+            [EfxVersion.DD2] = 267,
+            [EfxVersion.MHWilds] = UNKNOWN,
+        },
+    };
 }

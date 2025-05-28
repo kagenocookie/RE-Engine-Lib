@@ -305,4 +305,19 @@ namespace RszTool.InternalAttributes
             Condition = condition;
         }
     }
+
+    /// <summary>
+    /// Conditionally deserialize the marked field based on a version condition. EndAt can be used to share the condition for multiple sequential fields.
+    /// </summary>
+    [System.AttributeUsage(System.AttributeTargets.Field, Inherited = false, AllowMultiple = true)]
+    public sealed class RszVersionExactAttribute : System.Attribute
+    {
+        public object[] Versions { get; }
+        public string? EndAt { get; init; }
+
+        public RszVersionExactAttribute(params object[] versions)
+        {
+            Versions = versions;
+        }
+    }
 }

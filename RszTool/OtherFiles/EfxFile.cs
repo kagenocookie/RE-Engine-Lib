@@ -454,6 +454,7 @@ namespace RszTool.Efx
 namespace RszTool
 {
     using RszTool.Efx;
+    using RszTool.Efx.Structs.Basic;
     using RszTool.Efx.Structs.RE4;
 
     public partial class EfxFile : BaseFile
@@ -562,11 +563,11 @@ namespace RszTool
             }
 
             for (int i = 0; i < Header.fieldParameterCount; ++i) {
-                var entry = new EFXFieldParameterValue();
-                entry.Version = Header.Version;
-                entry.name = Strings.FieldParameterNames[i];
-                entry.Read(handler);
-                FieldParameterValues.Add(entry);
+                var param = new EFXFieldParameterValue();
+                param.Version = Header.Version;
+                param.name = Strings.FieldParameterNames[i];
+                param.Read(handler);
+                FieldParameterValues.Add(param);
             }
             if (Header.Version <= EfxVersion.RE7) {
                 ReadActions(handler);
@@ -904,6 +905,23 @@ namespace RszTool
             [1703575233] = "pitch",
             [3888230594] = "yaw",
             [2703807999] = "roll",
+
+            [1484922460] = "ColorRange",
+            [3710676630] = "Piece_Color",
+            [3720841511] = "int_num",
+            [480772615] = "Wide",
+            [1042548107] = "LightShadowRatio",
+            [4001584140] = "BackFaceLightRatio",
+            [4053326860] = "SpawnNum",
+
+            // still unresolved hashes:
+            // [1737174073] = "???",
+            // [2031344731] = "???",
+            // [2451941081] = "???",
+            // [3433402344] = "???",
+            // [1351678141] = "???",
+            // [1017435601] = "???",
+            // [302732036] = "???",
         };
 
         private ExpressionAtom UnflattenExpression(EFXExpressionObject expression, ref int index)

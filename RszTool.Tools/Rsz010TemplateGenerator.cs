@@ -267,7 +267,7 @@ public class Rsz010TemplateGenerator : IIncrementalGenerator
         var name = field.GetFieldName();
         if (name == null) return;
 
-        foreach (var conditionAttr in field.GetAttributesWhere(attr => attr.Name.ToString() == "RszConditional" || attr.Name.ToString() == "RszVersion")) {
+        foreach (var conditionAttr in field.GetAttributesWhere(attr => attr.Name.ToString() == "RszConditional" || attr.Name.ToString() == "RszVersion" || attr.Name.ToString() == "RszVersionExact")) {
             var args = conditionAttr.ArgumentList!.Arguments;
             var positional = conditionAttr.GetPositionalArguments();
             var optional = conditionAttr.GetOptionalArguments();
@@ -280,6 +280,8 @@ public class Rsz010TemplateGenerator : IIncrementalGenerator
                 } else if (argCount == 2 && (condition.StartsWith('<') || condition.StartsWith('>') || condition.StartsWith('=') || condition.StartsWith("!="))) {
                     condition = $"{ctx.versionParam} {condition}";
                 }
+            } else if (conditionAttr.Name.ToString() == "RszVersionExact") {
+                condition = string.Join(" || ", positional.Select(p => $"{ctx.versionParam} == {EvaluateExpressionString(ctx, p.Expression)}"));
             }
 
             var endAt = EvaluateExpressionFieldIdentifier(ctx, optional.FirstOrDefault()?.Expression);

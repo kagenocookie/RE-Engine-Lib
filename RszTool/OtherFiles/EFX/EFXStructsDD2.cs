@@ -12,7 +12,14 @@ public partial class EFXAttributeUnknownDD2_117Expression : EFXAttribute, IExpre
 
 	public EFXAttributeUnknownDD2_117Expression() : base(EfxAttributeType.UnknownDD2_117TypeStrainRibbonExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(24);
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(24) { BitNameDict = new () {
+		[13] = nameof(posX),
+		[14] = nameof(posY),
+		[15] = nameof(posZ),
+		[16] = nameof(terminalPosX),
+		[17] = nameof(terminalPosY),
+		[18] = nameof(terminalPosZ),
+	} };
     public ExpressionAssignType unkn1;
     public ExpressionAssignType unkn2;
     public ExpressionAssignType unkn3;
@@ -24,12 +31,12 @@ public partial class EFXAttributeUnknownDD2_117Expression : EFXAttribute, IExpre
     public ExpressionAssignType unkn9;
     public ExpressionAssignType unkn10;
     public ExpressionAssignType unkn12;
-    public ExpressionAssignType unkn13;
-    public ExpressionAssignType unkn14;
-    public ExpressionAssignType unkn15;
-    public ExpressionAssignType unkn16;
-    public ExpressionAssignType unkn17;
-    public ExpressionAssignType unkn18;
+    public ExpressionAssignType posX;
+    public ExpressionAssignType posY;
+    public ExpressionAssignType posZ;
+    public ExpressionAssignType terminalPosX;
+    public ExpressionAssignType terminalPosY;
+    public ExpressionAssignType terminalPosZ;
     public ExpressionAssignType unkn19;
     public ExpressionAssignType unkn20;
     public ExpressionAssignType unkn21;
@@ -268,10 +275,10 @@ public partial class EFXAttributeUnknownDD2_232Expression : EFXAttribute, IExpre
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnknownDD2_239, EfxVersion.DD2)]
-public partial class EFXAttributeUnknownDD2_239 : EFXAttribute
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnknownDD2_239RgbColor, EfxVersion.DD2)]
+public partial class EFXAttributeUnknownDD2_239RgbColor : EFXAttribute
 {
-	public EFXAttributeUnknownDD2_239() : base(EfxAttributeType.UnknownDD2_239) { }
+	public EFXAttributeUnknownDD2_239RgbColor() : base(EfxAttributeType.UnknownDD2_239RgbColor) { }
 
 	public uint unkn1;
 	public via.Color color1;
@@ -307,6 +314,49 @@ public partial class EFXAttributeUnknownDD2_239 : EFXAttribute
 
 	public byte ukn5_0;
 	public uint ukn5_1;
+}
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnknownDD2_239RgbColorExpression, EfxVersion.DD2)]
+public partial class EFXAttributeUnknownDD2_239RgbColorExpression : EFXAttribute, IExpressionAttribute
+{
+    public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
+
+	public EFXAttributeUnknownDD2_239RgbColorExpression() : base(EfxAttributeType.UnknownDD2_239RgbColorExpression) { }
+
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(13) { BitNameDict = new() {
+		[1] = "GreenChColor",
+		[3] = "GreenChIntensity",
+		[4] = "GreenChSaturate",
+		[6] = "RedChColor",
+		[8] = "RedChIntensity",
+		[9] = "Alpha1",
+		[10] = "Alpha2",
+	} };
+	public ExpressionAssignType particleColor;
+	public ExpressionAssignType unkn2;
+	public ExpressionAssignType colorIntensityGreen;
+	public ExpressionAssignType colorSaturate;
+	public ExpressionAssignType unkn5;
+	public ExpressionAssignType particleColor2;
+	public ExpressionAssignType unkn7;
+	public ExpressionAssignType colorIntensityRed;
+	public ExpressionAssignType alpha1;
+	public ExpressionAssignType alpha2;
+	public ExpressionAssignType unkn11;
+	public ExpressionAssignType unkn12;
+	public ExpressionAssignType unkn13;
+	public ExpressionAssignType unkn14;
+	public ExpressionAssignType unkn15;
+	public ExpressionAssignType unkn16;
+	public ExpressionAssignType unkn17;
+	public ExpressionAssignType unkn18;
+	public ExpressionAssignType unkn19;
+	public ExpressionAssignType unkn20;
+	public ExpressionAssignType unkn21;
+	public ExpressionAssignType unkn22;
+
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnknownDD2_243, EfxVersion.DD2)]
@@ -377,39 +427,4 @@ public partial class EFXAttributeUnknownDD2_249 : EFXAttribute
 public partial class EFXAttributeUnknownDD2_250 : EFXAttribute
 {
 	public EFXAttributeUnknownDD2_250() : base(EfxAttributeType.UnknownDD2_250) { }
-}
-
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnknownDD2_240Expression, EfxVersion.DD2)]
-public partial class EFXAttributeUnknownDD2_240Expression : EFXAttribute, IExpressionAttribute
-{
-    public EFXExpressionList? Expression => expressions;
-	public BitSet ExpressionBits => expressionBits;
-
-	public EFXAttributeUnknownDD2_240Expression() : base(EfxAttributeType.UnknownDD2_240Expression) { }
-
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(13);
-	public ExpressionAssignType unkn1;
-	public ExpressionAssignType unkn2;
-	public ExpressionAssignType unkn3;
-	public ExpressionAssignType unkn4;
-	public ExpressionAssignType unkn5;
-	public ExpressionAssignType unkn6;
-	public ExpressionAssignType unkn7;
-	public ExpressionAssignType unkn8;
-	public ExpressionAssignType unkn9;
-	public ExpressionAssignType unkn10;
-	public ExpressionAssignType unkn11;
-	public ExpressionAssignType unkn12;
-	public ExpressionAssignType unkn13;
-	public ExpressionAssignType unkn14;
-	public ExpressionAssignType unkn15;
-	public ExpressionAssignType unkn16;
-	public ExpressionAssignType unkn17;
-	public ExpressionAssignType unkn18;
-	public ExpressionAssignType unkn19;
-	public ExpressionAssignType unkn20;
-	public ExpressionAssignType unkn21;
-	public ExpressionAssignType unkn22;
-
-	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }

@@ -325,7 +325,7 @@ public partial class EFXAttributePtUvSequenceClip : EFXAttribute, IClipAttribute
 
     public EFXAttributePtUvSequenceClip() : base(EfxAttributeType.PtUvSequenceClip) { }
 
-	[RszClassInstance] public readonly BitSet clipBits = new BitSet(2);
+	[RszClassInstance] public readonly BitSet clipBits = new BitSet(3);
     uint unkn1;
 	[RszClassInstance] public EfxClipData clipData = new();
 }

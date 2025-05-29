@@ -48,7 +48,7 @@ public partial class EFXAttributeSpawnExpression : EFXAttribute, IExpressionAttr
 
 	public EFXAttributeSpawnExpression() : base(EfxAttributeType.SpawnExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(7);
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(7) { BitNames = [nameof(spawnNum), nameof(spawnNumRange), nameof(intervalFrame), nameof(intervalFrameRange), nameof(emitterDelayFrame), nameof(emitterDelayFrameRange), nameof(speed) ] };
 	public ExpressionAssignType spawnNum;
 	public ExpressionAssignType spawnNumRange;
 	public ExpressionAssignType intervalFrame;
@@ -57,7 +57,7 @@ public partial class EFXAttributeSpawnExpression : EFXAttribute, IExpressionAttr
 	public ExpressionAssignType emitterDelayFrame;
 	public ExpressionAssignType emitterDelayFrameRange;
     [RszVersion(EfxVersion.RERT)]
-	public ExpressionAssignType sb_unkn0;
+	public ExpressionAssignType speed;
 
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
@@ -109,12 +109,9 @@ public partial class EFXAttributeParentOptionsExpression : EFXAttribute, IExpres
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Life, EfxVersion.RE7, EfxVersion.DMC5, EfxVersion.RE4, EfxVersion.DD2)]
 public partial class EFXAttributeLife : EFXAttribute
 {
-	public uint AppearFrameMin;
-	public uint AppearFrameMax;
-	public uint KeepFrameMin;
-	public uint KeepFrameMax;
-	public uint VanishFrameMin;
-	public uint VanishFrameMax;
+	public via.Int2 AppearFrameRange;
+	public via.Int2 KeepFrameRange;
+	public via.Int2 VanishFrameRange;
 	public uint unkn7; // Might be KeepHoldFrame
 	public uint unkn8; // Might be KeepHoldFrameVariation
 	[RszVersion(EfxVersion.RE2)]
@@ -123,6 +120,30 @@ public partial class EFXAttributeLife : EFXAttribute
 	public EFXAttributeLife() : base(EfxAttributeType.Life) { }
 }
 
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.LifeExpression, EfxVersion.RE7, EfxVersion.DMC5, EfxVersion.RE4, EfxVersion.DD2)]
+public partial class EFXAttributeLifeExpression : EFXAttribute, IExpressionAttribute
+{
+	public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
+
+	public EFXAttributeLifeExpression() : base(EfxAttributeType.LifeExpression) { }
+
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(6)  { BitNameDict = new () {
+		[1] = nameof(appearLife),
+		[2] = nameof(keepLife),
+		[3] = nameof(vanishLife),
+	} };
+
+	public ExpressionAssignType appearLife;
+	public ExpressionAssignType keepLife;
+	public ExpressionAssignType vanishLife;
+	[RszVersion(nameof(Version), ">=", EfxVersion.DD2, "||", nameof(Version), "==", EfxVersion.RE7, EndAt = nameof(unkn6))]
+	public ExpressionAssignType unkn4;
+	public ExpressionAssignType unkn5;
+	public ExpressionAssignType unkn6;
+
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
+}
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TextureUnit, EfxVersion.DMC5, EfxVersion.RE4, EfxVersion.DD2)]
 public partial class EFXAttributeTextureUnit : EFXAttribute
 {
@@ -332,9 +353,16 @@ public partial class EFXAttributeUVSequenceExpression : EFXAttribute, IExpressio
 
 	public EFXAttributeUVSequenceExpression() : base(EfxAttributeType.UVSequenceExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(6);
-	public ExpressionAssignType unkn1;
-	public ExpressionAssignType unkn2;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(6) { BitNameDict = new () {
+		[1] = nameof(speed),
+		[2] = nameof(speedRand),
+		// [3] = nameof(unkn3),
+		// [4] = nameof(unkn4),
+		// [5] = nameof(unkn5),
+		// [6] = nameof(unkn6),
+	} };
+	public ExpressionAssignType speed;
+	public ExpressionAssignType speedRand;
 	public ExpressionAssignType unkn3;
 	public ExpressionAssignType unkn4;
 	public ExpressionAssignType unkn5;
@@ -432,7 +460,17 @@ public partial class EFXAttributeShaderSettingsExpression : RszTool.Efx.EFXAttri
 
     public EFXAttributeShaderSettingsExpression() : base(EfxAttributeType.ShaderSettingsExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(12);
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(12) { BitNameDict = new () {
+		// [1] = nameof(volume), // re7/rt/dmc5/re8 - volume/volumeblend; color - dd2
+		// [2] = nameof(alpha), // alpha - dd2
+		// [3] = nameof(translationZ), LightShadowRatio
+		// [4] = nameof(rotationX), BackFaceLightRatio
+		// [5] = nameof(rotationY),
+		// [6] = nameof(rotationZ), 6,7,8 - dd2 vectorXYZ
+		// [7] = nameof(scaleX),
+		// [8] = nameof(scaleY),
+		// [9] = nameof(scaleZ),
+	} };
     public ExpressionAssignType ukn1;
     [RszVersion(EfxVersion.RE8, EndAt = nameof(ukn7))]
     public ExpressionAssignType ukn2;

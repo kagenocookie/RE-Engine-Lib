@@ -178,19 +178,21 @@ public partial class EFXAttributeTypeLightning3DExpression : EFXAttribute, IExpr
 	public EFXAttributeTypeLightning3DExpression() : base(EfxAttributeType.TypeLightning3DExpression) { }
 
 	// NOTE: may need to add a dynamic size constructor call for pre-DD2 if it was ever present there
-	/// <summary>
-	/// Bits: 7,8,9: some position X/Y/Z
-	/// </summary>
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(48);
-	public ExpressionAssignType unkn1;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(48) { BitNameDict = new () {
+		[1] = nameof(color),
+		[7] = nameof(terminalPosX),
+		[8] = nameof(terminalPosY),
+		[9] = nameof(terminalPosZ),
+	} };
+	public ExpressionAssignType color;
 	public ExpressionAssignType unkn2;
 	public ExpressionAssignType unkn3;
 	public ExpressionAssignType unkn4;
 	public ExpressionAssignType unkn5;
 	public ExpressionAssignType unkn6;
-	public ExpressionAssignType unkn7;
-	public ExpressionAssignType unkn8;
-	public ExpressionAssignType unkn9;
+	public ExpressionAssignType terminalPosX;
+	public ExpressionAssignType terminalPosY;
+	public ExpressionAssignType terminalPosZ;
 	public ExpressionAssignType unkn10;
 	public ExpressionAssignType unkn11;
 	public ExpressionAssignType unkn12;
@@ -358,10 +360,14 @@ public partial class EFXAttributeTypeLightning3DMaterialExpression : EFXAttribut
 	public EFXAttributeTypeLightning3DMaterialExpression() : base(EfxAttributeType.TypeLightning3DMaterialExpression) { }
 
 	public BitSet ExpressionBits => expressionBits;
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(44);
-	public ExpressionAssignType unkn1;
-	public ExpressionAssignType unkn2;
-	public ExpressionAssignType unkn3;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(44) { BitNameDict = new () {
+		[1] = nameof(terminalPosX),
+		[2] = nameof(terminalPosY),
+		[3] = nameof(terminalPosZ),
+	} };
+	public ExpressionAssignType terminalPosX;
+	public ExpressionAssignType terminalPosY;
+	public ExpressionAssignType terminalPosZ;
 	public ExpressionAssignType unkn4;
 	public ExpressionAssignType unkn5;
 	public ExpressionAssignType unkn6;

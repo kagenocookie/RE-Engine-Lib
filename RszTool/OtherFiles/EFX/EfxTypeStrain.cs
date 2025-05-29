@@ -147,12 +147,17 @@ public partial class EFXAttributeTypeStrainRibbonExpression : EFXAttribute, IExp
 
 	public EFXAttributeTypeStrainRibbonExpression() : base(EfxAttributeType.TypeStrainRibbonExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(15);
+	// TODO bitset versioning
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(15) { BitNameDict = new () {
+		[3] = nameof(posX), // rert: moved up by 2 (xyz = 567)
+		[4] = nameof(posY),
+		[5] = nameof(posZ),
+	} };
 	public ExpressionAssignType unkn1;
 	public ExpressionAssignType unkn2;
-	public ExpressionAssignType unkn3;
-	public ExpressionAssignType unkn4;
-	public ExpressionAssignType unkn5;
+	public ExpressionAssignType posX;
+	public ExpressionAssignType posY;
+	public ExpressionAssignType posZ;
 	public ExpressionAssignType unkn6;
 	public ExpressionAssignType unkn7;
 	public ExpressionAssignType unkn8;
@@ -160,8 +165,8 @@ public partial class EFXAttributeTypeStrainRibbonExpression : EFXAttribute, IExp
 	public ExpressionAssignType unkn10;
 	public ExpressionAssignType unkn11;
 	public ExpressionAssignType unkn12;
+    [RszVersion(EfxVersion.RE8, EndAt = nameof(unkn14))]
 	public ExpressionAssignType unkn13;
-    [RszVersion(EfxVersion.RE8, EndAt = nameof(unkn15))]
 	public ExpressionAssignType unkn14;
 	public ExpressionAssignType unkn15;
 
@@ -278,29 +283,40 @@ public partial class EFXAttributeTypeStrainRibbonMaterialExpression : EFXAttribu
 
     public EFXAttributeTypeStrainRibbonMaterialExpression() : base(EfxAttributeType.TypeStrainRibbonMaterialExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(22);
-	public ExpressionAssignType unkn1;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(22) { BitNameDict = new () {
+		[1] = nameof(color),
+		[5] = nameof(posX),
+		[6] = nameof(posY),
+		[7] = nameof(posZ),
+		[8] = nameof(terminalPosX),
+		[9] = nameof(terminalPosY),
+		[10] = nameof(terminalPosZ),
+		[15] = nameof(color2),
+		[17] = nameof(color3),
+		[19] = nameof(color4),
+	} };
+	public ExpressionAssignType color;
 	public ExpressionAssignType unkn2;
 	public ExpressionAssignType unkn3;
 	public ExpressionAssignType unkn4;
-	public ExpressionAssignType unkn5;
-	public ExpressionAssignType unkn6;
-	public ExpressionAssignType unkn7;
-	public ExpressionAssignType unkn9;
-	public ExpressionAssignType unkn10;
+	public ExpressionAssignType posX;
+	public ExpressionAssignType posY;
+	public ExpressionAssignType posZ;
+	public ExpressionAssignType terminalPosX;
+	public ExpressionAssignType terminalPosY;
+	public ExpressionAssignType terminalPosZ;
 	public ExpressionAssignType unkn11;
 	public ExpressionAssignType unkn12;
 	public ExpressionAssignType unkn13;
 	public ExpressionAssignType unkn14;
-	public ExpressionAssignType unkn15;
+	public ExpressionAssignType color2;
 	public ExpressionAssignType unkn16;
-	public ExpressionAssignType unkn17;
+	public ExpressionAssignType color3;
 	public ExpressionAssignType unkn18;
-	public ExpressionAssignType unkn19;
+	public ExpressionAssignType color4;
 	public ExpressionAssignType unkn20;
-	public ExpressionAssignType unkn21;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
-	public ExpressionAssignType unkn22;
+	public ExpressionAssignType unkn21;
 	[RszArraySizeField(nameof(materialExpressions))] public int materialExpressionCount;
 	[RszVersion(EfxVersion.DD2), RszClassInstance, RszConstructorParams(nameof(Version))]
 	public EFXMaterialExpressionList? materialExpressions;

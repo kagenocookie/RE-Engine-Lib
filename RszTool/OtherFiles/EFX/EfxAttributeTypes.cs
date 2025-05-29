@@ -279,8 +279,8 @@ public enum EfxAttributeType
     UnknownDD2_230,
     UnknownDD2_231Clip,
     UnknownDD2_232Expression,
-    UnknownDD2_239,
-    UnknownDD2_240Expression,
+    UnknownDD2_239RgbColor,
+    UnknownDD2_239RgbColorExpression,
     UnknownDD2_243,
     UnknownDD2_247,
     UnknownDD2_249,
@@ -737,7 +737,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.RERT] = 27,
             [EfxVersion.MHRiseSB] = 27,
             [EfxVersion.RE4] = 29,
-            [EfxVersion.DD2] = 30, // guess
+            [EfxVersion.DD2] = 30,
         },
         [EfxAttributeType.TypeMeshExpression] = new() {
             [EfxVersion.RE3] = 26,
@@ -749,7 +749,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.RERT] = 28,
             [EfxVersion.MHRiseSB] = 28,
             [EfxVersion.RE4] = 30,
-            [EfxVersion.DD2] = 31, // seems reasonably correct
+            [EfxVersion.DD2] = 31,
         },
 
         [EfxAttributeType.TypeRibbonFollow] = new() {
@@ -2525,8 +2525,11 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.RE4] = UNKNOWN,
         },
 
-        [EfxAttributeType.UnknownDD2_239] = new() {
+        [EfxAttributeType.UnknownDD2_239RgbColor] = new() {
             [EfxVersion.DD2] = 239, // rgbcommon?
+        },
+        [EfxAttributeType.UnknownDD2_239RgbColorExpression] = new() {
+            [EfxVersion.DD2] = 240,
         },
 
         [EfxAttributeType.UnknownRE4_226] = new() {
@@ -2565,10 +2568,6 @@ public static partial class EfxAttributeTypeRemapper
 
         [EfxAttributeType.UnknownDD2_232Expression] = new() {
             [EfxVersion.DD2] = 232,
-        },
-
-        [EfxAttributeType.UnknownDD2_240Expression] = new() {
-            [EfxVersion.DD2] = 240,
         },
 
         [EfxAttributeType.UnknownRE4_228] = new() {

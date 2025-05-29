@@ -64,7 +64,7 @@ public partial class EFXAttributeDistortionExpression : EFXAttribute, IExpressio
 	public ExpressionAssignType unkn1;
 	public ExpressionAssignType unkn2;
 	public ExpressionAssignType unkn3;
-	public ExpressionAssignType unkn4;
+	public ExpressionAssignType colorG;
 	public ExpressionAssignType unkn5;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
@@ -246,9 +246,9 @@ public partial class EFXAttributeAttractor : EFXAttribute, IBoneRelationAttribut
 	public EFXAttributeAttractor() : base(EfxAttributeType.Attractor) { }
 
 	public uint unkn1_0;
-	public float unkn1_1;
-	public float unkn1_2;
-	public float unkn1_3;
+	public float positionX;
+	public float positionY;
+	public float positionZ;
 	public float attractionForce;
 	public float unkn1_5;
 	public float unkn1_6;
@@ -283,14 +283,22 @@ public partial class EFXAttributeAttractorExpression : EFXAttribute, IExpression
 
 	public EFXAttributeAttractorExpression() : base(EfxAttributeType.AttractorExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(10);
-	public ExpressionAssignType unkn1;
-	public ExpressionAssignType unkn2;
-	public ExpressionAssignType unkn3;
-	public ExpressionAssignType unkn4;
-	public ExpressionAssignType unkn5;
-	public ExpressionAssignType unkn6;
-	public ExpressionAssignType unkn7;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(10) { BitNameDict = new () {
+		[1] = nameof(posX),
+		[2] = nameof(posY),
+		[3] = nameof(posZ),
+		[4] = nameof(posX_2),
+		[5] = nameof(posY_2),
+		[6] = nameof(posZ_2),
+		[7] = nameof(attractionForce),
+	} };
+	public ExpressionAssignType posX;
+	public ExpressionAssignType posY;
+	public ExpressionAssignType posZ;
+	public ExpressionAssignType posX_2;
+	public ExpressionAssignType posY_2;
+	public ExpressionAssignType posZ_2;
+	public ExpressionAssignType attractionForce;
 	public ExpressionAssignType unkn8;
 	public ExpressionAssignType unkn9;
 	public ExpressionAssignType unkn10;
@@ -368,26 +376,6 @@ public partial class EFXAttributeIgnorePlayerColor : EFXAttribute
 	public EFXAttributeIgnorePlayerColor() : base(EfxAttributeType.IgnorePlayerColor) { }
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.LifeExpression, EfxVersion.RE7, EfxVersion.DMC5, EfxVersion.RE4, EfxVersion.DD2)]
-public partial class EFXAttributeLifeExpression : EFXAttribute, IExpressionAttribute
-{
-	public EFXExpressionList? Expression => expressions;
-	public BitSet ExpressionBits => expressionBits;
-
-	public EFXAttributeLifeExpression() : base(EfxAttributeType.LifeExpression) { }
-
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(6);
-	public ExpressionAssignType unkn1;
-	public ExpressionAssignType unkn2;
-	public ExpressionAssignType unkn3;
-	[RszVersion(nameof(Version), ">=", EfxVersion.DD2, "||", nameof(Version), "==", EfxVersion.RE7, EndAt = nameof(unkn6))]
-	public ExpressionAssignType unkn4;
-	public ExpressionAssignType unkn5;
-	public ExpressionAssignType unkn6;
-
-	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
-
-}
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.LuminanceBleed, EfxVersion.RERT, EfxVersion.RE4)]
 public partial class EFXAttributeLuminanceBleed : EFXAttribute
 {
@@ -513,10 +501,16 @@ public partial class EFXAttributeVanishArea3DExpression : EFXAttribute, IExpress
 
 	public EFXAttributeVanishArea3DExpression() : base(EfxAttributeType.VanishArea3DExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(14);
-	public ExpressionAssignType unkn1;
-	public ExpressionAssignType unkn2;
-	public ExpressionAssignType unkn3;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(14) { BitNameDict = new() {
+		[1] = nameof(positionX),
+		[2] = nameof(positionY),
+		[3] = nameof(positionZ),
+
+		// [8] = nameof(ceilingPos),
+	} };
+	public ExpressionAssignType positionX;
+	public ExpressionAssignType positionY;
+	public ExpressionAssignType positionZ;
 	public ExpressionAssignType unkn4;
 	public ExpressionAssignType unkn5;
 	public ExpressionAssignType unkn6;

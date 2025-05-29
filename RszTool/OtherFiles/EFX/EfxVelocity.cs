@@ -1,3 +1,4 @@
+using System.Numerics;
 using RszTool.Efx.Structs.Common;
 using RszTool.InternalAttributes;
 
@@ -40,11 +41,15 @@ public partial class EFXAttributeVelocity2DExpression : EFXAttribute, IExpressio
 
 	public EFXAttributeVelocity2DExpression() : base(EfxAttributeType.Velocity2DExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(13);
-    public ExpressionAssignType unkn1;
-    public ExpressionAssignType unkn2;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(13) { BitNameDict = new () {
+		[1] = nameof(speed),
+		[2] = nameof(speedRand),
+		[4] = nameof(gravity),
+	}};
+    public ExpressionAssignType speed;
+    public ExpressionAssignType speedRand;
     public ExpressionAssignType unkn3;
-    public ExpressionAssignType unkn4;
+    public ExpressionAssignType gravity;
     public ExpressionAssignType unkn5;
     public ExpressionAssignType unkn6;
     public ExpressionAssignType unkn7;
@@ -121,29 +126,38 @@ public partial class EFXAttributeVelocity3DExpression : EFXAttribute, IExpressio
 
 	public EFXAttributeVelocity3DExpression() : base(EfxAttributeType.Velocity3DExpression) { }
 
-    [RszVersion(EfxVersion.RE8, EndAt = nameof(max3))]
-	public uint rert_unkn0; // 5 => 0 or 4.0; 1 => 00 => 180.0; 1 => 30.0
+    [RszVersion(EfxVersion.RE8, EndAt = nameof(range3))]
+	public uint rert_unkn0;
 	public uint rert_unkn1;
-	public float min1;
-	public float max1;
-	public float min2;
-	public float max2;
-	public float min3;
-	public float max3;
+	public Vector2 range1;
+	public Vector2 range2;
+	public Vector2 range3;
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(19);
-	public ExpressionAssignType unkn1;
-	public ExpressionAssignType unkn2;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(19){ BitNameDict = new () {
+		[1] = nameof(speed),
+		[2] = nameof(speedRand),
+		[7] = nameof(velocityX),
+		[8] = nameof(velocityXRandom),
+		[9] = nameof(velocityY),
+		[10] = nameof(velocityYRandom),
+		[11] = nameof(velocityZ),
+		[12] = nameof(velocityZRandom),
+		// [13] = nameof(vectorX),
+		// [14] = nameof(vectorY),
+		// [15] = nameof(vectorZ),
+	} };
+	public ExpressionAssignType speed;
+	public ExpressionAssignType speedRand;
 	public ExpressionAssignType unkn3;
 	public ExpressionAssignType unkn4;
 	public ExpressionAssignType unkn5;
 	public ExpressionAssignType unkn6;
-	public ExpressionAssignType unkn7;
-	public ExpressionAssignType unkn8;
-	public ExpressionAssignType unkn9;
-	public ExpressionAssignType unkn10;
-	public ExpressionAssignType unkn11;
-	public ExpressionAssignType unkn12;
+	public ExpressionAssignType velocityX;
+	public ExpressionAssignType velocityXRandom;
+	public ExpressionAssignType velocityY;
+	public ExpressionAssignType velocityYRandom;
+	public ExpressionAssignType velocityZ;
+	public ExpressionAssignType velocityZRandom;
 
     [RszVersion(">", EfxVersion.RERT, EndAt = nameof(unkn14))]
 	public ExpressionAssignType unkn13;

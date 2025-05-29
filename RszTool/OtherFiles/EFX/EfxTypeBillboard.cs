@@ -34,9 +34,16 @@ public partial class EFXAttributeTypeBillboard2DExpression : EFXAttribute, IExpr
 
 	public EFXAttributeTypeBillboard2DExpression() : base(EfxAttributeType.TypeBillboard2DExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(13);
-	public ExpressionAssignType unkn1;
-	public ExpressionAssignType unkn2;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(13) { BitNameDict = new () {
+		[1] = nameof(color),
+		[2] = nameof(alpha),
+		// 4 = alpha? (RE7)
+		// 3 = alpha? (RERT)
+		// 7, 8 = size (RE4, DD2)
+		// 10-13 = potentially size adjacent
+	} };
+	public ExpressionAssignType color;
+	public ExpressionAssignType alpha;
 	public ExpressionAssignType unkn3;
 	public ExpressionAssignType unkn4;
 	public ExpressionAssignType unkn5;
@@ -92,16 +99,39 @@ public partial class EFXAttributeTypeBillboard3DExpression : EFXAttribute, IExpr
 
 	public EFXAttributeTypeBillboard3DExpression() : base(EfxAttributeType.TypeBillboard3DExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(13);
-	public ExpressionAssignType unkn1;
-	public ExpressionAssignType unkn2;
-	public ExpressionAssignType unkn3;
-	public ExpressionAssignType unkn4;
-	public ExpressionAssignType unkn5;
-	public ExpressionAssignType unkn6;
-	public ExpressionAssignType unkn7;
+	// >= RE4
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(13) { BitNameDict = new () {
+		[1] = nameof(color),
+		[2] = nameof(colorRange),
+		[3] = nameof(alpha),
+		[4] = nameof(alphaRate),
+		// dd2 adds emissive and something else in here
+		[5] = nameof(emissive),
+		[7] = nameof(size),
+		[8] = nameof(sizeRand),
+	} };
+
+	// <= RE RT: TODO versioned bitsets
+	// [RszClassInstance] public readonly BitSet expressionBits = new BitSet(13) { BitNameDict = new () {
+	// 	[1] = nameof(color),
+	// 	[2] = nameof(colorRange),
+	// 	[3] = nameof(alpha),
+	// 	[4] = nameof(alphaRate),
+	// 	[5] = nameof(size),
+	//	[6] = nameof(sizeRand),
+	// 	[7] = nameof(colorRate),
+	// 	[8] = nameof(alphaRate2),
+	// } };
+
+	public ExpressionAssignType color;
+	public ExpressionAssignType colorRange;
+	public ExpressionAssignType alpha;
+	public ExpressionAssignType alphaRate;
+	public ExpressionAssignType emissive;
     [RszVersion(EfxVersion.RE2)]
-	public ExpressionAssignType unkn8;
+	public ExpressionAssignType unkn6;
+	public ExpressionAssignType size;
+	public ExpressionAssignType sizeRand;
     [RszVersion(EfxVersion.RE3, EndAt = nameof(unkn12))]
 	public ExpressionAssignType unkn9;
 	public ExpressionAssignType unkn10;
@@ -162,8 +192,10 @@ public partial class EFXAttributeTypeBillboard3DMaterialExpression : EFXAttribut
 
 	public EFXAttributeTypeBillboard3DMaterialExpression() : base(EfxAttributeType.TypeBillboard3DMaterialExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(13);
-	public ExpressionAssignType ukn1;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(13) { BitNameDict = new () {
+		[1] = nameof(color),
+	} };
+	public ExpressionAssignType color;
 	public ExpressionAssignType ukn2;
 	public ExpressionAssignType ukn3;
 	public ExpressionAssignType ukn4;
@@ -273,42 +305,81 @@ public partial class EFXAttributeTypeNodeBillboardExpression : EFXAttribute, IEx
 
 	public EFXAttributeTypeNodeBillboardExpression() : base(EfxAttributeType.TypeNodeBillboardExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(42);
-	public ExpressionAssignType unkn1;
-	public ExpressionAssignType unkn2;
-	public ExpressionAssignType unkn3;
-	public ExpressionAssignType unkn4;
-	public ExpressionAssignType unkn5;
-	public ExpressionAssignType unkn6;
-	public ExpressionAssignType unkn7;
-	public ExpressionAssignType unkn8;
-	public ExpressionAssignType unkn9;
-	public ExpressionAssignType unkn10;
-	public ExpressionAssignType unkn11;
-	public ExpressionAssignType unkn12;
-	public ExpressionAssignType unkn13;
-	public ExpressionAssignType unkn14;
-	public ExpressionAssignType unkn15;
-	public ExpressionAssignType unkn16;
-	public ExpressionAssignType unkn17;
-	public ExpressionAssignType unkn18;
-	public ExpressionAssignType unkn19;
-	public ExpressionAssignType unkn20;
-	public ExpressionAssignType unkn21;
-	public ExpressionAssignType unkn22;
-	public ExpressionAssignType unkn23;
-	public ExpressionAssignType unkn24;
-	public ExpressionAssignType unkn25;
-	public ExpressionAssignType unkn26;
-	public ExpressionAssignType unkn27;
-	public ExpressionAssignType unkn28;
-	public ExpressionAssignType unkn29;
-	public ExpressionAssignType unkn30;
-	public ExpressionAssignType unkn31;
-	public ExpressionAssignType unkn32;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(42){ BitNameDict = new () {
+		[1] = nameof(posX_1),
+		[2] = nameof(posY_1),
+		[3] = nameof(posZ_1),
+		[4] = nameof(rangeX_1),
+		[5] = nameof(rangeY_1),
+		[6] = nameof(rangeZ_1),
+		[7] = nameof(color_1),
+		[8] = nameof(alpha_1),
+
+		[9] = nameof(posX_2),
+		[10] = nameof(posY_2),
+		[11] = nameof(posZ_2),
+		[12] = nameof(rangeX_2),
+		[13] = nameof(rangeY_2),
+		[14] = nameof(rangeZ_2),
+		[15] = nameof(color_2),
+		[16] = nameof(alpha_2),
+
+		[17] = nameof(posX_3),
+		[18] = nameof(posY_3),
+		[19] = nameof(posZ_3),
+		[20] = nameof(rangeX_3),
+		[21] = nameof(rangeY_3),
+		[22] = nameof(rangeZ_3),
+		[23] = nameof(color_3),
+		[24] = nameof(alpha_3),
+
+		[25] = nameof(posX_4),
+		[26] = nameof(posY_4),
+		[27] = nameof(posZ_4),
+		[28] = nameof(rangeX_4),
+		[29] = nameof(rangeY_4),
+		[30] = nameof(rangeZ_4),
+		[31] = nameof(color_4),
+		[32] = nameof(alpha_4),
+
+		[35] = nameof(sizeUnkn),
+	} };
+
+	public ExpressionAssignType posX_1;
+	public ExpressionAssignType posY_1;
+	public ExpressionAssignType posZ_1;
+	public ExpressionAssignType rangeX_1;
+	public ExpressionAssignType rangeY_1;
+	public ExpressionAssignType rangeZ_1;
+	public ExpressionAssignType color_1;
+	public ExpressionAssignType alpha_1;
+	public ExpressionAssignType posX_2;
+	public ExpressionAssignType posY_2;
+	public ExpressionAssignType posZ_2;
+	public ExpressionAssignType rangeX_2;
+	public ExpressionAssignType rangeY_2;
+	public ExpressionAssignType rangeZ_2;
+	public ExpressionAssignType color_2;
+	public ExpressionAssignType alpha_2;
+	public ExpressionAssignType posX_3;
+	public ExpressionAssignType posY_3;
+	public ExpressionAssignType posZ_3;
+	public ExpressionAssignType rangeX_3;
+	public ExpressionAssignType rangeY_3;
+	public ExpressionAssignType rangeZ_3;
+	public ExpressionAssignType color_3;
+	public ExpressionAssignType alpha_3;
+	public ExpressionAssignType posX_4;
+	public ExpressionAssignType posY_4;
+	public ExpressionAssignType posZ_4;
+	public ExpressionAssignType rangeX_4;
+	public ExpressionAssignType rangeY_4;
+	public ExpressionAssignType rangeZ_4;
+	public ExpressionAssignType color_4;
+	public ExpressionAssignType alpha_4;
 	public ExpressionAssignType unkn33;
 	public ExpressionAssignType unkn34;
-	public ExpressionAssignType unkn35;
+	public ExpressionAssignType sizeUnkn;
 	public ExpressionAssignType unkn36;
 	public ExpressionAssignType unkn37;
 	public ExpressionAssignType unkn38;
@@ -329,8 +400,8 @@ public partial class EFXAttributeTypeGpuBillboard : EFXAttribute
 	public uint unkn2;
     [RszVersion(nameof(Version), ">=", EfxVersion.RE8, "&&", nameof(Version), '<', EfxVersion.RE4)]
 	public uint unkn3;
-	public via.Color color0;
 	public via.Color color1;
+	public via.Color color2;
 	public float emission;
 
 	public float unkn5;
@@ -364,14 +435,22 @@ public partial class EFXAttributeTypeGpuBillboardExpression : EFXAttribute, IExp
 
 	public EFXAttributeTypeGpuBillboardExpression() : base(EfxAttributeType.TypeGpuBillboardExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(14);
-	public ExpressionAssignType unkn1;
-	public ExpressionAssignType unkn2;
-	public ExpressionAssignType unkn3;
-	public ExpressionAssignType unkn4;
-	public ExpressionAssignType unkn5;
-	public ExpressionAssignType unkn6;
-	public ExpressionAssignType unkn7;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(14) { BitNameDict = new () {
+		[1] = nameof(colorR),
+		[2] = nameof(colorG),
+		[3] = nameof(colorB),
+		[4] = nameof(colorA),
+		[5] = nameof(colorRate),
+		[6] = nameof(alpha2),
+		[7] = nameof(particleSize),
+	}};
+	public ExpressionAssignType colorR;
+	public ExpressionAssignType colorG;
+	public ExpressionAssignType colorB;
+	public ExpressionAssignType colorA;
+	public ExpressionAssignType colorRate;
+	public ExpressionAssignType alpha2;
+	public ExpressionAssignType particleSize;
     [RszVersion(EfxVersion.RERT, EndAt = nameof(unkn13))]
 	public ExpressionAssignType unkn8;
 	public ExpressionAssignType unkn9;

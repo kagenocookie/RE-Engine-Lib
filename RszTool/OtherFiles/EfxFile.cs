@@ -30,14 +30,12 @@ namespace RszTool.Efx
         public int entryCount;
         public int stringTableLength;
         public int actionCount;
+        [RszVersion(EfxVersion.RE2)]
         public int fieldParameterCount;
         public int expressionParameterCount;
-        [RszVersion(">", EfxVersion.RE7, EndAt = nameof(effectGroupsLength))]
         public int effectGroupsCount;
         public int effectGroupsLength;
-        [RszVersion("<=", EfxVersion.RE7)]
-        public int expressionParameterSize;
-        [RszVersion(">", EfxVersion.DMC5, EndAt = nameof(uknFlag))]
+        [RszVersion(EfxVersion.RE3, EndAt = nameof(uknFlag))]
         public int boneCount;
         public int boneAttributeEntryCount;
         public int uknFlag;
@@ -137,10 +135,10 @@ namespace RszTool.Efx
 
         protected override bool DoRead(FileHandler handler)
         {
-            ExpressionParameterNames = ReadStrings(Header.expressionParameterCount, handler, Header.Version > EfxVersion.RE7);
+            ExpressionParameterNames = ReadStrings(Header.expressionParameterCount, handler, true);
             BoneNames = ReadStrings(Header.boneCount, handler, true);
             if (Header.Version > EfxVersion.RE7) ActionNames = ReadStrings(Header.actionCount, handler, false);
-            FieldParameterNames = ReadStrings(Header.fieldParameterCount, handler, Header.Version <= EfxVersion.RE7);
+            if (Header.Version > EfxVersion.RE7) FieldParameterNames = ReadStrings(Header.fieldParameterCount, handler, false);
             EfxNames = ReadStrings(Header.entryCount, handler, false);
             GroupNames = ReadStrings(Header.effectGroupsCount, handler, false);
             if (Header.Version <= EfxVersion.RE7) ActionNames = ReadStrings(Header.actionCount, handler, false);
@@ -149,10 +147,10 @@ namespace RszTool.Efx
 
         protected override bool DoWrite(FileHandler handler)
         {
-            WriteStrings(ExpressionParameterNames, handler, Header.Version > EfxVersion.RE7);
+            WriteStrings(ExpressionParameterNames, handler, true);
             WriteStrings(BoneNames, handler, true);
             if (Header.Version > EfxVersion.RE7) WriteStrings(ActionNames, handler, false);
-            WriteStrings(FieldParameterNames, handler, Header.Version <= EfxVersion.RE7);
+            if (Header.Version > EfxVersion.RE7) WriteStrings(FieldParameterNames, handler, false);
             WriteStrings(EfxNames, handler, false);
             WriteStrings(GroupNames, handler, false);
             if (Header.Version <= EfxVersion.RE7) WriteStrings(ActionNames, handler, false);
@@ -537,14 +535,11 @@ namespace RszTool
             Strings = new Strings(Header);
             Strings.Read(handler);
 
-            if (Header.expressionParameterSize == 0)
-            {
-                for (int i = 0; i < Header.expressionParameterCount; ++i) {
-                    var param = new EFXExpressionParameter();
-                    param.name = Strings.ExpressionParameterNames[i];
-                    param.Read(handler);
-                    ExpressionParameters.Add(param);
-                }
+            for (int i = 0; i < Header.expressionParameterCount; ++i) {
+                var param = new EFXExpressionParameter();
+                param.name = Strings.ExpressionParameterNames[i];
+                param.Read(handler);
+                ExpressionParameters.Add(param);
             }
 
             for (int i = 0; i < Header.boneCount; ++i) {
@@ -611,8 +606,6 @@ namespace RszTool
                 } else if (uvarType > 2) {
                     throw new Exception("Found unhandled uvar type? " + uvarType);
                 }
-            } else if (Header.expressionParameterSize > 0) {
-                expressionData = handler.ReadArray<int>(Header.expressionParameterSize);
             }
 
             if (Header.Version > EfxVersion.DMC5)

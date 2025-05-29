@@ -151,15 +151,44 @@ public partial class EFXAttributeTypeMeshExpression : EFXAttribute, IExpressionA
 	[RszVersion(nameof(Version), ">=", EfxVersion.RE3, "&&", nameof(Version), "<", EfxVersion.RE4)]
     public int indicesCount;
 
+    // dd2, likely re4 TODO versioned bitset
+	// [RszClassInstance] public readonly BitSet expressionBits = new BitSet(25) { BitNameDict = new () {
+    //     [1] = nameof(color1),
+    //     [2] = nameof(color1Rand),
+    //     [3] = nameof(alpha),
+    //     [4] = nameof(alphaRand),
+
+    //     [16] = "scale",
+    //     [17] = "scaleRand",
+    //     [18] = "sizeX",
+    //     [19] = "sizeXRange",
+    //     [20] = "sizeY",
+    //     [21] = "sizeYRange",
+    //     [22] = "sizeY",
+    //     [23] = "sizeYRange",
+	// }};
+    // re7, dmc5:
 	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(25) { BitNameDict = new () {
-		[1] = nameof(color1R),
-		[2] = nameof(color1G),
-		[3] = nameof(color1B),
+		[1] = nameof(color1),
+		[2] = nameof(color1Rand),
+		[3] = nameof(alpha),
+		[4] = nameof(alphaRand),
+		[6] = "speed",
+		[7] = "speedRand",
+
+        [14] = "scale",
+        [15] = "scaleRand",
+		[16] = "sizeX",
+        [17] = "sizeXRange",
+		[18] = "sizeY",
+		[19] = "sizeYRange",
+		[20] = "sizeY",
+		[21] = "sizeYRange",
 	}};
-    public ExpressionAssignType color1R;
-    public ExpressionAssignType color1G;
-    public ExpressionAssignType color1B;
-    public ExpressionAssignType unkn4;
+    public ExpressionAssignType color1;
+    public ExpressionAssignType color1Rand;
+    public ExpressionAssignType alpha;
+    public ExpressionAssignType alphaRand;
     public ExpressionAssignType unkn5;
     public ExpressionAssignType unkn6;
     public ExpressionAssignType unkn7;
@@ -371,10 +400,14 @@ public partial class EFXAttributeTypeGpuMeshExpression : EFXAttribute, IExpressi
 
 	public EFXAttributeTypeGpuMeshExpression() : base(EfxAttributeType.TypeGpuMeshExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(19);
-	public ExpressionAssignType unkn1;
-	public ExpressionAssignType unkn2;
-	public ExpressionAssignType unkn3;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(19) { BitNameDict = new () {
+		[1] = nameof(color),
+		[2] = nameof(alpha),
+		[3] = nameof(alphaRate),
+	} };
+	public ExpressionAssignType color;
+	public ExpressionAssignType alpha;
+	public ExpressionAssignType alphaRate;
 	public ExpressionAssignType unkn4;
 	public ExpressionAssignType unkn5;
 	public ExpressionAssignType unkn6;

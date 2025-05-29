@@ -79,12 +79,12 @@ public partial class EFXAttributeTransform2DExpression : EFXAttribute, IExpressi
 
 	public EFXAttributeTransform2DExpression() : base(EfxAttributeType.Transform2DExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(5);
-	public ExpressionAssignType unkn1;
-	public ExpressionAssignType unkn2;
-	public ExpressionAssignType unkn3;
-	public ExpressionAssignType unkn4;
-	public ExpressionAssignType unkn5;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(5) { BitNames = [nameof(posX), nameof(posY), nameof(rot), nameof(scaleX), nameof(scaleY)] };
+	public ExpressionAssignType posX;
+	public ExpressionAssignType posY;
+	public ExpressionAssignType rot;
+	public ExpressionAssignType scaleX;
+	public ExpressionAssignType scaleY;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
@@ -119,7 +119,18 @@ public partial class EFXAttributeTransform3DExpression : EFXAttribute, IExpressi
 	/// <summary>
 	/// Up to 9 bits, in order: pos X/Y/Z, rot X/Y/Z, scale X/Y/Z
 	/// </summary>
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(9);
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(9) { BitNameDict = new () {
+		[1] = nameof(translationX),
+		[2] = nameof(translationY),
+		[3] = nameof(translationZ),
+		[4] = nameof(rotationX),
+		[5] = nameof(rotationY),
+		[6] = nameof(rotationZ),
+		[7] = nameof(scaleX),
+		[8] = nameof(scaleY),
+		[9] = nameof(scaleZ),
+	} };
+
 	public ExpressionAssignType translationX;
 	public ExpressionAssignType translationY;
 	public ExpressionAssignType translationZ;
@@ -237,7 +248,7 @@ public partial class EFXAttributePtTransform2DClip : EFXAttribute, IClipAttribut
 
 	public EFXAttributePtTransform2DClip() : base(EfxAttributeType.PtTransform2DClip) { }
 
-	[RszClassInstance] public readonly BitSet clipBits = new BitSet(4);
+	[RszClassInstance] public readonly BitSet clipBits = new BitSet(5);
     public UndeterminedFieldType unkn1;
 	[RszClassInstance] public EfxClipData clipData = new();
 }
@@ -247,15 +258,9 @@ public partial class EFXAttributePtTransform3D : EFXAttribute
 {
 	public EFXAttributePtTransform3D() : base(EfxAttributeType.PtTransform3D) { }
 
-	public float unkn1_0;
-	public float unkn1_1;
-	public float unkn1_2;
-	public float unkn1_3;
-	public UndeterminedFieldType unkn1_4;
-	public UndeterminedFieldType unkn1_5;
-	public float unkn1_6;
-	public float unkn1_7;
-	public float unkn1_8;
+	public Vector3 position;
+	public Vector3 rotation;
+	public Vector3 scale;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtTransform3DClip, EfxVersion.RE7, EfxVersion.RE2, EfxVersion.DMC5, EfxVersion.RE3, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.RE4)]
@@ -279,16 +284,26 @@ public partial class EFXAttributePtTransform3DExpression : EFXAttribute, IExpres
 
 	public EFXAttributePtTransform3DExpression() : base(EfxAttributeType.PtTransform3DExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(9);
-	public ExpressionAssignType unkn1;
-	public ExpressionAssignType unkn2;
-	public ExpressionAssignType unkn3;
-	public ExpressionAssignType unkn4;
-	public ExpressionAssignType unkn5;
-	public ExpressionAssignType unkn6;
-	public ExpressionAssignType unkn7;
-	public ExpressionAssignType unkn8;
-	public ExpressionAssignType unkn9;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(9) { BitNameDict = new () {
+		[1] = nameof(posX),
+		[2] = nameof(posY),
+		[3] = nameof(posZ),
+		[4] = nameof(rotationX),
+		[5] = nameof(rotationY),
+		[6] = nameof(rotationZ),
+		[7] = nameof(scaleX),
+		[8] = nameof(scaleY),
+		[9] = nameof(scaleZ),
+	} };
+	public ExpressionAssignType posX;
+	public ExpressionAssignType posY;
+	public ExpressionAssignType posZ;
+	public ExpressionAssignType rotationX;
+	public ExpressionAssignType rotationY;
+	public ExpressionAssignType rotationZ;
+	public ExpressionAssignType scaleX;
+	public ExpressionAssignType scaleY;
+	public ExpressionAssignType scaleZ;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
@@ -332,13 +347,20 @@ public partial class EFXAttributeRotateAnimExpression : EFXAttribute, IExpressio
 
 	public EFXAttributeRotateAnimExpression() : base(EfxAttributeType.RotateAnimExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(12);
-	public ExpressionAssignType ukn1_1;
-	public ExpressionAssignType ukn1_2;
-	public ExpressionAssignType ukn1_3;
-	public ExpressionAssignType ukn1_4;
-	public ExpressionAssignType ukn1_5;
-	public ExpressionAssignType ukn1_6;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(12){ BitNameDict = new () {
+		[1] = nameof(rotateSpeedX),
+		[2] = nameof(rotateSpeedXRand),
+		[3] = nameof(rotateSpeedY),
+		[4] = nameof(rotateSpeedYRand),
+		[5] = nameof(rotateSpeedZ),
+		[6] = nameof(rotateSpeedZRand),
+	} };
+	public ExpressionAssignType rotateSpeedX;
+	public ExpressionAssignType rotateSpeedXRand;
+	public ExpressionAssignType rotateSpeedY;
+	public ExpressionAssignType rotateSpeedYRand;
+	public ExpressionAssignType rotateSpeedZ;
+	public ExpressionAssignType rotateSpeedZRand;
 	public ExpressionAssignType ukn1_7;
 	public ExpressionAssignType ukn1_8;
 	public ExpressionAssignType ukn1_9;
@@ -390,9 +412,12 @@ public partial class EFXAttributeScaleAnimExpression : EFXAttribute, IExpression
 
 	public EFXAttributeScaleAnimExpression() : base(EfxAttributeType.ScaleAnimExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(8);
-	public ExpressionAssignType unkn1;
-	public ExpressionAssignType unkn2;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(8) { BitNameDict = new () {
+		[1] = nameof(scale),
+		[2] = nameof(scaleRand),
+	} };
+	public ExpressionAssignType scale;
+	public ExpressionAssignType scaleRand;
     [RszVersion(EfxVersion.RERT, EndAt = nameof(unkn8))]
 	public ExpressionAssignType unkn3;
 	public ExpressionAssignType unkn4;

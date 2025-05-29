@@ -18,7 +18,10 @@ public class BitSet : BaseModel
     /// </summary>
     public Dictionary<int, string> BitNameDict
     {
+        // TODO probably move these to some static storage since they're the same across all instances
+        // would also make version-specificity easier
         init {
+            if (value.Keys.Count == 0) return;
             var max = value.Keys.Max();
             BitNames = new string[max];
             for (int i = 0; i < max; ++i) {
@@ -80,9 +83,15 @@ public class BitSet : BaseModel
     public int GetHighestBit()
     {
         for (int i = Bits.Length - 1; i >= 0; --i) {
-            var po2 = BitOperations.Log2(BitOperations.RoundUpToPowerOf2((uint)Bits[i]));
-            if (po2 != 0) {
-                return i * 32 + po2;
+            // var po2 = BitOperations.RoundUpToPowerOf2((uint)Bits[i]);
+            // var bit = BitOperations.Log2(po2);
+            // if (bit != 0) {
+            //     return i * 32 + (po2 == Bits[i] ? bit + 1 : bit);
+            // }
+            if (Bits[i] == 1) return i * 32 + 1;
+            var bit = BitOperations.Log2((uint)Bits[i]);
+            if (bit != 0) {
+                return i * 32 + bit + 1;
             }
         }
         return 0;

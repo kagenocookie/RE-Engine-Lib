@@ -49,7 +49,7 @@ public partial class EFXAttributeTypePolygonClip : EFXAttribute, IClipAttribute
 
     public EFXAttributeTypePolygonClip() : base(EfxAttributeType.TypePolygonClip) { }
 
-	[RszClassInstance] public readonly BitSet clipBits = new BitSet(8);
+	[RszClassInstance] public readonly BitSet clipBits = new BitSet(9);
     public uint unkn1;
 	[RszClassInstance] public EfxClipData clipData = new();
 }
@@ -62,23 +62,30 @@ public partial class EFXAttributeTypePolygonExpression : RszTool.Efx.EFXAttribut
 
     public EFXAttributeTypePolygonExpression() : base(EfxAttributeType.TypePolygonExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(19);
-    public ExpressionAssignType unkn1;
-    public ExpressionAssignType unkn2;
-    public ExpressionAssignType unkn3;
-    public ExpressionAssignType unkn4;
-    public ExpressionAssignType unkn5;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(19) { BitNameDict = new () {
+		[1] = nameof(color),
+		[2] = nameof(alpha),
+		[3] = nameof(emissive),
+		[4] = nameof(color2),
+		[12] = nameof(scale),
+		[14] = nameof(size),
+	} };
+    public ExpressionAssignType color;
+    public ExpressionAssignType alpha;
+    public ExpressionAssignType emissive;
+    public ExpressionAssignType color2;
+    public ExpressionAssignType unkn5; // rert DistortionRate
     public ExpressionAssignType unkn6;
     public ExpressionAssignType unkn7;
     public ExpressionAssignType unkn8;
     public ExpressionAssignType unkn9;
     public ExpressionAssignType unkn10;
     public ExpressionAssignType unkn11;
-    public ExpressionAssignType unkn12;
-    public ExpressionAssignType unkn13;
-    public ExpressionAssignType unkn14;
+    public ExpressionAssignType scale;
+    public ExpressionAssignType unkn13; // dd2: emit size / range
+    public ExpressionAssignType size; // dmc5: size / width
     public ExpressionAssignType unkn15;
-    public ExpressionAssignType unkn16;
+    public ExpressionAssignType unkn16; // dmc5: (spect + 2) / length
     public ExpressionAssignType unkn17;
     public ExpressionAssignType unkn18;
 	[RszVersion(EfxVersion.RE4)]
@@ -190,8 +197,10 @@ public partial class EFXAttributeTypePolygonTrailMaterialExpression : EFXAttribu
 
 	public EFXAttributeTypePolygonTrailMaterialExpression() : base(EfxAttributeType.TypePolygonTrailMaterialExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(7);
-    public ExpressionAssignType unkn1;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(7) { BitNameDict = new () {
+		[1] = nameof(color),
+	} };
+    public ExpressionAssignType color;
     public ExpressionAssignType unkn2;
     public ExpressionAssignType unkn3;
     public ExpressionAssignType unkn4;

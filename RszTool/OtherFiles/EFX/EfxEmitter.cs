@@ -65,14 +65,19 @@ public partial class EFXAttributeEmitterShape2DExpression : EFXAttribute, IExpre
 
 	public EFXAttributeEmitterShape2DExpression() : base(EfxAttributeType.EmitterShape2DExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(5);
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(5) { BitNameDict = new () {
+		// [1] = nameof(unkn1),
+		// [2] = nameof(unkn2),
+		[3] = nameof(size),
+		// [4] = nameof(unkn4),
+		// [5] = nameof(unkn5),
+	} };
 	public ExpressionAssignType unkn1;
 	public ExpressionAssignType unkn2;
-	public ExpressionAssignType unkn3;
+	public ExpressionAssignType size;
 	public ExpressionAssignType unkn4;
 	public ExpressionAssignType unkn5;
 	[RszClassInstance] public EFXExpressionList expressions = new();
-
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.EmitterShape3D, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
@@ -116,7 +121,15 @@ public partial class EFXAttributeEmitterShape3DExpression : EFXAttribute, IExpre
 
 	public EFXAttributeEmitterShape3DExpression() : base(EfxAttributeType.EmitterShape3DExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(9);
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(9) { BitNameDict = new () {
+		[1] = nameof(rangeXMin),
+		[2] = nameof(rangeXMax),
+		[3] = nameof(rangeYMin),
+		[4] = nameof(rangeYMax),
+		[5] = nameof(rangeZMin),
+		[6] = nameof(rangeZMax),
+		[7] = nameof(spawnNum),
+	} };
 	public ExpressionAssignType rangeXMin;
 	public ExpressionAssignType rangeXMax;
 	public ExpressionAssignType rangeYMin;
@@ -124,7 +137,7 @@ public partial class EFXAttributeEmitterShape3DExpression : EFXAttribute, IExpre
 	public ExpressionAssignType rangeZMin;
 	public ExpressionAssignType rangeZMax;
 	[RszVersion('>', EfxVersion.RE7)]
-	public ExpressionAssignType unkn1_7;
+	public ExpressionAssignType spawnNum;
 	[RszVersion('>', EfxVersion.RE3, EndAt = nameof(unkn1_9))]
 	public ExpressionAssignType unkn1_8;
 	public ExpressionAssignType unkn1_9;
@@ -201,7 +214,7 @@ public partial class EFXAttributeMeshEmitterClip : RszTool.Efx.EFXAttribute, ICl
 
     public EFXAttributeMeshEmitterClip() : base(EfxAttributeType.MeshEmitterClip) { }
 
-	[RszClassInstance] public readonly BitSet clipBits = new BitSet(8);
+	[RszClassInstance] public readonly BitSet clipBits = new BitSet(9);
     public uint unkn1;
 	[RszClassInstance] public EfxClipData clipData = new();
 }
@@ -214,8 +227,10 @@ public partial class EFXAttributeMeshEmitterExpression : RszTool.Efx.EFXAttribut
 
     public EFXAttributeMeshEmitterExpression() : base(EfxAttributeType.MeshEmitterExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(16);
-    public ExpressionAssignType unkn1;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(16) { BitNameDict = new () {
+		[1] = nameof(emitRate),
+	} };
+    public ExpressionAssignType emitRate;
     public ExpressionAssignType unkn2;
     public ExpressionAssignType unkn3;
     public ExpressionAssignType unkn4;

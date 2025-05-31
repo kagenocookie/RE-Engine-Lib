@@ -40,12 +40,12 @@ public partial class EFXAttributeTypeBillboard2DExpression : EFXAttribute, IExpr
 		// 4 = alpha? (RE7)
 		// 3 = alpha? (RERT)
 		// 7, 8 = size (RE4, DD2)
-		// 10-13 = potentially size adjacent
+		// 10-13 = potentially size adjacent (x/y size?)
 	} };
 	public ExpressionAssignType color;
 	public ExpressionAssignType alpha;
 	public ExpressionAssignType unkn3;
-	public ExpressionAssignType unkn4;
+	public ExpressionAssignType unkn4; // re7: alpha
 	public ExpressionAssignType unkn5;
     public ExpressionAssignType unkn6;
     public ExpressionAssignType unkn7;
@@ -194,6 +194,7 @@ public partial class EFXAttributeTypeBillboard3DMaterialExpression : EFXAttribut
 
 	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(13) { BitNameDict = new () {
 		[1] = nameof(color),
+		[7] = nameof(size),
 	} };
 	public ExpressionAssignType color;
 	public ExpressionAssignType ukn2;
@@ -201,7 +202,7 @@ public partial class EFXAttributeTypeBillboard3DMaterialExpression : EFXAttribut
 	public ExpressionAssignType ukn4;
 	public ExpressionAssignType ukn5;
 	public ExpressionAssignType ukn6;
-	public ExpressionAssignType ukn7;
+	public ExpressionAssignType size;
 	public ExpressionAssignType ukn8;
 	public ExpressionAssignType ukn9;
 	public ExpressionAssignType ukn10;
@@ -343,6 +344,11 @@ public partial class EFXAttributeTypeNodeBillboardExpression : EFXAttribute, IEx
 		[32] = nameof(alpha_4),
 
 		[35] = nameof(sizeUnkn),
+		[36] = nameof(sizeUnknRand),
+		[37] = nameof(scaleUnkn),
+		[38] = nameof(scaleUnknRand),
+		[39] = nameof(speedUnkn),
+		[40] = nameof(speedUnknRand),
 	} };
 
 	public ExpressionAssignType posX_1;
@@ -380,11 +386,11 @@ public partial class EFXAttributeTypeNodeBillboardExpression : EFXAttribute, IEx
 	public ExpressionAssignType unkn33;
 	public ExpressionAssignType unkn34;
 	public ExpressionAssignType sizeUnkn;
-	public ExpressionAssignType unkn36;
-	public ExpressionAssignType unkn37;
-	public ExpressionAssignType unkn38;
-	public ExpressionAssignType unkn39;
-	public ExpressionAssignType unkn40;
+	public ExpressionAssignType sizeUnknRand;
+	public ExpressionAssignType scaleUnkn;
+	public ExpressionAssignType scaleUnknRand;
+	public ExpressionAssignType speedUnkn;
+	public ExpressionAssignType speedUnknRand;
 	public ExpressionAssignType unkn41;
 	public ExpressionAssignType unkn42;
 	[RszClassInstance] public EFXExpressionList expressions = new();
@@ -443,6 +449,7 @@ public partial class EFXAttributeTypeGpuBillboardExpression : EFXAttribute, IExp
 		[5] = nameof(colorRate),
 		[6] = nameof(alpha2),
 		[7] = nameof(particleSize),
+		[8] = nameof(particleSizeRand),
 	}};
 	public ExpressionAssignType colorR;
 	public ExpressionAssignType colorG;
@@ -452,7 +459,7 @@ public partial class EFXAttributeTypeGpuBillboardExpression : EFXAttribute, IExp
 	public ExpressionAssignType alpha2;
 	public ExpressionAssignType particleSize;
     [RszVersion(EfxVersion.RERT, EndAt = nameof(unkn13))]
-	public ExpressionAssignType unkn8;
+	public ExpressionAssignType particleSizeRand; // note: could be RE4+ and not RERT+
 	public ExpressionAssignType unkn9;
 	public ExpressionAssignType unkn10;
 	public ExpressionAssignType unkn11;

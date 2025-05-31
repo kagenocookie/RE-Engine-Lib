@@ -120,7 +120,7 @@ public partial class EFXAttributeLife : EFXAttribute
 	public EFXAttributeLife() : base(EfxAttributeType.Life) { }
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.LifeExpression, EfxVersion.RE7, EfxVersion.DMC5, EfxVersion.RE4, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.LifeExpression, EfxVersion.RE7, EfxVersion.RE2, EfxVersion.DMC5, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
 public partial class EFXAttributeLifeExpression : EFXAttribute, IExpressionAttribute
 {
 	public EFXExpressionList? Expression => expressions;
@@ -128,6 +128,9 @@ public partial class EFXAttributeLifeExpression : EFXAttribute, IExpressionAttri
 
 	public EFXAttributeLifeExpression() : base(EfxAttributeType.LifeExpression) { }
 
+	// re7 and dd2 have value + rand pairs: 1-2 = appear, 3-4 = keep, 5-6 = vanish
+	// rest have just singular values
+	// TODO bitset versioning
 	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(6)  { BitNameDict = new () {
 		[1] = nameof(appearLife),
 		[2] = nameof(keepLife),
@@ -135,12 +138,14 @@ public partial class EFXAttributeLifeExpression : EFXAttribute, IExpressionAttri
 	} };
 
 	public ExpressionAssignType appearLife;
+	[RszVersion(nameof(Version), ">=", EfxVersion.DD2, "||", nameof(Version), "==", EfxVersion.RE7)]
+	public ExpressionAssignType appearLifeRand;
 	public ExpressionAssignType keepLife;
+	[RszVersion(nameof(Version), ">=", EfxVersion.DD2, "||", nameof(Version), "==", EfxVersion.RE7)]
+	public ExpressionAssignType keepLifeRand;
 	public ExpressionAssignType vanishLife;
-	[RszVersion(nameof(Version), ">=", EfxVersion.DD2, "||", nameof(Version), "==", EfxVersion.RE7, EndAt = nameof(unkn6))]
-	public ExpressionAssignType unkn4;
-	public ExpressionAssignType unkn5;
-	public ExpressionAssignType unkn6;
+	[RszVersion(nameof(Version), ">=", EfxVersion.DD2, "||", nameof(Version), "==", EfxVersion.RE7)]
+	public ExpressionAssignType vanishLifeRand;
 
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
@@ -461,7 +466,7 @@ public partial class EFXAttributeShaderSettingsExpression : RszTool.Efx.EFXAttri
     public EFXAttributeShaderSettingsExpression() : base(EfxAttributeType.ShaderSettingsExpression) { }
 
 	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(12) { BitNameDict = new () {
-		// [1] = nameof(volume), // re7/rt/dmc5/re8 - volume/volumeblend; color - dd2
+		// [1] = nameof(volume), // re7/rt/dmc5/re8 - volume/volumeblend (alpha?); color - dd2
 		// [2] = nameof(alpha), // alpha - dd2
 		// [3] = nameof(translationZ), LightShadowRatio
 		// [4] = nameof(rotationX), BackFaceLightRatio

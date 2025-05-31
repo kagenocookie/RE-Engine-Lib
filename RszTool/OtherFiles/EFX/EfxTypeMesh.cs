@@ -402,13 +402,16 @@ public partial class EFXAttributeTypeGpuMeshExpression : EFXAttribute, IExpressi
 
 	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(19) { BitNameDict = new () {
 		[1] = nameof(color),
-		[2] = nameof(alpha),
-		[3] = nameof(alphaRate),
+		[2] = nameof(colorRand),
+		[3] = nameof(alpha),
+		[4] = nameof(alphaRate),
+		[12] = nameof(size),
+		[13] = nameof(sizeRand),
 	} };
 	public ExpressionAssignType color;
+	public ExpressionAssignType colorRand;
 	public ExpressionAssignType alpha;
 	public ExpressionAssignType alphaRate;
-	public ExpressionAssignType unkn4;
 	public ExpressionAssignType unkn5;
 	public ExpressionAssignType unkn6;
 	public ExpressionAssignType unkn7;
@@ -416,8 +419,8 @@ public partial class EFXAttributeTypeGpuMeshExpression : EFXAttribute, IExpressi
 	public ExpressionAssignType unkn9;
 	public ExpressionAssignType unkn10;
 	public ExpressionAssignType unkn11;
-	public ExpressionAssignType unkn12;
-	public ExpressionAssignType unkn13;
+	public ExpressionAssignType size;
+	public ExpressionAssignType sizeRand;
 	public ExpressionAssignType unkn14;
 	public ExpressionAssignType unkn15;
 	public ExpressionAssignType unkn16;

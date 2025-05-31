@@ -45,6 +45,8 @@ public partial class EFXAttributeVelocity2DExpression : EFXAttribute, IExpressio
 		[1] = nameof(speed),
 		[2] = nameof(speedRand),
 		[4] = nameof(gravity),
+		[7] = nameof(angle),
+		[8] = nameof(angleRand),
 	}};
     public ExpressionAssignType speed;
     public ExpressionAssignType speedRand;
@@ -52,8 +54,8 @@ public partial class EFXAttributeVelocity2DExpression : EFXAttribute, IExpressio
     public ExpressionAssignType gravity;
     public ExpressionAssignType unkn5;
     public ExpressionAssignType unkn6;
-    public ExpressionAssignType unkn7;
-    public ExpressionAssignType unkn8;
+    public ExpressionAssignType angle;
+    public ExpressionAssignType angleRand;
     [RszVersion(EfxVersion.RE4, EndAt = nameof(unkn13))]
     public ExpressionAssignType unkn9;
     public ExpressionAssignType unkn10;
@@ -142,7 +144,7 @@ public partial class EFXAttributeVelocity3DExpression : EFXAttribute, IExpressio
 		[10] = nameof(velocityYRandom),
 		[11] = nameof(velocityZ),
 		[12] = nameof(velocityZRandom),
-		// [13] = nameof(vectorX),
+		// [13] = nameof(vectorX), // direction?
 		// [14] = nameof(vectorY),
 		// [15] = nameof(vectorZ),
 	} };

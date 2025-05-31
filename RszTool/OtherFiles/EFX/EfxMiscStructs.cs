@@ -64,7 +64,7 @@ public partial class EFXAttributeDistortionExpression : EFXAttribute, IExpressio
 	public ExpressionAssignType unkn1;
 	public ExpressionAssignType unkn2;
 	public ExpressionAssignType unkn3;
-	public ExpressionAssignType colorG;
+	public ExpressionAssignType unkn4;
 	public ExpressionAssignType unkn5;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }

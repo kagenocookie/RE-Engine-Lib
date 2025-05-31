@@ -66,14 +66,14 @@ public partial class EFXAttributeTypePolygonExpression : RszTool.Efx.EFXAttribut
 		[1] = nameof(color),
 		[2] = nameof(alpha),
 		[3] = nameof(emissive),
-		[4] = nameof(color2),
+		[4] = nameof(colorStrength),
 		[12] = nameof(scale),
 		[14] = nameof(size),
 	} };
     public ExpressionAssignType color;
     public ExpressionAssignType alpha;
     public ExpressionAssignType emissive;
-    public ExpressionAssignType color2;
+    public ExpressionAssignType colorStrength;
     public ExpressionAssignType unkn5; // rert DistortionRate
     public ExpressionAssignType unkn6;
     public ExpressionAssignType unkn7;

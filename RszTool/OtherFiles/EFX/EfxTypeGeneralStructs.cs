@@ -35,11 +35,25 @@ public partial class EFXAttributeTypeNoDrawExpression : EFXAttribute, IExpressio
 
 	public EFXAttributeTypeNoDrawExpression() : base(EfxAttributeType.TypeNoDrawExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(16) { BitNames = [nameof(colorR), nameof(colorG), nameof(colorB)] };
-    public ExpressionAssignType colorR;
-    public ExpressionAssignType colorG;
-    public ExpressionAssignType colorB;
-    public ExpressionAssignType unkn4;
+	// TODO bitset versioning
+	// re3: 2 = alpha
+	// re3rt: 3 = alpha
+	// [RszClassInstance] public readonly BitSet expressionBits = new BitSet(16) { BitNameDict = new () {
+	// 	[1] = nameof(color),
+	// 	[2] = nameof(colorRand),
+	// 	[3] = nameof(alpha),
+	// 	[4] = nameof(alphaRand),
+	// } };
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(16) { BitNameDict = new () {
+		[1] = nameof(color),
+		[2] = nameof(alpha),
+	} };
+    public ExpressionAssignType color;
+	[RszVersion('>', EfxVersion.RE3)]
+    public ExpressionAssignType colorRand;
+    public ExpressionAssignType alpha;
+	[RszVersion('>', EfxVersion.RE3)]
+    public ExpressionAssignType alphaRand;
     public ExpressionAssignType unkn5;
     public ExpressionAssignType unkn6;
     public ExpressionAssignType unkn7;
@@ -50,7 +64,6 @@ public partial class EFXAttributeTypeNoDrawExpression : EFXAttribute, IExpressio
     public ExpressionAssignType unkn12;
     public ExpressionAssignType unkn13;
     public ExpressionAssignType unkn14;
-	[RszVersion('>', EfxVersion.RE3, EndAt = nameof(unkn16))]
     public ExpressionAssignType unkn15;
     public ExpressionAssignType unkn16;
 

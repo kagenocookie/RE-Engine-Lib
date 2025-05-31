@@ -136,11 +136,11 @@ public partial class EFXAttributeEmitterShape3DExpression : EFXAttribute, IExpre
 	public ExpressionAssignType rangeYMax;
 	public ExpressionAssignType rangeZMin;
 	public ExpressionAssignType rangeZMax;
-	[RszVersion('>', EfxVersion.RE7)]
+	[RszVersion(EfxVersion.RE2)]
 	public ExpressionAssignType spawnNum;
-	[RszVersion('>', EfxVersion.RE3, EndAt = nameof(unkn1_9))]
-	public ExpressionAssignType unkn1_8;
-	public ExpressionAssignType unkn1_9;
+	[RszVersion('>', EfxVersion.RE3, EndAt = nameof(unkn9))]
+	public ExpressionAssignType unkn8; // seems like an additional range parameter
+	public ExpressionAssignType unkn9;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 

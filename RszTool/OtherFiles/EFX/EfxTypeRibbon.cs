@@ -585,27 +585,26 @@ public partial class EFXAttributeTypeRibbonFixEndExpression : RszTool.Efx.EFXAtt
 		[2] = nameof(alpha),
 		[14] = nameof(color2),
 		[16] = nameof(color3),
-		[18] = nameof(color4),
 	} };
     public ExpressionAssignType color;
     public ExpressionAssignType alpha;
-    public ExpressionAssignType ukn1_3;
-    public ExpressionAssignType ukn1_4;
-    public ExpressionAssignType ukn1_5;
-    public ExpressionAssignType ukn1_6;
-    public ExpressionAssignType ukn1_7;
-    [RszVersion(EfxVersion.RE8, EndAt = nameof(ukn1_9))]
-    public ExpressionAssignType ukn1_8;
-    public ExpressionAssignType ukn1_9;
-    [RszVersion(EfxVersion.RE4, EndAt = nameof(ukn1_17))]
-    public ExpressionAssignType ukn1_10;
-    public ExpressionAssignType ukn1_11;
-    public ExpressionAssignType color2;
-    public ExpressionAssignType ukn1_13;
-    public ExpressionAssignType color3;
-    public ExpressionAssignType ukn1_15;
-    public ExpressionAssignType color4;
-    public ExpressionAssignType ukn1_17;
+    public ExpressionAssignType unkn3;
+    public ExpressionAssignType unkn4;
+    public ExpressionAssignType unkn5;
+    public ExpressionAssignType unkn6;
+    public ExpressionAssignType unkn7;
+    [RszVersion(EfxVersion.RE8, EndAt = nameof(unkn9))]
+    public ExpressionAssignType unkn8;
+    public ExpressionAssignType unkn9;
+    [RszVersion(EfxVersion.RE4, EndAt = nameof(unkn17))]
+    public ExpressionAssignType unkn10;
+    public ExpressionAssignType unkn11;
+    public ExpressionAssignType color2; // may be emissive color
+    public ExpressionAssignType unkn13;
+    public ExpressionAssignType color3; // may be emissive color
+    public ExpressionAssignType unkn15;
+    public ExpressionAssignType unkn16;
+    public ExpressionAssignType unkn17;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
@@ -767,11 +766,13 @@ public partial class EFXAttributeTypeRibbonFollowExpression : EFXAttribute, IExp
 
 	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(17) { BitNameDict = new () {
 		[1] = nameof(color),
+		[3] = nameof(scale),
+		[4] = nameof(scaleRand),
 	} };
 	public ExpressionAssignType color;
 	public ExpressionAssignType unkn2;
-	public ExpressionAssignType unkn3;
-	public ExpressionAssignType unkn4;
+	public ExpressionAssignType scale;
+	public ExpressionAssignType scaleRand;
 	public ExpressionAssignType unkn5;
 	public ExpressionAssignType unkn6;
 	public ExpressionAssignType unkn7;

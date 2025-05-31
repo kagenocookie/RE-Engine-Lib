@@ -138,6 +138,24 @@ public static class EfxTools
             };
             MapEfxFieldType(field.type, info, referencedTypes, fieldInfo, instanceType);
 
+            if (fieldInfo.GetCustomAttribute<RszFixedSizeArrayAttribute>() is RszFixedSizeArrayAttribute arraySize && arraySize.SizeFunc.Length == 0) {
+                structInfo.Fields.Add(new EfxFieldInfo() {
+                    Name = $"len_{field.name}",
+                    Flag = EfxFieldFlags.StructSize,
+                    FlagTarget = field.name,
+                    FieldType = RszFieldType.S32,
+                });
+            }
+
+            if (fieldInfo.GetCustomAttribute<RszListAttribute>() is RszListAttribute listSize && listSize.SizeFunc.Length == 0) {
+                structInfo.Fields.Add(new EfxFieldInfo() {
+                    Name = $"len_{field.name}",
+                    Flag = EfxFieldFlags.StructSize,
+                    FlagTarget = field.name,
+                    FieldType = RszFieldType.S32,
+                });
+            }
+
             if (fieldInfo.GetCustomAttribute<RszSwitchAttribute>() is RszSwitchAttribute switchAttr) {
                 foreach (var subtype in switchAttr.Args.OfType<Type>()) {
                     referencedTypes.Add(subtype);

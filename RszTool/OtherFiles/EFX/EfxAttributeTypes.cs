@@ -611,7 +611,7 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.RERT] = 4,
             [EfxVersion.MHRiseSB] = 4,
             [EfxVersion.RE4] = 17,
-            [EfxVersion.DD2] = 17, // ok
+            [EfxVersion.DD2] = 17,
         },
         [EfxAttributeType.EmitterColor] = new() {
             [EfxVersion.RE3] = 15,

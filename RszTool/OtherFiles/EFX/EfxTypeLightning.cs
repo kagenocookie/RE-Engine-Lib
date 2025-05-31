@@ -4,29 +4,34 @@ using RszTool.InternalAttributes;
 namespace RszTool.Efx.Structs.Main;
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeLightning3D, EfxVersion.RE7, EfxVersion.RE2, EfxVersion.DMC5)]
-public partial class EFXAttributeTypeLightning3DV1 : RszTool.Efx.EFXAttribute
+public partial class EFXAttributeTypeLightning3DV1 : RszTool.Efx.EFXAttribute, IBoneRelationAttribute
 {
     public EFXAttributeTypeLightning3DV1() : base(EfxAttributeType.TypeLightning3D) { }
 
+	// MHR: The unknBitFlag values change between base game and sunbreak, even on files that have no changes. Game will crash when value is set wrong.
+	// DMC5: likely determines some nested struct type (shape?), as the value types are sometimes int and sometimes float: vfx\effectediter\efd_cutscene\efd_cs_mission01\efd_m01_100\efd_03_cs_m01_100_00_021.efx.1769672
+	// DD2: seems irrelevant to struct type - values 0, 1, 16, 17, 18
 	public uint unknBitFlag;
-	public via.Color color0;
 	public via.Color color1;
-	public float unkn2_0;
+	public via.Color color2;
+	public float unkn1;
+	[RszVersionExact(EfxVersion.DMC5, EndAt = nameof(unkn2_3))]
 	public UndeterminedFieldType unkn2_1;
 	public UndeterminedFieldType unkn2_2;
 	public UndeterminedFieldType unkn2_3;
 
     public float unkn2_4;
-	public UndeterminedFieldType unkn2_5;
+	public float unkn2_5;
 	public float unkn2_6;
-	public UndeterminedFieldType unkn2_7;
-	public uint unkn2_8;
-	public UndeterminedFieldType unkn2_9; // either int or float (DMC5) [3, 0.1]
-	public UndeterminedFieldType unkn2_10; // either int or float (DMC5) [5, 0.12]
-	public UndeterminedFieldType unkn2_11; // either int or float (DMC5) [1, 0.3]
-	public UndeterminedFieldType unkn2_12; // either int or float (DMC5) [1, 0.4]
+	[RszVersionExact(EfxVersion.DMC5)]
+	public float unkn2_7;
+	public ByteSet flags;
+	public uint unkn2_9; // either int or float (DMC5) [3, 0.1]
+	public uint unkn2_10; // either int or float (DMC5) [5, 0.12]
+	public uint unkn2_11; // either int or float (DMC5) [1, 0.3]
+	public float unkn2_12;
 	public float unkn2_13;
-	public UndeterminedFieldType unkn2_14;
+	public float unkn2_14;
 	public float unkn2_15;
 	public float unkn2_16;
 	public float unkn2_17;
@@ -68,26 +73,49 @@ public partial class EFXAttributeTypeLightning3DV1 : RszTool.Efx.EFXAttribute
 	public UndeterminedFieldType unkn2_53;
 	public UndeterminedFieldType unkn2_54;
 	public uint unkn2_55;
-    [RszVersion(EfxVersion.DMC5)]
-	public uint unkn2_56;
-    short boneNameEmpty;
+	[RszVersion(EfxVersion.DD2, EndAt = nameof(unkn2_72))]
+	public float dd2_unkn;
+	public float dd2_unkn2;
+	public float dd2_unkn3;
+	public float dd2_unkn4;
+	public float dd2_unkn5;
+	public float unkn2_64;
+	public float unkn2_65;
+	public float unkn2_66;
+	public float unkn2_67;
+	public float unkn2_68;
+	public float unkn2_69;
+	public float unkn2_70;
+	public float unkn2_71;
+	public float unkn2_71_1;
+	public float unkn2_71_2;
+	public float unkn2_71_3;
+	public uint unkn2_71_4;
+	public float unkn2_71_5;
+	public float unkn2_71_6;
+	public float unkn2_71_7;
+	public uint unkn2_71_8;
+	public float unkn2_71_9;
+	public float unkn2_72;
+	[RszInlineWString] public string? boneName;
+
+    public string? ParentBone { get; set; }
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeLightning3D, EfxVersion.MHRiseSB, EfxVersion.DD2)]
 public partial class EFXAttributeTypeLightning3D : EFXAttribute, IBoneRelationAttribute
 {
 	public EFXAttributeTypeLightning3D() : base(EfxAttributeType.TypeLightning3D) { }
 
-	// MHR: The unknBitFlag values change between base game and sunbreak, even on files that have no changes. Game will crash when value is set wrong.
-	// DMC5: likely determines some nested struct type (shape?), as the value types are sometimes int and sometimes float: vfx\effectediter\efd_cutscene\efd_cs_mission01\efd_m01_100\efd_03_cs_m01_100_00_021.efx.1769672
 	public uint unknBitFlag;
 	public via.Color color0;
 	public via.Color color1;
 	public float unkn2_0;
 	public float unkn2_1;
-	public float unkn2_2;
+	public UndeterminedFieldType unkn2_2;
 	public float unkn2_3;
 	[RszVersion(EfxVersion.RERT)]
-	public float sb_unkn0;
+	// 176 => unkn2_14 is float, else int; it's not a flag bit because both 168 and 8 on their own are ints
+	public ByteSet sb_unkn1;
 
     public float unkn2_4;
 	public float unkn2_5;
@@ -95,14 +123,14 @@ public partial class EFXAttributeTypeLightning3D : EFXAttribute, IBoneRelationAt
 	public float unkn2_7;
 	public float unkn2_8;
 
-	// this section types seem to change - likely some dynamic struct based on the bit flag
-	public UndeterminedFieldType unkn2_9;
-	public UndeterminedFieldType unkn2_10;
-	public UndeterminedFieldType unkn2_11;
-	public UndeterminedFieldType unkn2_12;
-	public UndeterminedFieldType unkn2_13;
-	public UndeterminedFieldType unkn2_14;
-	public UndeterminedFieldType unkn2_15;
+	// this section types seem to change - likely some dynamic struct based on something
+	public float unkn2_9;
+	public float unkn2_10;
+	public uint unkn2_11;
+	public uint unkn2_12;
+	public uint unkn2_13;
+	public uint unkn2_14;
+	public uint unkn2_15;
 
 	public float unkn2_16;
 	public float unkn2_17;
@@ -414,95 +442,98 @@ public partial class EFXAttributeTypeLightning3DMaterialExpression : EFXAttribut
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXMaterialExpressionList? materialExpressions;
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuLightning3D, EfxVersion.RE4)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuLightning3D, EfxVersion.DD2)]
 public partial class EFXAttributeTypeGpuLightning3D : EFXAttribute
 {
 	public EFXAttributeTypeGpuLightning3D() : base(EfxAttributeType.TypeGpuLightning3D) { }
 
-	public uint unkn1;
-	public via.Color color0;
+	public uint unkn0;
 	public via.Color color1;
-	public int unkn2_0;
+	public via.Color color2;
+	public float unkn1;
+	public UndeterminedFieldType unkn2;
+	public UndeterminedFieldType unkn3;
+	public float unkn4;
+	public float unkn5;
+	public uint unkn6;
+	public uint unkn7;
+	public float unkn8;
+	public float unkn9;
+	public float unkn10;
+	public float unkn11;
+	public float unkn12;
+	public float unkn13;
+	public float unkn14;
+	public float unkn15;
+	public float unkn16;
+	public float unkn17;
+	public float unkn18;
+	public float unkn19;
+	public float unkn20;
+	public float unkn21;
+	public UndeterminedFieldType unkn22;
+	public float unkn23;
+	public UndeterminedFieldType unkn24;
+	public UndeterminedFieldType unkn25;
+	public float unkn26;
+	public UndeterminedFieldType unkn27;
+	public UndeterminedFieldType unkn28;
+	public float unkn29;
+	public UndeterminedFieldType unkn30;
+	public float unkn31;
+	public float unkn32;
+	public float unkn33;
+	public UndeterminedFieldType unkn34;
+	public float unkn35;
+	public float unkn36;
+	public float unkn37;
+	public uint unkn38;
+	public uint unkn39;
+	public float unkn40;
+	public float unkn41;
+	public uint unkn42;
+
 	public float unkn2_1;
-	public UndeterminedFieldType unkn2_2;
-	public UndeterminedFieldType unkn2_3;
+	public float unkn2_2;
+	public float unkn2_3;
 	public float unkn2_4;
-	public uint unkn2_5;
-	public uint unkn2_6;
-	public UndeterminedFieldType unkn2_7;
-	public float unkn2_8;
-	public UndeterminedFieldType unkn2_9;
-	public float unkn2_10;
-	public UndeterminedFieldType unkn2_11;
-	public float unkn2_12;
-	public float unkn2_13;
-	public UndeterminedFieldType unkn2_14;
-	public float unkn2_15;
-	public UndeterminedFieldType unkn2_16;
-	public float unkn2_17;
-	public UndeterminedFieldType unkn2_18;
-	public float unkn2_19;
-	public UndeterminedFieldType unkn2_20;
-	public UndeterminedFieldType unkn2_21;
-	public UndeterminedFieldType unkn2_22;
-	public UndeterminedFieldType unkn2_23;
-	public UndeterminedFieldType unkn2_24;
-	public UndeterminedFieldType unkn2_25;
-	public UndeterminedFieldType unkn2_26;
-	public UndeterminedFieldType unkn2_27;
-	public float unkn2_28;
-	public UndeterminedFieldType unkn2_29;
-	public UndeterminedFieldType unkn2_30;
-	public float unkn2_31;
-	public float unkn2_32;
-	public UndeterminedFieldType unkn2_33;
-	public float unkn2_34;
-	public float unkn2_35;
-	public float unkn2_36;
-	public uint unkn2_37;
-	public uint unkn2_38;
-	public float unkn2_39;
-	public float unkn2_40;
-	public uint unkn2_41;
-	public float unkn2_42;
-	public float unkn2_43;
-	public float unkn2_44;
-	public float unkn2_45;
-	public float unkn2_46;
-	public float unkn2_47;
-	public uint unkn2_48;
-	public uint unkn2_49;
-	public uint unkn2_50;
-	public uint unkn2_51;
-	public uint unkn2_52;
-	public uint unkn2_53;
-	public uint unkn2_54;
-	public float unkn2_55;
-	public float unkn2_56;
-	public float unkn2_57;
-	public float unkn2_58;
-	public float unkn2_59;
-	public float unkn2_60;
-	public uint unkn2_61;
-	public uint unkn2_62;
-	public uint unkn2_63;
-	public uint unkn2_64;
-	public uint unkn2_65;
-	public uint unkn2_66;
-	public uint unkn2_67;
-	public float unkn2_68;
-	public float unkn2_69;
-	public float unkn2_70;
-	public float unkn2_71;
-	public float unkn2_72;
-	public float unkn2_73;
-	public uint unkn2_74;
-	public uint unkn2_75;
-	public uint unkn2_76;
-	public uint unkn2_77;
-	public uint unkn2_78;
-	public uint unkn2_79;
-	public uint unkn2_80;
+	public float unkn2_5;
+	public float unkn2_6;
+	public uint unkn2_7;
+	public uint unkn2_8;
+	public uint unkn2_9;
+	public uint unkn2_10;
+	public uint unkn2_11;
+	public uint unkn2_12;
+	public uint unkn2_13;
+
+	public float unkn3_1;
+	public float unkn3_2;
+	public float unkn3_3;
+	public float unkn3_4;
+	public float unkn3_5;
+	public float unkn3_6;
+	public uint unkn3_7;
+	public uint unkn3_8;
+	public uint unkn3_9;
+	public uint unkn3_10;
+	public uint unkn3_11;
+	public uint unkn3_12;
+	public uint unkn3_13;
+
+	public float unkn4_1;
+	public float unkn4_2;
+	public float unkn4_3;
+	public float unkn4_4;
+	public float unkn4_5;
+	public float unkn4_6;
+	public uint unkn4_7;
+	public uint unkn4_8;
+	public uint unkn4_9;
+	public uint unkn4_10;
+	public uint unkn4_11;
+	public uint unkn4_12;
+	public uint unkn4_13;
 
 	public uint str1Len;
 	public uint str2Len;

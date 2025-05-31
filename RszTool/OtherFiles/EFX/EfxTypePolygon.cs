@@ -137,12 +137,10 @@ public partial class EFXAttributeTypePolygonTrail : EFXAttribute
 	public float unkn5;
 	public float unkn6;
 	public float unkn7;
-    [RszVersionExact(EfxVersion.RE4)]
+    [RszVersion(EfxVersion.RE4)]
 	public uint re4_unkn;
     [RszVersion(EfxVersion.RERT)]
 	public float sb_unkn0;
-	[RszVersion(EfxVersion.DD2)]
-	public float dd2_unkn;
 
 	public uint unkn8;
 	public float unkn9;

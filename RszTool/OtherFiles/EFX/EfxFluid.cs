@@ -51,33 +51,36 @@ public partial class EFXAttributeFluidSimulator2D : RszTool.Efx.EFXAttribute
 {
     public EFXAttributeFluidSimulator2D() : base(EfxAttributeType.FluidSimulator2D) { }
 
-    public uint unkn1_0;
-    public uint unkn1_1;
-    public uint unkn1_2;
-    public uint unkn1_3;
-    public uint unkn1_4;
+    public byte unkn0_1;
+    public byte unkn0_2;
+    public byte unkn0_3;
+    public byte unkn0_4;
+    public uint unkn1;
+    public uint unkn2;
+    public uint unkn3;
+    public uint unkn4;
 
-    public float unkn1_5;
-    public float unkn1_6;
-    public float unkn1_7;
-    public float unkn1_8;
+    public float unkn5;
+    public float unkn6;
+    public float unkn7;
+    public float unkn8;
 
-    public uint unkn1_9;
-    public uint unkn1_10;
-    public uint unkn1_11;
-    public uint unkn1_12;
+    public uint unkn9;
+    public uint unkn10;
+    public uint unkn11;
+    public uint unkn12;
 
-    public float unkn1_13;
-    public float unkn1_14;
-    public float unkn1_15;
-    public float unkn1_16;
-    public float unkn1_17;
-    public float unkn1_18;
+    public float unkn13;
+    public float unkn14;
+    public float unkn15;
+    public float unkn16;
+    public float unkn17;
+    public float unkn18;
 
-    public uint unkn1_19;
-    public uint unkn1_20;
-    public uint unkn1_21;
-    public uint unkn1_22;
+    public uint unkn19;
+    public uint unkn20;
+    public uint unkn21;
+    public uint unkn22;
     [RszVersion(EfxVersion.RE4, EndAt = nameof(re4_unkn2))]
     public float re4_unkn1;
     public float re4_unkn2;
@@ -99,7 +102,11 @@ public partial class EFXAttributeFluidSimulator2D : RszTool.Efx.EFXAttribute
     public float unkn1_31;
     public float unkn1_32;
     public float unkn1_33;
-    public float unkn1_34;
+
+    [RszVersion("<", EfxVersion.DD2)]
+    public float unkn1_34_v1;
+    [RszVersion(EfxVersion.DD2)] // else
+    public uint unkn1_34_v2;
     public float unkn1_35;
 
     [RszVersion(EfxVersion.RE4, EndAt = nameof(re4_unk2_10))]

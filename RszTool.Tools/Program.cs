@@ -152,6 +152,7 @@ internal sealed class Program
         var ignoredEnums = new HashSet<string>() { };
 
         var ignoredStructs = new HashSet<string>() {
+                "ByteSet",
                 "EffectGroup",
                 "UndeterminedFieldType",
                 "EFXFieldParameterValue",

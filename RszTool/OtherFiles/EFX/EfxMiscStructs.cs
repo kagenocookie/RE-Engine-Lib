@@ -75,8 +75,7 @@ public partial class EFXAttributeProceduralDistortion : RszTool.Efx.EFXAttribute
     public EFXAttributeProceduralDistortion() : base(EfxAttributeType.ProceduralDistortion) { }
 
     [RszVersion(EfxVersion.RE4)]
-	public uint re4_unkn_toggle;
-	public float unkn0;
+	public uint unkn0;
 	public float unkn1;
 	public float unkn2;
 	public float unkn3;
@@ -87,15 +86,16 @@ public partial class EFXAttributeProceduralDistortion : RszTool.Efx.EFXAttribute
 	public float unkn6;
 	public float unkn7;
 	public float unkn8;
-	public UndeterminedFieldType unkn9;
+	public float unkn9;
 	public float unkn10;
-	public UndeterminedFieldType unkn11;
-	public UndeterminedFieldType unkn12;
-	public UndeterminedFieldType unkn13;
-	public UndeterminedFieldType unkn14;
-	public UndeterminedFieldType unkn15;
-	public UndeterminedFieldType unkn16;
-	public UndeterminedFieldType unkn17;
+	public float unkn11;
+	public float unkn12;
+	public float unkn13;
+	public float unkn14;
+	public float unkn15;
+	public float unkn16;
+	public float unkn17;
+	public float unkn18;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.ProceduralDistortionDelayFrame, EfxVersion.RE4)]
@@ -214,28 +214,26 @@ public partial class EFXAttributeEffectOptimizeShader : EFXAttribute
 	public uint unknShaderCRCHash0;
 	public uint unknShaderCRCHash1;
 	public uint unknShaderCRCHash2;
-
-	[RszVersion(EfxVersion.DD2, EndAt = nameof(unkn20))]
-    public uint unkn0;
-    public uint unkn1;
-    public uint unkn2;
-    public uint unkn3;
-    public uint unkn4;
-    public uint unkn5;
-    public uint unkn6;
-    public uint unkn7;
-    public uint unkn8;
-    public uint unkn9;
-    public uint unkn10;
-    public uint unkn12;
-    public uint unkn13;
-    public uint unkn14;
-    public uint unkn15;
-    public uint unkn16;
-    public uint unkn17;
-    public uint unkn18;
-    public uint unkn19;
-    public via.Color unkn20;
+    public uint unknShaderCRCHash3;
+    public uint unknShaderCRCHash4;
+    public uint unknShaderCRCHash5;
+    public UndeterminedFieldType unkn3;
+    public uint unknShaderCRCHash6;
+    public uint unknShaderCRCHash7;
+    public uint unknShaderCRCHash8;
+    public uint unknShaderCRCHash9;
+    public uint unknShaderCRCHash10;
+    public uint unknShaderCRCHash11;
+    public UndeterminedFieldType unkn10;
+    public uint unknShaderCRCHash12;
+    public uint unknShaderCRCHash13;
+    public uint unknShaderCRCHash14;
+    public uint unknShaderCRCHash15;
+    public uint unknShaderCRCHash16;
+    public uint unknShaderCRCHash17;
+    public UndeterminedFieldType unkn18;
+    public uint unknShaderCRCHash19;
+    public via.Color unkn20; // TODO probably some 4-byte thing (4x sbyte?) and not a color
 
 	[RszInlineWString] public string? shaderPath;
 }

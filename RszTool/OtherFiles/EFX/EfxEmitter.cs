@@ -159,35 +159,38 @@ public partial class EFXAttributeMeshEmitter : EFXAttribute
 {
     public EFXAttributeMeshEmitter() : base(EfxAttributeType.MeshEmitter) { }
 
-	public uint unkn0;
+	public byte unkn0_1; // TODO 4-byte thing
+	public byte unkn0_2;
+	public byte unkn0_3;
+	public byte unkn0_4;
 	public float unkn1;
-	public uint unkn2;
-	public uint unkn3;
+	public int unkn2; // TODO 4-byte sbyte thing?
+	public int unkn3;
+
 	public uint unkn4;
 	public float unkn5;
 	public float unkn6;
 	public float unkn7;
+    public float unkn8;
+    public float unkn9;
+    public float unkn10;
+    public uint unkn11;
+    public uint unkn12;
+    public UndeterminedFieldType unkn13;
+    public UndeterminedFieldType unkn14;
+    public uint unkn15;
+    public uint unkn16;
+    public UndeterminedFieldType unkn17;
 
-    public uint unkn1_0;
-    public uint unkn1_1;
-    public uint unkn1_2;
-    public uint unkn1_3;
-    public uint unkn1_4;
-    public uint unkn1_5;
-    public uint unkn1_6;
-    public uint unkn1_7;
-    public uint unkn1_8;
-    public uint unkn1_9;
-
-	public float unkn9;
-	public float unkn10;
-	[RszVersion('>', EfxVersion.RERT, EndAt = nameof(unkn16))]
-	public uint unkn11;
-	public uint unkn12;
-	public uint unkn13;
-	public uint unkn14;
-	public float unkn15;
-	public float unkn16;
+	public float unkn18;
+	public float unkn19;
+	[RszVersion('>', EfxVersion.RERT, EndAt = nameof(unkn25))]
+	public float unkn20;
+	public uint unkn21;
+	public UndeterminedFieldType unkn22;
+	public uint unkn23;
+	public uint unkn24;
+	public float unkn25;
 
     [RszStringLengthField(nameof(mapPath))] public int mapPathLength;
     [RszStringLengthField(nameof(meshPath))] public int meshPathLength;

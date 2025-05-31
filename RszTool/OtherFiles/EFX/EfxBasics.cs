@@ -12,31 +12,43 @@ public partial class EFXAttributeSpawn : EFXAttribute
 	public uint rawMaxParticles;
 	public via.Int2 spawnNum;
 	public via.Int2 intervalFrame;
+
+	[RszVersion('<', EfxVersion.DD2)]
 	public uint useSpawnFrame;
+
+	[RszVersion(EfxVersion.DD2)] public bool useSpawnFrame_toggle;
 	public via.RangeI spawnFrame;
 
 	[RszVersion(">", EfxVersion.RE3, EndAt = nameof(re4_unkn6))]
 	public via.RangeI loopNum;
 
 	public via.Int2 emitterdelayFrame;
+	[RszVersion(EfxVersion.DD2, EndAt = nameof(dd2_unkn2))]
+	public bool dd2_toggle1;
+	public bool dd2_toggle2;
+	public bool dd2_toggle3;
+	public float dd2_unknFlt;
+	public byte dd2_unkn2_toggle;
+	public uint dd2_unkn2;
 
 	public uint ringBufferMode;
 
-	[RszVersion(EfxVersion.DD2, EndAt = nameof(dd2_unkn2))]
-	public short dd2_unkn1;
-	public byte dd2_unkn2;
-
 	[RszVersion(EfxVersion.RERT, EndAt = nameof(re4_unkn6))]
+	[RszVersion(EfxVersion.DD2)] public via.Int2 dd2_unkn3;
+	[RszVersion(EfxVersion.DD2)] public byte dd2_unkn4;
 	public uint sb_unkn3;
 
 	[RszVersion(EfxVersion.RE4, EndAt = nameof(re4_unkn6))]
+	[RszVersion("<", EfxVersion.DD2, EndAt = nameof(re4_unkn4))]
 	public uint re4_unkn0;
 	public float re4_unkn1;
 	public uint re4_unkn2;
 	public uint re4_unkn3;
 	public uint re4_unkn4;
-	[RszVersion("<", EfxVersion.DD2, EndAt = nameof(re4_unkn6))]
+
+	[RszVersion(EfxVersion.DD2)] public byte dd2_unkn5;
 	public uint re4_unkn5;
+	[RszVersion("<", EfxVersion.DD2, EndAt = nameof(re4_unkn6))]
 	public uint re4_unkn6;
 }
 
@@ -149,129 +161,60 @@ public partial class EFXAttributeLifeExpression : EFXAttribute, IExpressionAttri
 
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion))]
+public partial class TextureUnitData : BaseModel
+{
+	public uint unkn1;
+	public via.Color color;
+	public float unkn3;
+	public float unkn4;
+	public UndeterminedFieldType unkn5;
+	public float unkn6;
+	public float unkn7;
+	public float unkn8;
+	public float unkn9;
+	public float unkn10;
+	public float unkn11;
+	public float unkn12;
+	public UndeterminedFieldType unkn13;
+	public float unkn14;
+	public UndeterminedFieldType unkn15;
+	public float unkn16;
+	public float unkn17;
+	public float unkn18;
+	public float unkn19;
+	public float unkn20;
+	public UndeterminedFieldType unkn21;
+	public float unkn22;
+	public float unkn23;
+	public float unkn24;
+	public float unkn25;
+	public float unkn26;
+	public UndeterminedFieldType unkn27;
+	public float unkn28;
+	public UndeterminedFieldType unkn29;
+	public float unkn30;
+	public UndeterminedFieldType unkn31;
+	public float unkn32;
+	public UndeterminedFieldType unkn33;
+	public uint unkn34;
+	public uint unkn35;
+	public UndeterminedFieldType unkn36;
+	public UndeterminedFieldType unkn37;
+	public float unkn38;
+	public float unkn39;
+}
+
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TextureUnit, EfxVersion.DMC5, EfxVersion.RE4, EfxVersion.DD2)]
 public partial class EFXAttributeTextureUnit : EFXAttribute
 {
 	public EFXAttributeTextureUnit() : base(EfxAttributeType.TextureUnit) { }
 
-	public uint unkn1_0;
-	public uint unkn1_1;
-	public int unkn1_2;
-	public float unkn1_3;
-	public UndeterminedFieldType unkn1_4;
-	public UndeterminedFieldType unkn1_5;
-	public float unkn1_6;
-	public UndeterminedFieldType unkn1_7;
-	public float unkn1_8;
-	public float unkn1_9;
-	public float unkn1_10;
-	public float unkn1_11;
-	public float unkn1_12;
-	public UndeterminedFieldType unkn1_13;
-	public float unkn1_14;
-	public UndeterminedFieldType unkn1_15;
-	public float unkn1_16;
-	public float unkn1_17;
-	public UndeterminedFieldType unkn1_18;
-	public float unkn1_19;
-	public float unkn1_20;
-	public UndeterminedFieldType unkn1_21;
-	public float unkn1_22;
-	public float unkn1_23;
-	public float unkn1_24;
-	public float unkn1_25;
-	public UndeterminedFieldType unkn1_26;
-	public UndeterminedFieldType unkn1_27;
-	public UndeterminedFieldType unkn1_28;
-	public UndeterminedFieldType unkn1_29;
-	public float unkn1_30;
-	public UndeterminedFieldType unkn1_31;
-	public float unkn1_32;
-	public UndeterminedFieldType unkn1_33;
-	public uint unkn1_34;
-	public uint unkn1_35;
-	public UndeterminedFieldType unkn1_36;
-	public UndeterminedFieldType unkn1_37;
-	public float unkn1_38;
-	public float unkn1_39;
-	public uint unkn1_40;
-	public via.Color unkn1_41;
-	public float unkn1_42;
-	public float unkn1_43;
-	public UndeterminedFieldType unkn1_44;
-	public float unkn1_45;
-	public float unkn1_46;
-	public float unkn1_47;
-	public float unkn1_48;
-	public float unkn1_49;
-	public float unkn1_50;
-	public float unkn1_51;
-	public UndeterminedFieldType unkn1_52;
-	public float unkn1_53;
-	public UndeterminedFieldType unkn1_54;
-	public float unkn1_55;
-	public float unkn1_56;
-	public float unkn1_57;
-	public float unkn1_58;
-	public float unkn1_59;
-	public UndeterminedFieldType unkn1_60;
-	public float unkn1_61;
-	public UndeterminedFieldType unkn1_62;
-	public float unkn1_63;
-	public UndeterminedFieldType unkn1_64;
-	public float unkn1_65;
-	public UndeterminedFieldType unkn1_66;
-	public float unkn1_67;
-	public UndeterminedFieldType unkn1_68;
-	public float unkn1_69;
-	public UndeterminedFieldType unkn1_70;
-	public float unkn1_71;
-	public UndeterminedFieldType unkn1_72;
-	public float unkn1_73;
-	public float unkn1_74;
-	public UndeterminedFieldType unkn1_75;
-	public UndeterminedFieldType unkn1_76;
-	public float unkn1_77;
-	public float unkn1_78;
-	public uint unkn1_79;
-	public via.Color unkn1_80;
-	public float unkn1_81;
-	public UndeterminedFieldType unkn1_82;
-	public UndeterminedFieldType unkn1_83;
-	public float unkn1_84;
-	public float unkn1_85;
-	public UndeterminedFieldType unkn1_86;
-	public UndeterminedFieldType unkn1_87;
-	public float unkn1_88;
-	public UndeterminedFieldType unkn1_89;
-	public float unkn1_90;
-	public UndeterminedFieldType unkn1_91;
-	public float unkn1_92;
-	public UndeterminedFieldType unkn1_93;
-	public UndeterminedFieldType unkn1_94;
-	public UndeterminedFieldType unkn1_95;
-	public float unkn1_96;
-	public UndeterminedFieldType unkn1_97;
-	public float unkn1_98;
-	public UndeterminedFieldType unkn1_99;
-	public float unkn1_100;
-	public UndeterminedFieldType unkn1_101;
-	public float unkn1_102;
-	public UndeterminedFieldType unkn1_103;
-	public UndeterminedFieldType unkn1_104;
-	public UndeterminedFieldType unkn1_105;
-	public UndeterminedFieldType unkn1_106;
-	public UndeterminedFieldType unkn1_107;
-	public float unkn1_108;
-	public UndeterminedFieldType unkn1_109;
-	public float unkn1_110;
-	public UndeterminedFieldType unkn1_111;
-	public UndeterminedFieldType unkn1_112;
-	public uint unkn1_113;
-	public UndeterminedFieldType unkn1_114;
-	public UndeterminedFieldType unkn1_115;
-	public float unkn1_116;
-	public float unkn1_117;
+	public uint unkn1;
+	[RszClassInstance] public TextureUnitData? texUnit1;
+	[RszClassInstance] public TextureUnitData? texUnit2;
+	[RszClassInstance] public TextureUnitData? texUnit3;
+
 	public uint uvs0PathCharCount;
 	public uint uvs1PathCharCount;
 	public uint uvs2PathCharCount;
@@ -394,14 +337,18 @@ public partial class EFXAttributeShaderSettings : EFXAttribute
 
 	public float unkn1;
 	public uint unkn2;
-    [RszVersion(EfxVersion.RE8, EndAt = nameof(sb_unkn1))]
-	public float sb_unkn0;
-	public float sb_unkn1;
+    [RszVersion(EfxVersion.RE8, EndAt = nameof(re8_unkn2))]
+	public float re8_unkn1;
+	public float re8_unkn2;
 
 	public float unkn3;
+    [RszVersion('<', EfxVersion.RE8)]
 	public uint unkn4;
-	[RszVersion("==", EfxVersion.RE7)]
-	public uint unkn5;
+	[RszVersionExact(EfxVersion.RE7)]
+	public uint toggle_re7;
+    [RszVersion(EfxVersion.RE8)]
+	public uint re8_unkn000;
+
 	public via.Color color0;
 	public float unkn6;
 	public float unkn7;
@@ -416,45 +363,56 @@ public partial class EFXAttributeShaderSettings : EFXAttribute
 	public float unkn16;
 	[RszVersion(EfxVersion.RE2)]
 	public float unkn17;
+
 	[RszVersion(EfxVersion.RE4, EndAt = nameof(re4_unkn3))]
 	public float re4_unkn1;
 	public float re4_unkn2;
 	public float re4_unkn3;
+
+    [RszVersion('<', EfxVersion.DD2)]
 	public uint unkn19;
+
+// the below fields aren't quite matched by name across the versions, the value ranges seem wildly different
     [RszVersion(EfxVersion.RERT, EndAt = nameof(sb_unkn5))]
 	public float sb_unkn2;
 	public float sb_unkn3;
 	public float sb_unkn4;
 	public float sb_unkn5;
 
-    [RszVersion(EfxVersion.RE4)]
-	public uint re4_unkn4;
+    [RszVersionExact(EfxVersion.RE4)]
+	public uint toggle_re4;
+    [RszVersion(EfxVersion.DD2)]
+	public float dd2_unkn1;
     [RszVersion(EfxVersion.RE2)]
 	public float unkn20;
 
-    [RszVersion(EfxVersion.RE3, EndAt = nameof(sb_unkn8))]
+    [RszVersion(EfxVersion.DD2)] public uint toggle_dd2;
+    [RszVersion(EfxVersion.RE3, EndAt = nameof(unkn29))]
 	public float unkn21;
+
     [RszVersion(">", EfxVersion.RERT, EndAt = nameof(sb_unkn12))]
 	public float sb_unkn9;
 	public float sb_unkn10;
 	public float sb_unkn11;
 	public float sb_unkn12;
-	public uint unkn22;
-    [RszVersion(EfxVersion.DD2)] public uint dd2_unkn;
-    [RszVersion(EfxVersion.RE8, EndAt = nameof(sb_unkn8))]
-	public float unkn23;
-    [RszVersion("==", EfxVersion.RE8)]
-	public float re8_unkn1;
-    [RszVersion("==", EfxVersion.RE8)]
-	public float re8_unkn2;
-    [RszVersion("!=", EfxVersion.RE8)]
-	public uint unkn24;
-	public uint unkn25;
 
-    [RszVersion(EfxVersion.RERT, EndAt = nameof(sb_unkn8))]
-	public uint sb_unkn6;
-	public uint sb_unkn7;
-	public uint sb_unkn8;
+    [RszVersion(EfxVersion.DD2)]
+	public float dd2_unkn2;
+	public uint unkn22;
+
+    [RszVersionExact(EfxVersion.RE8, EndAt = nameof(re8_unkn5))]
+	public float re8_unkn3;
+	public float re8_unkn4;
+	public float re8_unkn5;
+
+    [RszVersion(EfxVersion.RE8)]
+	public uint unkn24;
+    [RszVersion(EfxVersion.RERT, EndAt = nameof(unkn29))]
+	public uint unkn25;
+	public uint unkn26;
+	public uint unkn27;
+	public uint unkn28;
+	public uint unkn29;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.ShaderSettingsExpression, EfxVersion.DMC5, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.DD2)]

@@ -311,7 +311,10 @@ public partial class EFXAttributeTypeGpuMesh : EFXAttribute
 {
     public EFXAttributeTypeGpuMesh() : base(EfxAttributeType.TypeGpuMesh) { }
 
-    public uint unkn0;
+    public byte unkn0_1;
+    public byte unkn0_2;
+    public byte unkn0_3;
+    public byte unkn0_4;
     public uint unkn1;
     public uint unkn2;
 	[RszVersion('<', EfxVersion.DD2)]
@@ -329,7 +332,7 @@ public partial class EFXAttributeTypeGpuMesh : EFXAttribute
     public float unkn11;
     public float unkn12;
 	[RszVersion(EfxVersion.RE4, EndAt = nameof(unkn16))]
-    public uint unkn13;
+    public float unkn13;
     public uint unkn14;
     public uint unkn15;
     public uint unkn16;

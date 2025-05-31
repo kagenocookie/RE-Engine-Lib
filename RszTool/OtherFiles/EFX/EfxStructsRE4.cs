@@ -236,39 +236,45 @@ public partial class EFXAttributeUnknownRE4_228 : EFXAttribute
 {
     public EFXAttributeUnknownRE4_228() : base(EfxAttributeType.UnknownRE4_228) { }
 
-	public via.Color hash1;
-	public float unkn0;
-	public via.Color hash2;
+    public sbyte unkn0_1; // TODO 4-byte sbyte thing
+    public sbyte unkn0_2;
+    public sbyte unkn0_3;
+    public sbyte unkn0_4;
 	public float unkn1;
-	public float unkn2;
+	public sbyte unkn2_1;
+    public sbyte unkn2_2;
+    public sbyte unkn2_3;
+    public sbyte unkn2_4;
 	public float unkn3;
+	public float unkn4;
+	public float unkn5;
 
-	public byte ukn_b1;
-	public UndeterminedFieldType unkn4;
-	public UndeterminedFieldType unkn5;
-	public UndeterminedFieldType unkn6;
+	public byte toggle_b1;
+	public uint unkn6;
 	public UndeterminedFieldType unkn7;
-	public byte ukn_b2;
-	public UndeterminedFieldType unkn8;
+	public uint unkn8;
 	public UndeterminedFieldType unkn9;
+
+	public byte toggle_b2;
 	public UndeterminedFieldType unkn10;
 	public UndeterminedFieldType unkn11;
-
 	public UndeterminedFieldType unkn12;
 	public UndeterminedFieldType unkn13;
 	public UndeterminedFieldType unkn14;
-	public UndeterminedFieldType unkn15;
+	public uint unkn15;
 	public UndeterminedFieldType unkn16;
-	public UndeterminedFieldType unkn17;
-
-	public byte ukn_b3;
+	public uint unkn17;
 	public UndeterminedFieldType unkn18;
 	public UndeterminedFieldType unkn19;
-	public uint unkn20;
+
+	public byte toggle_b3;
+	public UndeterminedFieldType unkn20;
 	public UndeterminedFieldType unkn21;
 	public uint unkn22;
 	public UndeterminedFieldType unkn23;
-	public UndeterminedFieldType unkn24;
+	public uint unkn24;
+	public UndeterminedFieldType unkn25;
+	public UndeterminedFieldType unkn26;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnknownRE4_231EfCsv, EfxVersion.RE4)]

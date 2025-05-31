@@ -100,3 +100,23 @@ public partial class EfxMaterialStructV2 : EfxMaterialStructBase
 	public uint texBlockSize;
 	[RszInlineWString, RszList(nameof(texCount))] public string[]? texPaths;
 }
+
+public struct ByteSet
+{
+    public byte b1;
+    public byte b2;
+    public byte b3;
+    public byte b4;
+
+    public override string ToString() => $"{b1} {b2} {b3} {b4}";
+}
+
+public struct SByteSet
+{
+    public sbyte b1;
+    public sbyte b2;
+    public sbyte b3;
+    public sbyte b4;
+
+    public override string ToString() => $"{b1} {b2} {b3} {b4}";
+}

@@ -425,11 +425,11 @@ public partial class EFXAttributeTypeGpuBillboard : EFXAttribute
 	public float unkn11;
 
     [RszVersion(EfxVersion.RERT, EndAt = nameof(sb_unkn5))]
-	public UndeterminedFieldType sb_unkn0;
+	public float sb_unkn0;
 	public float sb_unkn1;
-	public UndeterminedFieldType sb_unkn2;
+	public float sb_unkn2;
 	public float sb_unkn3;
-	public UndeterminedFieldType sb_unkn4;
+	public float sb_unkn4;
 	public float sb_unkn5;
 }
 

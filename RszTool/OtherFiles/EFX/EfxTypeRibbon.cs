@@ -3,7 +3,7 @@ using RszTool.InternalAttributes;
 
 namespace RszTool.Efx.Structs.Main;
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonLength, EfxVersion.RE7, EfxVersion.RE2, EfxVersion.DMC5, EfxVersion.RE3, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.RE4)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonLength, EfxVersion.RE7, EfxVersion.RE2, EfxVersion.DMC5, EfxVersion.RE3, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
 public partial class EFXAttributeTypeRibbonLength : EFXAttribute
 {
 	public EFXAttributeTypeRibbonLength() : base(EfxAttributeType.TypeRibbonLength) { }
@@ -25,11 +25,13 @@ public partial class EFXAttributeTypeRibbonLength : EFXAttribute
     [RszVersion(EfxVersion.RERT)]
 	public float sb_unkn0;
 	public float unkn1_12;
+    [RszVersion(EfxVersion.DD2)] public float dd2_unkn1;
     [RszVersion(EfxVersion.RE2)]
-	public uint unkn1_13;
+	public uint unkn1_13; // TODO 4-byte thing?
 	public float unkn1_14;
 	public float unkn1_15;
 	public uint unkn1_16;
+
 	public float unkn1_17;
 	public float unkn1_18;
 	public float unkn1_19;
@@ -46,7 +48,6 @@ public partial class EFXAttributeTypeRibbonLength : EFXAttribute
 	public via.Color color2_2;
 	public via.Color color2_3;
 	public float unkn1_29;
-
 	public float unkn1_30;
 	public float unkn1_31;
 	public float unkn1_32;
@@ -56,61 +57,6 @@ public partial class EFXAttributeTypeRibbonLength : EFXAttribute
     [RszVersion(EfxVersion.RE8, EndAt = nameof(sb_unkn2))]
 	public float sb_unkn1;
 	public float sb_unkn2;
-}
-
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonLength, EfxVersion.DD2)]
-public partial class EFXAttributeTypeRibbonLengthV2 : EFXAttribute
-{
-	public EFXAttributeTypeRibbonLengthV2() : base(EfxAttributeType.TypeRibbonLength) { }
-
-	public uint unkn1_0;
-	public via.Color color0;
-	public via.Color color1;
-	public float unkn1_3;
-
-	public float unkn1_4;
-	public float unkn1_5;
-	public float unkn1_6;
-	public uint unkn1_7;
-	public float unkn1_8;
-	public float unkn1_9;
-	public float unkn1_10;
-	public float unkn1_11;
-	[RszVersion(EfxVersion.RERT)]
-	public float sb_unkn0;
-	public float unkn1_12;
-	public float unkn1_13;
-	public uint unkn1_14;
-	public float unkn1_15;
-	public float unkn1_16;
-	public uint unkn1_17;
-	public float unkn1_18;
-	public float unkn1_19;
-	public float unkn1_20;
-	public float unkn1_21;
-	public float unkn1_22;
-	public float unkn1_23;
-	public float unkn1_24;
-	public float unkn1_25;
-
-	public float unkn1_26;
-	public float unkn1_27;
-	public int unkn1_28;
-	public float unkn1_29;
-
-	public uint unkn1_30;
-	public float unkn1_31;
-	public float unkn1_32;
-	public float unkn1_33;
-	public float unkn1_34;
-	public float unkn1_35;
-	[RszVersion(EfxVersion.RERT, EndAt = nameof(sb_unkn2))]
-	public float sb_unkn1;
-	public float sb_unkn2;
-	[RszVersion(EfxVersion.RE4)]
-	public float re4_unkn0;
-	[RszVersion(EfxVersion.DD2)]
-	public uint dd2_null;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonLengthExpression, EfxVersion.RE7, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.RE4)]
@@ -159,41 +105,41 @@ public partial class EFXAttributeTypeRibbonLengthMaterial : EFXAttribute
 	public EFXAttributeTypeRibbonLengthMaterial() : base(EfxAttributeType.TypeRibbonLengthMaterial) { }
 
 	public UndeterminedFieldType unkn1;
-	public via.Color unkn2;
-	public via.Color unkn3;
+	public via.Color color1;
+	public via.Color color2;
 	public float unkn4;
 	public UndeterminedFieldType unkn5;
 	public UndeterminedFieldType unkn6;
 	public float unkn7;
-	public uint unkn8;
+	public uint unkn8; // TODO 4-byte thing?
 	public float unkn9;
-	public UndeterminedFieldType unkn10;
+	public float unkn10;
 	public float unkn11;
-	public UndeterminedFieldType unkn12;
+	public float unkn12;
 	[RszVersion(EfxVersion.DD2)]
 	public float dd2_unkn1;
 	[RszVersion(EfxVersion.DD2)]
 	public float dd2_unkn2;
 	[RszVersion(EfxVersion.DD2)]
 	public float dd2_unkn3;
-	public uint unkn13;
+	public uint unkn13; // TODO 4-byte thing?
 	public float unkn14;
-	public UndeterminedFieldType unkn15;
+	public float unkn15;
 	public int unkn16;
 	public float unkn17;
 	public float unkn18;
 	public UndeterminedFieldType unkn19;
 	public UndeterminedFieldType unkn20;
-	public UndeterminedFieldType unkn21;
-	public UndeterminedFieldType unkn22;
+	public float unkn21;
+	public float unkn22;
 	public float unkn23;
-	public UndeterminedFieldType unkn24;
+	public float unkn24;
 	public float unkn25;
-	public UndeterminedFieldType unkn26;
+	public float unkn26;
 
-	public via.Color unkn27;
-	public via.Color unkn28;
-	public via.Color unkn29;
+	public via.Color color3;
+	public via.Color color4;
+	public via.Color color5;
 	public float unkn30;
 	public float unkn31;
 	public float unkn32;
@@ -203,7 +149,7 @@ public partial class EFXAttributeTypeRibbonLengthMaterial : EFXAttribute
 	public float unkn36;
 	public float unkn37;
 	public UndeterminedFieldType unkn38;
-	public UndeterminedFieldType unkn39;
+	public uint unkn39;
 
 	[RszConstructorParams(nameof(Version)), RszSwitch(
 		nameof(Version), ">=", EfxVersion.DD2, typeof(EfxMaterialStructV2),
@@ -293,41 +239,55 @@ public partial class EFXAttributeTypeRibbonChain : EFXAttribute
 	public EFXAttributeTypeRibbonChain() : base(EfxAttributeType.TypeRibbonChain) { }
 
 	public uint unkn1;
-	public via.Color color0;
 	public via.Color color1;
+	public via.Color color2;
 	public float unkn2_0;
 
 	public float unkn2_1;
-	public UndeterminedFieldType unkn2_2;
+	public float unkn2_2;
 	public float unkn2_3;
+    [RszVersion(EfxVersion.RE4, EndAt = nameof(re4_unkn1_4))]
+	public byte re4_unkn1_1;
+	public byte re4_unkn1_2;
+	public byte re4_unkn1_3;
+	public byte re4_unkn1_4;
+
 	public float unkn2_4;
 	public float unkn2_5;
 	public float unkn2_6;
 	public float unkn2_7;
 	public float unkn2_8;
-	public uint unkn2_9;
     [RszVersion(EfxVersion.RERT)]
-	public float rert_unkn0;
+	public float rert_unkn1;
+    [RszVersion(EfxVersion.DD2)]
+	public float dd2_unkn0;
+	public byte unkn2_9_1;
+	public byte unkn2_9_2;
+	public byte unkn2_9_3;
+	public byte unkn2_9_4;
     public float unkn2_10;
 
-    // [RszVersion(EfxVersion.RERT, EndAt = nameof(sb_unkn0))]
-	// public float sb_unkn0;
 	public float unkn2_11;
 	public float unkn2_12;
 	public float unkn2_13;
 	public float unkn2_14;
-	public UndeterminedFieldType unkn2_15;
+	public float unkn2_15;
 	public float unkn2_16;
 	public float unkn2_17;
 	public uint unkn2_18;
 	public float unkn2_19;
 	public float unkn2_20;
 	public float unkn2_21;
-	[RszVersion(EfxVersion.RERT)]
+	public float rert_unkn0;
+	[RszVersionExact(EfxVersion.RERT)]
 	public float sb_unkn1;
+	[RszVersionExact(EfxVersion.RERT)]
+	public float sb_unkn2;
 
     public float unkn2_22;
 	public float unkn2_23;
+    [RszVersion(EfxVersion.RE4)]
+	public uint re4_unkn2_hash;
 	public float unkn2_24;
 	public float unkn2_25;
 	public float unkn2_26;
@@ -336,7 +296,8 @@ public partial class EFXAttributeTypeRibbonChain : EFXAttribute
 	public float unkn2_29;
 	public float unkn2_30;
 	public float unkn2_31;
-	public UndeterminedFieldType unkn2_32;
+    [RszVersion('>', EfxVersion.RERT)]
+	public float unkn2_32;
 	public via.Color unkn2_33;
 	public via.Color unkn2_34;
 	public via.Color unkn2_35;
@@ -352,17 +313,16 @@ public partial class EFXAttributeTypeRibbonChain : EFXAttribute
 	public float unkn2_45;
 	public float unkn2_46;
 	public float unkn2_47;
-    [RszVersion(EfxVersion.RE3, EndAt = nameof(re4_unkn0))]
+    [RszVersion(EfxVersion.RE3, EndAt = nameof(unkn2_49))]
 	public float unkn2_48;
 	public float unkn2_49;
 
-    [RszVersion(EfxVersion.RERT)]
-	public float sb_unkn2;
-    [RszVersion(EfxVersion.RE4)]
-	public float re4_unkn0;
+    // [RszVersion(EfxVersion.RERT)]
+    // [RszVersion("!=", EfxVersion.RE4)]
+	// public float sb_unkn3;
+	// public float re4_unkn0;
 
     [RszVersion(EfxVersion.DD2, EndAt = nameof(dd2_unkn7))]
-	public float dd2_unkn0;
 	public float dd2_unkn1;
 	public float dd2_unkn2;
 	public float dd2_unkn3;

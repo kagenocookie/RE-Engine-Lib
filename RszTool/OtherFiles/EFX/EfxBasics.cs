@@ -50,6 +50,10 @@ public partial class EFXAttributeSpawn : EFXAttribute
 	public uint re4_unkn5;
 	[RszVersion("<", EfxVersion.DD2, EndAt = nameof(re4_unkn6))]
 	public uint re4_unkn6;
+
+	[RszVersion(EfxVersion.MHWilds)] public byte mhws_unkn_toggle;
+	// [RszVersion(EfxVersion.MHWilds)] public uint mhws_unkn1;
+	// [RszVersion(EfxVersion.MHWilds)] public uint mhws_unkn2;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.SpawnExpression, EfxVersion.RE3, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
@@ -407,12 +411,17 @@ public partial class EFXAttributeShaderSettings : EFXAttribute
 
     [RszVersion(EfxVersion.RE8)]
 	public uint unkn24;
-    [RszVersion(EfxVersion.RERT, EndAt = nameof(unkn29))]
+
+    [RszVersion(nameof(Version), ">=", EfxVersion.RERT, "&&", nameof(Version), "<", EfxVersion.MHWilds, EndAt = nameof(unkn29))]
 	public uint unkn25;
 	public uint unkn26;
 	public uint unkn27;
 	public uint unkn28;
 	public uint unkn29;
+
+	[RszVersion(EfxVersion.MHWilds, EndAt = nameof(mhws_unkn_short))] public float mhws_unkn1;
+	public float mhws_unkn2;
+	public short mhws_unkn_short;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.ShaderSettingsExpression, EfxVersion.DMC5, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.DD2)]
@@ -457,6 +466,7 @@ public partial class EFXAttributePlayEfx : EFXAttribute
 {
 	public EFXAttributePlayEfx() : base(EfxAttributeType.PlayEfx) { }
 
+	// [RszVersion(EfxVersion.MHWilds)] public uint mhws_unkn;
 	[RszInlineWString] public string? efxPath;
 }
 
@@ -465,6 +475,7 @@ public sealed partial class EFXAttributePlayEmitter : EFXAttribute, IDisposable
 {
 	public EFXAttributePlayEmitter() : base(EfxAttributeType.PlayEmitter) { }
 
+	// [RszVersion(EfxVersion.MHWilds)] public uint mhws_unkn;
 	public uint efxrSize;
 	[RszIgnore] public EfxFile? efxrData;
 

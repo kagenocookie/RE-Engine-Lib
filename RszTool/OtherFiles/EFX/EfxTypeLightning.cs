@@ -542,3 +542,25 @@ public partial class EFXAttributeTypeGpuLightning3D : EFXAttribute
 	[RszInlineWString(-1)] public string? str2;
 	[RszInlineWString(-1)] public string? str3;
 }
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeLightningExpensive, EfxVersion.MHWilds)]
+public partial class EFXAttributeTypeLightningExpensive : EFXAttribute
+{
+	public EFXAttributeTypeLightningExpensive() : base(EfxAttributeType.TypeLightningExpensive) { }
+
+	[RszFixedSizeArray(46)] public uint[]? data;
+}
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtLightningBranchAction, EfxVersion.MHWilds)]
+public partial class EFXAttributePtLightningBranchAction : EFXAttribute
+{
+	public EFXAttributePtLightningBranchAction() : base(EfxAttributeType.PtLightningBranchAction) { }
+
+	public uint unkn0;
+	public float unkn1;
+	public UndeterminedFieldType unkn2;
+	public uint unkn3;
+	public UndeterminedFieldType unkn4;
+	public float unkn5;
+	public UndeterminedFieldType unkn6;
+}

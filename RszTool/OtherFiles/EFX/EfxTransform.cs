@@ -102,6 +102,7 @@ public partial class EFXAttributeTransform3D : EFXAttribute
 {
 	public EFXAttributeTransform3D() : base(EfxAttributeType.Transform3D) { }
 
+	// [RszVersion(EfxVersion.MHWilds)] public uint mhws_unkn;
 	public Vector3 translation;
 	public Vector3 rotation;
 	public Vector3 scale;

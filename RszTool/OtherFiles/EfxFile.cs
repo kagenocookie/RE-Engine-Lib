@@ -219,10 +219,17 @@ namespace RszTool.Efx
                     throw new Exception($"EFX attribute ID {typeId} is out of order from previous {lastAttributeTypeId}");
                 }
                 var type = Version.GetAttributeType(lastAttributeTypeId = typeId);
+                int expectedSize = -1;
+                if (Version >= EfxVersion.MHWilds) {
+                    handler.Read(ref expectedSize);
+                }
                 var seqNum = handler.Read<int>();
                 var attr = EFXAttribute.Create(Version, type, seqNum);
                 attr.Version = Version;
                 attr.Read(handler);
+                if (expectedSize != -1 && expectedSize != attr.Start + attr.Size) {
+                    throw new Exception("EFX attribute was not properly read");
+                }
                 Attributes.Add(attr);
             }
             return true;
@@ -403,6 +410,15 @@ namespace RszTool.Efx
         public uint value;
     }
 
+    [RszGenerate, RszAutoReadWrite]
+    public partial class EFXUvarGroup : BaseModel
+    {
+        [RszIgnore] public int uvarType;
+
+        [RszInlineWString, RszConditional(nameof(uvarType), "==", 2)] public string? path;
+        [RszInlineWString, RszConditional(nameof(uvarType), "==", 2)] public string? group;
+    }
+
     public interface IBoneRelationAttribute
     {
         string? ParentBone { get; set; }
@@ -453,7 +469,6 @@ namespace RszTool
 {
     using RszTool.Efx;
     using RszTool.Efx.Structs.Basic;
-    using RszTool.Efx.Structs.RE4;
 
     public partial class EfxFile : BaseFile
     {
@@ -468,7 +483,7 @@ namespace RszTool
         public List<EFXAction> Actions = new();
         public List<EFXFieldParameterValue> FieldParameterValues = new();
         private List<EffectGroup>? _effectGroups;
-        public List<string> UvarStrings = new();
+        public List<EFXUvarGroup> UvarStrings = new();
         /// <summary>
         /// RE7
         /// </summary>
@@ -587,24 +602,24 @@ namespace RszTool
             }
 
             if (Header.Version > EfxVersion.DMC5) {
-                var uvarCount = handler.Read<int>();
-                // note: found these as either 0 or 1 in DD2, sometimes other numbers too
+                var uvarType1 = handler.Read<int>();
+                var uvarType2 = handler.Read<int>();
+                // note: found these as either 0 or 1 in DD2
                 // always 0 for RE4,DMC5,RERT
-
-                if (uvarCount > 1) {
-                    throw new Exception("Found more UVARs than we know how to handle");
+                if (uvarType1 != 0) {
+                    var grp = new EFXUvarGroup() { uvarType = uvarType1 };
+                    grp.Read(handler);
+                    UvarStrings ??= new ();
+                    UvarStrings.Add(grp);
                 }
-                var uvarType = handler.Read<int>();
-                // uvarType == 1 => no extra data
-                if (uvarType == 2) {
-                    if (handler.Position != handler.Stream.Length - 12) {
-                        throw new Exception("Uvar handling is not OK?");
-                    }
-                    handler.Read<int>();
-                    handler.Read<int>();
-                    handler.Read<int>();
-                } else if (uvarType > 2) {
-                    throw new Exception("Found unhandled uvar type? " + uvarType);
+                if (uvarType2 != 0) {
+                    var grp = new EFXUvarGroup() { uvarType = uvarType2 };
+                    grp.Read(handler);
+                    UvarStrings ??= new ();
+                    UvarStrings.Add(grp);
+                }
+                if (uvarType1 > 2 || uvarType2 > 2) {
+                    throw new Exception("Found unhandled uvar type? " + uvarType1 + " /" + uvarType2);
                 }
             }
 

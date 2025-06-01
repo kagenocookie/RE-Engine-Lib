@@ -256,15 +256,14 @@ public partial class EFXAttributeTypeRibbonChain : EFXAttribute
 	public float unkn2_5;
 	public float unkn2_6;
 	public float unkn2_7;
+    [RszVersion(EfxVersion.MHWilds)] public uint mhws_unkn1;
 	public float unkn2_8;
     [RszVersion(EfxVersion.RERT)]
 	public float rert_unkn1;
     [RszVersion(EfxVersion.DD2)]
 	public float dd2_unkn0;
-	public byte unkn2_9_1;
-	public byte unkn2_9_2;
-	public byte unkn2_9_3;
-	public byte unkn2_9_4;
+	public ByteSet unkn2_9_1;
+    [RszVersion('<', EfxVersion.MHWilds)]
     public float unkn2_10;
 
 	public float unkn2_11;
@@ -330,6 +329,8 @@ public partial class EFXAttributeTypeRibbonChain : EFXAttribute
 	public float dd2_unkn5;
 	public float dd2_unkn6;
 	public float dd2_unkn7;
+    [RszVersion(EfxVersion.MHWilds)]
+	public float mhws_unkn2;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonChainExpression, EfxVersion.RE2, EfxVersion.RERT, EfxVersion.DD2)]

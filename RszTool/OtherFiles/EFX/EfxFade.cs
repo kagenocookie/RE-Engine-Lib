@@ -85,3 +85,28 @@ public partial class EFXAttributeFadeByOcclusion : EFXAttribute
 	public float unkn3;
 	public float unkn4;
 }
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.FadeByRootCulling, EfxVersion.DD2, EfxVersion.MHWilds)]
+public partial class EFXAttributeFadeByRootCulling : EFXAttribute
+{
+	public EFXAttributeFadeByRootCulling() : base(EfxAttributeType.FadeByRootCulling) { }
+
+	public uint null1;
+	public float unkn2;
+	public float unkn3;
+	public float unkn4;
+	public float null5;
+
+	public float unkn6;
+	public float unkn7;
+	public float unkn8;
+	public float unkn9;
+	public float unkn10;
+	public float unkn11;
+	public float unkn12;
+	public float null13;
+	public float null14;
+	public float null15;
+
+	public uint unkn16;
+}

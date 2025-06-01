@@ -86,6 +86,7 @@ public partial class EfxMaterialStructV2 : EfxMaterialStructBase
     public EfxMaterialStructV2(EfxVersion version) : base(version) { }
 
 	public uint ukn1;
+	[RszVersion(EfxVersion.MHWilds)] public float mhws_unkn;
     [RszArraySizeField(nameof(properties))] public int propertyCount;
 	[RszArraySizeField(nameof(texPaths))] public int texCount;
 	public uint ukn2;

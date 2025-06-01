@@ -145,6 +145,7 @@ internal sealed class Program
         var constSection = """
                 local int currentAttributeIndex = -1;
                 uint itemType;
+                if (Version >= EfxVersion_MHWilds) int itemSize;
                 uint unknSeqNum <read=Str("%d = X: %d, Y: %d, Z: %d", this, this & 0xff, (this & 0xff00)>>8, (this & 0xff0000)>>16)>;
 
             """;
@@ -191,7 +192,7 @@ internal sealed class Program
                         } else {
                             structCases[attrName] = list + "\n\t\t\telse " + mycase;
                         }
-                        source = source.Replace($"struct {basename}\r\n", $"struct {basename}_{vername.First()}\r\n");
+                        source = source.Replace($"}}{basename}<read=", $"}}{basename}_{vername.First()}<read=");
                     }
                     structsContent.Append(source).AppendLine();
                 }

@@ -55,7 +55,7 @@ public partial class EFXAttributeTypeMesh : RszTool.Efx.EFXAttribute
 	[RszInlineWString, RszList(nameof(texCount))] public string[]? texPaths;
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeMesh, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeMesh, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2, EfxVersion.MHWilds)]
 public partial class EFXAttributeTypeMeshV2 : EFXAttribute
 {
     public EFXAttributeTypeMeshV2() : base(EfxAttributeType.TypeMesh) { }
@@ -96,6 +96,8 @@ public partial class EFXAttributeTypeMeshV2 : EFXAttribute
     public uint unkn24;
     [RszVersion(EfxVersion.RE4)]
     public uint re4_unkn1;
+    [RszVersion(EfxVersion.MHWilds)]
+    public uint mhws_unkn1;
     [RszVersion(EfxVersion.DD2)]
     public float dd2_unkn1;
     [RszArraySizeField(nameof(texPaths))] public int texCount;
@@ -315,6 +317,10 @@ public partial class EFXAttributeTypeGpuMesh : EFXAttribute
     public byte unkn0_2;
     public byte unkn0_3;
     public byte unkn0_4;
+	[RszVersion(EfxVersion.MHWilds)]
+    public float mhws_unkn1;
+	[RszVersion(EfxVersion.MHWilds)]
+    public float mhws_unkn2;
     public uint unkn1;
     public uint unkn2;
 	[RszVersion('<', EfxVersion.DD2)]

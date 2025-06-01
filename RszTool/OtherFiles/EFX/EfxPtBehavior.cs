@@ -153,6 +153,7 @@ public partial class PtBehaviorVariable : BaseModel
 	)]
 	public PtBehaviorVariableDataBase? variable;
 
+	[RszVersion(EfxVersion.MHWilds)] public uint varHash;
 	[RszInlineString(-1)] public string? behaviorProperty;
 
 	protected override bool DoRead(FileHandler handler)
@@ -175,11 +176,12 @@ public partial class EFXAttributePtBehavior : EFXAttribute
 
     public uint unkn1;
     [RszStringLengthField(nameof(behaviorString))] public int behaviorStringLength;
-    [RszArraySizeField(nameof(properties))] public int varCount;
+	[RszVersion('<', EfxVersion.MHWilds)] [RszArraySizeField(nameof(properties))] public int varCount;
     [RszInlineString(nameof(behaviorStringLength))]
 	public string? behaviorString;
 
-	[RszClassInstance, RszList(nameof(varCount)), RszConstructorParams(nameof(Version))]
+	[RszVersion(EfxVersion.MHWilds)] [RszArraySizeField(nameof(properties))] public int varCount_mhws;
+	[RszClassInstance, RszList(nameof(Version), '<', EfxVersion.MHWilds, '?', nameof(varCount), ':', nameof(varCount_mhws)), RszConstructorParams(nameof(Version))]
 	public List<PtBehaviorVariable> properties = new();
 }
 
@@ -243,6 +245,7 @@ public partial class EFXAttributePtCollision : EFXAttribute
     public float unkn10;
     public float unkn11;
     public float unkn12;
+	[RszVersion('<', EfxVersion.MHWilds, EndAt = nameof(unkn16))]
     public float unkn13;
 	[RszVersion('>', EfxVersion.RE3, EndAt = nameof(unkn16))]
     public float unkn14;
@@ -254,6 +257,23 @@ public partial class EFXAttributePtCollision : EFXAttribute
 
 	[RszConditional("(stringBitFlag & (1 << 1)) != 0"), RszInlineWString]
 	public string? unknString1;
+}
+
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtProjection, EfxVersion.MHWilds)]
+public partial class EFXAttributePtProjection : EFXAttribute
+{
+    public EFXAttributePtProjection() : base(EfxAttributeType.PtProjection) { }
+
+    public uint unkn1;
+    public float unkn2;
+    public float unkn3;
+    public UndeterminedFieldType unkn4;
+    public UndeterminedFieldType unkn5;
+    public UndeterminedFieldType unkn6;
+    public UndeterminedFieldType unkn7;
+	// RszConditional("(stringBitFlag & (1 << 0)) != 0"),
+	// [RszInlineWString] public string? unknString0;
 }
 
 
@@ -328,4 +348,55 @@ public partial class EFXAttributePtUvSequenceClip : EFXAttribute, IClipAttribute
 	[RszClassInstance] public readonly BitSet clipBits = new BitSet(3);
     uint unkn1;
 	[RszClassInstance] public EfxClipData clipData = new();
+}
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtFreezer, EfxVersion.DD2)]
+public partial class EFXAttributePtFreezer : EFXAttribute
+{
+	public EFXAttributePtFreezer() : base(EfxAttributeType.PtFreezer) { }
+
+	public UndeterminedFieldType unkn0;
+	public UndeterminedFieldType unkn1;
+	public UndeterminedFieldType unkn2;
+	public UndeterminedFieldType unkn3;
+	public UndeterminedFieldType unkn4;
+	public uint unkn5;
+	public UndeterminedFieldType unkn6;
+	public UndeterminedFieldType unkn7;
+	public uint unkn8;
+	public UndeterminedFieldType unkn9;
+}
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtPathTranslate, EfxVersion.RE4, EfxVersion.DD2)]
+public partial class EFXAttributePtPathTranslate : EFXAttribute
+{
+	public EFXAttributePtPathTranslate() : base(EfxAttributeType.PtPathTranslate) { }
+
+	public uint unkn1;
+	public uint unkn2;
+	public float unkn3;
+	public int dataSize;
+	public float unkn4;
+	public float unkn5;
+	public float unkn6;
+	public float unkn7;
+	public float unkn8;
+	public float unkn9;
+	public float unkn10;
+	public float unkn11;
+	public float unkn12;
+	public Vector3 rotation;
+	public Vector3 scale;
+	[RszFixedSizeArray(nameof(dataSize))] public PtPathTranslateSubstruct[]? substruct2;
+
+    public struct PtPathTranslateSubstruct
+    {
+        public float unkn0;
+        public float unkn1;
+        public float unkn2;
+        public float unkn3;
+        public float unkn4;
+        public float unkn5;
+        public float unkn6;
+    }
 }

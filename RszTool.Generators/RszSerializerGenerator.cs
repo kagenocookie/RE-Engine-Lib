@@ -331,16 +331,16 @@ public class RszSerializerGenerator : IIncrementalGenerator
                     } else {
                         var fieldType = field.GetFieldType()?.GetArrayElementType();
                         ctx.Indent().AppendLine($"{name} ??= new();");
-                        ctx.Indent().AppendLine($"for (int i = 0; i < {size}; ++i) {{ var item = new {fieldType}({constructor}); item.Read(handler); {name}.Add(item); }}");
+                        ctx.Indent().AppendLine($"for (int i = 0; i < ({size}); ++i) {{ var item = new {fieldType}({constructor}); item.Read(handler); {name}.Add(item); }}");
                     }
                 } else if (isString || isWString) {
                     ctx.Indent().AppendLine($"{name} = new string[{size}];");
                     var strMethod = isString ? "ReadAsciiString" : "ReadWString";
-                    ctx.Indent().AppendLine($"for (int i = 0; i < {size}; ++i) {name}[i] = handler.{strMethod}(-1, -1, false);");
+                    ctx.Indent().AppendLine($"for (int i = 0; i < ({size}); ++i) {name}[i] = handler.{strMethod}(-1, -1, false);");
                 } else {
                     var fieldType = field.GetFieldType()?.GetArrayElementType();
                     ctx.Indent().AppendLine($"{name} ??= new();");
-                    ctx.Indent().AppendLine($"for (int i = 0; i < {size}; ++i) {name}.Add(handler.Read<{fieldType}>());");
+                    ctx.Indent().AppendLine($"for (int i = 0; i < ({size}); ++i) {name}.Add(handler.Read<{fieldType}>());");
                     // ctx.source.ReportDiagnostic(Diagnostic.Create(Diagnostics.UnhandledFailure, field.GetLocation(), "unsupported list type"));
                 }
             } else if (handle == HandleType.FieldList) {

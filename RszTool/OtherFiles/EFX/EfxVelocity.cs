@@ -293,3 +293,50 @@ public partial class EFXAttributePtAngularVelocity3D : EFXAttribute
 	public float unkn7;
 	public float unkn8;
 }
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtAngularVelocity3DExpression, EfxVersion.DD2)]
+public partial class EFXAttributePtAngularVelocity3DExpression : EFXAttribute, IExpressionAttribute
+{
+    public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
+
+	public EFXAttributePtAngularVelocity3DExpression() : base(EfxAttributeType.PtAngularVelocity3DExpression) { }
+
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(7);
+	public ExpressionAssignType unkn1;
+	public ExpressionAssignType unkn2;
+	public ExpressionAssignType unkn3;
+	public ExpressionAssignType unkn4;
+	public ExpressionAssignType unkn5;
+	public ExpressionAssignType unkn6;
+	public ExpressionAssignType unkn7;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
+}
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtAngularVelocity2D, EfxVersion.DD2)]
+public partial class EFXAttributePtAngularVelocity2D : EFXAttribute
+{
+	public EFXAttributePtAngularVelocity2D() : base(EfxAttributeType.PtAngularVelocity2D) { }
+
+	public uint null1;
+	public float unkn2;
+	public float unkn3;
+	public float unkn4;
+	public float null5;
+	public float unkn6;
+}
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtAngularVelocity2DExpression, EfxVersion.DD2)]
+public partial class EFXAttributePtAngularVelocity2DExpression : EFXAttribute
+{
+	public EFXAttributePtAngularVelocity2DExpression() : base(EfxAttributeType.PtAngularVelocity2DExpression) { }
+
+	public uint unkn1;
+	public uint unkn2;
+	public uint unkn3;
+	public uint unkn4;
+	public uint unkn5;
+	public uint unkn6;
+	public uint unkn7;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
+}

@@ -9,8 +9,8 @@ public partial class EFXAttributeTypeStrainRibbonV1 : RszTool.Efx.EFXAttribute
     public EFXAttributeTypeStrainRibbonV1() : base(EfxAttributeType.TypeStrainRibbon) { }
 
     uint ukn1;
-	public via.Color color0;
 	public via.Color color1;
+	public via.Color color2;
 	public float unkn1_3;
     public float ukn2_0;
     public float ukn2_1;
@@ -44,9 +44,9 @@ public partial class EFXAttributeTypeStrainRibbonV1 : RszTool.Efx.EFXAttribute
     public uint ukn3_0;
     public uint ukn3_1;
     public float ukn3_2;
-    public via.Color ukn3_3;
-    public via.Color ukn3_4;
-    public via.Color ukn3_5;
+    public via.Color color3;
+    public via.Color color4;
+    public via.Color color5;
     public float ukn3_6;
     public float ukn3_7;
     [RszVersion(EfxVersion.RE3, EndAt = nameof(ukn4_1))]
@@ -56,9 +56,9 @@ public partial class EFXAttributeTypeStrainRibbonV1 : RszTool.Efx.EFXAttribute
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeStrainRibbon, EfxVersion.RE8, EfxVersion.RERT)]
-public partial class EFXAttributeTypeStrainRibbon : EFXAttribute, IBoneRelationAttribute
+public partial class EFXAttributeTypeStrainRibbonV2 : EFXAttribute, IBoneRelationAttribute
 {
-	public EFXAttributeTypeStrainRibbon() : base(EfxAttributeType.TypeStrainRibbon) { }
+	public EFXAttributeTypeStrainRibbonV2() : base(EfxAttributeType.TypeStrainRibbon) { }
 
 	public uint unkn1_0;
 	public via.Color color0;
@@ -138,6 +138,83 @@ public partial class EFXAttributeTypeStrainRibbon : EFXAttribute, IBoneRelationA
     public string? ParentBone { get; set; }
 }
 
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeStrainRibbon, EfxVersion.RE4)]
+public partial class EFXAttributeTypeStrainRibbonV3 : EFXAttribute
+{
+	// structure looks vaguely similar to TypeStrainRibbon, but big reodering
+	public EFXAttributeTypeStrainRibbonV3() : base(EfxAttributeType.TypeStrainRibbon) { }
+
+    public uint unkn0_0;
+    public uint unkn0_1;
+    public uint unkn0_2;
+    public uint unkn0_3;
+    public float unkn1_0;
+    public float unkn1_1;
+    public float unkn1_2;
+    public int unkn2;
+    public float unkn3_0;
+    public float unkn3_1;
+    public float unkn3_2;
+    public float unkn3_3;
+    public float unkn3_4;
+    public uint unkn3_5;
+    public uint unkn4_0;
+    public float unkn4_1;
+    public float unkn4_2;
+    public via.Color color0;
+    public via.Color color1;
+    public via.Color color2;
+
+	public float unkn5_0;
+    public float unkn5_1;
+    public float unkn5_2;
+    public float unkn5_3;
+    public float unkn5_4;
+    public float unkn5_5;
+    public float unkn5_6;
+    public float unkn5_7;
+    public uint unkn5_8;
+    public float unkn5_9;
+    public float unkn5_10;
+    public float unkn5_11;
+    public float unkn5_12;
+    public float unkn5_13;
+    public float unkn5_14;
+    public float unkn5_15;
+    public float unkn5_16;
+    public float unkn5_17;
+    public float unkn5_18;
+    public float unkn5_19;
+    public float unkn5_20;
+    public float unkn5_21;
+    public float unkn5_22;
+    public float unkn5_23;
+    public uint unkn5_24;
+    public float unkn5_25;
+    public float unkn5_26;
+    public uint unkn5_27;
+    public float unkn5_28;
+    public float unkn5_29;
+    public float unkn5_30;
+    public float unkn5_31;
+
+    public int unkn6;
+	public float unkn7_0;
+    public float unkn7_1;
+    public float unkn7_2;
+    public float unkn7_3;
+    public float unkn7_4;
+    public float unkn7_5;
+	[RszInlineWString] public string? boneName;
+	public int unkn8_0;
+	public uint unkn8_color1;
+	public uint unkn8_color2;
+	public float unkn8_3;
+	public float unkn8_4;
+	public int unkn8_5;
+	public float unkn8_6;
+}
+
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeStrainRibbonExpression, EfxVersion.RE2, EfxVersion.DMC5, EfxVersion.RE8, EfxVersion.RERT)]
 public partial class EFXAttributeTypeStrainRibbonExpression : EFXAttribute, IExpressionAttribute
@@ -173,6 +250,48 @@ public partial class EFXAttributeTypeStrainRibbonExpression : EFXAttribute, IExp
 	[RszClassInstance] public EFXExpressionList expressions = new();
 }
 
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeStrainRibbonExpression, EfxVersion.DD2)]
+public partial class EFXAttributeTypeStrainRibbonExpressionV2 : EFXAttribute, IExpressionAttribute
+{
+    public EFXExpressionList? Expression => expressions;
+	public BitSet ExpressionBits => expressionBits;
+
+	public EFXAttributeTypeStrainRibbonExpressionV2() : base(EfxAttributeType.TypeStrainRibbonExpression) { }
+
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(24) { BitNameDict = new () {
+		[13] = nameof(posX),
+		[14] = nameof(posY),
+		[15] = nameof(posZ),
+		[16] = nameof(terminalPosX),
+		[17] = nameof(terminalPosY),
+		[18] = nameof(terminalPosZ),
+	} };
+    public ExpressionAssignType unkn1;
+    public ExpressionAssignType unkn2;
+    public ExpressionAssignType unkn3;
+    public ExpressionAssignType unkn4;
+    public ExpressionAssignType unkn5;
+    public ExpressionAssignType unkn6;
+    public ExpressionAssignType unkn7;
+    public ExpressionAssignType unkn8;
+    public ExpressionAssignType unkn9;
+    public ExpressionAssignType unkn10;
+    public ExpressionAssignType unkn12;
+    public ExpressionAssignType posX;
+    public ExpressionAssignType posY;
+    public ExpressionAssignType posZ;
+    public ExpressionAssignType terminalPosX;
+    public ExpressionAssignType terminalPosY;
+    public ExpressionAssignType terminalPosZ;
+    public ExpressionAssignType unkn19;
+    public ExpressionAssignType unkn20;
+    public ExpressionAssignType unkn21;
+    public ExpressionAssignType unkn22;
+    public ExpressionAssignType unkn23;
+    public ExpressionAssignType unkn24;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
+}
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeStrainRibbonMaterial, EfxVersion.DD2)]
 public partial class EFXAttributeTypeStrainRibbonMaterial : EFXAttribute

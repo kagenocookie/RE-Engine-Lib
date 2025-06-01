@@ -151,7 +151,7 @@ public class Rsz010TemplateGenerator : IIncrementalGenerator
         buildCtx.indent = memberIndent;
 
         var structName = context.ClassDecl.Identifier.Text.Replace("EFXAttribute", "");
-        sb.Append(classIndent).Append("typedef struct ").AppendLine(structName);
+        sb.Append(classIndent).Append("typedef struct ");
         sb.Append(classIndent).AppendLine("{");
 
         foreach (var nested in context.ClassDecl.ChildNodes().OfType<StructDeclarationSyntax>()) {
@@ -160,7 +160,7 @@ public class Rsz010TemplateGenerator : IIncrementalGenerator
 
         Write010Members(buildCtx, buildCtx.context.ClassDecl, buildCtx.context.Fields);
 
-        sb.Append(classIndent).AppendLine("};");
+        sb.Append(classIndent).Append('}').Append(structName).Append("<read=\"[").Append(structName).AppendLine("]\">;");
         var name = context.ClassDecl.Identifier.Text;
         var efxAttr = context.ClassDecl.GetAttribute("EfxStruct");
         if (efxAttr == null) {

@@ -25,6 +25,9 @@ public partial class EFXAttributeTypeNoDraw : EFXAttribute
 	public float unkn11;
 	public float unkn12;
 	public float unkn13;
+	[RszVersion(EfxVersion.MHWilds, EndAt = nameof(unkn15))]
+	public float unkn14;
+	public UndeterminedFieldType unkn15;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeNoDrawExpression, EfxVersion.RE3, EfxVersion.RE4)]
@@ -66,6 +69,9 @@ public partial class EFXAttributeTypeNoDrawExpression : EFXAttribute, IExpressio
     public ExpressionAssignType unkn14;
     public ExpressionAssignType unkn15;
     public ExpressionAssignType unkn16;
+	[RszVersion(EfxVersion.MHWilds, EndAt = nameof(unkn18))]
+    public ExpressionAssignType unkn17;
+    public ExpressionAssignType unkn18;
 
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 

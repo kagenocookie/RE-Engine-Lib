@@ -29,7 +29,7 @@ public partial class EFXAttributeTypeBillboard2D : RszTool.Efx.EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeBillboard2DExpression, EfxVersion.RE7, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
 public partial class EFXAttributeTypeBillboard2DExpression : EFXAttribute, IExpressionAttribute
 {
-	public EFXExpressionList? Expression => expressions;
+	public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeTypeBillboard2DExpression() : base(EfxAttributeType.TypeBillboard2DExpression) { }
@@ -94,7 +94,7 @@ public partial class EFXAttributeTypeBillboard3D : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeBillboard3DExpression, EfxVersion.DMC5, EfxVersion.RE4)]
 public partial class EFXAttributeTypeBillboard3DExpression : EFXAttribute, IExpressionAttribute
 {
-	public EFXExpressionList? Expression => expressions;
+	public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeTypeBillboard3DExpression() : base(EfxAttributeType.TypeBillboard3DExpression) { }
@@ -186,7 +186,7 @@ public partial class EFXAttributeTypeBillboard3DMaterialClip : EFXAttribute, IMa
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeBillboard3DMaterialExpression, EfxVersion.DD2)]
 public partial class EFXAttributeTypeBillboard3DMaterialExpression : EFXAttribute, IExpressionAttribute, IMaterialExpressionAttribute
 {
-    public EFXExpressionList? Expression => expressions;
+    public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
     public EFXMaterialExpressionList? MaterialExpressions => materialExpressions;
 	public BitSet ExpressionBits => expressionBits;
 
@@ -301,7 +301,7 @@ public partial class EFXAttributeTypeNodeBillboard : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeNodeBillboardExpression, EfxVersion.DMC5, EfxVersion.RERT, EfxVersion.RE4)]
 public partial class EFXAttributeTypeNodeBillboardExpression : EFXAttribute, IExpressionAttribute
 {
-	public EFXExpressionList? Expression => expressions;
+	public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeTypeNodeBillboardExpression() : base(EfxAttributeType.TypeNodeBillboardExpression) { }
@@ -436,7 +436,7 @@ public partial class EFXAttributeTypeGpuBillboard : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuBillboardExpression, EfxVersion.DMC5, EfxVersion.RE4)]
 public partial class EFXAttributeTypeGpuBillboardExpression : EFXAttribute, IExpressionAttribute
 {
-	public EFXExpressionList? Expression => expressions;
+	public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeTypeGpuBillboardExpression() : base(EfxAttributeType.TypeGpuBillboardExpression) { }

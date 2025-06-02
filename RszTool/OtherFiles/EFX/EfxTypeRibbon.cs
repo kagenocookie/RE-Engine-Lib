@@ -62,7 +62,7 @@ public partial class EFXAttributeTypeRibbonLength : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonLengthExpression, EfxVersion.RE7, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.RE4)]
 public partial class EFXAttributeTypeRibbonLengthExpression : EFXAttribute, IExpressionAttribute
 {
-	public EFXExpressionList? Expression => expressions;
+	public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeTypeRibbonLengthExpression() : base(EfxAttributeType.TypeRibbonLengthExpression) { }
@@ -161,7 +161,7 @@ public partial class EFXAttributeTypeRibbonLengthMaterial : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonLengthMaterialExpression, EfxVersion.DD2)]
 public partial class EFXAttributeTypeRibbonLengthMaterialExpression : EFXAttribute, IExpressionAttribute, IMaterialExpressionAttribute
 {
-    public EFXExpressionList? Expression => expressions;
+    public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
     public EFXMaterialExpressionList? MaterialExpressions => materialExpressions;
 	public BitSet ExpressionBits => expressionBits;
 
@@ -336,7 +336,7 @@ public partial class EFXAttributeTypeRibbonChain : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonChainExpression, EfxVersion.RE2, EfxVersion.RERT, EfxVersion.DD2)]
 public partial class EFXAttributeTypeRibbonChainExpression : EFXAttribute, IExpressionAttribute
 {
-    public EFXExpressionList? Expression => expressions;
+    public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeTypeRibbonChainExpression() : base(EfxAttributeType.TypeRibbonChainExpression) { }
@@ -536,7 +536,7 @@ public partial class EFXAttributeTypeRibbonFixEnd : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonFixEndExpression, EfxVersion.RE8, EfxVersion.DD2)]
 public partial class EFXAttributeTypeRibbonFixEndExpression : RszTool.Efx.EFXAttribute, IExpressionAttribute
 {
-    public EFXExpressionList? Expression => expressions;
+    public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
     public EFXAttributeTypeRibbonFixEndExpression() : base(EfxAttributeType.TypeRibbonFixEndExpression) { }
@@ -720,7 +720,7 @@ public partial class EFXAttributeTypeRibbonFollow : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonFollowExpression, EfxVersion.DMC5, EfxVersion.DD2)]
 public partial class EFXAttributeTypeRibbonFollowExpression : EFXAttribute, IExpressionAttribute
 {
-	public EFXExpressionList? Expression => expressions;
+	public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeTypeRibbonFollowExpression() : base(EfxAttributeType.TypeRibbonFollowExpression) { }
@@ -819,7 +819,7 @@ public partial class EFXAttributeTypeRibbonFollowMaterialClip : EFXAttribute, IM
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonFollowMaterialExpression, EfxVersion.DD2)]
 public partial class EFXAttributeTypeRibbonFollowMaterialExpression : EFXAttribute, IExpressionAttribute, IMaterialExpressionAttribute
 {
-    public EFXExpressionList? Expression => expressions;
+    public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
     public EFXMaterialExpressionList? MaterialExpressions => materialExpressions;
 	public BitSet ExpressionBits => expressionBits;
 
@@ -942,7 +942,7 @@ public partial class EFXAttributeTypeRibbonTrail : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonParticleExpression, EfxVersion.DD2)]
 public partial class EFXAttributeTypeRibbonParticleExpression : EFXAttribute, IExpressionAttribute
 {
-    public EFXExpressionList? Expression => expressions;
+    public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeTypeRibbonParticleExpression() : base(EfxAttributeType.TypeRibbonParticleExpression) { }
@@ -1008,7 +1008,7 @@ public partial class EFXAttributeTypeGpuRibbonFollow : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuRibbonFollowExpression, EfxVersion.RE4)]
 public partial class EFXAttributeTypeGpuRibbonFollowExpression : EFXAttribute, IExpressionAttribute
 {
-    public EFXExpressionList? Expression => expressions;
+    public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
     public EFXAttributeTypeGpuRibbonFollowExpression() : base(EfxAttributeType.TypeGpuRibbonFollowExpression) { }
@@ -1072,7 +1072,7 @@ public partial class EFXAttributeTypeGpuRibbonLength : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuRibbonLengthExpression, EfxVersion.DD2)]
 public partial class EFXAttributeTypeGpuRibbonLengthExpression : EFXAttribute, IExpressionAttribute
 {
-    public EFXExpressionList? Expression => expressions;
+    public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeTypeGpuRibbonLengthExpression() : base(EfxAttributeType.TypeGpuRibbonLengthExpression) { }

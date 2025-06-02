@@ -188,7 +188,7 @@ public partial class EFXExpressionList : EFXExpressionContainer
 	[RszClassInstance, RszList] public List<EFXExpressionObject> expressions = new();
 
     public override int ExpressionCount => expressions.Count;
-    public override IEnumerable<EFXExpressionObject> Expressions => expressions;
+    public override IList<EFXExpressionObject> Expressions => expressions;
 	public override void AddExpression(EFXExpressionObject obj) => expressions.Add(obj);
 
     protected override bool DoRead(FileHandler handler)

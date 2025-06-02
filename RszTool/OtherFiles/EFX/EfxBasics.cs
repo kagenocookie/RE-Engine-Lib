@@ -59,7 +59,7 @@ public partial class EFXAttributeSpawn : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.SpawnExpression, EfxVersion.RE3, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
 public partial class EFXAttributeSpawnExpression : EFXAttribute, IExpressionAttribute
 {
-	public EFXExpressionList? Expression => expressions;
+	public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeSpawnExpression() : base(EfxAttributeType.SpawnExpression) { }
@@ -106,7 +106,7 @@ public partial class EFXAttributeParentOptions : EFXAttribute, IBoneRelationAttr
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.ParentOptionsExpression, EfxVersion.DD2)]
 public partial class EFXAttributeParentOptionsExpression : EFXAttribute, IExpressionAttribute
 {
-    public EFXExpressionList? Expression => expressions;
+    public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeParentOptionsExpression() : base(EfxAttributeType.ParentOptionsExpression) { }
@@ -139,7 +139,7 @@ public partial class EFXAttributeLife : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.LifeExpression, EfxVersion.RE7, EfxVersion.RE2, EfxVersion.DMC5, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
 public partial class EFXAttributeLifeExpression : EFXAttribute, IExpressionAttribute
 {
-	public EFXExpressionList? Expression => expressions;
+	public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeLifeExpression() : base(EfxAttributeType.LifeExpression) { }
@@ -230,7 +230,7 @@ public partial class EFXAttributeTextureUnit : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TextureUnitExpression, EfxVersion.DD2)]
 public partial class EFXAttributeTextureUnitExpression : EFXAttribute, IExpressionAttribute
 {
-    public EFXExpressionList? Expression => expressions;
+    public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeTextureUnitExpression() : base(EfxAttributeType.TextureUnitExpression) { }
@@ -300,7 +300,7 @@ public partial class EFXAttributeUVSequenceModifier : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UVSequenceExpression, EfxVersion.DMC5, EfxVersion.RE4)]
 public partial class EFXAttributeUVSequenceExpression : EFXAttribute, IExpressionAttribute
 {
-	public EFXExpressionList? Expression => expressions;
+	public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeUVSequenceExpression() : base(EfxAttributeType.UVSequenceExpression) { }
@@ -427,7 +427,7 @@ public partial class EFXAttributeShaderSettings : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.ShaderSettingsExpression, EfxVersion.DMC5, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.DD2)]
 public partial class EFXAttributeShaderSettingsExpression : RszTool.Efx.EFXAttribute, IExpressionAttribute
 {
-    public EFXExpressionList? Expression => expressions;
+    public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
     public EFXAttributeShaderSettingsExpression() : base(EfxAttributeType.ShaderSettingsExpression) { }

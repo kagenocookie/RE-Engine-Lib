@@ -74,7 +74,7 @@ public partial class EFXAttributeTransform2DClip : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Transform2DExpression, EfxVersion.RE2, EfxVersion.RERT, EfxVersion.RE4)]
 public partial class EFXAttributeTransform2DExpression : EFXAttribute, IExpressionAttribute
 {
-    public EFXExpressionList? Expression => expressions;
+    public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeTransform2DExpression() : base(EfxAttributeType.Transform2DExpression) { }
@@ -112,7 +112,7 @@ public partial class EFXAttributeTransform3D : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Transform3DExpression, EfxVersion.DMC5, EfxVersion.RE4, EfxVersion.DD2)]
 public partial class EFXAttributeTransform3DExpression : EFXAttribute, IExpressionAttribute
 {
-    public EFXExpressionList? Expression => expressions;
+    public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeTransform3DExpression() : base(EfxAttributeType.Transform3DExpression) { }
@@ -280,7 +280,7 @@ public partial class EFXAttributePtTransform3DClip : EFXAttribute, IClipAttribut
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtTransform3DExpression, EfxVersion.DD2)]
 public partial class EFXAttributePtTransform3DExpression : EFXAttribute, IExpressionAttribute
 {
-    public EFXExpressionList? Expression => expressions;
+    public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributePtTransform3DExpression() : base(EfxAttributeType.PtTransform3DExpression) { }
@@ -343,7 +343,7 @@ public partial class EFXAttributeRotateAnimDelayFrame : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.RotateAnimExpression, EfxVersion.RE7, EfxVersion.DMC5, EfxVersion.RE4)]
 public partial class EFXAttributeRotateAnimExpression : EFXAttribute, IExpressionAttribute
 {
-	public EFXExpressionList? Expression => expressions;
+	public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeRotateAnimExpression() : base(EfxAttributeType.RotateAnimExpression) { }
@@ -408,7 +408,7 @@ public partial class EFXAttributeScaleAnimDelayFrame : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.ScaleAnimExpression, EfxVersion.DMC5, EfxVersion.RE4)]
 public partial class EFXAttributeScaleAnimExpression : EFXAttribute, IExpressionAttribute
 {
-	public EFXExpressionList? Expression => expressions;
+	public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeScaleAnimExpression() : base(EfxAttributeType.ScaleAnimExpression) { }

@@ -36,7 +36,7 @@ public partial class EFXAttributeVelocity2D : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Velocity2DExpression, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
 public partial class EFXAttributeVelocity2DExpression : EFXAttribute, IExpressionAttribute
 {
-	public EFXExpressionList? Expression => expressions;
+	public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeVelocity2DExpression() : base(EfxAttributeType.Velocity2DExpression) { }
@@ -123,7 +123,7 @@ public partial class EFXAttributeVelocity3DDelayFrame : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Velocity3DExpression, EfxVersion.RE3, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.RE4)]
 public partial class EFXAttributeVelocity3DExpression : EFXAttribute, IExpressionAttribute
 {
-	public EFXExpressionList? Expression => expressions;
+	public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
     public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeVelocity3DExpression() : base(EfxAttributeType.Velocity3DExpression) { }
@@ -297,7 +297,7 @@ public partial class EFXAttributePtAngularVelocity3D : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtAngularVelocity3DExpression, EfxVersion.DD2)]
 public partial class EFXAttributePtAngularVelocity3DExpression : EFXAttribute, IExpressionAttribute
 {
-    public EFXExpressionList? Expression => expressions;
+    public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributePtAngularVelocity3DExpression() : base(EfxAttributeType.PtAngularVelocity3DExpression) { }

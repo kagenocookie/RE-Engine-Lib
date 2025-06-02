@@ -7,11 +7,11 @@ using System.Text;
 public class BitSet : BaseModel
 {
     public int BitCount { get; }
-    public int[] Bits { get; }
+    public int[] Bits { get; set; }
 
     public int Count => Bits.Sum(b => BitOperations.PopCount((uint)b));
     public int HighestBit => GetHighestBit();
-    public string[]? BitNames { get; init; }
+    public string?[]? BitNames { get; init; }
 
     /// <summary>
     /// Dictionary for 1-based bit index to name mapping.
@@ -25,7 +25,7 @@ public class BitSet : BaseModel
             var max = value.Keys.Max();
             BitNames = new string[max];
             for (int i = 0; i < max; ++i) {
-                BitNames[i] = value.GetValueOrDefault(i + 1) ?? (i + 1).ToString();
+                BitNames[i] = value.GetValueOrDefault(i + 1);
             }
         }
     }
@@ -57,18 +57,41 @@ public class BitSet : BaseModel
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool HasBit(int bit)
+    public bool HasBit(int bitIndex)
     {
-        return (Bits[bit >> 5] & (1 << bit)) != 0;
+        return (Bits[bitIndex >> 5] & (1 << bitIndex)) != 0;
+    }
+
+    public string? GetBitName(int bitIndex)
+    {
+        if (BitNames == null || bitIndex >= BitNames.Length) return null;
+        return BitNames[bitIndex];
+    }
+
+    public bool HasBit(string bitName)
+    {
+        for (int i = 0; i < BitNames?.Length; ++i) {
+            if (BitNames[i] == bitName) return HasBit(i + 1);
+        }
+        return false;
+    }
+
+    public int GetBitInsertIndex(int bitIndex)
+    {
+        int index = 0;
+        for (int i = 0; i < bitIndex; ++i) {
+            if (HasBit(i)) index++;
+        }
+        return index;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void SetBit(int bit, bool set)
+    public void SetBit(int bitIndex, bool set)
     {
         if (set) {
-            Bits[bit >> 5] |= (1 << bit);
+            Bits[bitIndex >> 5] |= (1 << bitIndex);
         } else {
-            Bits[bit >> 5] &= ~(1 << bit);
+            Bits[bitIndex >> 5] &= ~(1 << bitIndex);
         }
     }
 

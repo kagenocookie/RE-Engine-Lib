@@ -200,7 +200,7 @@ public partial class EFXAttributeTypeLightning3D : EFXAttribute, IBoneRelationAt
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeLightning3DExpression, EfxVersion.DD2)]
 public partial class EFXAttributeTypeLightning3DExpression : EFXAttribute, IExpressionAttribute
 {
-	public EFXExpressionList? Expression => expressions;
+	public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeTypeLightning3DExpression() : base(EfxAttributeType.TypeLightning3DExpression) { }
@@ -382,7 +382,7 @@ public partial class EFXAttributeTypeLightning3DMaterialClip : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeLightning3DMaterialExpression, EfxVersion.DD2)]
 public partial class EFXAttributeTypeLightning3DMaterialExpression : EFXAttribute, IExpressionAttribute, IMaterialExpressionAttribute
 {
-    public EFXExpressionList? Expression => expressions;
+    public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
     public EFXMaterialExpressionList? MaterialExpressions => materialExpressions;
 
 	public EFXAttributeTypeLightning3DMaterialExpression() : base(EfxAttributeType.TypeLightning3DMaterialExpression) { }

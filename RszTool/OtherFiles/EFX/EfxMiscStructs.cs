@@ -57,7 +57,7 @@ public partial class EFXAttributeDistortion : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.DistortionExpression, EfxVersion.DD2)]
 public partial class EFXAttributeDistortionExpression : EFXAttribute, IExpressionAttribute
 {
-	public EFXExpressionList? Expression => expressions;
+	public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeDistortionExpression() : base(EfxAttributeType.DistortionExpression) { }
@@ -125,7 +125,7 @@ public partial class EFXAttributeProceduralDistortionClip : EFXAttribute, IClipA
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.ProceduralDistortionExpression, EfxVersion.DD2)]
 public partial class EFXAttributeProceduralDistortionExpression : EFXAttribute, IExpressionAttribute
 {
-	public EFXExpressionList? Expression => expressions;
+	public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeProceduralDistortionExpression() : base(EfxAttributeType.ProceduralDistortionExpression) { }
@@ -316,7 +316,7 @@ public partial class EFXAttributeAttractorClip : EFXAttribute, IClipAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.AttractorExpression, EfxVersion.RE4, EfxVersion.DD2)]
 public partial class EFXAttributeAttractorExpression : EFXAttribute, IExpressionAttribute
 {
-	public EFXExpressionList? Expression => expressions;
+	public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeAttractorExpression() : base(EfxAttributeType.AttractorExpression) { }
@@ -448,7 +448,7 @@ public partial class EFXAttributeNoise : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.NoiseExpression, EfxVersion.RE4)]
 public partial class EFXAttributeNoiseExpression : EFXAttribute, IExpressionAttribute
 {
-	public EFXExpressionList? Expression => expressions;
+	public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeNoiseExpression() : base(EfxAttributeType.NoiseExpression) { }
@@ -533,7 +533,7 @@ public partial class EFXAttributeVanishArea3D : EFXAttribute, IBoneRelationAttri
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.VanishArea3DExpression, EfxVersion.RE4)]
 public partial class EFXAttributeVanishArea3DExpression : EFXAttribute, IExpressionAttribute
 {
-	public EFXExpressionList? Expression => expressions;
+	public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeVanishArea3DExpression() : base(EfxAttributeType.VanishArea3DExpression) { }
@@ -619,7 +619,7 @@ public partial class EFXAttributeRgbCommon : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.RgbCommonExpression, EfxVersion.DD2)]
 public partial class EFXAttributeRgbCommonExpression : EFXAttribute, IExpressionAttribute
 {
-    public EFXExpressionList? Expression => expressions;
+    public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeRgbCommonExpression() : base(EfxAttributeType.RgbCommonExpression) { }
@@ -702,7 +702,7 @@ public partial class EFXAttributeRgbWater : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.RgbWaterExpression, EfxVersion.MHWilds)]
 public partial class EFXAttributeRgbWaterExpression : EFXAttribute, IExpressionAttribute
 {
-    public EFXExpressionList? Expression => expressions;
+    public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeRgbWaterExpression() : base(EfxAttributeType.RgbWaterExpression) { }

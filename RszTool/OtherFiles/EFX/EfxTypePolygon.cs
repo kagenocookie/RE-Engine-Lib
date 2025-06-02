@@ -57,7 +57,7 @@ public partial class EFXAttributeTypePolygonClip : EFXAttribute, IClipAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypePolygonExpression, EfxVersion.RE7, EfxVersion.RE2, EfxVersion.DMC5, EfxVersion.RE3, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
 public partial class EFXAttributeTypePolygonExpression : RszTool.Efx.EFXAttribute, IExpressionAttribute
 {
-    public EFXExpressionList? Expression => expressions;
+    public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
     public EFXAttributeTypePolygonExpression() : base(EfxAttributeType.TypePolygonExpression) { }
@@ -189,7 +189,7 @@ public partial class EFXAttributeTypePolygonTrailMaterial : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypePolygonTrailMaterialExpression, EfxVersion.DD2)]
 public partial class EFXAttributeTypePolygonTrailMaterialExpression : EFXAttribute, IExpressionAttribute, IMaterialExpressionAttribute
 {
-    public EFXExpressionList? Expression => expressions;
+    public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
     public EFXMaterialExpressionList? MaterialExpressions => materialExpressions;
 	public BitSet ExpressionBits => expressionBits;
 
@@ -249,7 +249,7 @@ public partial class EFXAttributeTypeGpuPolygon : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuPolygonExpression, EfxVersion.DD2)]
 public partial class EFXAttributeTypeGpuPolygonExpression : EFXAttribute, IExpressionAttribute
 {
-    public EFXExpressionList? Expression => expressions;
+    public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeTypeGpuPolygonExpression() : base(EfxAttributeType.TypeGpuPolygonExpression) { }

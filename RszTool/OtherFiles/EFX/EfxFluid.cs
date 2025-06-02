@@ -35,7 +35,7 @@ public partial class EFXAttributeFluidEmitter2D : RszTool.Efx.EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.FluidEmitter2DExpression, EfxVersion.DD2)]
 public partial class EFXAttributeFluidEmitter2DExpression : EFXAttribute, IExpressionAttribute
 {
-    public EFXExpressionList? Expression => expressions;
+    public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeFluidEmitter2DExpression() : base(EfxAttributeType.FluidEmitter2DExpression) { }

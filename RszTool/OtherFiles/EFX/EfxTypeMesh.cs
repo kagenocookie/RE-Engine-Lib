@@ -140,7 +140,7 @@ public partial class EFXAttributeTypeMeshClip : EFXAttribute, IMaterialClipAttri
 [RszGenerate, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeMeshExpression, EfxVersion.RE7, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
 public partial class EFXAttributeTypeMeshExpression : EFXAttribute, IExpressionAttribute, IMaterialExpressionAttribute
 {
-	public EFXExpressionList? Expression => expressions;
+	public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
     public EFXMaterialExpressionList? MaterialExpressions => materialExpressions;
 	public BitSet ExpressionBits => expressionBits;
 
@@ -403,7 +403,7 @@ public partial class EFXAttributeTypeGpuMeshClip : EFXAttribute, IMaterialClipAt
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuMeshExpression, EfxVersion.RE8)]
 public partial class EFXAttributeTypeGpuMeshExpression : EFXAttribute, IExpressionAttribute, IMaterialExpressionAttribute
 {
-    public EFXExpressionList? Expression => expressions;
+    public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
     public EFXMaterialExpressionList? MaterialExpressions => materialExpressions;
 	public BitSet ExpressionBits => expressionBits;
 
@@ -612,7 +612,7 @@ public partial class EFXAttributeTypeGpuMeshTrailClip : EFXAttribute, IMaterialC
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuMeshTrailExpression, EfxVersion.DD2)]
 public partial class EFXAttributeTypeGpuMeshTrailExpression : EFXAttribute
 {
-    public EFXExpressionList? Expression => expressions;
+    public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
     public EFXMaterialExpressionList? MaterialExpressions => materialExpressions;
 	public BitSet ExpressionBits => expressionBits;
 

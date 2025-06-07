@@ -15,9 +15,9 @@ public partial class EFXAttributeEmitterColor : EFXAttribute
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.EmitterColorClip, EfxVersion.RE4)]
-public partial class EFXAttributeEmitterColorClip : EFXAttribute, IColorClipAttribute
+public partial class EFXAttributeEmitterColorClip : EFXAttribute, IClipAttribute
 {
-    public EfxColorClipData Clip => clipData;
+    public EfxClipData Clip => clipData;
     public BitSet ClipBits => clipBits;
 
 	public EFXAttributeEmitterColorClip() : base(EfxAttributeType.EmitterColorClip) { }
@@ -29,7 +29,7 @@ public partial class EFXAttributeEmitterColorClip : EFXAttribute, IColorClipAttr
 	// public uint colorClipBits;
 	[RszClassInstance] public readonly BitSet clipBits = new BitSet(4) { BitNames = ["R", "G", "B", "A"] };
 	public uint unkn1;
-	[RszClassInstance] public EfxColorClipData clipData = new();
+	[RszClassInstance] public EfxClipData clipData = new();
 
     public override string ToString() => $"PtColorClip: {clipBits}";
 }

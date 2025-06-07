@@ -1,5 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using RszTool.Common;
 
 namespace RszTool.Efx.Structs.Common;
@@ -134,7 +132,7 @@ public static partial class EfxExpressionStringParser
 		var token = ReadTokenAndPredict(ref ctx);
 		switch (token.type) {
 			case TokenType.Float:
-				return new ExpressionFloat() { value = float.Parse(ctx.GetSpan(token), CultureInfo.InvariantCulture) };
+				return new ExpressionFloat() { value = ctx.GetSpan(token).ParseFloat() };
 			case TokenType.Identifier:
 				if (ctx.nextToken == TokenType.ParenOpen) {
 					return ParseFunction(ref ctx, token);
@@ -150,22 +148,18 @@ public static partial class EfxExpressionStringParser
 		return ExpressionAtom.Null;
 	}
 
-    [DoesNotReturn]
 	private static void ThrowTokenError(ref ParseContext ctx, TokenType token) {
 		throw new Exception($"Found unexpected token {token} at position {ctx.position}");
 	}
 
-	[DoesNotReturn]
 	private static void ThrowTokenError(ref ParseContext ctx, TokenType token, params TokenType[] expected) {
 		throw new Exception($"Found unexpected token {token} at position {ctx.position}. Expected: {string.Join(", ", expected)}");
 	}
 
-	[DoesNotReturn]
 	private static ExpressionAtom ThrowTokenError(in Token token, params TokenType[] expected) {
 		throw new Exception($"Found unexpected token {token.type} at position {token.start}. Expected: {string.Join(", ", expected)}");
 	}
 
-	[DoesNotReturn]
 	private static ExpressionAtom ThrowPositionedError(in Token token, string message) {
 		throw new Exception($"{message} at position {token.start}");
 	}
@@ -181,7 +175,7 @@ public static partial class EfxExpressionStringParser
 	private static ExpressionAtom ParseFloatOrIdentifier(ref ParseContext ctx, in Token token)
 	{
 		return token.type switch {
-			TokenType.Float => new ExpressionFloat() { value = float.Parse(ctx.GetSpan(token)) },
+			TokenType.Float => new ExpressionFloat() { value = ctx.GetSpan(token).ParseFloat() },
 			TokenType.Identifier => ParseIdentifier(ref ctx, token),
 			_ => ThrowTokenError(token, TokenType.Float, TokenType.Identifier),
 		};
@@ -204,8 +198,8 @@ public static partial class EfxExpressionStringParser
 			source = ExpressionParameterSource.Unknown;
 		}
 
-		if (char.IsAsciiDigit(span[0])) {
-			var param = new ExpressionParameter() { hash = uint.Parse(span), source = source };
+		if (span[0] >= '0' && span[0] <= '9') {
+			var param = new ExpressionParameter() { hash = span.ParseUint(), source = source };
 			if (source == ExpressionParameterSource.Unknown) {
 				param.source = ctx.parameters.GetParameterByHash(param.hash)?.source ?? throw new Exception("Unknown expression parameter hash " + param.hash);
 			}
@@ -222,35 +216,31 @@ public static partial class EfxExpressionStringParser
 	}
 
 	private static readonly Dictionary<int, int> functionArgCount = new() {
-		[GetSpanHash(nameof(EfxExpressionFunction.Unary0))] = 1,
-		[GetSpanHash(nameof(EfxExpressionFunction.Unary1))] = 1,
-		[GetSpanHash(nameof(EfxExpressionFunction.Unary2))] = 1,
-		[GetSpanHash(nameof(EfxExpressionFunction.Unary4))] = 1,
-		[GetSpanHash(nameof(EfxExpressionFunction.Unary5))] = 1,
-		[GetSpanHash(nameof(EfxExpressionFunction.Unary6))] = 1,
-		[GetSpanHash(nameof(EfxExpressionFunction.Unary7))] = 1,
-		[GetSpanHash(nameof(EfxExpressionFunction.Unary8))] = 1,
-		[GetSpanHash(nameof(EfxExpressionFunction.Unary9))] = 1,
-		[GetSpanHash(nameof(EfxExpressionFunction.Unary10))] = 1,
+		[nameof(EfxExpressionFunction.Unary0).GetHashCode()] = 1,
+		[nameof(EfxExpressionFunction.Unary1).GetHashCode()] = 1,
+		[nameof(EfxExpressionFunction.Unary2).GetHashCode()] = 1,
+		[nameof(EfxExpressionFunction.Unary4).GetHashCode()] = 1,
+		[nameof(EfxExpressionFunction.Unary5).GetHashCode()] = 1,
+		[nameof(EfxExpressionFunction.Unary6).GetHashCode()] = 1,
+		[nameof(EfxExpressionFunction.Unary7).GetHashCode()] = 1,
+		[nameof(EfxExpressionFunction.Unary8).GetHashCode()] = 1,
+		[nameof(EfxExpressionFunction.Unary9).GetHashCode()] = 1,
+		[nameof(EfxExpressionFunction.Unary10).GetHashCode()] = 1,
 
-		[GetSpanHash(nameof(BinaryExpressionOperator.Min))] = 2,
-		[GetSpanHash(nameof(BinaryExpressionOperator.Max))] = 2,
+		[nameof(BinaryExpressionOperator.Min).GetHashCode()] = 2,
+		[nameof(BinaryExpressionOperator.Max).GetHashCode()] = 2,
 
-		[GetSpanHash(nameof(EfxExpressionFunction.Lerp))] = 3,
-		[GetSpanHash(nameof(EfxExpressionFunction.InvLerp))] = 3,
-		[GetSpanHash(nameof(EfxExpressionFunction.Clamp))] = 3,
+		[nameof(EfxExpressionFunction.Lerp).GetHashCode()] = 3,
+		[nameof(EfxExpressionFunction.InvLerp).GetHashCode()] = 3,
+		[nameof(EfxExpressionFunction.Clamp).GetHashCode()] = 3,
 	};
-    private static int GetSpanHash(ReadOnlySpan<char> span)
-    {
-        return CultureInfo.InvariantCulture.CompareInfo.GetHashCode(span, CompareOptions.Ordinal);
-    }
 
 	private static ExpressionAtom ParseFunction(ref ParseContext ctx, in Token idToken)
 	{
 		SkipToken(ref ctx, TokenType.ParenOpen);
 
 		var nameSpan = ctx.GetSpan(idToken);
-		var nameHash = GetSpanHash(nameSpan);
+		var nameHash = nameSpan.GetSpanHash();
 		if (!functionArgCount.TryGetValue(nameHash, out var args)) {
 			ThrowPositionedError(idToken, "Unknown EFX function " + nameSpan.ToString());
 			return ExpressionAtom.Null;
@@ -280,6 +270,7 @@ public static partial class EfxExpressionStringParser
 
 		if (result == null) {
 			ThrowPositionedError(idToken, "Unknown EFX function " + nameSpan.ToString());
+			return null!;
 		}
 
 		SkipToken(ref ctx, TokenType.ParenClosed);

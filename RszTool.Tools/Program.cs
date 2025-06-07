@@ -157,6 +157,9 @@ internal sealed class Program
                 "EffectGroup",
                 "UndeterminedFieldType",
                 "EFXFieldParameterValue",
+                "EfxClipHeader",
+                "EfxClipFrame",
+                "EfxClipInterpolationTangents",
             };
         var structCases = new Dictionary<string, string>();
         var runResult = driver.GetRunResult();

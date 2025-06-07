@@ -666,6 +666,8 @@ public partial class EFXAttributeRgbWater : EFXAttribute
 
     public ByteSet unkn0;
 	public float unkn1;
+	[RszVersion(EfxVersion.MHWilds)]
+	public float mhws_unkn;
 	public ByteSet unkn2;
 	public float unkn3;
 	public float unkn4;

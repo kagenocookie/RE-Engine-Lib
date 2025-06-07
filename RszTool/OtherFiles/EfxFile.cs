@@ -158,7 +158,8 @@ namespace RszTool.Efx
         }
     }
 
-    public enum EfxEntryEnum {
+    public enum EfxEntryEnum
+    {
         AssignToCollisionEffect = 0,
         Root = 1,
         NoAssignment = 2,
@@ -446,16 +447,12 @@ namespace RszTool.Efx
         BitSet ClipBits { get; }
     }
 
-    public interface IColorClipAttribute
-    {
-        EfxColorClipData Clip { get; }
-        BitSet ClipBits { get; }
-    }
-
-    public interface IMaterialClipAttribute
+    public interface IMaterialClipAttribute : IClipAttribute
     {
         EfxMaterialClipData MaterialClip { get; }
-        BitSet ClipBits { get; }
+#if NET5_0_OR_GREATER
+        EfxClipData IClipAttribute.Clip => MaterialClip;
+#endif
     }
 
     public static class EfxExtensions
@@ -488,7 +485,7 @@ namespace RszTool
         public List<EFXAction> Actions = new();
         public List<EFXFieldParameterValue> FieldParameterValues = new();
         private List<EffectGroup>? _effectGroups;
-        public List<EFXUvarGroup> UvarStrings = new();
+        public List<EFXUvarGroup> UvarGroups = new();
         /// <summary>
         /// RE7
         /// </summary>
@@ -614,14 +611,14 @@ namespace RszTool
                 if (uvarType1 != 0) {
                     var grp = new EFXUvarGroup() { uvarType = uvarType1 };
                     grp.Read(handler);
-                    UvarStrings ??= new ();
-                    UvarStrings.Add(grp);
+                    UvarGroups ??= new();
+                    UvarGroups.Add(grp);
                 }
                 if (uvarType2 != 0) {
                     var grp = new EFXUvarGroup() { uvarType = uvarType2 };
                     grp.Read(handler);
-                    UvarStrings ??= new ();
-                    UvarStrings.Add(grp);
+                    UvarGroups ??= new();
+                    UvarGroups.Add(grp);
                 }
                 if (uvarType1 > 2 || uvarType2 > 2) {
                     throw new Exception("Found unhandled uvar type? " + uvarType1 + " /" + uvarType2);
@@ -812,8 +809,24 @@ namespace RszTool
             Header.effectGroupsLength = (int)(handler.Tell() - writeStart);
 
             if (Header.Version > EfxVersion.DMC5) {
-                handler.Write(0); // Uvar count
-                handler.Write(0); // 0x00 EOF bytes x4
+                if (UvarGroups.Count >= 1)
+                {
+                    handler.Write(UvarGroups[0].uvarType);
+                    UvarGroups[0].Write(handler);
+                }
+                else
+                {
+                    handler.Write(0);
+                }
+                if (UvarGroups.Count >= 1)
+                {
+                    handler.Write(UvarGroups[1].uvarType);
+                    UvarGroups[1].Write(handler);
+                }
+                else
+                {
+                    handler.Write(0);
+                }
             }
 
             var endPosition = handler.Tell();

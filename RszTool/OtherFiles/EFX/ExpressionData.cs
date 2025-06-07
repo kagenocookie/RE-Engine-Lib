@@ -188,7 +188,7 @@ public partial class EFXExpressionList : EFXExpressionContainer
 	[RszClassInstance, RszList] public List<EFXExpressionObject> expressions = new();
 
     public override int ExpressionCount => expressions.Count;
-    public override IList<EFXExpressionObject> Expressions => expressions;
+	public override IEnumerable<EFXExpressionObject> Expressions => expressions;
 	public override void AddExpression(EFXExpressionObject obj) => expressions.Add(obj);
 
     protected override bool DoRead(FileHandler handler)
@@ -248,11 +248,15 @@ public partial class EFXMaterialExpressionList : EFXExpressionContainer
 
     protected override bool DoWrite(FileHandler handler)
     {
+		indices ??= Array.Empty<uint>();
+		indexCount = indices.Length;
+
 		handler.Write(ref solverSize);
-		indexCount = indices?.Length ?? 0;
 		handler.Write(indexCount);
+		var expressionStart = handler.Tell();
 		expressions.Write(handler);
-		handler.Write(Start, (uint)(handler.Tell() - Start));
+		handler.Write(Start, (uint)(handler.Tell() - expressionStart));
+		handler.WriteArray(indices);
 		return true;
     }
 }

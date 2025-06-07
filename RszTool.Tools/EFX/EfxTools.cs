@@ -162,6 +162,11 @@ public static class EfxTools
                 }
             }
 
+            if (fieldInfo.GetCustomAttribute<RszByteSizeFieldAttribute>() is RszByteSizeFieldAttribute sizeAttr) {
+                info.Flag = EfxFieldFlags.StructSize;
+                info.FlagTarget = sizeAttr.TargetObject;
+            }
+
             ExtendHash(structInfo, info);
             structInfo.Fields.Add(info);
         }

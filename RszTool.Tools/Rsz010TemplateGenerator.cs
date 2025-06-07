@@ -12,7 +12,7 @@ public class Rsz010TemplateGenerator : IIncrementalGenerator
     {
     }
 
-    private static HashSet<string> IgnoredIgnoreClasses = ["EFXAttributeTypeMeshExpression"];
+    private static HashSet<string> IgnoredIgnoreClasses = ["EFXAttributeTypeMeshExpression", "EfxClipData"];
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -195,6 +195,16 @@ public class Rsz010TemplateGenerator : IIncrementalGenerator
             }
         }
         foreach (var field in fields) {
+            if (classDecl.Identifier.Text == "EfxClipData" || classDecl.Identifier.Text == "EfxMaterialClipData") {
+                var fn = field.GetFieldName();
+                if (fn == "clips" || fn == "frames" || fn == "interpolationData") {
+                    continue;
+                }
+                if (classDecl.Identifier.Text == "EfxMaterialClipData" && fn == "mdfProperties") {
+                    ctx.Indent().AppendLine("EfxClipList parsedClips;");
+                }
+            }
+
             HandleMember(field, ctx);
         }
     }

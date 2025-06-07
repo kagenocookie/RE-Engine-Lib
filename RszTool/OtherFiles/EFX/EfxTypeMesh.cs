@@ -55,7 +55,7 @@ public partial class EFXAttributeTypeMesh : RszTool.Efx.EFXAttribute
 	[RszInlineWString, RszList(nameof(texCount))] public string[]? texPaths;
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeMesh, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2, EfxVersion.MHWilds)]
+[RszGenerate, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeMesh, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2, EfxVersion.MHWilds)]
 public partial class EFXAttributeTypeMeshV2 : EFXAttribute
 {
     public EFXAttributeTypeMeshV2() : base(EfxAttributeType.TypeMesh) { }
@@ -107,12 +107,19 @@ public partial class EFXAttributeTypeMeshV2 : EFXAttribute
     [RszInlineWString] public string? unknPath;
     [RszInlineWString] public string? mdfPath;
 
-	[RszArraySizeField(nameof(properties))] public int propertiesDataSize;
+	[RszByteSizeField(nameof(properties))] public int propertiesDataSize;
 	[RszClassInstance, RszList(nameof(propertiesDataSize), '/', 32), RszConstructorParams(nameof(Version))]
 	public List<MdfProperty> properties = new();
 
 	public int texPathBlockLength;
 	[RszInlineWString, RszList(nameof(texCount))] public string[]? texPaths;
+
+    protected override bool DoRead(FileHandler handler) => DefaultRead(handler);
+    protected override bool DoWrite(FileHandler handler)
+    {
+        propertiesDataSize = properties.Count * MdfProperty.Size(Version);
+        return DefaultWrite(handler);
+    }
 }
 
 
@@ -509,7 +516,7 @@ public partial class EFXAttributeTypeGpuMeshTrail : EFXAttribute
 	// [RszInlineWString, RszList(nameof(texCount))] public string[]? texPaths;
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuMeshTrail, EfxVersion.DD2)]
+[RszGenerate, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuMeshTrail, EfxVersion.DD2)]
 public partial class EFXAttributeTypeGpuMeshTrailV2 : EFXAttribute
 {
 	public EFXAttributeTypeGpuMeshTrailV2() : base(EfxAttributeType.TypeGpuMeshTrail) { }
@@ -575,11 +582,18 @@ public partial class EFXAttributeTypeGpuMeshTrailV2 : EFXAttribute
 	[RszInlineWString] public string? meshPath;
 	[RszInlineWString] public string? unkPath;
 	[RszInlineWString] public string? mdfPath;
-	[RszArraySizeField(nameof(properties))] public int propertiesDataSize;
+	[RszByteSizeField(nameof(properties))] public int propertiesDataSize;
 	[RszClassInstance, RszList(nameof(propertiesDataSize), '/', 32), RszConstructorParams(nameof(Version))]
 	public List<MdfProperty> properties = new();
 	public uint texBlockLength;
 	[RszInlineWString, RszList(nameof(texCount))] public string[]? texPaths;
+
+    protected override bool DoRead(FileHandler handler) => DefaultRead(handler);
+    protected override bool DoWrite(FileHandler handler)
+    {
+        propertiesDataSize = properties.Count * MdfProperty.Size(Version);
+        return DefaultWrite(handler);
+    }
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuMeshTrailClip, EfxVersion.DD2)]

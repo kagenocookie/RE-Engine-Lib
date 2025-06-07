@@ -288,9 +288,9 @@ public partial class EFXAttributePtColor : EFXAttribute
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtColorClip, EfxVersion.DMC5)]
-public partial class EFXAttributePtColorClip : RszTool.Efx.EFXAttribute, IColorClipAttribute
+public partial class EFXAttributePtColorClip : RszTool.Efx.EFXAttribute, IClipAttribute
 {
-    public EfxColorClipData Clip => clipData;
+    public EfxClipData Clip => clipData;
     public BitSet ClipBits => clipBits;
 
     public EFXAttributePtColorClip() : base(EfxAttributeType.PtColorClip) { }
@@ -302,7 +302,7 @@ public partial class EFXAttributePtColorClip : RszTool.Efx.EFXAttribute, IColorC
     // public uint colorClipBits;
 	[RszClassInstance] public readonly BitSet clipBits = new BitSet(4) { BitNames = ["R", "G", "B", "A"] };
     public uint unkn1;
-	[RszClassInstance] public EfxColorClipData clipData = new();
+	[RszClassInstance] public EfxClipData clipData = new();
 
     public override string ToString() => $"PtColorClip: {clipBits}";
 }

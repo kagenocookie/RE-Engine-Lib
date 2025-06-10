@@ -2,10 +2,10 @@
 
 ## About this project
 
-RszTool is a tool that edit and create resource file for RE ENGINE game. Currently support .user, .pfb and .scn files.  
-RszTool is inspired by [RE_RSZ](https://github.com/alphazolam/RE_RSZ) and [EMV-Engine/RE Engine Resource Editor](https://github.com/alphazolam/EMV-Engine) by alphazolam.  
-RszTool also provide some advanced operations like copy/paste/remove/duplicate for instance array/game object.  
-RszTool is developed with C# and WPF. You can also use RszTool.dll as a C# library to do some batch work.  
+RszTool is a tool for editing and creating resource files for RE ENGINE games. The UI currently supports .user, .pfb and .scn files, while the library itself supports many more file formats.
+RszTool is inspired by [RE_RSZ](https://github.com/alphazolam/RE_RSZ) and [EMV-Engine/RE Engine Resource Editor](https://github.com/alphazolam/EMV-Engine) by alphazolam.
+RszTool also provides some advanced operations like copy/paste/remove/duplicate for instance array/game object.
+RszTool is developed with C# and WPF. You can also use RszTool.dll as a C# library to do some batch work.
 
 ## Why I make this tool
 
@@ -41,6 +41,10 @@ RszTool support .net framework 4.7.2 and .net8, you can also change it in .cspro
     - The gui application of RszTool.
 3. RszTool.Test
     - Some example to show basic usage of RszTool.dll, like file open/read/write/save.
+4. RszTool.Generators
+    - Internal source generator library for simpler serializer development.
+5. RszTool.Tools
+    - Additional tools that may be useful for integration with other tools that aren't needed by the core serialization library.
 
 ## License
 

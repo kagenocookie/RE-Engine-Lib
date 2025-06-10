@@ -102,9 +102,17 @@ public class RszSerializerGenerator : IIncrementalGenerator
         sb.AppendLine();
         sb.Append(classIndent).AppendLine("{");
 
+        string? versionString = null;
+        if (context.ClassDecl.TryGetAttribute("RszAssignVersion", out var classAttr)) {
+            versionString = EvaluateExpressionIdentifier(buildCtx, classAttr.ArgumentList?.Arguments.Skip(1).FirstOrDefault()?.Expression)
+                ?? "var Version = handler.FileVersion;";
+            if (!versionString.EndsWith(";")) versionString += ';';
+        }
+
         sb.Append(memberIndent).AppendLine("[System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
         sb.Append(memberIndent).AppendLine("private bool DefaultRead(FileHandler handler)");
         sb.Append(memberIndent).AppendLine("{");
+        if (versionString != null) buildCtx.Indent().AppendLine(versionString);
         WriteReader(buildCtx);
         sb.Append(methodBodyIndent).AppendLine("return true;");
         sb.Append(memberIndent).AppendLine("}");
@@ -112,6 +120,7 @@ public class RszSerializerGenerator : IIncrementalGenerator
         sb.Append(memberIndent).AppendLine("[System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
         sb.Append(memberIndent).AppendLine("private bool DefaultWrite(FileHandler handler)");
         sb.Append(memberIndent).AppendLine("{");
+        if (versionString != null) buildCtx.Indent().AppendLine(versionString);
         WriteWriter(buildCtx);
         sb.Append(methodBodyIndent).AppendLine("return true;");
         sb.Append(memberIndent).AppendLine("}");
@@ -119,19 +128,22 @@ public class RszSerializerGenerator : IIncrementalGenerator
         var fieldListMethod = context.ClassDecl.Members.Any(m => m is MethodDeclarationSyntax meth && meth.Identifier.Text == "GetFieldList")
             ? "GetFieldListDefault"
             : "GetFieldList";
-        if (context.ClassDecl.TryGetAttribute("RszVersionedObject", out var vvo)) {
-            var versionType = (vvo.ArgumentList?.Arguments.FirstOrDefault()?.Expression as TypeOfExpressionSyntax)?.Type.GetElementTypeName();
+        var shouldNew = !context.ClassDecl.IsSubclassOf("BaseModel", "EFXAttribute", "EFXExpressionDataBase")
+            ? "new "
+            : "";
+        if (context.ClassDecl.TryGetAttribute("RszVersionedObject", out classAttr)) {
+            var versionType = (classAttr.ArgumentList?.Arguments.FirstOrDefault()?.Expression as TypeOfExpressionSyntax)?.Type.GetElementTypeName();
             if (versionType != null) {
-                buildCtx.versionParam = EvaluateExpressionIdentifier(buildCtx, vvo.ArgumentList?.Arguments.Skip(1).FirstOrDefault()?.Expression)
+                buildCtx.versionParam = EvaluateExpressionIdentifier(buildCtx, classAttr.ArgumentList?.Arguments.Skip(1).FirstOrDefault()?.Expression)
                     ?? "Version";
-                sb.Append(memberIndent).AppendLine($"public static IEnumerable<(string name, Type type)> {fieldListMethod}({versionType} {buildCtx.versionParam})");
+                sb.Append(memberIndent).AppendLine($"public static {shouldNew} IEnumerable<(string name, Type type)> {fieldListMethod}({versionType} {buildCtx.versionParam})");
                 sb.Append(memberIndent).AppendLine("{");
                 WriteFieldList(buildCtx);
                 buildCtx.Indent().AppendLine("yield break;");
                 sb.Append(memberIndent).AppendLine("}");
             }
         } else {
-            sb.Append(memberIndent).AppendLine($"public static IEnumerable<(string name, Type type)> {fieldListMethod}()");
+            sb.Append(memberIndent).AppendLine($"public static {shouldNew} IEnumerable<(string name, Type type)> {fieldListMethod}()");
             sb.Append(memberIndent).AppendLine("{");
             WriteFieldList(buildCtx);
             buildCtx.Indent().AppendLine("yield break;");
@@ -248,7 +260,7 @@ public class RszSerializerGenerator : IIncrementalGenerator
 
     private static void HandleMember(HandleType handle, FieldDeclarationSyntax field, ClassBuildContext ctx)
     {
-        if (field.HasAttribute("RszIgnore")) return;
+        if (field.IsConstOrStatic() || field.HasAttribute("RszIgnore")) return;
 
         var name = field.GetFieldName();
         if (name == null) return;
@@ -311,7 +323,7 @@ public class RszSerializerGenerator : IIncrementalGenerator
             var isWString = !isClass && !isString && field.HasAttribute("RszInlineWString");
             if (handle == HandleType.Write) {
                 if (isClass) {
-                    ctx.Indent().AppendLine($"{name}.Write(handler);");
+                    ctx.Indent().AppendLine($"{name}?.Write(handler);");
                 } else if (isString || isWString) {
                     var strMethod = isString ? "WriteAsciiString" : "WriteWString";
                     ctx.Indent().AppendLine($"{name} ??= Array.Empty<string>();");
@@ -415,7 +427,7 @@ public class RszSerializerGenerator : IIncrementalGenerator
         } else if (field.TryGetAttribute("RszSwitch", out mainAttr)) {
             var args = mainAttr.GetPositionalArguments().ToList();
             if (handle == HandleType.Write) {
-                ctx.Indent().AppendLine($"{name}.Write(handler);");
+                ctx.Indent().AppendLine($"{name}?.Write(handler);");
             } else if (handle == HandleType.Read) {
                 var constructor = EvaluateAttributeExpressionList(ctx, field.GetAttribute("RszConstructorParams"));
                 List<string> caseArgs = new();

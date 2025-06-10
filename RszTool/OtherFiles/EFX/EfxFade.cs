@@ -20,7 +20,7 @@ public partial class EFXAttributeFadeByAngle : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.FadeByAngleExpression, EfxVersion.DMC5, EfxVersion.RE4)]
 public partial class EFXAttributeFadeByAngleExpression : EFXAttribute, IExpressionAttribute
 {
-	public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
+	public EFXExpressionList Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeFadeByAngleExpression() : base(EfxAttributeType.FadeByAngleExpression) { }

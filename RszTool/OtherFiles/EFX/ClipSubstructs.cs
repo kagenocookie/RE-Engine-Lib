@@ -55,7 +55,7 @@ public struct EfxClipFrame
 		type = FrameInterpolationType.Type2;
     }
 
-    public int IntValue { get => MemoryUtils.SingleToInt32(value); set => MemoryUtils.Int32ToSingle(value); }
+    public int IntValue { get => BitConverter.SingleToInt32Bits(value); set => BitConverter.Int32BitsToSingle(value); }
 	public float FloatValue { get => value; set => this.value = value; }
 
 	public float AsFloat(ClipValueType type) => type switch {
@@ -67,13 +67,13 @@ public struct EfxClipFrame
 	public void FromFloat(ClipValueType type, float val)
 	{
 		if (type == ClipValueType.Int) {
-			value = MemoryUtils.Int32ToSingle((int)val);
+			value = BitConverter.Int32BitsToSingle((int)val);
 		} else {
 			value = val;
 		}
 	}
 
-    public override string ToString() => frameTime + ": " + (MemoryUtils.SingleToInt32(value) is int intval && intval >= 0 && intval <= 255 ? intval : value);
+    public override string ToString() => frameTime + ": " + (BitConverter.SingleToInt32Bits(value) is int intval && intval >= 0 && intval <= 255 ? intval : value);
 }
 
 /// <summary>

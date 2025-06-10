@@ -265,10 +265,10 @@ namespace RszTool.Efx
 
         public via.Color Color
         {
-            get => type == EfxExpressionParameterType.Color ? new via.Color() { rgba = (uint)MemoryUtils.SingleToInt32(value1) } : throw new Exception("Expression parameter is not a color");
+            get => type == EfxExpressionParameterType.Color ? new via.Color() { rgba = (uint)BitConverter.SingleToInt32Bits(value1) } : throw new Exception("Expression parameter is not a color");
             set {
                 type = EfxExpressionParameterType.Color;
-                value1 = MemoryUtils.Int32ToSingle((int)value.rgba);
+                value1 = BitConverter.Int32BitsToSingle((int)value.rgba);
             }
         }
 
@@ -402,7 +402,7 @@ namespace RszTool.Efx
         [RszStringUTF8Hash(nameof(conditionalEffectGroupName))] public uint conditionalEffectGroupNameHashUTF8;
         [RszArraySizeField(nameof(efxEntryIndexes))] public int valueCount;
         [RszFixedSizeArray(nameof(valueCount))] public int[]? efxEntryIndexes;
-        [RszIgnore] public string? conditionalEffectGroupName;
+        [RszIgnore] public string conditionalEffectGroupName = string.Empty;
     }
 
     public class EFXBone

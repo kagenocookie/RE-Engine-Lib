@@ -449,6 +449,7 @@ public partial class EFXAttributeTypeRibbonChainMaterial : EFXAttribute
 public partial class EFXAttributeTypeRibbonChainMaterialClip : EFXAttribute, IMaterialClipAttribute
 {
     public EfxMaterialClipData MaterialClip => clipData;
+	EfxClipData IClipAttribute.Clip => clipData;
     public BitSet ClipBits => clipBits;
 
     public EFXAttributeTypeRibbonChainMaterialClip() : base(EfxAttributeType.TypeRibbonChainMaterialClip) { }
@@ -622,6 +623,7 @@ public partial class EFXAttributeTypeRibbonFixEndMaterial : EFXAttribute
 public partial class EFXAttributeTypeRibbonFixEndMaterialClip : EFXAttribute, IMaterialClipAttribute
 {
     public EfxMaterialClipData MaterialClip => clipData;
+	EfxClipData IClipAttribute.Clip => clipData;
     public BitSet ClipBits => clipBits;
 
     public EFXAttributeTypeRibbonFixEndMaterialClip() : base(EfxAttributeType.TypeRibbonFixEndMaterialClip) { }
@@ -807,6 +809,7 @@ public partial class EFXAttributeTypeRibbonFollowMaterial : EFXAttribute
 public partial class EFXAttributeTypeRibbonFollowMaterialClip : EFXAttribute, IMaterialClipAttribute
 {
     public EfxMaterialClipData MaterialClip => clipData;
+	EfxClipData IClipAttribute.Clip => clipData;
     public BitSet ClipBits => clipBits;
 
     public EFXAttributeTypeRibbonFollowMaterialClip() : base(EfxAttributeType.TypeRibbonFollowMaterialClip) { }

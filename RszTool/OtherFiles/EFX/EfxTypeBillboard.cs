@@ -174,6 +174,7 @@ public partial class EFXAttributeTypeBillboard3DMaterial : EFXAttribute
 public partial class EFXAttributeTypeBillboard3DMaterialClip : EFXAttribute, IMaterialClipAttribute
 {
     public EfxMaterialClipData MaterialClip => clipData;
+	EfxClipData IClipAttribute.Clip => clipData;
     public BitSet ClipBits => clipBits;
 
     public EFXAttributeTypeBillboard3DMaterialClip() : base(EfxAttributeType.TypeBillboard3DMaterialClip) { }
@@ -301,7 +302,7 @@ public partial class EFXAttributeTypeNodeBillboard : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeNodeBillboardExpression, EfxVersion.DMC5, EfxVersion.RERT, EfxVersion.RE4)]
 public partial class EFXAttributeTypeNodeBillboardExpression : EFXAttribute, IExpressionAttribute
 {
-	public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
+	public EFXExpressionList Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeTypeNodeBillboardExpression() : base(EfxAttributeType.TypeNodeBillboardExpression) { }

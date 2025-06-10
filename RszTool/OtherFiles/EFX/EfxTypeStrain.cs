@@ -219,7 +219,7 @@ public partial class EFXAttributeTypeStrainRibbonV3 : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeStrainRibbonExpression, EfxVersion.RE2, EfxVersion.DMC5, EfxVersion.RE8, EfxVersion.RERT)]
 public partial class EFXAttributeTypeStrainRibbonExpression : EFXAttribute, IExpressionAttribute
 {
-	public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
+	public EFXExpressionList Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeTypeStrainRibbonExpression() : base(EfxAttributeType.TypeStrainRibbonExpression) { }
@@ -383,6 +383,7 @@ public partial class EFXAttributeTypeStrainRibbonMaterial : EFXAttribute
 public partial class EFXAttributeTypeStrainRibbonMaterialClip : EFXAttribute, IMaterialClipAttribute
 {
     public EfxMaterialClipData MaterialClip => clipData;
+	EfxClipData IClipAttribute.Clip => clipData;
     public BitSet ClipBits => clipBits;
 
     public EFXAttributeTypeStrainRibbonMaterialClip() : base(EfxAttributeType.TypeStrainRibbonMaterialClip) { }

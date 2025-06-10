@@ -343,6 +343,14 @@ namespace RszTool.via
             get => this[row * 4 + col];
             set => this[row * 4 + col] = value;
         } */
+
+        public readonly Vector3 Multiply(Vector3 vector)
+        {
+            return new Vector3(
+                m00 * vector.X + m10 * vector.Y + m20 * vector.Z + m30,
+                m01 * vector.X + m11 * vector.Y + m21 * vector.Z + m31,
+                m02 * vector.X + m12 * vector.Y + m22 * vector.Z + m32) / (m03 * vector.X + m13 * vector.Y + m23 * vector.Z + m33);
+        }
     }
 
 
@@ -356,6 +364,22 @@ namespace RszTool.via
 
         public mat4 Coord { readonly get => coord; set => coord = value; }
         public Vector3 Extent { readonly get => extent; set => extent = value; }
+
+        public readonly AABB GetBounds(float margin = 0)
+        {
+            var aabb = AABB.MaxMin;
+            // there's probably faster ways to do this but I'm no math guru ¯\_(ツ)_/¯
+            var size = extent / 2 + new Vector3(margin);
+            aabb = aabb.Extend(coord.Multiply(new Vector3(size.X, size.Y, size.Z)));
+            aabb = aabb.Extend(coord.Multiply(new Vector3(size.X, size.Y, -size.Z)));
+            aabb = aabb.Extend(coord.Multiply(new Vector3(size.X, -size.Y, size.Z)));
+            aabb = aabb.Extend(coord.Multiply(new Vector3(size.X, -size.Y, -size.Z)));
+            aabb = aabb.Extend(coord.Multiply(new Vector3(-size.X, size.Y, size.Z)));
+            aabb = aabb.Extend(coord.Multiply(new Vector3(-size.X, size.Y, -size.Z)));
+            aabb = aabb.Extend(coord.Multiply(new Vector3(-size.X, -size.Y, size.Z)));
+            aabb = aabb.Extend(coord.Multiply(new Vector3(-size.X, -size.Y, -size.Z)));
+            return aabb;
+        }
     }
 
 
@@ -372,6 +396,12 @@ namespace RszTool.via
         {
             return $"Sphere({pos}, {r})";
         }
+
+        public readonly AABB GetBounds(float margin = 0)
+        {
+            var vec = new Vector3(r + margin);
+            return new AABB(pos - vec, pos + vec);
+        }
     }
 
 
@@ -383,8 +413,39 @@ namespace RszTool.via
         [FieldOffset(16)]
         public Vector3 maxpos;
 
+        public AABB()
+        {
+        }
+
+        public AABB(Vector3 minpos, Vector3 maxpos)
+        {
+            this.minpos = minpos;
+            this.maxpos = maxpos;
+        }
+
         public Vector3 Minpos { readonly get => minpos; set => minpos = value; }
         public Vector3 Maxpos { readonly get => maxpos; set => maxpos = value; }
+
+        public Vector3 Size => maxpos - minpos;
+        public Vector3 Center => (minpos + maxpos) / 2;
+
+        public static readonly AABB MaxMin = new RszTool.via.AABB(new System.Numerics.Vector3(float.MaxValue), new System.Numerics.Vector3(float.MinValue));
+
+        public readonly AABB Extend(Vector3 point)
+        {
+            return new AABB(Vector3.Min(minpos, point), Vector3.Max(maxpos, point));
+        }
+
+        public readonly AABB Extend(AABB other)
+        {
+            return new AABB(Vector3.Min(minpos, other.minpos), Vector3.Max(maxpos, other.maxpos));
+        }
+
+        public readonly AABB Margin(float margin)
+        {
+            var mv = new Vector3(margin);
+            return new AABB(minpos - mv, maxpos + mv);
+        }
     }
 
 
@@ -401,6 +462,13 @@ namespace RszTool.via
         public Vector3 P0 { readonly get => p0; set => p0 = value; }
         public Vector3 P1 { readonly get => p1; set => p1 = value; }
         public float R { readonly get => r; set => r = value; }
+
+        public readonly AABB GetBounds(float margin = 0)
+        {
+            AABB b1 = new Sphere { r = r, pos = p0 }.GetBounds(margin);
+            AABB b2 = new Sphere { r = r, pos = p1 }.GetBounds(margin);
+            return b1.Extend(b2);
+        }
     }
 
 

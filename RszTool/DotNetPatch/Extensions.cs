@@ -49,4 +49,12 @@ public static class SpanAdditions
 #endif
     }
 
+#if !NET5_0_OR_GREATER
+    public static void EnsureCapacity<T>(this List<T> list, int capacity)
+    {
+        if (list.Capacity < capacity) {
+            list.Capacity = capacity;
+        }
+    }
+#endif
 }

@@ -1145,7 +1145,7 @@ namespace RszTool
     }
 
 
-    internal record GameObjectRefData(IList<object> Values, int ValueIndex)
+    internal sealed record GameObjectRefData(IList<object> Values, int ValueIndex)
     {
     }
 }

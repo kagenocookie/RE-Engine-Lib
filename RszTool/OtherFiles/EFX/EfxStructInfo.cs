@@ -113,7 +113,7 @@ public struct UndeterminedFieldType : IConvertible
 	}
 	public UndeterminedFieldType(float value)
 	{
-		this.value = MemoryUtils.SingleToInt32(value);
+		this.value = BitConverter.SingleToInt32Bits(value);
 	}
 
 	public object? GetMostLikelyValueTypeObject()
@@ -149,7 +149,7 @@ public struct UndeterminedFieldType : IConvertible
     public bool ToBoolean(IFormatProvider? provider) => value != 0;
     public byte ToByte(IFormatProvider? provider) => (byte)value;
     public char ToChar(IFormatProvider? provider) => (char)value;
-    public DateTime ToDateTime(IFormatProvider? provider) => DateTime.UnixEpoch.AddSeconds(value);
+    public DateTime ToDateTime(IFormatProvider? provider) => throw new NotImplementedException();
     public decimal ToDecimal(IFormatProvider? provider) => (decimal)value;
     public double ToDouble(IFormatProvider? provider) => BitConverter.Int32BitsToSingle(value);
     public short ToInt16(IFormatProvider? provider) => (short)value;
@@ -157,9 +157,9 @@ public struct UndeterminedFieldType : IConvertible
     public long ToInt64(IFormatProvider? provider) => (long)value;
     public sbyte ToSByte(IFormatProvider? provider) => (sbyte)value;
     public float ToSingle(IFormatProvider? provider) => BitConverter.Int32BitsToSingle(value);
-    public override string ToString() => $"{value} {value.ToString("X")} {MemoryUtils.Int32ToSingle(value).ToString("0.0#", System.Globalization.CultureInfo.InvariantCulture)}";
+    public override string ToString() => $"{value} {value.ToString("X")} {BitConverter.Int32BitsToSingle(value).ToString("0.0#", System.Globalization.CultureInfo.InvariantCulture)}";
     public string ToString(IFormatProvider? provider) => ToString();
-    public object ToType(Type conversionType, IFormatProvider? provider) =>throw new NotImplementedException();
+    public object ToType(Type conversionType, IFormatProvider? provider) => throw new NotImplementedException();
     public ushort ToUInt16(IFormatProvider? provider) => (ushort)value;
     public uint ToUInt32(IFormatProvider? provider) => (uint)value;
     public ulong ToUInt64(IFormatProvider? provider) => (ulong)value;

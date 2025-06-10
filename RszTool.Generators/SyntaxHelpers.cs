@@ -1,6 +1,8 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
+namespace RszTool.Generators;
+
 public static class SyntaxHelpers
 {
     public static string? GetFullNamespace(this SyntaxNode node)
@@ -29,6 +31,10 @@ public static class SyntaxHelpers
     public static bool IsReadonly(this MemberDeclarationSyntax node)
     {
         return node.Modifiers.Any(Microsoft.CodeAnalysis.CSharp.SyntaxKind.ReadOnlyKeyword);
+    }
+    public static bool IsConstOrStatic(this MemberDeclarationSyntax node)
+    {
+        return node.Modifiers.Any(Microsoft.CodeAnalysis.CSharp.SyntaxKind.ConstKeyword) || node.Modifiers.Any(Microsoft.CodeAnalysis.CSharp.SyntaxKind.StaticKeyword);
     }
 
     public static IEnumerable<AttributeSyntax> GetAttributesWhere(this MemberDeclarationSyntax node, Func<AttributeSyntax, bool> filter)
@@ -128,5 +134,20 @@ public static class SyntaxHelpers
     public static IEnumerable<FieldDeclarationSyntax> GetFields(this ClassDeclarationSyntax classDecl)
     {
         return classDecl.ChildNodes().OfType<FieldDeclarationSyntax>();
+    }
+
+    public static bool IsSubclassOf(this ClassDeclarationSyntax classDecl, params string[] subclasses)
+    {
+        var baselist = classDecl.BaseList?.Types;
+        if (baselist == null) return false;
+
+        foreach (var bb in baselist.Value) {
+            if (bb.Type is SimpleNameSyntax sns && subclasses.Contains(sns.Identifier.Text)) {
+                return true;
+            } else if (bb.Type is QualifiedNameSyntax qns && subclasses.Contains(qns.Right.Identifier.Text)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -44,7 +44,7 @@ public partial class MdfProperty : BaseModel
 
 	[RszFixedSizeArray(16)] public byte[]? propertyValue;
 
-    public static int Size(EfxVersion version) => version >= EfxVersion.RE3 ? 32 : 28;
+    public static int GetSize(EfxVersion version) => version >= EfxVersion.RE3 ? 32 : 28;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion))]

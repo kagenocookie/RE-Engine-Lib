@@ -117,7 +117,7 @@ public partial class EFXAttributeTypeMeshV2 : EFXAttribute
     protected override bool DoRead(FileHandler handler) => DefaultRead(handler);
     protected override bool DoWrite(FileHandler handler)
     {
-        propertiesDataSize = properties.Count * MdfProperty.Size(Version);
+        propertiesDataSize = properties.Count * MdfProperty.GetSize(Version);
         return DefaultWrite(handler);
     }
 }
@@ -127,6 +127,7 @@ public partial class EFXAttributeTypeMeshV2 : EFXAttribute
 public partial class EFXAttributeTypeMeshClip : EFXAttribute, IMaterialClipAttribute
 {
     public EfxMaterialClipData MaterialClip => clipData;
+    EfxClipData IClipAttribute.Clip => clipData;
     public BitSet ClipBits => clipBits;
 
     public EFXAttributeTypeMeshClip() : base(EfxAttributeType.TypeMeshClip) { }
@@ -398,6 +399,7 @@ public partial class EFXAttributeTypeGpuMesh : EFXAttribute
 public partial class EFXAttributeTypeGpuMeshClip : EFXAttribute, IMaterialClipAttribute
 {
     public EfxMaterialClipData MaterialClip => clipData;
+    EfxClipData IClipAttribute.Clip => clipData;
     public BitSet ClipBits => clipBits;
 
 	public EFXAttributeTypeGpuMeshClip() : base(EfxAttributeType.TypeGpuMeshClip) { }
@@ -591,7 +593,7 @@ public partial class EFXAttributeTypeGpuMeshTrailV2 : EFXAttribute
     protected override bool DoRead(FileHandler handler) => DefaultRead(handler);
     protected override bool DoWrite(FileHandler handler)
     {
-        propertiesDataSize = properties.Count * MdfProperty.Size(Version);
+        propertiesDataSize = properties.Count * MdfProperty.GetSize(Version);
         return DefaultWrite(handler);
     }
 }
@@ -600,6 +602,7 @@ public partial class EFXAttributeTypeGpuMeshTrailV2 : EFXAttribute
 public partial class EFXAttributeTypeGpuMeshTrailClip : EFXAttribute, IMaterialClipAttribute
 {
     public EfxMaterialClipData MaterialClip => clipData;
+    EfxClipData IClipAttribute.Clip => clipData;
     public BitSet ClipBits => clipBits;
 
     public EFXAttributeTypeGpuMeshTrailClip() : base(EfxAttributeType.TypeGpuMeshTrailClip) { }

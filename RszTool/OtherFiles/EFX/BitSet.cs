@@ -106,11 +106,6 @@ public class BitSet : BaseModel
     public int GetHighestBit()
     {
         for (int i = Bits.Length - 1; i >= 0; --i) {
-            // var po2 = BitOperations.RoundUpToPowerOf2((uint)Bits[i]);
-            // var bit = BitOperations.Log2(po2);
-            // if (bit != 0) {
-            //     return i * 32 + (po2 == Bits[i] ? bit + 1 : bit);
-            // }
             if (Bits[i] == 1) return i * 32 + 1;
             var bit = BitOperations.Log2((uint)Bits[i]);
             if (bit != 0) {

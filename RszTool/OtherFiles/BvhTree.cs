@@ -36,7 +36,13 @@ namespace RszTool.Bvh
             }
             return true;
         }
-        protected override bool DoWrite(FileHandler handler) => DefaultWrite(handler);
+        protected override bool DoWrite(FileHandler handler)
+        {
+            if (isLeaf) {
+                index = (int)(index | leafBit);
+            }
+            return DefaultWrite(handler);
+        }
     }
 
     public partial class BvhTree

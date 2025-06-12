@@ -31,35 +31,6 @@ namespace RszTool.Bvh
         public long uknOffsetOrPadding;
     }
 
-    [RszGenerate]
-    public partial class BvhEntry : BaseModel
-    {
-        public Vector3 pos1;
-        public int index;
-        public Vector3 pos2;
-        public int index2;
-
-        [RszIgnore] public bool isLeaf;
-        private const uint leafBit = 0x80000000;
-        public int RealIndex => (int)((uint)index & ~leafBit);
-
-        public void SetLeafIndex(int index)
-        {
-            this.index = (int)(index | leafBit);
-        }
-
-        protected override bool DoRead(FileHandler handler)
-        {
-            DefaultRead(handler);
-            if (index != -1 && (index & leafBit) != 0) {
-                isLeaf = true;
-                index = (int)((uint)index & ~leafBit);
-            }
-            return true;
-        }
-        protected override bool DoWrite(FileHandler handler) => DefaultWrite(handler);
-    }
-
     [RszGenerate, RszAutoReadWrite, RszAssignVersion, RszVersionedObject(typeof(int))]
     public partial class TriangleInfo : BaseModel
     {
@@ -329,7 +300,8 @@ namespace RszTool
                 handler.Skip(4);
             }
 
-            // NOTE: there seems to be some sort of varying gap here before indices sometimes - intentional or REE quirk?
+            // NOTE: there seems to be some sort of varying \0 gap here before indices in vanilla game files
+            // seems to be a meaningless serializer quirk
 
             Header.indicesOffset = handler.Tell();
             triangles.Write(handler);

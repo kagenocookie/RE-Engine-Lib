@@ -375,7 +375,7 @@ namespace RszTool
             handler.Seek(header.resourceInfoOffset);
             for (int i = 0; i < header.resourceCount; i++)
             {
-                ResourceInfo item = new(Option.Version, true);
+                ResourceInfo item = new(Option.Version, false);
                 if (!item.Read(handler)) return false;
                 ResourceInfoList.Add(item);
             }

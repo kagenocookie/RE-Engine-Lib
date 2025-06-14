@@ -582,6 +582,7 @@ namespace RszTool
     {
         public uint typeId;
         public uint CRC;
+        public uint userPathHashRe7;
         public string? ClassName { get; set; }
 
         public GameVersion Version;
@@ -601,7 +602,10 @@ namespace RszTool
             handler.Read(ref typeId);
             handler.Read(ref CRC);
 
-            if (Version == GameVersion.re7) handler.Skip(8);
+            if (Version == GameVersion.re7) {
+                handler.Read(ref userPathHashRe7);
+                handler.Skip(4);
+            }
             return true;
         }
 
@@ -610,7 +614,10 @@ namespace RszTool
             handler.Write(typeId);
             handler.Write(CRC);
 
-            if (Version == GameVersion.re7) handler.Skip(8);
+            if (Version == GameVersion.re7) {
+                handler.Write(ref userPathHashRe7);
+                handler.Skip(4);
+            }
             return true;
         }
 

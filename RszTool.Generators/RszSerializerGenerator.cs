@@ -329,7 +329,7 @@ public class RszSerializerGenerator : IIncrementalGenerator
                     ctx.Indent().AppendLine($"{name} ??= Array.Empty<string>();");
                     ctx.Indent().AppendLine($"foreach (var str in {name}) handler.{strMethod}(str);");
                 } else {
-                    ctx.Indent().AppendLine($"{name} ??= new();");
+                    if (!field.IsReadonly()) ctx.Indent().AppendLine($"{name} ??= new();");
                     ctx.Indent().AppendLine($"foreach (var val in {name}) handler.Write(val);");
                 }
             } else if (handle == HandleType.Read) {
@@ -351,7 +351,11 @@ public class RszSerializerGenerator : IIncrementalGenerator
                     ctx.Indent().AppendLine($"for (int i = 0; i < ({size}); ++i) {name}[i] = handler.{strMethod}(-1, -1, false);");
                 } else {
                     var fieldType = field.GetFieldType()?.GetArrayElementType();
-                    ctx.Indent().AppendLine($"{name} ??= new();");
+                    if (!field.IsReadonly()) ctx.Indent().AppendLine($"{name} ??= new();");
+                    if (string.IsNullOrEmpty(size)) {
+                        ctx.Indent().AppendLine($"var len_{name} = handler.Read<int>();");
+                        size = $"len_{name}";
+                    }
                     ctx.Indent().AppendLine($"for (int i = 0; i < ({size}); ++i) {name}.Add(handler.Read<{fieldType}>());");
                     // ctx.source.ReportDiagnostic(Diagnostic.Create(Diagnostics.UnhandledFailure, field.GetLocation(), "unsupported list type"));
                 }

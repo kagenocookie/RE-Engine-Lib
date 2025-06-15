@@ -8,10 +8,14 @@ namespace RszTool.Aimp
     public enum AimpFormat
     {
         Invalid,
-        // unknown: RE3, RE7
 
         /// <summary>
-        /// DMC5, RE2(27)
+        /// RE7
+        /// </summary>
+        Format8 = 8,
+
+        /// <summary>
+        /// DMC5, RE2(27), RE3
         /// </summary>
         Format28 = 28,
 
@@ -80,19 +84,21 @@ namespace RszTool.Aimp
             }
 
             handler.Read(ref flags);
-            if (Version < AimpFormat.Format46) {
-                handler.Read(ref guid);
-                handler.Read(ref ukn1);
-            } else {
+            if (Version >= AimpFormat.Format46) {
                 handler.Read(ref ukn1);
                 handler.Read(ref hash1);
                 handler.Read(ref hash2);
                 handler.Read(ref ukn2);
+            } else if (Version >= AimpFormat.Format28) {
+                handler.Read(ref guid);
+                handler.Read(ref ukn1);
             }
 
             handler.Read(ref layersOffset);
-            handler.Read(ref rszOffset);
-            handler.Read(ref embeddedContentOffset);
+            if (Version >= AimpFormat.Format28) {
+                handler.Read(ref rszOffset);
+                handler.Read(ref embeddedContentOffset);
+            }
 
             handler.Read(ref contentGroup1Offset);
             handler.Read(ref indexDataOffset);
@@ -132,22 +138,39 @@ namespace RszTool.Aimp
         public Vector3 position;
     }
 
+    public struct TriangleNodeRE7
+    {
+        public uint index1;
+        public uint index2;
+        public uint index3;
+        public via.Int3 uknData;
+
+        public TriangleNode Upgrade() => new TriangleNode() { index1 = index1, index2 = index2, index3 = index3, position = new Vector3(uknData.x, uknData.y, uknData.z) };
+    }
+
     public class PolygonNode
     {
         public int pointCount;
         public uint[]? numbers;
         public byte[]? bytes;
         public float[]? floats;
+        public int[]? dataRE7;
         public Vector3 min;
         public Vector3 max;
+
+        public AimpFormat version;
 
         public void Read(FileHandler handler)
         {
             handler.Read(ref pointCount);
             numbers = handler.ReadArray<uint>(pointCount);
-            bytes = handler.ReadArray<byte>(pointCount);
-            handler.Align(4);
-            floats = handler.ReadArray<float>(pointCount);
+            if (version >= AimpFormat.Format28) {
+                bytes = handler.ReadArray<byte>(pointCount);
+                handler.Align(4);
+                floats = handler.ReadArray<float>(pointCount);
+            } else {
+                dataRE7 = handler.ReadArray<int>(pointCount);
+            }
             handler.Read(ref min);
             handler.Read(ref max);
         }
@@ -232,6 +255,15 @@ namespace RszTool.Aimp
         public int id, n1, n2, n3, neighborCount, n4;
     }
 
+    public struct TriangleInfoRE7
+    {
+        public int uknId;
+        public int index;
+        public int id, n1, n2, n3;
+
+        public TriangleInfo Upgrade() => new TriangleInfo() { id = id, uknId = uknId, index = index, n1 = n1, n2 = n2, n3 = n3 };
+    }
+
     public struct TriangleConnection
     {
         public int index;
@@ -241,6 +273,8 @@ namespace RszTool.Aimp
     public struct IndexSet
     {
         public int[]? indices;
+
+        public override string ToString() => string.Join(", ", indices ?? Array.Empty<int>());
     };
 
     public class TriangleData
@@ -253,26 +287,34 @@ namespace RszTool.Aimp
         public void Read(FileHandler handler, AimpFormat format)
         {
             var triangleCount = handler.Read<int>();
-            handler.Read(ref maxIndex);
+            if (format >= AimpFormat.Format28) {
+                handler.Read(ref maxIndex);
+            }
             if (format >= AimpFormat.Format41) {
                 handler.Read(ref minIndex);
             }
 
             Triangles = new TriangleInfo[triangleCount];
-            int connectionCount = 0;
-            for (int i = 0; i < triangleCount; ++i) {
-                var tri = handler.Read<TriangleInfo>();
-                Triangles[i] = tri;
-                connectionCount += tri.neighborCount;
-            }
 
-            Connections = new TriangleConnection[connectionCount];
-            int conn_i = 0;
-            for (int i = 0; i < triangleCount; ++i) {
-                var tri = Triangles[i];
-                for (int k = 0; k < tri.neighborCount; ++k) {
-                    Connections[conn_i++] = handler.Read<TriangleConnection>();
+            if (format >= AimpFormat.Format28) {
+                int connectionCount = 0;
+                for (int i = 0; i < triangleCount; ++i) {
+                    var tri = handler.Read<TriangleInfo>();
+                    Triangles[i] = tri;
+                    connectionCount += tri.neighborCount;
                 }
+                Connections = new TriangleConnection[connectionCount];
+                for (int i = 0; i < connectionCount; ++i) {
+                    Connections[i] = handler.Read<TriangleConnection>();
+                }
+            } else {
+                for (int i = 0; i < triangleCount; ++i) {
+                    var tri = handler.Read<TriangleInfoRE7>().Upgrade();
+                    Triangles[i] = tri;
+                }
+                int connectionCount = handler.Read<int>();
+                Connections = new TriangleConnection[connectionCount];
+                handler.ReadArray(Connections);
             }
         }
     }
@@ -319,7 +361,12 @@ namespace RszTool.Aimp
 
         public override bool ReadNodes(FileHandler handler, int count)
         {
-            points = handler.ReadArray<Point>(count);
+            if (format >= AimpFormat.Format28) {
+                points = handler.ReadArray<Point>(count);
+            } else {
+                points = new Point[count];
+                for (int i = 0; i < count; ++i) points[i] = new Point() { pos = handler.Read<Vector3>() };
+            }
             return true;
         }
 
@@ -338,7 +385,11 @@ namespace RszTool.Aimp
 
         public override bool ReadNodes(FileHandler handler, int count)
         {
-            nodes = handler.ReadArray<TriangleNode>(count);
+            if (format >= AimpFormat.Format28) {
+                nodes = handler.ReadArray<TriangleNode>(count);
+            } else {
+                nodes = handler.ReadArray<TriangleNodeRE7>(count).Select(a => a.Upgrade()).ToArray();
+            }
             return true;
         }
 
@@ -359,7 +410,7 @@ namespace RszTool.Aimp
         {
             nodes = new PolygonNode[count];
             for (int i = 0; i < count; ++i) {
-                var n = new PolygonNode();
+                var n = new PolygonNode() { version = format };
                 n.Read(handler);
                 nodes[i] = n;
             }
@@ -417,18 +468,20 @@ namespace RszTool.Aimp
 
         public class Data
         {
-            public byte[] indices = new byte[8];
-            public uint[] values = new uint[13];
+            public short[] indices = new short[4];
+            public uint[]? values;
         }
 
         public override bool ReadNodes(FileHandler handler, int count)
         {
             AABBs = new Data[count];
             for (int i = 0; i < count; ++i) {
-                AABBs[i] = new Data() {
-                    indices = handler.ReadArray<byte>(8),
-                    values = format == AimpFormat.Format28 ? Array.Empty<uint>() : handler.ReadArray<uint>(13),
-                };
+                var item = new Data();
+                handler.ReadArray(item.indices);
+                if (format > AimpFormat.Format28) {
+                    item.values = handler.ReadArray<uint>(13);
+                }
+                AABBs[i] = item;
             }
             return true;
         }
@@ -459,7 +512,7 @@ namespace RszTool.Aimp
             public int[] values = new int[8];
         }
 
-        public struct OffsetData { public int a, b; };
+        public struct OffsetData { public uint mask; }; // re4: 1x uint; before was saved as 2x uint -- why? dd2+ change?
 
         public override bool ReadNodes(FileHandler handler, int count)
         {
@@ -491,6 +544,7 @@ namespace RszTool.Aimp
         public ContentGroupBounds bounds;
         public IndexQuadData? QuadData;
         public AimpFormat version;
+        public Vector2 unknownRE7;
 
         public ContentGroupContainer(AimpFormat version)
         {
@@ -526,6 +580,11 @@ namespace RszTool.Aimp
 
             // var boundsPos = handler.Tell();
             // var sizeToDate = boundsPos - Start;
+
+            if (version == AimpFormat.Format8) {
+                handler.Read(ref unknownRE7);
+                return true;
+            }
 
             // I have no idea what this is
             // I have no idea how to determine whether it would need to be there
@@ -582,7 +641,7 @@ namespace RszTool.Aimp
 
         public void Read(FileHandler handler, AimpFormat format)
         {
-            if (format == AimpFormat.Format28) {
+            if (format <= AimpFormat.Format28) {
                 handler.Read(ref nameHash);
             } else {
                 name = handler.ReadInlineWString();
@@ -672,7 +731,7 @@ namespace RszTool.Aimp
         {
             handler.Read(ref hash1);
             handler.Read(ref hash2);
-            if (format == AimpFormat.Format28) {
+            if (format <= AimpFormat.Format41) { // TODO: this was only fmt28 before - what changed? re2rt != re3rt?
                 handler.Read(ref hash3);
                 handler.Read(ref hash4);
             }
@@ -739,9 +798,10 @@ namespace RszTool
             // map file versions into a common enum to simplify later versioning logic
             return type switch {
                 AimpType.Map => fileVersion switch {
+                    8 => AimpFormat.Format8,
                     27 => AimpFormat.Format28,
                     28 => AimpFormat.Format28,
-                    34 => AimpFormat.Format28, // need verify - RE3
+                    34 => AimpFormat.Format28,
                     41 => AimpFormat.Format41,
                     43 => AimpFormat.Format43,
                     > 43 => AimpFormat.Format46,
@@ -855,7 +915,7 @@ namespace RszTool
 
                 handler.Read(ref embedHash1);
                 handler.Read(ref embedHash2);
-                if (format <= AimpFormat.Format28) {
+                if (format <= AimpFormat.Format41) {
                     handler.Read(ref embedHash3);
                     handler.Read(ref embedHash4);
                 }

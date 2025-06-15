@@ -1,11 +1,10 @@
 using System.Numerics;
-using System.Runtime.CompilerServices;
 using RszTool.InternalAttributes;
 using RszTool.via;
 
 namespace RszTool.Bvh
 {
-    [RszGenerate, RszAutoReadWrite]
+    [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(int)), RszAssignVersion]
     public partial class BvhHeader : BaseModel
     {
         public uint magic = BvhData.Magic;
@@ -13,6 +12,7 @@ namespace RszTool.Bvh
         public int indicesCount;
         public int uknCountMaybePadding;
         public int stringCount;
+        [RszVersion(3017, EndAt = nameof(ukn3))]
         public int spheresCount;
         public int capsulesCount;
         public int boxesCount;
@@ -25,6 +25,7 @@ namespace RszTool.Bvh
         public long uknOffset;
 
         public long stringTableOffset;
+        [RszVersion(3017, EndAt = nameof(uknOffsetOrPadding))]
         public long spheresOffset;
         public long capsulesOffset;
         public long boxesOffset;
@@ -72,7 +73,7 @@ namespace RszTool.Bvh
         }
     }
 
-    [RszGenerate, RszAutoReadWrite, RszAssignVersion, RszVersionedObject(typeof(int))]
+    [RszGenerate, RszAssignVersion, RszVersionedObject(typeof(int))]
     public partial class BvhTriangle : BaseModel
     {
         [RszClassInstance] public readonly TriangleInfo info = new();
@@ -91,6 +92,55 @@ namespace RszTool.Bvh
         public int edgeIndex3;
         [RszVersion("<=", 10019)] // dmc5, re3, re8
         public int ukn;
+
+        protected override bool DoRead(FileHandler handler)
+        {
+            if (handler.FileVersion == 2) {
+                return ReadRE7(handler);
+            } else {
+                return DefaultRead(handler);
+            }
+        }
+
+        protected override bool DoWrite(FileHandler handler)
+        {
+            if (handler.FileVersion == 2) {
+                return WriteRE7(handler);
+            } else {
+                return DefaultWrite(handler);
+            }
+        }
+
+        public bool ReadRE7(FileHandler handler)
+        {
+            handler.Skip(7 * 4);
+            // note: I don't think this is actually a part id, but it probably doesn't matter, we can use this to store it either way
+            handler.Read(ref info.partId);
+            handler.Read(ref posIndex1);
+            handler.Read(ref posIndex2);
+            handler.Read(ref posIndex3);
+            handler.Read(ref edgeIndex1);
+            handler.Read(ref edgeIndex2);
+            handler.Read(ref edgeIndex3);
+            handler.Read(ref info.layerIndex);
+            handler.Read(ref ukn);
+            return true;
+        }
+
+        public bool WriteRE7(FileHandler handler)
+        {
+            handler.Skip(7 * 4);
+            handler.Write(ref info.partId);
+            handler.Write(ref posIndex1);
+            handler.Write(ref posIndex2);
+            handler.Write(ref posIndex3);
+            handler.Write(ref edgeIndex1);
+            handler.Write(ref edgeIndex2);
+            handler.Write(ref edgeIndex3);
+            handler.Write(ref info.layerIndex);
+            handler.Write(ref ukn);
+            return true;
+        }
     }
 
     [RszGenerate, RszAutoReadWrite, RszAssignVersion, RszVersionedObject(typeof(int))]
@@ -117,6 +167,7 @@ namespace RszTool.Bvh
 
 namespace RszTool
 {
+    using System.Runtime.InteropServices;
     using RszTool.Bvh;
 
     public class BvhData : BaseFile
@@ -154,13 +205,17 @@ namespace RszTool
             handler.Seek(Header.treeDataOffset - 32);
             handler.Read(ref tree.bounds);
 
-            var treeCount1 = handler.Read<int>();
+            var entryCount = handler.Read<int>();
             var leafCount = handler.Read<int>();
             handler.Skip(8);
             tree.entries.Clear();
-            var totalCount = leafCount > 0 ? leafCount * 2 : treeCount1;
-            tree.entries.EnsureCapacity(totalCount);
-            tree.entries.Read(handler, totalCount);
+
+            if (leafCount > 0) {
+                // there's an extra bounds/root node equivalent to the base tree bounds that doesn't seem to really have a meaningful function, skip it
+                handler.Read<AABB>();
+            }
+            tree.entries.EnsureCapacity(entryCount);
+            tree.entries.Read(handler, entryCount);
         }
 
         public BvhCapsule AddCollider(Capsule capsule)
@@ -225,7 +280,6 @@ namespace RszTool
 
             handler.Seek(Header.indicesOffset);
             triangles.EnsureCapacity(Header.indicesCount);
-            var uniqGroups = new HashSet<int>();
             for (int i = 0; i < Header.indicesCount; ++i) {
                 var item = new BvhTriangle();
                 item.Read(handler);
@@ -236,8 +290,6 @@ namespace RszTool
                     throw new Exception("Unhandled mcol face fields found at index " + i);
                 }
                 item.info.ValidateUnknowns(version);
-
-                uniqGroups.Add(item.info.partId);
             }
 
             handler.Seek(Header.spheresOffset);
@@ -253,13 +305,13 @@ namespace RszTool
             for (int i = 0; i < Header.stringCount; ++i) {
                 var strOffset1 = handler.ReadInt64();
                 var strOffset2 = handler.ReadInt64();
-                if (strOffset1 == 0) {
-                    throw new Exception("Missing main mcol tag list");
+                if (version == 2) {
+                    stringTable.Add((strOffset1.ToString(), null));
+                } else {
+                    var str1 = strOffset1 == 0 ? string.Empty : handler.ReadWString(strOffset1);
+                    var str2 = strOffset2 == 0 ? null : handler.ReadWString(strOffset2);
+                    stringTable.Add((str1, str2));
                 }
-
-                var str1 = handler.ReadWString(strOffset1);
-                var str2 = strOffset2 == 0 ? null : handler.ReadWString(strOffset2);
-                stringTable.Add((str1, str2));
             }
 
             return true;
@@ -286,9 +338,10 @@ namespace RszTool
                     handler.Write(tree.entries.Count);
                     handler.Skip(12);
                 } else {
-                    handler.Write(tree.entries.Count - 1);
-                    handler.Write(tree.entries.Count / 2);
+                    handler.Write(tree.entries.Count);
+                    handler.Write(tree.leaves.Count);
                     handler.Skip(8);
+                    handler.Write(tree.bounds);
                 }
                 tree.entries.Write(handler);
                 Header.treeDataSize = (int)(handler.Tell() - Header.treeDataOffset);
@@ -327,12 +380,23 @@ namespace RszTool
         {
             var handler = FileHandler;
             var stringRowCount = Header.stringCount;
+            int version = handler.FileVersion;
             for (int i = 0; i < stringRowCount; ++i) {
-                handler.WriteOffsetWString(stringTable[i].main);
-                if (stringTable[i].sub == null) {
-                    handler.WriteInt64(0);
+                if (version == 2) {
+                    _ = int.TryParse(stringTable[i].main, out var main);
+                    handler.WriteInt(main);
+                    handler.FillBytes(0, 12);
                 } else {
-                    handler.WriteOffsetWString(stringTable[i].sub!);
+                    if (string.IsNullOrEmpty(stringTable[i].main)) {
+                        handler.WriteInt64(0);
+                    } else {
+                        handler.WriteOffsetWString(stringTable[i].main);
+                    }
+                    if (string.IsNullOrEmpty(stringTable[i].sub)) {
+                        handler.WriteInt64(0);
+                    } else {
+                        handler.WriteOffsetWString(stringTable[i].sub!);
+                    }
                 }
             }
             handler.StringTableFlush();
@@ -349,19 +413,19 @@ namespace RszTool
 
             var version = FileHandler.FileVersion;
 
+            tree.entries.EnsureCapacity(count * 2);
             if (version >= 9018) {
-                // step 1: re-calculate the leaf indices to ensure they adhere to the target engine version's indexing scheme
+                // step 1: reset the leaf indices to ensure they adhere to the target engine's indexing scheme
+                // this needs to be done before we sort the bvh entries
                 for (int i = 0; i < count; ++i) leaves[i].entry.SetLeafIndex(i);
 
-                // step 2: prepare data - sort entries (z-order curve) and generate the morton codes
-                var comp = tree.CreateBoundsComparer();
-                leaves.Sort(comp);
+                // step 2: prepare data - sort entries (z-order curve)
+                leaves.Sort(tree.CreateBoundsComparer());
+                // step 3: generate the morton codes and build up the hierarchy
                 var sortedMortonCodes = tree.GenerateMortonCodes();
-                // step 3
                 var treeRoot = tree.GenerateHierarchy(sortedMortonCodes, leaves, 0, count - 1);
 
                 // step 4: generate linear flattened BVH, set correct internal node indices
-                tree.entries.EnsureCapacity(count * 2);
                 static void FlattenTree(List<Entry> list, BinaryTreeItem item)
                 {
                     list.Add(item.entry);
@@ -375,45 +439,48 @@ namespace RszTool
                 }
                 FlattenTree(tree.entries, treeRoot);
             } else {
-                // step 1: reset indices since these games want -1 for leaves
-                for (int i = 0; i < count; ++i) leaves[i].entry.index = -1;
-                // step 2: sort for better spatial efficiency, PROBABLY, I don't quite know the expected layout yet for this older version
-                // the leaves must be in the same order as they appear in the file, since they have no object indexes
+                // step 1: sort for better spatial efficiency
+                static void SortDoubleList<T2>(List<BinaryTreeItem> entries, int start, List<T2> dataList, BvhMortonCodeComparer comparer) {
+                    if (dataList.Count == 0) return;
+                    var arr1 = CollectionsMarshal.AsSpan(entries).Slice(start, dataList.Count);
+                    var arr2 = CollectionsMarshal.AsSpan(dataList);
+                    MemoryExtensions.Sort(arr1, arr2, comparer);
+                }
+                var prevSectionsCount = 0;
                 var comp = tree.CreateBoundsComparer();
-                leaves.Sort(comp);
-                var mortonCodes = tree.GenerateMortonCodes();
-                var treeRoot = tree.GenerateHierarchy(mortonCodes, leaves, 0, count - 1);
-                // for <= mcol.3017, still need to figure out how exactly the internal node structure works
-                // [root, ...leaves, ...internalNodes]
-                tree.entries.Add(treeRoot.entry);
-                treeRoot.entry.index = count * 2 - 1;
-                foreach (var leaf in leaves) {
-                    tree.entries.Add(leaf.entry);
-                }
-                static void PushRecursive(List<Entry> list, BinaryTreeItem item, int maxint)
+                // we must keep the object types in the same order since there's no indexes here, sort each section separately
+                SortDoubleList(leaves, 0, triangles, comp);
+                SortDoubleList(leaves, prevSectionsCount += triangles.Count, spheres, comp);
+                SortDoubleList(leaves, prevSectionsCount += spheres.Count, capsules, comp);
+                SortDoubleList(leaves, prevSectionsCount += capsules.Count, boxes, comp);
+
+                // step 2: generate the morton codes and build up the hierarchy
+                var treeRoot = tree.GenerateHierarchy(tree.GenerateMortonCodes(), leaves, 0, count - 1);
+
+                // step 3: flatten the hierarchy
+                // non-leaf nodes contain the index of their left and right branches
+                // leaf nodes have both indexes at - 1
+                foreach (var leaf in leaves) tree.entries.Add(leaf.entry);
+                BuildSubtree(tree.entries, treeRoot);
+                static void BuildSubtree(List<Entry> list, BinaryTreeItem item)
                 {
-                    if (item.IsLeaf) return;
-                    item.entry.index = list.Count;
+                    if (item.IsLeaf) {
+                        item.entry.index = item.entry.index2 = -1;
+                        return;
+                    }
+
                     list.Add(item.entry);
-                    if (item.left != null) PushRecursive(list, item.left, maxint);
-                    if (item.right != null) PushRecursive(list, item.right, list.Count);
+                    var left = item.left!;
+                    var right = item.right!;
+
+                    BuildSubtree(list, left);
+                    BuildSubtree(list, right);
+                    item.entry.index = list.IndexOf(left.entry);
+                    item.entry.index2 = list.IndexOf(right.entry);
+
+                    item.entry.boundMin = Vector3.Min(item.left!.entry.boundMin, item.right!.entry.boundMin);
+                    item.entry.boundMax = Vector3.Max(item.left!.entry.boundMax, item.right!.entry.boundMax);
                 }
-                PushRecursive(tree.entries, treeRoot, count * 2 - 1);
-                static void BuildAabbs(BvhData data, BinaryTreeItem item)
-                {
-                    if (item.left != null && item.right != null) {
-                        // we could verify that we haven't built the aabb for this node already, but it doesn't really matter
-                        item.entry.boundMin = Vector3.Min(item.left.entry.boundMin, item.right.entry.boundMin);
-                        item.entry.boundMax = Vector3.Max(item.left.entry.boundMax, item.right.entry.boundMax);
-                    }
-                    if (item.parent != null) {
-                        BuildAabbs(data, item.parent);
-                    }
-                }
-                foreach (var leaf in leaves) {
-                    BuildAabbs(this, leaf);
-                }
-                throw new NotImplementedException("mcol <= 3017 export not yet supported");
             }
         }
     }

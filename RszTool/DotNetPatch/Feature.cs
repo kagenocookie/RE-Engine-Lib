@@ -67,6 +67,7 @@ namespace System.Diagnostics.CodeAnalysis
 namespace RszTool
 {
     // implementations below taken straight from c#
+    // correctness not necessarily verified
     public static class BitOperations
     {
         public static int LeadingZeroCount(uint value) => 31 ^ Log2(value);
@@ -125,6 +126,30 @@ namespace RszTool
         public static string ToString(byte[] value, int startIndex) => System.BitConverter.ToString(value, startIndex);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static string ToString(byte[] value, int startIndex, int length) => System.BitConverter.ToString(value, startIndex, length);
+    }
+
+    public static class CollectionsMarshal
+    {
+        private static System.Reflection.FieldInfo? ListArrayField;
+        public static Span<T> AsSpan<T>(List<T> list)
+        {
+            ListArrayField ??= list.GetType().GetField("_items", System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic)!;
+            var array = ListArrayField.GetValue(list) as T[];
+            return array;
+        }
+    }
+
+    public static class MemoryExtensions
+    {
+        public static void Sort<TKey, TValue, TComparer>(this Span<TKey> keys, Span<TValue> items, TComparer comparer)
+            where TComparer : IComparer<TKey>?
+        {
+            var arr1 = keys.ToArray();
+            var arr2 = items.ToArray();
+            Array.Sort(arr1, arr2, comparer);
+            arr1.CopyTo(keys);
+            arr2.CopyTo(items);
+        }
     }
 }
 #endif

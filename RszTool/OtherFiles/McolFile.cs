@@ -58,7 +58,7 @@ namespace RszTool
 
             Header.stringTableOffset = handler.Tell();
             // write the bvh string table again, because apparently mcol does that
-            if (bvh != null) {
+            if (bvh != null && handler.FileVersion > 2) {
                 bvh.FileHandler = handler;
                 bvh.WriteBvhStringTable();
             }

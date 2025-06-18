@@ -408,6 +408,14 @@ namespace RszTool
             return Values[index];
         }
 
+        public bool TryGetFieldValue(string name, out object? value)
+        {
+            int index = RszClass.IndexOfField(name);
+            if (index == -1) return (value = null) != null;
+            value = Values[index];
+            return true;
+        }
+
         public void SetFieldValue(int index, object value)
         {
             Values[index] = value;

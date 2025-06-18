@@ -119,30 +119,49 @@ namespace RszTool
                 {
                     throw new InvalidDataException($"{field.name} count {count} < 0");
                 }
-                if (count > 5000)
+                if (count > 10000)
                 {
                     throw new InvalidDataException($"{field.name} count {count} too large");
                 }
                 List<object> arrayItems = new(count);
                 if (count > 0) handler.Align(field.align);
-                for (int i = 0; i < count; i++)
+
+                if (field.type == RszFieldType.Struct)
                 {
-                    if (field.IsString)
+                    for (int i = 0; i < count; i++)
                     {
-                        handler.Align(4);
+                        var item = new RszInstance(field.StructClass!, -2);
+                        item.Read(handler);
+                        arrayItems.Add(item);
                     }
-                    object value = ReadNormalField(handler, field);
-                    if (DetectDataType(field, ref value) && i > 0)
+                }
+                else
+                {
+                    for (int i = 0; i < count; i++)
                     {
-                        // 如果检测到其他类型，那么索引0的时候就应该检测出来了，说明之前检测的不对？
-                        throw new InvalidDataException($"Detect {RszClass.name}.{field.name} as {field.type}, but index > 0");
+                        if (field.IsString)
+                        {
+                            handler.Align(4);
+                        }
+                        object value = ReadNormalField(handler, field);
+                        if (DetectDataType(field, ref value) && i > 0)
+                        {
+                            // 如果检测到其他类型，那么索引0的时候就应该检测出来了，说明之前检测的不对？
+                            throw new InvalidDataException($"Detect {RszClass.name}.{field.name} as {field.type}, but index > 0");
+                        }
+                        arrayItems.Add(value);
                     }
-                    arrayItems.Add(value);
                 }
                 return arrayItems;
             }
             else
             {
+                if (field.type == RszFieldType.Struct)
+                {
+                    var obj = Values[index] as RszInstance ?? new RszInstance(field.StructClass!, -2);
+                    obj.Read(handler);
+                    return obj;
+                }
                 object value = ReadNormalField(handler, field);
                 DetectDataType(field, ref value);
                 return value;
@@ -183,7 +202,7 @@ namespace RszTool
             return false;
         }
 
-        public static object ReadNormalField(FileHandler handler, RszField field)
+        public object ReadNormalField(FileHandler handler, RszField field)
         {
             if (field.IsString)
             {
@@ -237,6 +256,11 @@ namespace RszTool
             {
                 string valueStr = (string)value;
                 return handler.Write(valueStr.Length + 1) && handler.WriteAsciiString(valueStr);
+            }
+            else if (field.type == RszFieldType.Struct)
+            {
+                var inst = (RszInstance)value;
+                return inst.Write(handler);
             }
             else
             {
@@ -320,6 +344,7 @@ namespace RszTool
             [RszFieldType.Sfix2] = typeof(via.Sfix2),
             [RszFieldType.Sfix3] = typeof(via.Sfix3),
             [RszFieldType.Sfix4] = typeof(via.Sfix4),
+            [RszFieldType.Struct] = typeof(RszInstance),
             [RszFieldType.Enum] = typeof(uint),
         };
 
@@ -727,6 +752,12 @@ namespace RszTool
                         instance.Values[i] = CreateInstance(rszParser, fieldClass, -1, createChildren) ??
                             throw new NullReferenceException($"Can not create RszInstance of type {fieldClass.name}");
                     }
+                }
+                else if (field.type == RszFieldType.Struct)
+                {
+                    var structClass = rszParser.GetRSZClass(field.original_type) ??
+                        throw new Exception($"RszClass {field.original_type} not found!");
+                    instance.Values[i] = new RszInstance(structClass, -2);
                 }
                 else
                 {

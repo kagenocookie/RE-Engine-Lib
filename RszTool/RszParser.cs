@@ -56,6 +56,7 @@ namespace RszTool
             var dict = JsonSerializer.Deserialize<Dictionary<string, RszClass>>(fileStream);
             if (dict != null)
             {
+                var unresolvedStructs = new HashSet<RszField>();
                 foreach (var item in dict)
                 {
                     var value = item.Value;
@@ -69,9 +70,24 @@ namespace RszTool
                         {
                             field.GuessDataType();
                         }
+
+                        if (field.type == RszFieldType.Struct)
+                        {
+                            if (classNameDict.TryGetValue(field.original_type, out var structCls))
+                            {
+                                field.StructClass = structCls;
+                            }
+                            else
+                            {
+                                unresolvedStructs.Add(field);
+                            }
+                        }
                     }
                 }
-
+                foreach (var structField in unresolvedStructs)
+                {
+                    structField.StructClass = classNameDict[structField.original_type];
+                }
 
                 string patchJsonPath = Path.Combine(
                     "Data", "RszPatch",
@@ -269,6 +285,7 @@ namespace RszTool
         [JsonConverter(typeof(EnumJsonConverter<RszFieldType>))]
         public RszFieldType type { get; set; }
         public string original_type { get; set; } = "";
+        public RszClass? StructClass { get; set; }
         /// <summary>
         /// rsz json中存的是Data，根据实际情况推测是其他类型
         /// </summary>

@@ -390,6 +390,7 @@ namespace RszTool.Rcol
             handler.Read(ref UserDataIndex);
             handler.Read(ref LayerIndex);
             handler.Read(ref Attribute);
+
             if (handler.FileVersion >= 27)
             {
                 handler.Read(ref SkipIdBits);
@@ -438,19 +439,18 @@ namespace RszTool.Rcol
 
             if (handler.FileVersion >= 27)
             {
-                handler.Read(ref SkipIdBits);
+                handler.Write(ref SkipIdBits);
                 handler.Write(ref shapeType);
                 handler.Write(ref IgnoreTagBits);
                 handler.Skip(4);
                 handler.WriteOffsetWString(primaryJointNameStr ?? string.Empty);
                 handler.WriteOffsetWString(secondaryJointNameStr ?? string.Empty);
-
                 handler.Write(ref PrimaryJointNameHash);
                 handler.Write(ref SecondaryJointNameHash);
             }
             else if (handler.FileVersion > 2)
             {
-                handler.Read(ref SkipIdBits);
+                handler.Write(ref SkipIdBits);
                 handler.Write(ref IgnoreTagBits);
                 handler.WriteOffsetWString(primaryJointNameStr ?? string.Empty);
                 handler.WriteOffsetWString(secondaryJointNameStr ?? string.Empty);

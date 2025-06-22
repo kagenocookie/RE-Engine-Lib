@@ -126,6 +126,8 @@ namespace RszTool
         public static string ToString(byte[] value, int startIndex) => System.BitConverter.ToString(value, startIndex);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static string ToString(byte[] value, int startIndex, int length) => System.BitConverter.ToString(value, startIndex, length);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static long ToInt64(Span<byte> bytes) => System.BitConverter.ToInt64(bytes.ToArray(), 0);
     }
 
     public static class CollectionsMarshal

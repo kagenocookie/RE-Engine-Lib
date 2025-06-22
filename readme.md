@@ -49,3 +49,7 @@ RszTool support .net framework 4.7.2 and .net8, you can also change it in .cspro
 ## License
 
 RszTool is under MIT license. See LICENSE for more detail.
+
+## Credits
+- alphaZomega, praydog, NSACloud, and other modders - File structure research
+- [Ekey/REE.PAK.Tool](https://github.com/Ekey/REE.PAK.Tool) - PAK file decryption algorithms

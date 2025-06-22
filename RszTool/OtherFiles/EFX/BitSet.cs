@@ -1,8 +1,8 @@
-namespace RszTool.Efx;
-
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
+
+namespace RszTool.Efx;
 
 public class BitSet : BaseModel
 {

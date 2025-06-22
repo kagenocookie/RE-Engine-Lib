@@ -83,7 +83,6 @@ namespace RszTool.Common
             }
             IntPtr ptr = Marshal.UnsafeAddrOfPinnedArrayElement(buffer, 0);
             Marshal.StructureToPtr(value, ptr, false);
-            // System.Numerics.BitOperations.LeadingZeroCount()
             return buffer;
         }
     }

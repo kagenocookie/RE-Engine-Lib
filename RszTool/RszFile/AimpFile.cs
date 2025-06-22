@@ -1,7 +1,7 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
 using RszTool.Aimp;
-
+using RszTool.via;
 
 namespace RszTool.Aimp
 {
@@ -44,17 +44,35 @@ namespace RszTool.Aimp
         ContentGroupMapAABB,
     }
 
+    public enum SectionType
+    {
+        NoSection = 0,
+        Owner = 1,
+        Section = 2,
+        ConnectManager = 3,
+        IndividualSection = 4,
+        Invalid = -1,
+    }
+
+    public enum MapType
+    {
+        Navmesh = 0,
+	    WayPoint = 1,
+	    VolumeSpace = 2,
+	    NoMap = 3,
+    }
+
     public class AimpHeader : BaseModel
     {
         public uint magic;
         public string? name;
         public string? hash;
-        public int flags;
+        public MapType mapType;
+        public SectionType sectionType;
         public Guid guid;
-        public int ukn1;
-        public uint hash1;
-        public uint hash2;
-        public int ukn2;
+        public float agentRadWhenBuild;
+        public ulong uriHash;
+        public int uknId; // usually 1, sometimes 0 or 2; not related to embedded data, nor to mystery padding, nor is it the sectionID
 
         public long layersOffset;
         public long rszOffset;
@@ -83,15 +101,18 @@ namespace RszTool.Aimp
                 hash = handler.ReadInlineWString();
             }
 
-            handler.Read(ref flags);
+            mapType = (MapType)handler.ReadByte();
+            sectionType = (SectionType)handler.ReadByte();
+            var reserved = handler.ReadShort(); // section ID?
+            if (reserved != 0) throw new Exception("Unexpected value in type block: " + reserved);
+
             if (Version >= AimpFormat.Format46) {
-                handler.Read(ref ukn1);
-                handler.Read(ref hash1);
-                handler.Read(ref hash2);
-                handler.Read(ref ukn2);
+                handler.Read(ref agentRadWhenBuild);
+                handler.Read(ref uriHash);
+                handler.Read(ref uknId);
             } else if (Version >= AimpFormat.Format28) {
                 handler.Read(ref guid);
-                handler.Read(ref ukn1);
+                handler.Read(ref uknId);
             }
 
             handler.Read(ref layersOffset);
@@ -111,19 +132,6 @@ namespace RszTool.Aimp
         {
             return true;
         }
-    }
-
-    [StructLayout(LayoutKind.Explicit, Size = 40)]
-    public struct ContentGroupBounds
-    {
-        [FieldOffset(0)]
-        public float ukn1;
-        [FieldOffset(4)]
-        public float ukn2;
-        [FieldOffset(8)]
-        public Vector3 min;
-        [FieldOffset(24)]
-        public Vector3 max;
     }
 
     public struct TriangleNode
@@ -151,7 +159,7 @@ namespace RszTool.Aimp
     public class PolygonNode
     {
         public int pointCount;
-        public uint[]? numbers;
+        public uint[]? indices;
         public byte[]? bytes;
         public float[]? floats;
         public int[]? dataRE7;
@@ -163,7 +171,7 @@ namespace RszTool.Aimp
         public void Read(FileHandler handler)
         {
             handler.Read(ref pointCount);
-            numbers = handler.ReadArray<uint>(pointCount);
+            indices = handler.ReadArray<uint>(pointCount);
             if (version >= AimpFormat.Format28) {
                 bytes = handler.ReadArray<byte>(pointCount);
                 handler.Align(4);
@@ -205,12 +213,13 @@ namespace RszTool.Aimp
         public override string ToString() => $"{x}, {y}, {z}";
     }
 
-    public class IndexQuadData
+    public class NodeTypeData
     {
         public int[]? type1;
         public int[]? type2;
         public int[]? type3;
         public int[]? type4;
+        public int TotalCount => (type1?.Length ?? 0) + (type2?.Length ?? 0) + (type3?.Length ?? 0) + (type4?.Length ?? 0);
 
         public void Read(FileHandler handler)
         {
@@ -248,26 +257,38 @@ namespace RszTool.Aimp
         }
     }
 
-    public struct TriangleInfo
+    [StructLayout(LayoutKind.Sequential, Pack = 4)]
+    public struct NodeInfo
     {
-        public int uknId;
+        public int groupIndex;
         public int index;
-        public int id, n1, n2, n3, neighborCount, n4;
+        public int flags; // found bits: 1, 2, 16, 32; combinations: 0, 1, 2, 16, 18, 19, 34; LinkBoundary? Wall?
+        public ulong attributes;
+        public int userdataIndex;
+        public int linkCount;
+        public int nextIndex;
     }
 
     public struct TriangleInfoRE7
     {
-        public int uknId;
         public int index;
-        public int id, n1, n2, n3;
+        public int zero;
+        public int index2; // equal to index
+        public int flags;
+        public ulong attributes;
 
-        public TriangleInfo Upgrade() => new TriangleInfo() { id = id, uknId = uknId, index = index, n1 = n1, n2 = n2, n3 = n3 };
+        public NodeInfo Upgrade() => new NodeInfo() { flags = flags, index = index, attributes = attributes, nextIndex = index + 1 };
     }
 
-    public struct TriangleConnection
+    [StructLayout(LayoutKind.Sequential, Pack = 4)]
+    public struct LinkInfo
     {
         public int index;
-        public int triangleIndex, neighborIndex, n3, n4, n5, n6;
+        public int selfIndex;
+        public int otherIndex;
+        public int ukn1; // if 2 => 2-way
+        public ulong attributes;
+        public int ukn2;
     }
 
     public struct IndexSet
@@ -277,16 +298,16 @@ namespace RszTool.Aimp
         public override string ToString() => string.Join(", ", indices ?? Array.Empty<int>());
     };
 
-    public class TriangleData
+    public class NodeData
     {
-        public TriangleInfo[]? Triangles;
-        public TriangleConnection[]? Connections;
+        public NodeInfo[]? Nodes;
+        public LinkInfo[]? Links;
         public int maxIndex;
         public int minIndex;
 
         public void Read(FileHandler handler, AimpFormat format)
         {
-            var triangleCount = handler.Read<int>();
+            var nodeCount = handler.Read<int>();
             if (format >= AimpFormat.Format28) {
                 handler.Read(ref maxIndex);
             }
@@ -294,41 +315,28 @@ namespace RszTool.Aimp
                 handler.Read(ref minIndex);
             }
 
-            Triangles = new TriangleInfo[triangleCount];
+            Nodes = new NodeInfo[nodeCount];
 
             if (format >= AimpFormat.Format28) {
-                int connectionCount = 0;
-                for (int i = 0; i < triangleCount; ++i) {
-                    var tri = handler.Read<TriangleInfo>();
-                    Triangles[i] = tri;
-                    connectionCount += tri.neighborCount;
+                int linkCount = 0;
+                for (int i = 0; i < nodeCount; ++i) {
+                    var tri = handler.Read<NodeInfo>();
+                    Nodes[i] = tri;
+                    linkCount += tri.linkCount;
                 }
-                Connections = new TriangleConnection[connectionCount];
-                for (int i = 0; i < connectionCount; ++i) {
-                    Connections[i] = handler.Read<TriangleConnection>();
+                Links = new LinkInfo[linkCount];
+                for (int i = 0; i < linkCount; ++i) {
+                    Links[i] = handler.Read<LinkInfo>();
                 }
             } else {
-                for (int i = 0; i < triangleCount; ++i) {
+                for (int i = 0; i < nodeCount; ++i) {
                     var tri = handler.Read<TriangleInfoRE7>().Upgrade();
-                    Triangles[i] = tri;
+                    Nodes[i] = tri;
                 }
-                int connectionCount = handler.Read<int>();
-                Connections = new TriangleConnection[connectionCount];
-                handler.ReadArray(Connections);
+                int linkCount = handler.Read<int>();
+                Links = new LinkInfo[linkCount];
+                handler.ReadArray(Links);
             }
-        }
-    }
-
-    public class TriangleContent
-    {
-        public PaddedVec3[]? Positions;
-        public TriangleData? TriangleData;
-
-        public void Read(FileHandler handler, AimpFormat format)
-        {
-            Positions = handler.ReadArray<PaddedVec3>(handler.Read<int>());
-            TriangleData ??= new();
-            TriangleData.Read(handler, format);
         }
     }
 
@@ -337,7 +345,7 @@ namespace RszTool.Aimp
         public Point[]? points;
         public Connection[]? connections;
         public ConnectionInfo[]? connectionInfos;
-        public IndexQuadData? QuadData;
+        public NodeTypeData? QuadData;
         public int[]? indexData;
 
         public struct Point
@@ -380,7 +388,6 @@ namespace RszTool.Aimp
     public class ContentGroupTriangles : ContentGroup
     {
         public TriangleNode[]? nodes;
-        public TriangleContent? body;
         public int[]? data;
 
         public override bool ReadNodes(FileHandler handler, int count)
@@ -403,7 +410,6 @@ namespace RszTool.Aimp
     public class ContentGroupPolygons : ContentGroup
     {
         public PolygonNode[]? nodes;
-        public TriangleContent? body;
         public IndexSet[]? triangleIndices;
 
         public override bool ReadNodes(FileHandler handler, int count)
@@ -463,7 +469,6 @@ namespace RszTool.Aimp
     public class ContentGroupAABB : ContentGroup
     {
         public Data[]? AABBs;
-        public TriangleContent? body;
         public IndexSet[]? data;
 
         public class Data
@@ -540,11 +545,28 @@ namespace RszTool.Aimp
     {
         public int contentCount;
         public ContentGroup[]? contents;
-        public TriangleContent? body;
-        public ContentGroupBounds bounds;
-        public IndexQuadData? QuadData;
+
+        public PaddedVec3[]? Positions;
+        public NodeData? Nodes;
+
+        // aiwayp, aivspc: float1,2 = 1f, 0f
+        // ainvm: float2 always 1.396263f
+        // aimap:
+        // *, 1.396263f
+        // 5.936347, 1.4835299
+        // 9.68779, 1.4835299
+        // 0, 0
+        // 3.323435, 0.7853982
+        // float2 is always same between both content groups
+
+        public float float1;
+        public float float2;
+        public AABB bounds;
+
+        // for paired content group types, this is only ever present on group 2 (always the last group)
+        // each sub array contains indices of the current group nodes, one node can be in multiple
+        public NodeTypeData? QuadData;
         public AimpFormat version;
-        public Vector2 unknownRE7;
 
         public ContentGroupContainer(AimpFormat version)
         {
@@ -575,16 +597,13 @@ namespace RszTool.Aimp
 
             var ukn = handler.Read<int>();
             if (ukn != 0) throw new Exception("Unexpected ukn != 0");
-            body ??= new();
-            body.Read(handler, version);
+
+            Positions = handler.ReadArray<PaddedVec3>(handler.Read<int>());
+            Nodes ??= new();
+            Nodes.Read(handler, version);
 
             // var boundsPos = handler.Tell();
             // var sizeToDate = boundsPos - Start;
-
-            if (version == AimpFormat.Format8) {
-                handler.Read(ref unknownRE7);
-                return true;
-            }
 
             // I have no idea what this is
             // I have no idea how to determine whether it would need to be there
@@ -595,13 +614,16 @@ namespace RszTool.Aimp
             // mostly consistent per game, but not always
             // using the bounds Vector4's paddings (both vectors because there's some cases with x,y,0 coords) as an indicator for whether it's there or not
 
-            // DD2: padding only present for MapPoint groups, sometimes not: worldway.aiwayp - no extra padding
+            // DD2: padding mostly only present for MapPoint groups, except: worldway.aiwayp
             // could it be there just to fuck with people trying to reverse engineer the format? lol
-            var hasMysteryPadding = handler.Read<int>(handler.Tell() + 36) != 0 || handler.Read<int>(handler.Tell() + 20) != 0;
+            var hasMysteryPadding = version > AimpFormat.Format8 && (handler.Read<int>(handler.Tell() + 36) != 0 || handler.Read<int>(handler.Tell() + 20) != 0);
             if (hasMysteryPadding) {
                 var padding = handler.Read<int>();
                 if (padding != 0) throw new Exception("Mysterious padding is not actually padding!??");
             }
+
+            handler.Read(ref float1);
+            handler.Read(ref float2);
 
             // var expected = false;
             // var possiblyRelevantData = $"{boundsPos}/align:{boundsPos%16}/line:{boundsPos/16}/size:{sizeToDate}/{sizeToDate%16} {(contentCount == 0 ? "EMPTY" : contents[0].GetType().ToString())}";
@@ -612,9 +634,11 @@ namespace RszTool.Aimp
             //     // Console.WriteLine($"{possiblyRelevantData}  Expectation: {expected} reality: {bounds.hasMysteryPadding}");
             // }
 
-            handler.Read(ref bounds);
-            QuadData ??= new();
-            QuadData.Read(handler);
+            if (version > AimpFormat.Format8) {
+                handler.Read(ref bounds);
+                QuadData ??= new();
+                QuadData.Read(handler);
+            }
 
             return true;
         }
@@ -633,7 +657,7 @@ namespace RszTool.Aimp
         }
     }
 
-    public class AimpLayers
+    public class MapLayers
     {
         public uint nameHash;
         public string? name;
@@ -771,7 +795,7 @@ namespace RszTool
 
         public ContentGroupContainer? mainContent;
         public ContentGroupContainer? secondaryContent;
-        public AimpLayers[]? layers;
+        public MapLayers[]? layers;
 
         public int embedHash1;
         public int embedHash2;
@@ -899,9 +923,9 @@ namespace RszTool
 
             if (header.layersOffset > 0) {
                 handler.Seek(header.layersOffset);
-                layers = new AimpLayers[64];
+                layers = new MapLayers[64];
                 for (int i = 0; i < 64; ++i) {
-                    layers[i] = new AimpLayers();
+                    layers[i] = new MapLayers();
                     layers[i].Read(handler, format);
                 }
             }

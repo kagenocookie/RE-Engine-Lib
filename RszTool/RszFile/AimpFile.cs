@@ -134,35 +134,100 @@ namespace RszTool.Aimp
         }
     }
 
-    public struct TriangleNode
+    public class NodeInfoAttributes
     {
-        public uint index1;
-        public uint index2;
-        public uint index3;
-        public byte flag1;
-        public byte flag2;
-        public byte flag3;
-        public byte flag4;
-        public Vector3 position;
+        public byte[]? attributeIds;
+        public float[]? values;
+
+        public void Init(int count)
+        {
+            attributeIds = new byte[count];
+            values = new float[count];
+        }
+
+        public void Read(int count, FileHandler handler, AimpFormat version)
+        {
+            if (version < AimpFormat.Format28)
+            {
+                ReadRE7(count, handler);
+            }
+            else
+            {
+                Read(count, handler);
+            }
+        }
+        public void Write(FileHandler handler, AimpFormat version)
+        {
+            if (version < AimpFormat.Format28)
+            {
+                WriteRE7(handler);
+            }
+            else
+            {
+                Write(handler);
+            }
+        }
+        public void Read(int count, FileHandler handler)
+        {
+            attributeIds = handler.ReadArray<byte>(count);
+            handler.Align(4);
+            values = handler.ReadArray<float>(count);
+        }
+
+        public void ReadRE7(int count, FileHandler handler)
+        {
+            // note: values are actually ints here but it's fine
+            values = handler.ReadArray<float>(count);
+        }
+
+        public void Write(FileHandler handler)
+        {
+            handler.WriteArray(attributeIds!);
+            handler.Align(4);
+            handler.WriteArray(values!);
+        }
+
+        public void WriteRE7(FileHandler handler)
+        {
+            foreach (var f in values!)
+            {
+                var num = BitConverter.SingleToInt32Bits(f);
+                handler.Write(num);
+            }
+        }
     }
 
-    public struct TriangleNodeRE7
+    public class TriangleNode
     {
-        public uint index1;
-        public uint index2;
-        public uint index3;
-        public via.Int3 uknData;
+        public int index1;
+        public int index2;
+        public int index3;
+        public NodeInfoAttributes? attributes;
 
-        public TriangleNode Upgrade() => new TriangleNode() { index1 = index1, index2 = index2, index3 = index3, position = new Vector3(uknData.x, uknData.y, uknData.z) };
+        public void Read(FileHandler handler, AimpFormat format)
+        {
+            attributes ??= new();
+            handler.Read(ref index1);
+            handler.Read(ref index2);
+            handler.Read(ref index3);
+            attributes.Read(3, handler, format);
+        }
+
+        public void Write(FileHandler handler, AimpFormat format)
+        {
+            attributes ??= new();
+            handler.Write(ref index1);
+            handler.Write(ref index2);
+            handler.Write(ref index3);
+            attributes.Write(handler, format);
+        }
     }
 
     public class PolygonNode
     {
         public int pointCount;
-        public uint[]? indices;
-        public byte[]? bytes;
-        public float[]? floats;
-        public int[]? dataRE7;
+        public int[]? indices;
+        public NodeInfoAttributes? attributes;
         public Vector3 min;
         public Vector3 max;
 
@@ -171,22 +236,35 @@ namespace RszTool.Aimp
         public void Read(FileHandler handler)
         {
             handler.Read(ref pointCount);
-            indices = handler.ReadArray<uint>(pointCount);
-            if (version >= AimpFormat.Format28) {
-                bytes = handler.ReadArray<byte>(pointCount);
-                handler.Align(4);
-                floats = handler.ReadArray<float>(pointCount);
-            } else {
-                dataRE7 = handler.ReadArray<int>(pointCount);
-            }
+            indices = handler.ReadArray<int>(pointCount);
+            attributes ??= new NodeInfoAttributes();
+            attributes.Read(pointCount, handler, version);
             handler.Read(ref min);
             handler.Read(ref max);
         }
 
         public void Write(FileHandler handler)
         {
-            throw new NotImplementedException();
+            handler.Write(ref pointCount);
+            handler.WriteArray<int>(indices ?? Array.Empty<int>());
+            attributes ??= new NodeInfoAttributes();
+            if (version >= AimpFormat.Format28) {
+                attributes.Write(handler);
+            } else {
+                attributes.WriteRE7(handler);
+            }
+            handler.Write(ref min);
+            handler.Write(ref max);
         }
+    }
+
+    public class AABBNode
+    {
+        // there are a few rare cases where it's not not just 2 indices duplicated twice (aivspc)
+        public short[] indices = new short[4];
+        // these values also seem to only ever be not 0 in volume space maps (see DMC5 m02_340c_start.aimap.28, RE4 loc5500_ao.aivspc.6)
+        public float[]? values;
+        public int value;
     }
 
     public struct MapBoundaryNode
@@ -196,10 +274,13 @@ namespace RszTool.Aimp
         public Vector3 max;
     }
 
-    public struct AABBNode
+    public class WallNode
     {
-        public byte[] indices;
-        public int[] data;
+        public via.mat4 matrix;
+        public Vector4 scale;
+        public Vector4 rotation;
+        public Vector4 position;
+        public int[] values = new int[8];
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 16)]
@@ -208,6 +289,13 @@ namespace RszTool.Aimp
         [FieldOffset(0)] public float x;
         [FieldOffset(4)] public float y;
         [FieldOffset(8)] public float z;
+
+        public PaddedVec3(float x, float y, float z)
+        {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
 
         public Vector3 Vector3 => new Vector3(x, y, z);
         public override string ToString() => $"{x}, {y}, {z}";
@@ -269,7 +357,7 @@ namespace RszTool.Aimp
         public int nextIndex;
     }
 
-    public struct TriangleInfoRE7
+    public struct NodeInfoRE7
     {
         public int index;
         public int zero;
@@ -330,7 +418,7 @@ namespace RszTool.Aimp
                 }
             } else {
                 for (int i = 0; i < nodeCount; ++i) {
-                    var tri = handler.Read<TriangleInfoRE7>().Upgrade();
+                    var tri = handler.Read<NodeInfoRE7>().Upgrade();
                     Nodes[i] = tri;
                 }
                 int linkCount = handler.Read<int>();
@@ -388,21 +476,23 @@ namespace RszTool.Aimp
     public class ContentGroupTriangles : ContentGroup
     {
         public TriangleNode[]? nodes;
-        public int[]? data;
+        public int[]? polygonIndices;
 
         public override bool ReadNodes(FileHandler handler, int count)
         {
-            if (format >= AimpFormat.Format28) {
-                nodes = handler.ReadArray<TriangleNode>(count);
-            } else {
-                nodes = handler.ReadArray<TriangleNodeRE7>(count).Select(a => a.Upgrade()).ToArray();
+            nodes = new TriangleNode[count];
+            for (int i = 0; i < count; ++i)
+            {
+                var node = new TriangleNode();
+                node.Read(handler, format);
+                nodes[i] = node;
             }
             return true;
         }
 
         public override bool ReadData(FileHandler handler)
         {
-            data = handler.ReadArray<int>(nodes!.Length);
+            polygonIndices = handler.ReadArray<int>(nodes!.Length);
             return true;
         }
     }
@@ -437,10 +527,10 @@ namespace RszTool.Aimp
 
     public class ContentGroupMapBoundary : ContentGroup
     {
-        public Data[]? boundaries;
-        public int[]? integers;
+        public MapBoundaryNodeInfo[]? boundaries;
+        public int[]? integers; // always all -1
 
-        public class Data
+        public class MapBoundaryNodeInfo
         {
             public int[] indices = new int[8];
             public Vector3 min, max;
@@ -448,9 +538,9 @@ namespace RszTool.Aimp
 
         public override bool ReadNodes(FileHandler handler, int count)
         {
-            boundaries = new Data[count];
+            boundaries = new MapBoundaryNodeInfo[count];
             for (int i = 0; i < count; ++i) {
-                boundaries[i] = new Data() {
+                boundaries[i] = new MapBoundaryNodeInfo() {
                     indices = handler.ReadArray<int>(8),
                     min = handler.Read<Vector3>(),
                     max = handler.Read<Vector3>(),
@@ -468,23 +558,18 @@ namespace RszTool.Aimp
 
     public class ContentGroupAABB : ContentGroup
     {
-        public Data[]? AABBs;
+        public AABBNode[]? AABBs;
         public IndexSet[]? data;
-
-        public class Data
-        {
-            public short[] indices = new short[4];
-            public uint[]? values;
-        }
 
         public override bool ReadNodes(FileHandler handler, int count)
         {
-            AABBs = new Data[count];
+            AABBs = new AABBNode[count];
             for (int i = 0; i < count; ++i) {
-                var item = new Data();
+                var item = new AABBNode();
                 handler.ReadArray(item.indices);
                 if (format > AimpFormat.Format28) {
-                    item.values = handler.ReadArray<uint>(13);
+                    item.values = handler.ReadArray<float>(12);
+                    item.value = handler.ReadInt();
                 }
                 AABBs[i] = item;
             }
@@ -505,25 +590,16 @@ namespace RszTool.Aimp
     }
     public class ContentGroupWall : ContentGroup
     {
-        public Data[]? AABBs;
+        public WallNode[]? AABBs;
         public OffsetData[]? data;
-
-        public class Data
-        {
-            public via.mat4 matrix;
-            public Vector4 scale;
-            public Vector4 rotation;
-            public Vector4 position;
-            public int[] values = new int[8];
-        }
 
         public struct OffsetData { public uint mask; }; // re4: 1x uint; before was saved as 2x uint -- why? dd2+ change?
 
         public override bool ReadNodes(FileHandler handler, int count)
         {
-            AABBs = new Data[count];
+            AABBs = new WallNode[count];
             for (int i = 0; i < count; ++i) {
-                AABBs[i] = new Data() {
+                AABBs[i] = new WallNode() {
                     matrix = handler.Read<via.mat4>(),
                     scale = handler.Read<Vector4>(),
                     rotation = handler.Read<Vector4>(),
@@ -558,6 +634,7 @@ namespace RszTool.Aimp
         // 0, 0
         // 3.323435, 0.7853982
         // float2 is always same between both content groups
+        // one of them may be a cell size? margin? cell height? max region area? some sort of distance?
 
         public float float1;
         public float float2;

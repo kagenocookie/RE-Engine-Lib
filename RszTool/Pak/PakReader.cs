@@ -66,8 +66,6 @@ public class PakReader
         return MaxThreads <= 1 ? 1 : Math.Max(Math.Min(MaxThreads, entryCount / 64), 1);
     }
 
-    private sealed record class PakEntryCache(PakFile file, PakEntry entry);
-
     /// <summary>
     /// Finds requested files and returns a memory stream for each of them.
     /// The returned stream is transient, do not hold a permanent reference to it - copy any data you need somewhere else.
@@ -270,7 +268,7 @@ public class PakReader
         where TStream : Stream
         where TContextType : ChunkContextBase
     {
-        var chunkId = ctx.startOffset / (ctx.endOffset - ctx.startOffset - 1);
+        var chunkId = ctx.endOffset == ctx.startOffset + 1 ? ctx.startOffset : ctx.startOffset / (ctx.endOffset - ctx.startOffset - 1);
         if (EnableConsoleLogging) Console.WriteLine($"Starting extraction for chunk {chunkId}: entries {ctx.startOffset} - {ctx.endOffset} for file {ctx.file.filepath}");
         using var fs = File.OpenRead(ctx.file.filepath);
         for (int i = ctx.startOffset; i < ctx.endOffset; ++i) {

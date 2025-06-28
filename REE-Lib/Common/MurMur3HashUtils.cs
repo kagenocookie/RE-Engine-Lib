@@ -62,6 +62,11 @@ namespace ReeLib.Common
             return MurMur3Hash(MemoryMarshal.AsBytes(text.AsSpan()));
         }
 
+        public static uint GetHash(ReadOnlySpan<char> text)
+        {
+            return MurMur3Hash(MemoryMarshal.AsBytes(text));
+        }
+
         public static uint GetAsciiHash(string text)
         {
             return MurMur3Hash(Encoding.ASCII.GetBytes(text));

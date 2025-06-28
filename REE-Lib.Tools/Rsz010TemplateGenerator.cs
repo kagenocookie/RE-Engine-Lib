@@ -4,7 +4,7 @@ using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-// NOTE: code should be kept in sync with any meaningful changes to RszSerializerGenerator
+// NOTE: code should be kept in sync with any meaningful changes to ReeLibGenerator
 
 public class Rsz010TemplateGenerator : IIncrementalGenerator
 {

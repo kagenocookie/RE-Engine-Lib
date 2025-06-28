@@ -5,7 +5,6 @@ namespace ReeLib
         public GameName GameName { get; set; }
         public GameVersion Version { get; set; }
         public RszParser RszParser { get; set; }
-        public EnumParser EnumParser { get; set; }
 
         public RszFileOption(GameName gameName, string? rszJsonFilepath = null)
         {
@@ -16,7 +15,6 @@ namespace ReeLib
             }
             Version = version;
             RszParser = RszParser.GetInstance(rszJsonFilepath ?? $"rsz{gameName}.json");
-            EnumParser = EnumParser.GetInstance($"Data\\Enums\\{gameName}_enum.json");
         }
     }
 }

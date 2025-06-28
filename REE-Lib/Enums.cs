@@ -162,9 +162,254 @@ namespace ReeLib
         drdr,
     }
 
-
-    public static class RszDefines
+    public enum KnownFileFormats
     {
-        public static GameName[] GameNames { get; } = (GameName[])Enum.GetValues(typeof(GameName));
+        Unknown,
+        /// <summary>.mesh</summary>
+        Mesh,
+        /// <summary>.tex</summary>
+        Texture,
+        /// <summary>.scn</summary>
+        Scene,
+        /// <summary>.pfb</summary>
+        Prefab,
+        /// <summary>.user</summary>
+        Userdata,
+        /// <summary>.mdf2</summary>
+        MaterialDefinition,
+        /// <summary>.rcol</summary>
+        Rcol,
+        /// <summary>.uvar</summary>
+        Uvar,
+        /// <summary>.mot</summary>
+        Motion,
+        /// <summary>.motlist</summary>
+        MotionList,
+        /// <summary>.motbank</summary>
+        MotionBank,
+        /// <summary>.cfil</summary>
+        CollisionFilter,
+        /// <summary>.cdef</summary>
+        CollisionDefinition,
+        /// <summary>.cmat</summary>
+        CollisionMaterial,
+        /// <summary>.fol</summary>
+        Foliage,
+        /// <summary>.mmtr</summary>
+        MasterMaterial,
+        /// <summary>.gpbf</summary>
+        GpuBuffer,
+        /// <summary>.gpuc</summary>
+        GpuCloth,
+        /// <summary>.rtex</summary>
+        RenderTexture,
+        /// <summary>.efx</summary>
+        Efx,
+        /// <summary>.tml</summary>
+        Timeline,
+        /// <summary>.uvs</summary>
+        UVSequence,
+        /// <summary>.gui</summary>
+        Gui,
+        /// <summary>.mcol</summary>
+        MeshCollider,
+        /// <summary>.motfsm</summary>
+        MotionFsm,
+        /// <summary>.motfsm2</summary>
+        MotionFsm2,
+        /// <summary>.chain</summary>
+        Chain,
+        /// <summary>.chain2</summary>
+        Chain2,
+        /// <summary>.lprb</summary>
+        LightProbe,
+        /// <summary>.prb</summary>
+        Probe,
+        /// <summary>.aimap, .ainvm, .aivspc, .aiwayp, .aiwaypmgr, .ainvmmgr</summary>
+        AiMap,
+        /// <summary>.hf</summary>
+        HeightField,
+        /// <summary>.chf</summary>
+        ColliderHeightField,
+        /// <summary>.clip</summary>
+        Clip,
+        /// <summary>.bhvt</summary>
+        BehaviorTree,
+        /// <summary>.msg</summary>
+        Message,
+        /// <summary>.coco</summary>
+        CompositeCollision,
+        /// <summary>.jmap</summary>
+        JointMap,
+        /// <summary>.rdd</summary>
+        Ragdoll,
+        /// <summary>.sdftex</summary>
+        SdfTexture,
+        /// <summary>.rmesh</summary>
+        RigidBodyMesh,
+        /// <summary>.mpci</summary>
+        MaterialPointCloud,
+        /// <summary>.ucurve</summary>
+        UserCurve,
+        /// <summary>.ucurvelist</summary>
+        UserCurveList,
+        /// <summary>.ccbk</summary>
+        CharacterColliderBank,
+        /// <summary>.retargetrig</summary>
+        RetargetRig,
+        /// <summary>.rbs</summary>
+        RigidBodySet,
+        /// <summary>.jcns</summary>
+        JointConstraints,
+        /// <summary>.skeleton</summary>
+        Skeleton,
+        /// <summary>.ikleg2</summary>
+        IKLeg2,
+        /// <summary>.iklookat2</summary>
+        IKLookat2,
+        /// <summary>.ikls</summary>
+        IKLegSpine,
+        /// <summary>.ikbodyrig</summary>
+        IKBodyRig,
+        /// <summary>.ikhd</summary>
+        IKHand,
+        /// <summary>.ikmulti</summary>
+        IKMulti,
+        /// <summary>.iktrain2</summary>
+        IKTrain2,
+        /// <summary>.fbik</summary>
+        FullBodyIK,
+        /// <summary>.amix</summary>
+        AudioMixer,
+        /// <summary>.vsrc</summary>
+        VibrationSource,
+        /// <summary>.fbxskel</summary>
+        FbxSkeleton,
+        /// <summary>.clsm</summary>
+        CollisionSkinningMesh,
+        /// <summary>.clsp</summary>
+        CollisionShapePreset,
+        /// <summary>.wrap</summary>
+        WrapDeformer,
+        /// <summary>.sfur</summary>
+        ShellFur,
+        /// <summary>.finf</summary>
+        FilterInfo,
+        /// <summary>.def</summary>
+        DynamicsDefinition,
+        /// <summary>.gcp</summary>
+        GUIColorPreset,
+        /// <summary>.gsty</summary>
+        GUIStyleList,
+        /// <summary>.gcf</summary>
+        GUIConfig,
+        /// <summary>.rcf</summary>
+        RagdollController, // guess
+        /// <summary>.rtmr</summary>
+        RayTraceMaterialRedirect,
+        /// <summary>.sss</summary>
+        SSSProfile,
+        /// <summary>.lod</summary>
+        Lod,
+        /// <summary>.terr</summary>
+        Terrain,
+
+        /// <summary>.gml</summary>
+        GroundMaterialList,
+        /// <summary>.gtl</summary>
+        GroundTextureList,
+        /// <summary>.grnd</summary>
+        Ground,
+        /// <summary>.stmesh</summary>
+        SpeedTreeMesh,
+        /// <summary>.abcmesh</summary>
+        AlembicMesh,
+        /// <summary>.mcamlist</summary>
+        MotionCameraList,
+        /// <summary>.tmlfsm2</summary>
+        TimelineFsm2,
+        /// <summary>.oft</summary>
+        OutlineFont,
+        /// <summary>.fslt</summary>
+        FontSlot,
+        /// <summary>.ift</summary>
+        IconFont,
+        /// <summary>.ocioc</summary>
+        OpenColorIOConfig,
+        /// <summary>.star</summary>
+        StarCatalogue,
+        /// <summary>.mov</summary>
+        Movie,
+        /// <summary>.aimapattr</summary>
+        AiMapAttribute,
+        /// <summary>.swms</summary>
+        MemorySettings,
+        /// <summary>.sbnk</summary>
+        SoundBank,
+        /// <summary>.spck</summary>
+        SoundPackage,
+        /// <summary>.vsdf</summary>
+        VfxShader,
+        /// <summary>.vsdflist</summary>
+        VfxShaderList,
+        /// <summary>.efcsv</summary>
+        EffectCsv,
+        /// <summary>.lfa</summary>
+        Lensflare,
+        /// <summary>.eem</summary>
+        EffectEmitMask,
+        /// <summary>.ies</summary>
+        IESLight,
+        /// <summary>.tmlbld</summary>
+        TimelineBlend,
+        /// <summary>.jointlodgroup</summary>
+        JointLodGroup,
+        /// <summary>.jntexprgraph</summary>
+        JointExpressionGraph,
+        /// <summary>.vmap</summary>
+        MeshVertexMaping,
+        /// <summary>.ziva</summary>
+        ZivaRT,
+        /// <summary>.zivacomb</summary>
+        ZivaCombiner,
+        /// <summary>.dlg</summary>
+        Dialogue,
+        /// <summary>.dlgcf</summary>
+        DialogueConfig,
+        /// <summary>.dlglist</summary>
+        DialogueList,
+        /// <summary>.dlgtml</summary>
+        DialogueTimeline,
+        /// <summary>.clrp</summary>
+        ClothResetPose,
+        /// <summary>.cset</summary>
+        ColliderSet,
+        /// <summary>.fpolygon</summary>
+        FreePolygon,
+        /// <summary>.iklizard</summary>
+        IKLizard,
+        /// <summary>.ikwagon</summary>
+        IKWagon,
+        /// <summary>.sts</summary>
+        Strands,
+        /// <summary>.htex</summary>
+        HeightTexture,
+        /// <summary>.ncf</summary>
+        NetworkConfig,
+        /// <summary>.psop</summary>
+        PSOPatch,
+
+        /// <summary>.fxct</summary>
+        fxct, // EffectCollision?
+        /// <summary>.ord</summary>
+        ord,
+        /// <summary>.pog</summary>
+        pog,
+        /// <summary>.poglst</summary>
+        poglst,
+        /// <summary>.rcfg</summary>
+        rcfg,
+        /// <summary>.sdf</summary>
+        sdf, // BankInfo?
     }
 }

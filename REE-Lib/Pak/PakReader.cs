@@ -73,7 +73,7 @@ public class PakReader
     public IEnumerable<(string path, MemoryStream stream)> FindFiles()
     {
         var pak = new PakFile();
-        foreach (var pakfile in EnumerateTempPakFiles(pak)) {
+        foreach (var pakfile in EnumerateTempPaksWithSearchedFiles(pak)) {
             var ctx = new ChunkContextBase(pak, 0, pak.Entries.Count);
             foreach (var (entry, data) in FindEntriesInChunk(ctx)) {
                 yield return (entry.path!, data);
@@ -97,7 +97,7 @@ public class PakReader
         var unpackedCount = 0;
 
         var pak = new PakFile();
-        foreach (var pakfile in EnumerateTempPakFiles(pak)) {
+        foreach (var pakfile in EnumerateTempPaksWithSearchedFiles(pak)) {
             var threads = CalculateChunkCount(pak.Entries.Count);
             var chunks = PartitionPakEntryChunks(pak, threads, (start, end) => new ExtractionChunkContext(pak, start, end, outputDirectory));
             if (chunks.Count == 1) {
@@ -133,7 +133,7 @@ public class PakReader
         var unpackedCount = 0;
 
         var pak = new PakFile();
-        foreach (var pakfile in EnumerateTempPakFiles(pak)) {
+        foreach (var pakfile in EnumerateTempPaksWithSearchedFiles(pak)) {
             var threads = CalculateChunkCount(pak.Entries.Count);
             var chunks = PartitionPakEntryChunks(pak, threads, (start, end) => new ExtractionChunkContext(pak, start, end, outputDirectory));
             foreach (var chunk in chunks) {
@@ -172,7 +172,7 @@ public class PakReader
 
             var pak = new PakFile();
             pak.filepath = pakfile;
-            pak.ReadContents(pakfile, searchedPaths);
+            pak.ReadContents(pakfile);
 
             if (pak.Entries.Count > 0) {
                 yield return pak;
@@ -180,7 +180,7 @@ public class PakReader
         }
     }
 
-    protected IEnumerable<string> EnumerateTempPakFiles(PakFile pak)
+    protected IEnumerable<string> EnumerateTempPaksWithSearchedFiles(PakFile pak)
     {
         for (var i = PakFilePriority.Count - 1; i >= 0; i--) {
             var pakfile = PakFilePriority[i];

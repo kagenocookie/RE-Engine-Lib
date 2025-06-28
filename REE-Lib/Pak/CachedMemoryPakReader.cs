@@ -4,7 +4,8 @@ using System;
 using ReeLib.Pak;
 
 /// <summary>
-/// Provides fast entry lookup of any resources inside a set of PAK files. Can read and keep track of all PAK entries.
+/// Provides fast entry lookup of any resources inside a set of PAK files. Can read and keep track of all PAK entries.<br/>
+/// Thread safe except for methods noted otherwise. Base class methods may not be thread safe either.
 /// </summary>
 public class CachedMemoryPakReader : PakReader, IDisposable
 {
@@ -14,9 +15,11 @@ public class CachedMemoryPakReader : PakReader, IDisposable
     private Dictionary<ulong, PakEntryCache>? cachedEntries;
     private MemoryStream memoryStream = new();
 
+    private readonly Mutex _lock = new();
+    private const int PakCacheTimeout = 30000;
+
     /// <summary>
     /// Reads a file into a MemoryStream.
-    /// The returned stream is transient, do not hold a permanent reference to it - copy any data you need somewhere else.
     /// </summary>
     public MemoryStream? GetFile(string filepath)
     {
@@ -26,9 +29,35 @@ public class CachedMemoryPakReader : PakReader, IDisposable
 
     /// <summary>
     /// Reads a file into a MemoryStream.
-    /// The returned stream is transient, do not hold a permanent reference to it - copy any data you need somewhere else.
     /// </summary>
     public MemoryStream? GetFile(ulong filepathHash)
+    {
+        if (cachedEntries == null || cachedPaks == null)
+        {
+            CacheEntries();
+            if (cachedEntries == null) throw new Exception("Failed to generate cache of PAK entries");
+        }
+
+        if (cachedEntries.TryGetValue(filepathHash, out var entry))
+        {
+            var memoryStream = new MemoryStream();
+            memoryStream.Seek(0, SeekOrigin.Begin);
+            memoryStream.SetLength(0);
+            using var fs = File.OpenRead(entry.file.filepath);
+            PakFile.ReadEntry(entry.entry, fs, memoryStream);
+            memoryStream.Seek(0, SeekOrigin.Begin);
+            return memoryStream;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Reads a file into a MemoryStream using a reused file stream.<br/>
+    /// Not thread safe.<br/><br/>
+    /// The returned stream is transient, do not hold a permanent reference to it - copy any data you need somewhere else.
+    /// </summary>
+    public MemoryStream? GetFileCached(ulong filepathHash)
     {
         if (cachedEntries == null || cachedPaks == null)
         {
@@ -53,22 +82,37 @@ public class CachedMemoryPakReader : PakReader, IDisposable
     /// </summary>
     public void CacheEntries()
     {
-        Clear();
-        cachedEntries = new();
-        foreach (var pak in EnumeratePaks())
-        {
-            foreach (var entry in pak.Entries)
-            {
-                var hash = entry.CombinedHash;
-                cachedEntries.Add(hash, new PakEntryCache(pak, entry));
-                searchedPaths.Remove(hash);
+        if (!_lock.WaitOne(PakCacheTimeout)) {
+            if (cachedEntries == null || cachedEntries.Count == 0) {
+                throw new Exception("Pak reader cache lookup timed out");
             }
+            return;
+        }
 
-            if (EnableConsoleLogging) Console.WriteLine("Finished caching contents of " + pak.filepath);
-            if (searchedPaths.Count == 0) break;
+        try {
+            Clear();
+            cachedEntries = new();
+            foreach (var pak in EnumeratePaks())
+            {
+                foreach (var entry in pak.Entries)
+                {
+                    var hash = entry.CombinedHash;
+                    cachedEntries.Add(hash, new PakEntryCache(pak, entry));
+                    searchedPaths.Remove(hash);
+                }
+
+                if (EnableConsoleLogging) Console.WriteLine("Finished caching contents of " + pak.filepath);
+                if (searchedPaths.Count == 0) break;
+            }
+        } finally {
+            _lock.ReleaseMutex();
         }
     }
 
+    /// <summary>
+    /// Clears the current pak and entry cache.
+    /// Not thread safe.
+    /// </summary>
     public void Clear()
     {
         if (cachedPaks != null)

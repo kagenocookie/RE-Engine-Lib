@@ -1,11 +1,13 @@
 namespace ReeLib.Generators;
 
+using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 [Generator(LanguageNames.CSharp)]
-public class RszSerializerGenerator : IIncrementalGenerator
+public class ReeLibGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -19,7 +21,58 @@ public class RszSerializerGenerator : IIncrementalGenerator
             )
             .Where(ctx => ctx is not null);
 
-        context.RegisterSourceOutput(classes, static (ctx, source) => Execute(ctx, source));
+        context.RegisterSourceOutput(classes, static (ctx, source) => ExecuteRszSerializers(ctx, source));
+
+        var gameNameEnum = context.SyntaxProvider
+            .CreateSyntaxProvider(
+                predicate: static (s, _) => s is EnumDeclarationSyntax enumDecl && (enumDecl.Identifier.Text == "GameName" || enumDecl.Identifier.Text == "KnownFileFormats"),
+                transform: static (ctx, asd) => (EnumDeclarationSyntax)ctx.Node
+            );
+        context.RegisterSourceOutput(gameNameEnum, static (ctx, enumDecl) => {
+            GenerateEnumHashes(ctx, enumDecl);
+            var name = enumDecl.Identifier.Text;
+            if (name == "KnownFileFormats") {
+                var sb1 = new StringBuilder();
+                var sb2 = new StringBuilder();
+                AppendParentClasses(sb1, enumDecl, out var indent);
+                var indentStr = new string('\t', indent - 1);
+                var indentStr2 = new string('\t', indent);
+                var indentStr3 = new string('\t', indent + 1);
+                sb1.Append(indentStr).AppendLine($"public static class FileFormatExtensions");
+                sb1.Append(indentStr).AppendLine("{");
+                sb1.Append(indentStr2).AppendLine($"public static {name} ExtensionToEnum(string extension) => extension switch {{");
+                sb2.Append(indentStr2).AppendLine($"public static {name} ExtensionHashToEnum(uint hash) => ExtensionHashToEnum((int)hash);");
+                sb2.Append(indentStr2).AppendLine($"public static {name} ExtensionHashToEnum(int hash) => hash switch {{");
+                foreach (var val in enumDecl.Members) {
+                    var valName = val.Identifier.Text;
+                    if (val.HasLeadingTrivia) {
+                        var doc = val.GetLeadingTrivia().FirstOrDefault(t => t.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia)).GetStructure();
+                        var comp = doc?.ToString();
+                        if (comp != null) {
+                            foreach (var ext in comp.Replace("<summary>", "").Replace("</summary>", "").Replace(" ", "").Replace(".", "").Trim().Split(',')) {
+                                sb1.Append(indentStr3).AppendLine($"\"{ext}\" => {name}.{valName},");
+                                sb2.Append(indentStr3).AppendLine($"{MurMur3Hash(ext)} => {name}.{valName},");
+                            }
+                        } else {
+                            sb1.Append(indentStr3).AppendLine("//unhandled: " + valName);
+                        }
+                    } else {
+                        sb1.Append(indentStr3).AppendLine("//unhandled: " + valName);
+                    }
+                }
+
+                sb1.Append(indentStr3).AppendLine($"_ => {name}.Unknown");
+                sb1.Append(indentStr2).AppendLine("};");
+
+                sb1.AppendLine().Append(sb2);
+                sb1.Append(indentStr3).AppendLine($"_ => {name}.Unknown");
+                sb1.Append(indentStr2).AppendLine("};");
+
+                CloseIndents(sb1, indent);
+
+                ctx.AddSource($"{name}.extMapping", sb1.ToString());
+            }
+        });
     }
 
     private sealed class ClassBuildContext
@@ -59,13 +112,32 @@ public class RszSerializerGenerator : IIncrementalGenerator
     public static void ExecuteSafe(SourceProductionContext source, RszFileHandlerContext context)
     {
         try {
-            Execute(source, context);
+            ExecuteRszSerializers(source, context);
         } catch (Exception e) {
             source.ReportDiagnostic(Diagnostic.Create(Diagnostics.UnhandledFailure, context.ClassDecl.Identifier.GetLocation(), e.Message));
         }
     }
 
-    public static void Execute(SourceProductionContext source, RszFileHandlerContext context)
+    private static void GenerateEnumHashes(SourceProductionContext source, EnumDeclarationSyntax enumDecl)
+    {
+        var sb = new StringBuilder();
+        var name = enumDecl.Identifier.Text;
+        AppendParentClasses(sb, enumDecl, out var indent);
+        var indentStr = new string('\t', indent - 1);
+        sb.Append(indentStr).AppendLine($"public static partial class {name}Hash");
+        sb.Append(indentStr).AppendLine("{");
+        foreach (var val in enumDecl.Members) {
+            var valName = val.Identifier.Text;
+            sb.Append(indentStr).AppendLine($"\tpublic const int {valName} = {(int)MurMur3Hash(valName)};");
+        }
+
+        // sb.Append(indentStr).AppendLine("}");
+        CloseIndents(sb, indent);
+
+        source.AddSource($"{name}.hashes", sb.ToString());
+    }
+
+    public static void ExecuteRszSerializers(SourceProductionContext source, RszFileHandlerContext context)
     {
         if (!context.ClassDecl.Modifiers.Any(mod => mod.Text == "partial")) {
             source.ReportDiagnostic(Diagnostic.Create(Diagnostics.NonPartialClass, context.ClassDecl.Identifier.GetLocation(), context.ClassDecl.Identifier.Text));
@@ -76,31 +148,33 @@ public class RszSerializerGenerator : IIncrementalGenerator
         var buildCtx = new ClassBuildContext(sb, context, source);
 
         var ns = context.ClassDecl.GetFullNamespace();
-        if (ns != null) sb.Append("namespace ").Append(ns).Append(';').AppendLine();
-        sb.AppendLine();
+        AppendParentClasses(sb, context.ClassDecl, out var indent);
+        AppendClassDefinition(sb, context.ClassDecl, indent);
+        // if (ns != null) sb.Append("namespace ").Append(ns).Append(';').AppendLine();
+        // sb.AppendLine();
 
-        var usings = context.ClassDecl.SyntaxTree.GetRoot().ChildNodes().OfType<UsingDirectiveSyntax>();
-        if (usings != null) foreach (var uu in usings) {
-            sb.AppendLine(uu.GetText().ToString().TrimEnd());
-        }
-        sb.AppendLine();
+        // var usings = context.ClassDecl.SyntaxTree.GetRoot().ChildNodes().OfType<UsingDirectiveSyntax>();
+        // if (usings != null) foreach (var uu in usings) {
+        //     sb.AppendLine(uu.GetText().ToString().TrimEnd());
+        // }
+        // sb.AppendLine();
 
 
-        var parents = context.ClassDecl.Ancestors().OfType<ClassDeclarationSyntax>().Reverse();
-        foreach (var parent in parents) {
-            sb.Append(string.Join(" ", parent.Modifiers.Select(m => m.Text))).Append(" class ").AppendLine(parent.Identifier.Text).AppendLine("{");
-        }
+        // var parents = context.ClassDecl.Ancestors().OfType<ClassDeclarationSyntax>().Reverse();
+        // foreach (var parent in parents) {
+        //     sb.Append(string.Join(" ", parent.Modifiers.Select(m => m.Text))).Append(" class ").AppendLine(parent.Identifier.Text).AppendLine("{");
+        // }
 
-        var classIndent = new string('\t', parents.Count());
-        var memberIndent = new string('\t', parents.Count() + 1);
-        var methodBodyIndent = new string('\t', parents.Count() + 2);
+        var classIndent = new string('\t', indent - 1);
+        var memberIndent = new string('\t', indent);
+        var methodBodyIndent = new string('\t', indent + 1);
         buildCtx.indent = methodBodyIndent;
 
-        sb.Append(classIndent).Append(string.Join(" ", context.ClassDecl.Modifiers.Select(m => m.Text))).Append(" class ").Append(context.ClassDecl.Identifier.Text);
-        sb.Append(context.ClassDecl.TypeParameterList?.ToString() ?? string.Empty);
-        sb.Append(context.ClassDecl.BaseList?.ToString() ?? string.Empty);
-        sb.AppendLine();
-        sb.Append(classIndent).AppendLine("{");
+        // sb.Append(classIndent).Append(string.Join(" ", context.ClassDecl.Modifiers.Select(m => m.Text))).Append(" class ").Append(context.ClassDecl.Identifier.Text);
+        // sb.Append(context.ClassDecl.TypeParameterList?.ToString() ?? string.Empty);
+        // sb.Append(context.ClassDecl.BaseList?.ToString() ?? string.Empty);
+        // sb.AppendLine();
+        // sb.Append(classIndent).AppendLine("{");
 
         string? versionString = null;
         if (context.ClassDecl.TryGetAttribute("RszAssignVersion", out var classAttr)) {
@@ -158,10 +232,9 @@ public class RszSerializerGenerator : IIncrementalGenerator
             sb.Append(memberIndent).AppendLine("protected override bool DoWrite(FileHandler handler) => DefaultWrite(handler);");
         }
 
-        sb.Append(classIndent).AppendLine("}");
-        foreach (var parent in parents) {
-            sb.AppendLine("}");
-        }
+        // sb.Append(classIndent).AppendLine("}");
+        CloseIndents(sb, indent);
+
         source.AddSource($"{ns}_{context.ClassDecl.Identifier.Text}.rsz", sb.ToString());
     }
 
@@ -508,6 +581,93 @@ public class RszSerializerGenerator : IIncrementalGenerator
         if (anyEnded) ctx.builder.AppendLine();
     }
 
+    private static void AppendParentClasses(StringBuilder sb, BaseTypeDeclarationSyntax classDecl, out int indentCount)
+    {
+        var ns = classDecl.GetFullNamespace();
+        if (ns != null) sb.Append("namespace ").Append(ns).Append(';').AppendLine();
+        sb.AppendLine();
+
+        var usings = classDecl.SyntaxTree.GetRoot().ChildNodes().OfType<UsingDirectiveSyntax>();
+        if (usings != null) foreach (var uu in usings) {
+            sb.AppendLine(uu.GetText().ToString().TrimEnd());
+        }
+        sb.AppendLine();
+
+        var parents = classDecl.Ancestors().OfType<BaseTypeDeclarationSyntax>().Reverse();
+        foreach (var parent in parents) {
+            sb.Append(string.Join(" ", parent.Modifiers.Select(m => m.Text))).Append(" class ").AppendLine(parent.Identifier.Text).AppendLine("{");
+        }
+
+        indentCount = parents.Count() + 1;
+    }
+
+    private static void AppendClassDefinition(StringBuilder sb, ClassDeclarationSyntax classDecl, int indentCount)
+    {
+        var classIndent = new string('\t', indentCount - 1);
+        sb.Append(classIndent).Append(string.Join(" ", classDecl.Modifiers.Select(m => m.Text))).Append(" class ").Append(classDecl.Identifier.Text);
+        sb.Append(classDecl.TypeParameterList?.ToString() ?? string.Empty);
+        sb.Append(classDecl.BaseList?.ToString() ?? string.Empty);
+        sb.AppendLine();
+        sb.Append(classIndent).AppendLine("{");
+    }
+    private static void CloseIndents(StringBuilder sb, int indents)
+    {
+        for (int i = indents - 1; i >= 0; --i) sb.Append(new string('\t', indents - 1)).AppendLine("}");
+    }
+
+
+    private static uint MurMur3Hash(string str) => MurMur3Hash(MemoryMarshal.AsBytes(str.AsSpan()));
+    private static uint MurMur3Hash(ReadOnlySpan<byte> bytes)
+    {
+        const uint c1 = 0xcc9e2d51;
+        const uint c2 = 0x1b873593;
+        const uint seed = 0xffffffff;
+
+        uint h1 = seed;
+        uint k1;
+
+        for (int i = 0; i < bytes.Length; i += 4)
+        {
+            int chunkLength = Math.Min(4, bytes.Length - i);
+            k1 = chunkLength switch
+            {
+                4 => (uint)(bytes[i] | bytes[i + 1] << 8 | bytes[i + 2] << 16 | bytes[i + 3] << 24),
+                3 => (uint)(bytes[i] | bytes[i + 1] << 8 | bytes[i + 2] << 16),
+                2 => (uint)(bytes[i] | bytes[i + 1] << 8),
+                1 => bytes[i],
+                _ => 0
+            };
+            k1 *= c1;
+            k1 = Rotl32(k1, 15);
+            k1 *= c2;
+            h1 ^= k1;
+            if (chunkLength == 4)
+            {
+                h1 = Rotl32(h1, 13);
+                h1 = h1 * 5 + 0xe6546b64;
+            }
+        }
+
+        h1 ^= (uint)bytes.Length;
+        h1 = Fmix(h1);
+
+        return h1;
+
+        static uint Rotl32(uint x, byte r)
+        {
+            return (x << r) | (x >> (32 - r));
+        }
+
+        static uint Fmix(uint h)
+        {
+            h ^= h >> 16;
+            h *= 0x85ebca6b;
+            h ^= h >> 13;
+            h *= 0xc2b2ae35;
+            h ^= h >> 16;
+            return h;
+        }
+    }
 }
 
 public class RszFileHandlerContext

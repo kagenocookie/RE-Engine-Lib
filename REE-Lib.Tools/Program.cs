@@ -330,7 +330,7 @@ internal sealed class Program
             }
             """;
 
-        var generator = new Generators.RszSerializerGenerator();
+        var generator = new Generators.ReeLibGenerator();
         var basedir = Directory.GetCurrentDirectory();
         basedir = basedir.Substring(0, basedir.IndexOf("\\ReeLib.Tools"));
 

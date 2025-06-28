@@ -60,7 +60,10 @@ namespace ReeLib
                 foreach (var item in dict)
                 {
                     var value = item.Value;
-                    value.typeId = uint.Parse(item.Key, NumberStyles.HexNumber);
+                    if (!uint.TryParse(item.Key, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var typeId)) {
+                        continue;
+                    }
+                    value.typeId = typeId;
                     classDict[value.typeId] = value;
                     classNameDict[value.name] = value;
 

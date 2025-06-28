@@ -72,13 +72,17 @@ internal sealed partial class FileExtensionCache
         var ext = Path.GetExtension(Path.GetFileNameWithoutExtension(filepath)).Replace(".", "");
         if (!string.IsNullOrEmpty(ext)) {
             if (!Info.TryGetValue(ext, out var info)) {
-                Info[ext] = info = new FileExtensionInfo();
+                Info[ext] = info = new FileExtensionInfo() {
+                    Type = FileFormatExtensions.ExtensionToEnum(ext),
+                };
             }
+
             info.CanHaveX64 = hasX64 || info.CanHaveX64;
             info.CanHaveStm = hasStm || info.CanHaveStm;
             info.CanNotHaveX64 = !hasX64 && !hasStm || info.CanNotHaveX64;
             info.CanHaveLang = isLocalized || info.CanHaveLang;
             info.CanNotHaveLang = !isLocalized || info.CanNotHaveLang;
+
             if (locale != null && !info.Locales.Contains(locale)) {
                 if (locale == "en") {
                     info.Locales.Insert(0, locale);
@@ -98,6 +102,7 @@ internal sealed partial class FileExtensionCache
     public sealed class FileExtensionInfo
     {
         public List<string> Locales { get; set; } = new();
+        public KnownFileFormats Type { get; set; } = KnownFileFormats.Unknown;
         public int Version { get; set; }
         public bool CanHaveX64 { get; set; }
         public bool CanHaveStm { get; set; }

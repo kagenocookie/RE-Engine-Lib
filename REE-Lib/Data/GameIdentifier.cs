@@ -2,18 +2,12 @@ using ReeLib.Common;
 
 namespace ReeLib;
 
-public readonly struct GameIdentifier
+public readonly partial struct GameIdentifier
 {
     public readonly GameNameHash hash;
     public readonly string name;
 
     public GameName GameEnum => Enum.TryParse<GameName>(name, out var value) ? value : GameName.unknown;
-
-    public GameIdentifier(GameNameHash hash)
-    {
-        this.hash = hash;
-        name = string.Empty;
-    }
 
     public GameIdentifier(string name)
     {
@@ -36,4 +30,5 @@ public readonly struct GameIdentifier
     public override bool Equals(object? obj) => obj is GameIdentifier id && id.hash == hash;
     public static bool operator ==(GameIdentifier left, GameIdentifier right) => left.hash == right.hash;
     public static bool operator !=(GameIdentifier left, GameIdentifier right) => left.hash != right.hash;
+    public override string ToString() => !string.IsNullOrEmpty(name) ? name : hash.ToString();
 }

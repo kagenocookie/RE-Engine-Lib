@@ -69,7 +69,7 @@ namespace ReeLib
             FilePath = path;
             FileStream fileStream = new(path, FileMode.OpenOrCreate, FileAccess.ReadWrite);
             if (!holdFile) {
-                Stream = new MemoryStream();
+                Stream = new MemoryStream((int)fileStream.Length);
                 fileStream.CopyTo(Stream);
                 fileStream.Dispose();
                 Stream.Position = 0;

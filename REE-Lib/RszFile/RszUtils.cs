@@ -7,13 +7,6 @@ namespace ReeLib
             return path.Contains('/') && Path.GetExtension(path) != "";
         }
 
-        /// <summary>
-        /// 添加RSZ中用到的UserData
-        /// </summary>
-        /// <param name="userdataInfos"></param>
-        /// <param name="rsz"></param>
-        /// <param name="userDataStart"></param>
-        /// <param name="length"></param>
         public static void AddUserDataFromRsz(List<UserdataInfo> userdataInfos, RSZFile rsz, int userDataStart = 0, int length = -1)
         {
             if (length == -1) length = rsz.RSZUserDataInfoList.Count - userDataStart;
@@ -27,25 +20,13 @@ namespace ReeLib
             }
         }
 
-        /// <summary>
-        /// 同步成RSZ中用到的UserData
-        /// </summary>
-        /// <param name="userdataInfos"></param>
-        /// <param name="rsz"></param>
         public static void SyncUserDataFromRsz(List<UserdataInfo> userdataInfos, RSZFile rsz)
         {
             userdataInfos.Clear();
             AddUserDataFromRsz(userdataInfos, rsz);
         }
 
-        /// <summary>
-        /// 添加RSZ中用到的资源
-        /// </summary>
-        /// <param name="resourcesInfos"></param>
-        /// <param name="rsz"></param>
-        /// <param name="instanceStart"></param>
-        /// <param name="length"></param>
-        public static void AddResourceFromRsz(List<ResourceInfo> resourcesInfos, RSZFile rsz, int instanceStart = 0, int length = -1)
+        public static void ScanRszForResources(List<ResourceInfo> resourcesInfos, RSZFile rsz, int instanceStart = 0, int length = -1)
         {
             if (length == -1) length = rsz.InstanceList.Count - instanceStart;
             HashSet<string> addedPath = new();
@@ -96,15 +77,10 @@ namespace ReeLib
             }
         }
 
-        /// <summary>
-        /// 同步成RSZ中用到的资源
-        /// </summary>
-        /// <param name="resourcesInfos"></param>
-        /// <param name="rsz"></param>
         public static void SyncResourceFromRsz(List<ResourceInfo> resourcesInfos, RSZFile rsz)
         {
             resourcesInfos.Clear();
-            AddResourceFromRsz(resourcesInfos, rsz);
+            ScanRszForResources(resourcesInfos, rsz);
         }
 
         public static void GetFileExtension(ReadOnlySpan<char> path, out ReadOnlySpan<char> extension, out ReadOnlySpan<char> version)

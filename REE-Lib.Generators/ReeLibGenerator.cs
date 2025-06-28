@@ -31,6 +31,21 @@ public class ReeLibGenerator : IIncrementalGenerator
         context.RegisterSourceOutput(gameNameEnum, static (ctx, enumDecl) => {
             GenerateEnumHashes(ctx, enumDecl);
             var name = enumDecl.Identifier.Text;
+            if (name == "GameName") {
+                var sb = new StringBuilder();
+                AppendParentClasses(sb, enumDecl, out var indent);
+                var indentStr = new string('\t', indent - 1);
+                sb.Append(indentStr).AppendLine($"public readonly partial struct GameIdentifier");
+                sb.Append(indentStr).AppendLine("{");
+                foreach (var val in enumDecl.Members) {
+                    var valName = val.Identifier.Text;
+                    if (valName == "unknown") continue;
+                    sb.Append(indentStr).AppendLine($"\tpublic static readonly GameIdentifier {valName} = new GameIdentifier(\"{valName}\", GameNameHash.{valName});");
+                }
+
+                CloseIndents(sb, indent);
+                ctx.AddSource($"GameIdentifier.GameNames", sb.ToString());
+            }
             if (name == "KnownFileFormats") {
                 var sb1 = new StringBuilder();
                 var sb2 = new StringBuilder();

@@ -1,16 +1,34 @@
 namespace ReeLib;
 
-public class GameConfig(GameIdentifier game)
+public class GameConfig
 {
-    public GameIdentifier Game => game;
-    public GameName BuiltInGame => game.GameEnum;
+    public GameConfig(GameIdentifier game)
+    {
+        Game = game;
+    }
+
+    public GameConfig(GameIdentifier game, LocalResources resources)
+    {
+        Game = game;
+        _resources = resources;
+    }
+
+    public GameIdentifier Game { get; }
+    public GameName BuiltInGame => Game.GameEnum;
+
+    private LocalResources? _resources;
+
+    /// <summary>
+    /// Gets the local resource metadata for the current game. If it has not yet been initialized, it will be fetched and updated.
+    /// Will fetch and download from remote if the data is missing with a blocking HTTP request, and read cached files from the local disk otherwise.
+    /// </summary>
+    public LocalResources Resources => _resources ??= ResourceRepository.Cache.UpdateAndGet(Game);
 
     public string GamePath { get; set; } = string.Empty;
     public string ChunkPath { get; set; } = string.Empty;
-    public string RszJsonPath { get; set; } = string.Empty;
-    public string Il2cppPath { get; set; } = string.Empty;
-    public string FileListPath { get; set; } = string.Empty;
     public string[] PakFiles { get; set; } = [];
+
+    public string[] RszPatchFiles => Resources.LocalPaths.RszPatchFiles;
 
     public void LoadValues(params (string key, string value)[] values) => LoadValues(values.AsEnumerable());
     public void LoadValues(IEnumerable<KeyValuePair<string, string>> values) => LoadValues(values.Select(pair => (pair.Key, pair.Value)));
@@ -27,18 +45,28 @@ public class GameConfig(GameIdentifier game)
                 case "chunkpath":
                 case "chunkspath": ChunkPath = Path.GetFullPath(value); break;
                 case "rszjson":
-                case "rszjsonpath": RszJsonPath = Path.GetFullPath(value); break;
+                case "rszjsonpath": Resources.LocalPaths.RszPatchFiles = value.Split(',', StringSplitOptions.RemoveEmptyEntries|StringSplitOptions.TrimEntries).Select(Path.GetFullPath).ToArray(); break;
                 case "il2cpp":
-                case "il2cpppath": Il2cppPath = Path.GetFullPath(value); break;
+                case "il2cpppath": Resources.LocalPaths.Il2cppCache = Path.GetFullPath(value); break;
                 case "filelist":
-                case "filelistpath": FileListPath = Path.GetFullPath(value); break;
+                case "filelistpath": Resources.LocalPaths.FileList = Path.GetFullPath(value); break;
                 case "pakfiles":
                 case "paklist":
-                    PakFiles = value.Split(',', StringSplitOptions.TrimEntries)
+                    PakFiles = value.Split(',', StringSplitOptions.RemoveEmptyEntries|StringSplitOptions.TrimEntries)
                         .Select(Path.GetFullPath)
                         .ToArray();
                     break;
             }
         }
+    }
+
+    /// <summary>
+    /// Create a new config from the public remote game resource repository.
+    /// </summary>
+    public static GameConfig CreateFromRepository(GameIdentifier game)
+    {
+        var config = new GameConfig(game);
+        config._resources = ResourceRepository.Cache.UpdateAndGet(game);
+        return config;
     }
 }

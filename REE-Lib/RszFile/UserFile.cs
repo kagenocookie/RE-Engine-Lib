@@ -109,7 +109,7 @@ namespace ReeLib
 
         public void RebuildInfoTable()
         {
-            RSZ!.RebuildInstanceInfo();
+            RSZ.RebuildInstanceInfo();
             RszUtils.SyncUserDataFromRsz(UserdataInfoList, RSZ);
             RszUtils.SyncResourceFromRsz(ResourceInfoList, RSZ);
             StructChanged = false;

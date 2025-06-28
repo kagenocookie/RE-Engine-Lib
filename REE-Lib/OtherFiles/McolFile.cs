@@ -1,4 +1,3 @@
-using System.Numerics;
 using ReeLib.InternalAttributes;
 
 namespace ReeLib.Mcol

@@ -56,7 +56,7 @@ namespace ReeLib
                     addedPath.Add(item.Path);
                 }
             }
-            void CheckResouce(string path)
+            void CheckResource(string path)
             {
                 if (IsResourcePath(path) && !addedPath.Contains(path))
                 {
@@ -84,12 +84,12 @@ namespace ReeLib
                         {
                             foreach (var item in (List<object>)instance.Values[j])
                             {
-                                CheckResouce((string)item);
+                                CheckResource((string)item);
                             }
                         }
                         else
                         {
-                            CheckResouce((string)instance.Values[j]);
+                            CheckResource((string)instance.Values[j]);
                         }
                     }
                 }
@@ -107,37 +107,25 @@ namespace ReeLib
             AddResourceFromRsz(resourcesInfos, rsz);
         }
 
-        public static void GetFileExtension(string path, out string extension, out string version)
+        public static void GetFileExtension(ReadOnlySpan<char> path, out ReadOnlySpan<char> extension, out ReadOnlySpan<char> version)
         {
             version = Path.GetExtension(path);
             extension = Path.GetExtension(path[0..^version.Length]);
         }
 
-#if NET8_0_OR_GREATER
         public static int GetFileExtensionVersion(ReadOnlySpan<char> path)
         {
             var versionStr = Path.GetExtension(path);
             if (!versionStr.IsEmpty)
             {
-                versionStr = versionStr.Slice(1);
+                versionStr = versionStr[1..];
             }
             return int.TryParse(versionStr, out var version) ? version : 0;
         }
-#else
-        public static int GetFileExtensionVersion(string path)
-        {
-            var versionStr = Path.GetExtension(path);
-            if (!string.IsNullOrEmpty(versionStr))
-            {
-                versionStr = versionStr.Substring(1);
-            }
-            return int.TryParse(versionStr, out var version) ? version : 0;
-        }
-#endif
 
         public static FileType GetFileType(string path)
         {
-            GetFileExtension(path, out string extension, out _);
+            GetFileExtension(path, out var extension, out _);
             return extension switch {
                 ".user" => FileType.user,
                 ".pfb" => FileType.pfb,
@@ -148,14 +136,14 @@ namespace ReeLib
             };
         }
 
-        public static void CheckFileExtension(string path, string extension, string? version)
+        public static void CheckFileExtension(ReadOnlySpan<char> path, string extension, string? version)
         {
-            GetFileExtension(path, out string realExtension, out string realVersion);
-            if (extension != realExtension)
+            GetFileExtension(path, out var realExtension, out var realVersion);
+            if (!realExtension.SequenceEqual(extension))
             {
                 Console.Error.WriteLine($"extension should be {extension}, got {realExtension}");
             }
-            if (version != realVersion)
+            if (!realVersion.SequenceEqual(version))
             {
                 Console.Error.WriteLine($"extension should be {version}, got {realVersion}");
             }

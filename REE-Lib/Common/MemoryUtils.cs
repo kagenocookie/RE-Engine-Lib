@@ -1,4 +1,3 @@
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -6,27 +5,11 @@ namespace ReeLib.Common
 {
     public static class MemoryUtils
     {
-#if !NET5_0_OR_GREATER
-        public static ref T AsRef<T>(Span<byte> span) where T : unmanaged
-        {
-            int size = Unsafe.SizeOf<T>();
-            if (size > (uint)span.Length)
-            {
-                throw new ArgumentOutOfRangeException($"{typeof(T).Name}");
-            }
-            return ref Unsafe.As<byte, T>(ref MemoryMarshal.GetReference(span));
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe Span<T> CreateSpan<T>(scoped ref T reference, int length) => new Span<T>(Unsafe.AsPointer(ref reference), length);
-
-#else
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ref T AsRef<T>(Span<byte> span) where T : unmanaged => ref MemoryMarshal.AsRef<T>(span);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Span<T> CreateSpan<T>(ref T reference, int length) => MemoryMarshal.CreateSpan(ref reference, length);
-#endif
 
         /// <summary>
         /// 结构体转bytes，对bytes的改动会影响原数据
@@ -54,11 +37,7 @@ namespace ReeLib.Common
             {
                 buffer = new byte[size];
             }
-#if NET8_0_OR_GREATER
             MemoryMarshal.Write(buffer, in value);
-#else
-            MemoryMarshal.Write(buffer, ref value);
-#endif
             return buffer;
         }
 

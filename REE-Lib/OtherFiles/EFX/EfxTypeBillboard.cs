@@ -174,7 +174,6 @@ public partial class EFXAttributeTypeBillboard3DMaterial : EFXAttribute
 public partial class EFXAttributeTypeBillboard3DMaterialClip : EFXAttribute, IMaterialClipAttribute
 {
     public EfxMaterialClipData MaterialClip => clipData;
-	EfxClipData IClipAttribute.Clip => clipData;
     public BitSet ClipBits => clipBits;
 
     public EFXAttributeTypeBillboard3DMaterialClip() : base(EfxAttributeType.TypeBillboard3DMaterialClip) { }

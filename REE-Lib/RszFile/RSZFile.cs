@@ -20,28 +20,24 @@ namespace ReeLib
             public long userdataOffset;
         }
 
-        public struct ObjectTable
-        {
-            public int instanceId;
-        }
+        public record struct ObjectTableEntry(int InstanceId);
 
         public RszHeader Header { get; } = new();
-        public List<StructModel<ObjectTable>> ObjectTableList { get; } = new();
+        public List<ObjectTableEntry> ObjectTableList { get; } = new();
         public List<InstanceInfo> InstanceInfoList { get; } = new();
         public List<IRSZUserDataInfo> RSZUserDataInfoList { get; } = new();
 
         /// <summary>
-        /// 基于InstanceInfoList生成的实例列表
-        /// 一般第一个项是NULL，手动构建时需要注意
+        /// List of object instances.
+        /// The first element should usually be NULL.
         /// </summary>
         public List<RszInstance> InstanceList { get; } = new();
         /// <summary>
-        /// 基于ObjectTableList生成的实例列表，是对外公开的实例，
-        /// InstanceList中包括里面依赖的成员实例或者实例数组的项
+        /// List of instances that are accessed from outside of the RSZ file.
+        /// All elements are also within InstanceList
         /// </summary>
         public List<RszInstance> ObjectList { get; private set; } = new();
         public List<RSZFile>? EmbeddedRSZFileList { get; set; }
-        // if struct changed, need rebuild
 
         public RSZFile(RszFileOption option, FileHandler fileHandler) : base(option, fileHandler)
         {
@@ -73,7 +69,8 @@ namespace ReeLib
 
             var rszParser = RszParser;
 
-            ObjectTableList.Read(handler, Header.objectCount);
+            ObjectTableList.EnsureCapacity(Header.objectCount);
+            for (int i = 0; i < Header.objectCount; ++i) ObjectTableList.Add(handler.Read<ObjectTableEntry>());
 
             handler.Seek(Header.instanceOffset);
             for (int i = 0; i < Header.instanceCount; i++)
@@ -126,32 +123,23 @@ namespace ReeLib
                 RszClass? rszClass = RszParser.GetRSZClass(InstanceInfoList[i].typeId);
                 if (rszClass == null)
                 {
-                    if (InstanceInfoList[i].typeId == 0)
-                    {
-                        rszClass = RszClass.Empty;
-                    }
-                    else
+                    if (InstanceInfoList[i].typeId != 0)
                     {
                         throw new Exception($"RszClass {InstanceInfoList[i].typeId} not found!");
                     }
+
+                    InstanceList.Add(RszInstance.NULL);
+                    continue;
                 }
                 if (!instanceIdToUserData.TryGetValue(i, out int userDataIdx))
                 {
                     userDataIdx = -1;
                 }
-                RszInstance instance;
-                if (rszClass == RszClass.Empty)
+                RszInstance instance = new(rszClass, i, userDataIdx != -1 ?
+                    RSZUserDataInfoList[userDataIdx] : null);
+                if (instance.RSZUserData == null)
                 {
-                    instance = RszInstance.NULL;
-                }
-                else
-                {
-                    instance = new(rszClass, i, userDataIdx != -1 ?
-                        RSZUserDataInfoList[userDataIdx] : null);
-                    if (instance.RSZUserData == null)
-                    {
-                        instance.Read(handler);
-                    }
+                    instance.Read(handler);
                 }
                 InstanceList.Add(instance);
             }
@@ -161,8 +149,8 @@ namespace ReeLib
 
             for (int i = 0; i < ObjectTableList.Count; i++)
             {
-                StructModel<ObjectTable>? item = ObjectTableList[i];
-                var instance = InstanceList[item.Data.instanceId];
+                var item = ObjectTableList[i];
+                var instance = InstanceList[item.InstanceId];
                 instance.ObjectTableIndex = i;
                 ObjectList.Add(instance);
             }
@@ -178,7 +166,7 @@ namespace ReeLib
             FileHandler handler = FileHandler;
             var header = Header;
             header.Write(handler);
-            ObjectTableList.Write(handler);
+            foreach (var item in ObjectTableList) handler.Write(item);
 
             handler.Align(16);
             header.instanceOffset = handler.Tell();
@@ -255,59 +243,33 @@ namespace ReeLib
         {
             if (instance.ObjectTableIndex >= 0 && instance.ObjectTableIndex < ObjectTableList.Count)
             {
-                ObjectTableList[instance.ObjectTableIndex].Data.instanceId = instance.Index;
+                ObjectTableList[instance.ObjectTableIndex] = new(instance.Index);
             }
         }
 
         /// <summary>
-        /// 实例修正序号，如果不在实例列表中，插入到列表
-        /// 设计上，只用于导入游戏对象这种不影响内部Instance结构的场景，改变结构的场景应该使用RebuildInstanceInfo
+        /// Insert a new instance into the RSZFile.
         /// </summary>
-        /// <param name="instance"></param>
-        public void FixInstanceIndex(RszInstance instance)
+        public void InsertInstance(RszInstance instance)
         {
             var list = InstanceList;
-            if (instance.Index < 0 || instance.Index >= list.Count || list[instance.Index] != instance)
-            {
-                if (instance.Index >= 0)
-                {
-                    instance.Index = list.IndexOf(instance);
-                }
-                if (instance.Index < 0)
-                {
-                    instance.Index = list.Count;
-                    list.Add(instance);
-                }
-                FixObjectTableInstanceId(instance);
-            }
+            if (instance.Index != -1) return;
+
+            instance.Index = list.Count;
+            list.Add(instance);
         }
 
         /// <summary>
-        /// 实例修正序号，如果不在实例列表中，插入到列表
+        /// Insert a list of new instances into the RSZFile.
         /// </summary>
-        /// <param name="instance"></param>
-        public void FixInstanceIndexRecurse(RszInstance instance)
+        public void InsertInstances(IEnumerable<RszInstance> instances)
         {
-            foreach (var item in instance.Flatten())
-            {
-                FixInstanceIndex(item);
-            }
+            foreach (var instance in instances) InsertInstance(instance);
         }
 
         /// <summary>
-        /// 实例修正序号，如果不在实例列表中，插入到列表
-        /// </summary>
-        public void FixInstanceListIndex(IEnumerable<RszInstance> list)
-        {
-            foreach (var instance in list)
-            {
-                FixInstanceIndexRecurse(instance);
-            }
-        }
-
-        /// <summary>
-        /// 根据srcList和依赖顺序重构InstanceList，被依赖的实例排在前面
-        /// 未被依赖的实例会被移除
+        /// Reconstructs the full instance list based on the given list.
+        /// Unreferenced / dangling instances will be discarded.
         /// </summary>
         public void RebuildInstanceList(IList<RszInstance> srcList)
         {
@@ -315,7 +277,7 @@ namespace ReeLib
             var list = InstanceList;
             foreach (var instance in srcList)
             {
-                foreach (var item in instance.Flatten(new(){ Predicate = x => x.Index != -1 }))
+                foreach (var item in instance.GetChildren(x => x.Index != -1))
                 {
                     item.Index = -1;
                 }
@@ -323,7 +285,7 @@ namespace ReeLib
             foreach (var instance in srcList)
             {
                 if (instance.Index != -1) continue;
-                foreach (var item in instance.Flatten())
+                foreach (var item in instance.GetChildren())
                 {
                     if (item.Index < 0 || item.Index >= list.Count || list[item.Index] != item)
                     {
@@ -336,8 +298,8 @@ namespace ReeLib
         }
 
         /// <summary>
-        /// 根据ObjectList和依赖顺序重构InstanceList，被依赖的实例排在前面
-        /// 未被依赖的实例会被移除
+        /// Reconstructs the full instance list based on the current object list.
+        /// Unreferenced / dangling instances will be discarded.
         /// </summary>
         public void RebuildInstanceList()
         {
@@ -345,7 +307,7 @@ namespace ReeLib
         }
 
         /// <summary>
-        /// 实例的字段值，如果是对象序号，替换成对应的实例对象
+        /// Rebuild the object's hierarchy. Any instance indexes will be resolved to their RszInstance objects.
         /// </summary>
         /// <param name="instance"></param>
         public void InstanceUnflatten(RszInstance instance)
@@ -446,9 +408,7 @@ namespace ReeLib
                     if (InstanceList.Contains(instance))
                     {
                         instance.ObjectTableIndex = ObjectTableList.Count;
-                        var objectTableInfo = new StructModel<ObjectTable>();
-                        objectTableInfo.Data.instanceId = instance.Index;
-                        ObjectTableList.Add(objectTableInfo);
+                        ObjectTableList.Add(new ObjectTableEntry(instance.Index));
                         newObjectList.Add(instance);
                     }
                 }
@@ -464,20 +424,18 @@ namespace ReeLib
         public void AddToObjectTable(RszInstance instance)
         {
             if (instance.ObjectTableIndex >= 0 && instance.ObjectTableIndex < ObjectTableList.Count &&
-                ObjectTableList[instance.ObjectTableIndex].Data.instanceId == instance.Index)
+                ObjectTableList[instance.ObjectTableIndex].InstanceId == instance.Index)
             {
                 return;
             }
-            var objectTableItem = new StructModel<ObjectTable>();
-            FixInstanceIndex(instance);
-            objectTableItem.Data.instanceId = instance.Index;
+            if (instance.Index == -1) InsertInstance(instance);
             instance.ObjectTableIndex = ObjectTableList.Count;
-            ObjectTableList.Add(objectTableItem);
+            ObjectTableList.Add(new ObjectTableEntry(instance.Index));
             ObjectList.Add(instance);
         }
 
         /// <summary>
-        /// 创建实例，会设置StructChanged
+        /// Creates a new RszInstance and adds it to the file.
         /// </summary>
         /// <param name="className"></param>
         public RszInstance CreateInstance(string className)
@@ -485,95 +443,9 @@ namespace ReeLib
             var rszClass = RszParser.GetRSZClass(className) ??
                 throw new Exception($"RszClass {className} not found!");
             RszInstance instance = RszInstance.CreateInstance(RszParser, rszClass);
-            FixInstanceIndexRecurse(instance);
+            InsertInstances(instance.GetChildren());
             StructChanged = true;
             return instance;
-        }
-
-        /// <summary>
-        /// 拷贝实例，会设置StructChanged
-        /// </summary>
-        /// <param name="src"></param>
-        /// <param name="cached"></param>
-        /// <returns></returns>
-        public RszInstance CloneInstance(RszInstance src, bool cached = true)
-        {
-            RszInstance newItem = cached ? src.CloneCached() : (RszInstance)src.Clone();
-            if (cached)
-            {
-                RszInstance.CleanCloneCache();
-            }
-            // 为了可视化重新排序号，否则会显示序号是-1，但实际上保存的时候的序号和现在编号的可能不一致
-            FixInstanceIndexRecurse(newItem);
-            StructChanged = true;
-            return newItem;
-        }
-
-        /// <summary>
-        /// 数组拷贝并插入Object，会设置StructChanged
-        /// </summary>
-        /// <param name="array">数组</param>
-        /// <param name="insertItem">待插入元素</param>
-        /// <param name="insertPos">插入位置</param>
-        /// <param name="isDuplicate">在原先元素的后面插入</param>
-        public RszInstance ArrayInsertInstance(List<object> array, RszInstance insertItem,
-                                               int insertPos = -1, bool clone = true, bool isDuplicate = false)
-        {
-            RszInstance newItem = clone ? CloneInstance(insertItem) : insertItem;
-            if (insertPos == -1 && isDuplicate)
-            {
-                insertPos = array.IndexOf(insertItem);
-                if (insertPos != -1) insertPos++;
-            }
-            if (insertPos == -1)
-            {
-                insertPos = array.Count;
-            }
-            array.Insert(insertPos, newItem);
-            StructChanged = true;
-            return newItem;
-        }
-
-        /// <summary>
-        /// 数组插入普通项，会设置StructChanged
-        /// </summary>
-        /// <param name="array"></param>
-        /// <param name="item"></param>
-        /// <param name="insertPos"></param>
-        public void ArrayInsertItem(List<object> array, object item, int insertPos = -1)
-        {
-            if (insertPos == -1)
-            {
-                insertPos = array.Count;
-            }
-            array.Insert(insertPos, item);
-            StructChanged = true;
-        }
-
-        /// <summary>
-        /// 数组移除元素，会设置StructChanged
-        /// </summary>
-        /// <param name="array">数组</param>
-        /// <param name="item">待移除元素</param>
-        public void ArrayRemoveItem(List<object> array, object item)
-        {
-            array.Remove(item);
-            StructChanged = true;
-        }
-
-        /// <summary>
-        /// 将instanceSrc的值复制到instanceDst，会设置StructChanged
-        /// </summary>
-        /// <param name="instanceDst"></param>
-        /// <param name="instanceSrc"></param>
-        /// <returns></returns>
-        public bool InstanceCopyValues(RszInstance instanceDst, RszInstance instanceSrc)
-        {
-            bool result = instanceDst.CopyValuesFrom(instanceSrc, true);
-            RszInstance.CleanCloneCache();
-            FixInstanceIndexRecurse(instanceDst);
-            StructChanged = true;
-            return result;
         }
     }
 

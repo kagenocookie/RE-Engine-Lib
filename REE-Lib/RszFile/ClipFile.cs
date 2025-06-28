@@ -1,4 +1,3 @@
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using ReeLib.Clip;
 using ReeLib.Common;

@@ -4,7 +4,7 @@ using ReeLib.Common;
 namespace ReeLib;
 
 /// <summary>
-/// Represents an abstraction of all game-specific file settings. Thread safe.
+/// Represents an abstraction of all game-specific file settings. Should be thread safe.
 /// </summary>
 /// <param name="config"></param>
 public sealed class Workspace(GameConfig config) : IDisposable
@@ -85,7 +85,7 @@ public sealed class Workspace(GameConfig config) : IDisposable
                 PakFilePriority = (config.PakFiles?.Length > 0) ? config.PakFiles.ToList() : PakUtils.ScanPakFiles(config.GamePath)
             };
             var extCacheFilepath = GetExtensionCacheFilepath(dataDirectory);
-            if (File.Exists(extCacheFilepath) && false) {
+            if (File.Exists(extCacheFilepath)) {
                 if (!TryDeserialize(extCacheFilepath, out fileExtensionCache)) {
                     throw new Exception("Failed to read file extension cache");
                 }

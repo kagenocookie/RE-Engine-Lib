@@ -5,7 +5,7 @@ using ReeLib.Common;
 namespace ReeLib
 {
     /// <summary>
-    /// 存放RszClass的数据
+    /// Instance object class for RSZ serialized objects.
     /// </summary>
     public class RszInstance : BaseModel, ICloneable
     {
@@ -25,7 +25,7 @@ namespace ReeLib
                 }
             }
         }
-        // 在ObjectTable中的序号，-1表示不在
+
         public int ObjectTableIndex { get; set; } = -1;
         private string? name;
         public string Name => name ??= $"{RszClass.name}[{index}]";
@@ -67,7 +67,7 @@ namespace ReeLib
         }
 
         /// <summary>
-        /// 一般InstanceList第一个对象是NULL实例
+        /// The first RSZ file instance is usually null.
         /// </summary>
         public static readonly RszInstance NULL = new();
 
@@ -81,11 +81,6 @@ namespace ReeLib
             handler.Align(RszClass.fields[0].array ? 4 : RszClass.fields[0].align);
         }
 
-        /// <summary>
-        /// 读取数据
-        /// </summary>
-        /// <param name="handler"></param>
-        /// <returns></returns>
         protected override bool DoRead(FileHandler handler)
         {
             // if has RSZUserData, it is external
@@ -100,13 +95,6 @@ namespace ReeLib
             return true;
         }
 
-        /// <summary>
-        /// 读取字段
-        /// </summary>
-        /// <param name="handler"></param>
-        /// <param name="index"></param>
-        /// <returns></returns>
-        /// <exception cref="InvalidDataException"></exception>
         public object ReadRszField(FileHandler handler, int index)
         {
             RszField field = RszClass.fields[index];
@@ -146,7 +134,7 @@ namespace ReeLib
                         object value = ReadNormalField(handler, field);
                         if (DetectDataType(field, ref value) && i > 0)
                         {
-                            // 如果检测到其他类型，那么索引0的时候就应该检测出来了，说明之前检测的不对？
+                            //  如果检测到其他类型，那么索引0的时候就应该检测出来了，说明之前检测的不对？
                             throw new InvalidDataException($"Detect {RszClass.name}.{field.name} as {field.type}, but index > 0");
                         }
                         arrayItems.Add(value);
@@ -169,14 +157,14 @@ namespace ReeLib
         }
 
         /// <summary>
-        /// 推断type是Data的字段的实际类型
+        /// Attempt to guess the real type of any unknown Data fields.
         /// </summary>
         private bool DetectDataType(RszField field, ref object data)
         {
             if (field.type == RszFieldType.Data && field.size == 4 && field.native)
             {
                 int intValue = BitConverter.ToInt32((byte[])data, 0);
-                // 检测Object
+                // See if it's an integer within a usually valid instance id range
                 if (intValue < Index && intValue > 2 && intValue > Index - 101)
                 {
                     field.type = RszFieldType.Object;
@@ -185,7 +173,7 @@ namespace ReeLib
                     Console.WriteLine($"Detect {Name}.{field.name} as Object");
                     return true;
                 }
-                // 检测float和int
+                // Determine whether it's more likely a float or an int
                 else if (Utils.DetectFloat((byte[])data, out float floatValue))
                 {
                     field.type = RszFieldType.F32;
@@ -232,10 +220,6 @@ namespace ReeLib
                     Type dataType = RszFieldTypeToCSharpType(field.type);
                     value = handler.ReadObject(dataType);
                 }
-                /* if (field.size != handler.Tell() - startPos)
-                {
-                    throw new InvalidDataException($"{field.name} size not match");
-                } */
                 handler.Seek(startPos + field.size);
                 return value;
             }
@@ -243,39 +227,36 @@ namespace ReeLib
 
         public static bool WriteNormalField(FileHandler handler, RszField field, object value)
         {
-            if (field.IsString)
-            {
-                string valueStr = (string)value;
-                return handler.Write(valueStr.Length + 1) && handler.WriteWString(valueStr);
-            }
-            else if (field.type == RszFieldType.Object || field.type == RszFieldType.UserData)
-            {
-                return handler.Write(value is RszInstance instance ? instance.Index : (int)value);
-            }
-            else if (field.type == RszFieldType.RuntimeType)
-            {
-                string valueStr = (string)value;
-                return handler.Write(valueStr.Length + 1) && handler.WriteAsciiString(valueStr);
-            }
-            else if (field.type == RszFieldType.Struct)
-            {
-                var inst = (RszInstance)value;
-                return inst.Write(handler);
-            }
-            else
-            {
-                long startPos = handler.Tell();
-                if (field.type == RszFieldType.Data)
-                {
-                    handler.WriteBytes((byte[])value);
-                }
-                else
-                {
-                    _ = RszFieldTypeToCSharpType(field.type);
-                    handler.WriteObject(value);
-                }
-                handler.Seek(startPos + field.size);
-                return true;
+            switch (field.type) {
+                case RszFieldType.String:
+                case RszFieldType.Resource:
+                    {
+                        string valueStr = (string)value;
+                        return handler.Write(valueStr.Length + 1) && handler.WriteWString(valueStr);
+                    }
+                case RszFieldType.RuntimeType:
+                    {
+                        string valueStr = (string)value;
+                        return handler.Write(valueStr.Length + 1) && handler.WriteAsciiString(valueStr);
+                    }
+                case RszFieldType.Object:
+                case RszFieldType.UserData:
+                    return handler.Write(value is RszInstance instance ? instance.Index : (int)value);
+                case RszFieldType.Struct:
+                    return ((RszInstance)value).Write(handler);
+                default:
+                    long startPos = handler.Tell();
+                    if (field.type == RszFieldType.Data)
+                    {
+                        handler.WriteBytes((byte[])value);
+                    }
+                    else
+                    {
+                        _ = RszFieldTypeToCSharpType(field.type);
+                        handler.WriteObject(value);
+                    }
+                    handler.Seek(startPos + field.size);
+                    return true;
             }
         }
 
@@ -368,11 +349,6 @@ namespace ReeLib
             return fieldType;
         }
 
-        /// <summary>
-        /// 写入数据
-        /// </summary>
-        /// <param name="handler"></param>
-        /// <returns></returns>
         protected override bool DoWrite(FileHandler handler)
         {
             // if has RSZUserData, it is external
@@ -386,12 +362,6 @@ namespace ReeLib
             return true;
         }
 
-        /// <summary>
-        /// 写入字段
-        /// </summary>
-        /// <param name="handler"></param>
-        /// <param name="index"></param>
-        /// <returns></returns>
         public bool WriteRszField(FileHandler handler, int index)
         {
             RszField field = RszClass.fields[index];
@@ -399,7 +369,7 @@ namespace ReeLib
             // Console.WriteLine($"    write at: {handler.Position:X} {field.original_type} {field.name}");
             if (field.array)
             {
-                IList<object> list = (IList<object>)Values[index];
+                List<object> list = (List<object>)Values[index];
                 handler.Write(list.Count);
                 if (list.Count > 0)
                 {
@@ -421,11 +391,6 @@ namespace ReeLib
             }
         }
 
-        /// <summary>
-        /// 获取字段值
-        /// </summary>
-        /// <param name="name"></param>
-        /// <returns></returns>
         public object? GetFieldValue(string name)
         {
             int index = RszClass.IndexOfField(name);
@@ -447,11 +412,6 @@ namespace ReeLib
             // TODO ValueChangedEvent
         }
 
-        /// <summary>
-        /// 设置字段值
-        /// </summary>
-        /// <param name="name"></param>
-        /// <param name="value"></param>
         public bool SetFieldValue(string name, object value)
         {
             int index = RszClass.IndexOfField(name);
@@ -461,28 +421,28 @@ namespace ReeLib
         }
 
         /// <summary>
-        /// 避免被引用多次的instance拷贝多次
-        /// 每次拷贝会话，比如ImportGameObject后应该清空
+        /// Instance cache for handling of multiply referenced instance during copy operations.
+        /// Should be cleared after the copy operation.
         /// </summary>
-        public static Dictionary<RszInstance, RszInstance> CloneCache { get; } = new();
+        private static readonly ThreadLocal<Dictionary<RszInstance, RszInstance>> CloneCache = new(() => []);
 
         public static void CleanCloneCache()
         {
-            CloneCache.Clear();
+            CloneCache.Value!.Clear();
         }
 
         /// <summary>
-        /// 拷贝自身，如果字段值是RszInstance，则递归拷贝
+        /// Create a deep copy of this RszInstance.
         /// </summary>
         /// <returns></returns>
-        public override object Clone()
+        public override RszInstance Clone()
         {
             return CloneImpl(false);
         }
 
         /// <summary>
-        /// 拷贝自身，如果字段值是RszInstance，则递归拷贝
-        /// 同一个Instance引用只会拷贝一次
+        /// Create a deep copy of this RszInstance.
+        /// Instances with multiple references will be checked to only copy once.
         /// </summary>
         /// <returns></returns>
         public RszInstance CloneCached()
@@ -497,19 +457,17 @@ namespace ReeLib
                 // do not clone NULL
                 return NULL;
             }
-            if (cached && CloneCache.TryGetValue(this, out RszInstance? copy)) return copy;
+            if (cached && CloneCache.Value!.TryGetValue(this, out RszInstance? copy)) return copy;
             IRSZUserDataInfo? userData = RSZUserData != null ? (IRSZUserDataInfo)RSZUserData.Clone() : null;
             copy = new(RszClass, -1, userData);
-            if (cached) CloneCache[this] = copy;
+            if (cached) CloneCache.Value![this] = copy;
             copy.CopyValuesFrom(this, cached);
             return copy;
         }
 
         /// <summary>
-        /// 拷贝字段值
+        /// Deep clone the values from another RszInstance into this object.
         /// </summary>
-        /// <param name="other"></param>
-        /// <returns></returns>
         public bool CopyValuesFrom(RszInstance other, bool cached = false)
         {
             if (other.RszClass != RszClass) return false;
@@ -572,11 +530,9 @@ namespace ReeLib
         }
 
         /// <summary>
-        /// 遍历所有子实例
+        /// Get a flattened, depth-first list of all child RszInstances.
         /// </summary>
-        /// <param name="paths">记录当前instance父实例路径</param>
-        /// <returns></returns>
-        public IEnumerable<RszInstance> Flatten(RszInstanceFlattenArgs? args = null)
+        public IEnumerable<RszInstance> GetChildren(Func<RszInstance, bool>? condition = null)
         {
             if (RSZUserData == null)
             {
@@ -584,53 +540,40 @@ namespace ReeLib
                 for (int i = 0; i < fields.Length; i++)
                 {
                     var field = fields[i];
-                    if (field.IsReference)
+                    if (!field.IsReference) continue;
+
+                    if (field.array)
                     {
-                        if (args?.Paths != null)
+                        var items = (List<object>)Values[i];
+                        foreach (object item in items)
                         {
-                            args.Paths.Add(new(this, field));
-                        }
-                        if (field.array)
-                        {
-                            var items = (List<object>)Values[i];
-                            for (int j = 0; j < items.Count; j++)
+                            if (item is RszInstance instanceValue)
                             {
-                                if (items[j] is RszInstance instanceValue)
+                                if (condition?.Invoke(instanceValue) == false) continue;
+
+                                foreach (var child in instanceValue.GetChildren(condition))
                                 {
-                                    if (args?.Predicate != null && !args.Predicate(instanceValue))
-                                    {
-                                        continue;
-                                    }
-                                    foreach (var item in instanceValue.Flatten(args))
-                                    {
-                                        yield return item;
-                                    }
-                                }
-                                else
-                                {
-                                    throw new InvalidOperationException("Instance should unflatten first");
+                                    yield return child;
                                 }
                             }
-                        }
-                        else if (Values[i] is RszInstance instanceValue)
-                        {
-                            if (args?.Predicate != null && !args.Predicate(instanceValue))
+                            else
                             {
-                                continue;
-                            }
-                            foreach (var item in instanceValue.Flatten(args))
-                            {
-                                yield return item;
+                                throw new InvalidOperationException("Instance should unflatten first");
                             }
                         }
-                        else
+                    }
+                    else if (Values[i] is RszInstance instanceValue)
+                    {
+                        if (condition?.Invoke(instanceValue) == false) continue;
+
+                        foreach (var item in instanceValue.GetChildren(condition))
                         {
-                            throw new InvalidOperationException("Instance should unflatten first");
+                            yield return item;
                         }
-                        if (args?.Paths != null)
-                        {
-                            args.Paths.RemoveAt(args.Paths.Count - 1);
-                        }
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException("Instance should unflatten first");
                     }
                 }
             }
@@ -725,13 +668,8 @@ namespace ReeLib
         }
 
         /// <summary>
-        /// 创建RszInstance
+        /// Create a RszInstance and initialize it with default values.
         /// </summary>
-        /// <param name="rszParser">RszParser</param>
-        /// <param name="rszClass">Rsz类型</param>
-        /// <param name="index">instance序号</param>
-        /// <param name="createChildren">创建子对象</param>
-        /// <returns></returns>
         public static RszInstance CreateInstance(RszParser rszParser, RszClass rszClass, int index = -1, bool createChildren = true)
         {
             RszInstance instance = new(rszClass, index);
@@ -768,12 +706,8 @@ namespace ReeLib
         }
 
         /// <summary>
-        /// 创建数组元素
+        /// Create an array element item
         /// </summary>
-        /// <param name="rszParser"></param>
-        /// <param name="field"></param>
-        /// <param name="className"></param>
-        /// <returns></returns>
         public static object? CreateArrayItem(RszParser rszParser, RszField field, string? className = null)
         {
             if (field.type == RszFieldType.Object)
@@ -790,17 +724,15 @@ namespace ReeLib
         }
 
         /// <summary>
-        /// 创建普通对象
+        /// Create an instance of a basic RSZ struct type (e.g. not Object, Struct, Userdata).
         /// </summary>
-        /// <param name="field"></param>
-        /// <returns></returns>
         public static object CreateNormalObject(RszField field)
         {
             if (field.type == RszFieldType.Data)
             {
                 return new byte[field.size];
             }
-            else if (field.IsString)
+            else if (field.IsString || field.type == RszFieldType.RuntimeType)
             {
                 return "";
             }
@@ -810,10 +742,8 @@ namespace ReeLib
         }
 
         /// <summary>
-        /// 根据数组类型获取元素类型
+        /// Determine the singular element type of an array type.
         /// </summary>
-        /// <param name="arrayType"></param>
-        /// <returns></returns>
         public static string GetElementType(string arrayType)
         {
             if (arrayType.EndsWith("[]"))
@@ -827,21 +757,5 @@ namespace ReeLib
             }
             return arrayType;
         }
-    }
-
-
-    public record RszInstanceFieldRecord(RszInstance Instance, RszField Field)
-    {
-        public override string ToString()
-        {
-            return $"{Instance.Name}.{Field.name}";
-        }
-    }
-
-
-    public class RszInstanceFlattenArgs
-    {
-        public List<RszInstanceFieldRecord>? Paths { get; set; }
-        public Predicate<RszInstance>? Predicate { get; set; }
     }
 }

@@ -21,19 +21,13 @@ namespace ReeLib.Scn
         public long userdataInfoOffset;
         public long dataOffset;
 
-        private GameVersion Version { get; }
-
-        public ScnHeaderStruct(GameVersion version) {
-            Version = version;
-        }
-
         protected override bool DoRead(FileHandler handler)
         {
             handler.Read(ref magic);
             handler.Read(ref infoCount);
             handler.Read(ref resourceCount);
             handler.Read(ref folderCount);
-            if (Version > GameVersion.re2)
+            if (handler.FileVersion > 19)
             {
                 handler.Read(ref prefabCount);
                 handler.Read(ref userdataCount);
@@ -46,7 +40,7 @@ namespace ReeLib.Scn
             handler.Read(ref folderInfoOffset);
             handler.Read(ref resourceInfoOffset);
             handler.Read(ref prefabInfoOffset);
-            if (Version > GameVersion.re7) {
+            if (handler.FileVersion > 18) {
                 handler.Read(ref userdataInfoOffset);
             }
             handler.Read(ref dataOffset);
@@ -59,7 +53,7 @@ namespace ReeLib.Scn
             handler.Write(ref infoCount);
             handler.Write(ref resourceCount);
             handler.Write(ref folderCount);
-            if (Version > GameVersion.re2)
+            if (handler.FileVersion > 19)
             {
                 handler.Write(ref prefabCount);
                 handler.Write(ref userdataCount);
@@ -72,7 +66,7 @@ namespace ReeLib.Scn
             handler.Write(ref folderInfoOffset);
             handler.Write(ref resourceInfoOffset);
             handler.Write(ref prefabInfoOffset);
-            if (Version > GameVersion.re7) {
+            if (handler.FileVersion > 18) {
                 handler.Write(ref userdataInfoOffset);
             }
             handler.Write(ref dataOffset);
@@ -301,7 +295,7 @@ namespace ReeLib
 {
     public class ScnFile : BaseRszFile
     {
-        public ScnHeaderStruct Header { get; }
+        public ScnHeaderStruct Header { get; } = new();
         public List<ScnGameObjectInfo> GameObjectInfoList { get; } = new();
         public List<FolderInfoModel> FolderInfoList { get; } = new();
         public List<ResourceInfo> ResourceInfoList { get; } = new();
@@ -315,7 +309,6 @@ namespace ReeLib
 
         public ScnFile(RszFileOption option, FileHandler fileHandler) : base(option, fileHandler)
         {
-            Header = new(option.Version);
             RSZ = new RSZFile(option, fileHandler);
             if (fileHandler.FilePath != null)
             {
@@ -338,7 +331,7 @@ namespace ReeLib
                 GameName.re8 => ".20",
                 GameName.re7 => ".18",
                 GameName.re7rt => ".20",
-                GameName.dmc5 =>".19",
+                GameName.dmc5 => ".19",
                 GameName.mhrise => ".20",
                 GameName.sf6 => ".20",
                 GameName.dd2 => ".20",
@@ -463,7 +456,7 @@ namespace ReeLib
                     ScnFolderData folderData = new()
                     {
                         Info = info,
-                        Instance = RSZ!.ObjectList[info.Data.objectId],
+                        Instance = RSZ.ObjectList[info.Data.objectId],
                     };
                     if (info.Data.parentId == -1)
                     {
@@ -481,11 +474,11 @@ namespace ReeLib
                 ScnGameObject gameObjectData = new()
                 {
                     Info = info,
-                    Instance = RSZ!.ObjectList[info.objectId],
+                    Instance = RSZ.ObjectList[info.objectId],
                 };
                 for (int i = 0; i < info.componentCount; i++)
                 {
-                    gameObjectData.Components.Add(RSZ!.ObjectList[info.objectId + 1 + i]);
+                    gameObjectData.Components.Add(RSZ.ObjectList[info.objectId + 1 + i]);
                 }
                 if (info.prefabId >= 0 && info.prefabId < PrefabInfoList.Count)
                 {
@@ -649,7 +642,6 @@ namespace ReeLib
             }
             RSZ.ClearObjects();
 
-            // 重新构建
             GameObjectInfoList.Clear();
             FolderInfoList.Clear();
             PrefabInfoList.Clear();
@@ -708,7 +700,7 @@ namespace ReeLib
             }
             var infoData = gameObject.Info!;
             // AddToObjectTable会修正ObjectTableIndex
-            RSZ!.AddToObjectTable(instance);
+            RSZ.AddToObjectTable(instance);
             infoData.objectId = instance.ObjectTableIndex;
             infoData.componentCount = (short)gameObject.Components.Count;
             infoData.parentId = gameObject.Parent?.ObjectId ?? gameObject.Folder?.ObjectId ?? -1;
@@ -740,7 +732,7 @@ namespace ReeLib
         /// <param name="gameObject"></param>
         private void AddFolderInfoRecursion(ScnFolderData folder)
         {
-            RSZ!.AddToObjectTable(folder.Instance!);
+            RSZ.AddToObjectTable(folder.Instance!);
             ref var infoData = ref folder.Info!.Data;
             infoData.objectId = folder.Instance!.ObjectTableIndex;
             infoData.parentId = folder.Parent?.ObjectId ?? -1;
@@ -938,7 +930,7 @@ namespace ReeLib
 
             // 这里有拷贝instance
             pfbFile.PfbFromScnGameObject(gameObject);
-            pfbFile.RSZ!.Header.version = RSZ!.Header.version;
+            pfbFile.RSZ.Header.version = RSZ.Header.version;
             return true;
         }
 
@@ -953,7 +945,7 @@ namespace ReeLib
             foreach (var item in IterGameObjectInstances(rootGameObject))
             {
                 if (item.RszClass.name == "via.GameObject") continue;
-                foreach (var instance in item.Flatten())
+                foreach (var instance in item.GetChildren())
                 {
                     if (instance.RSZUserData != null) continue;
                     var fields = instance.Fields;
@@ -1045,7 +1037,7 @@ namespace ReeLib
 
             // 为了可视化重新排序号，否则会显示序号是-1，但实际上保存的时候的序号和现在编号的可能不一致
             // 所以要考虑这步操作是否有必要
-            RSZ!.FixInstanceListIndex(IterGameObjectInstances(newGameObject));
+            RSZ.InsertInstances(IterGameObjectInstances(newGameObject));
 
             if (isDuplicate)
             {
@@ -1091,7 +1083,7 @@ namespace ReeLib
         {
             var folder = new ScnFolderData
             {
-                Instance = RSZ!.CreateInstance("via.Folder"),
+                Instance = RSZ.CreateInstance("via.Folder"),
                 Info = new FolderInfoModel(),
                 Name = name
             };
@@ -1115,7 +1107,7 @@ namespace ReeLib
         /// <param name="className"></param>
         public void AddComponent(IGameObject gameObject, string className)
         {
-            var component = RSZ!.CreateInstance(className);
+            var component = RSZ.CreateInstance(className);
             gameObject.Components.Add(component);
             StructChanged = true;
         }

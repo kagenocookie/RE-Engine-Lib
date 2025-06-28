@@ -104,52 +104,40 @@ namespace ReeLib
             if (!File.Exists(patchJsonPath)) return;
             using FileStream fileStream = File.OpenRead(patchJsonPath);
             var dict = JsonSerializer.Deserialize<Dictionary<string, RszClassPatch>>(fileStream);
-            if (dict != null)
+            if (dict == null) return;
+
+            foreach (var item in dict)
             {
-                foreach (var item in dict)
+                var classPatch = item.Value;
+                classPatch.Name = item.Key;
+                if (!classNameDict.TryGetValue(classPatch.Name, out var rszClass)) continue;
+                if (!string.IsNullOrEmpty(classPatch.ReplaceName))
                 {
-                    var classPatch = item.Value;
-                    classPatch.Name = item.Key;
-                    if (classNameDict.TryGetValue(classPatch.Name, out var rszClass))
+                    rszClass.name = classPatch.ReplaceName!;
+                }
+                if (classPatch.FieldPatches != null)
+                {
+                    foreach (var fieldPatch in classPatch.FieldPatches)
                     {
-                        if (!string.IsNullOrEmpty(classPatch.ReplaceName))
+                        if (rszClass.GetField(fieldPatch.Name!) is RszField rszField)
                         {
-                            rszClass.name = classPatch.ReplaceName!;
-                        }
-                        if (classPatch.FieldPatches != null)
-                        {
-                            foreach (var fieldPatch in classPatch.FieldPatches)
+                            if (!string.IsNullOrEmpty(fieldPatch.ReplaceName))
                             {
-                                if (rszClass.GetField(fieldPatch.Name!) is RszField rszField)
-                                {
-                                    if (!string.IsNullOrEmpty(fieldPatch.ReplaceName))
-                                    {
-                                        rszField.name = fieldPatch.ReplaceName!;
-                                    }
-                                    if (!string.IsNullOrEmpty(fieldPatch.OriginalType))
-                                    {
-                                        rszField.original_type = fieldPatch.OriginalType!;
-                                    }
-                                    if (fieldPatch.Type != RszFieldType.ukn_error && fieldPatch.Type != rszField.type)
-                                    {
-                                        rszField.type = fieldPatch.Type;
-                                        rszField.IsTypeInferred = true;
-                                    }
-                                }
+                                rszField.name = fieldPatch.ReplaceName!;
+                            }
+                            if (!string.IsNullOrEmpty(fieldPatch.OriginalType))
+                            {
+                                rszField.original_type = fieldPatch.OriginalType!;
+                            }
+                            if (fieldPatch.Type != RszFieldType.ukn_error && fieldPatch.Type != rszField.type)
+                            {
+                                rszField.type = fieldPatch.Type;
+                                rszField.IsTypeInferred = true;
                             }
                         }
                     }
                 }
             }
-        }
-
-        public static RszFieldType GetFieldTypeInternal(string typeName)
-        {
-#if NET5_0_OR_GREATER
-            return Enum.Parse<RszFieldType>(typeName, true);
-#else
-            return (RszFieldType)Enum.Parse(typeof(RszFieldType), typeName, true);
-#endif
         }
 
         public string GetRSZClassName(uint classHash)
@@ -273,6 +261,8 @@ namespace ReeLib
             if (index != -1) return fields[index];
             return null;
         }
+
+        public override string ToString() => name;
     }
 
     public class RszField
@@ -332,6 +322,8 @@ namespace ReeLib
 
         public bool IsReference => type == RszFieldType.Object || type == RszFieldType.UserData;
         public bool IsString => type == RszFieldType.String || type == RszFieldType.Resource;
+
+        public override string ToString() => $"{type} {name}";
     }
 
 

@@ -1,4 +1,3 @@
-using System.Numerics;
 using ReeLib.Efx.Structs.Common;
 using ReeLib.InternalAttributes;
 

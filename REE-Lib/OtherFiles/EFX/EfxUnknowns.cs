@@ -1,5 +1,3 @@
-using System.Numerics;
-using ReeLib.Efx.Structs.Common;
 using ReeLib.InternalAttributes;
 
 namespace ReeLib.Efx.Structs.Unknowns;

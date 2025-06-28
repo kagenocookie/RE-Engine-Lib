@@ -127,7 +127,6 @@ public partial class EFXAttributeTypeMeshV2 : EFXAttribute
 public partial class EFXAttributeTypeMeshClip : EFXAttribute, IMaterialClipAttribute
 {
     public EfxMaterialClipData MaterialClip => clipData;
-    EfxClipData IClipAttribute.Clip => clipData;
     public BitSet ClipBits => clipBits;
 
     public EFXAttributeTypeMeshClip() : base(EfxAttributeType.TypeMeshClip) { }
@@ -399,7 +398,6 @@ public partial class EFXAttributeTypeGpuMesh : EFXAttribute
 public partial class EFXAttributeTypeGpuMeshClip : EFXAttribute, IMaterialClipAttribute
 {
     public EfxMaterialClipData MaterialClip => clipData;
-    EfxClipData IClipAttribute.Clip => clipData;
     public BitSet ClipBits => clipBits;
 
 	public EFXAttributeTypeGpuMeshClip() : base(EfxAttributeType.TypeGpuMeshClip) { }
@@ -602,7 +600,6 @@ public partial class EFXAttributeTypeGpuMeshTrailV2 : EFXAttribute
 public partial class EFXAttributeTypeGpuMeshTrailClip : EFXAttribute, IMaterialClipAttribute
 {
     public EfxMaterialClipData MaterialClip => clipData;
-    EfxClipData IClipAttribute.Clip => clipData;
     public BitSet ClipBits => clipBits;
 
     public EFXAttributeTypeGpuMeshTrailClip() : base(EfxAttributeType.TypeGpuMeshTrailClip) { }

@@ -383,7 +383,6 @@ public partial class EFXAttributeTypeStrainRibbonMaterial : EFXAttribute
 public partial class EFXAttributeTypeStrainRibbonMaterialClip : EFXAttribute, IMaterialClipAttribute
 {
     public EfxMaterialClipData MaterialClip => clipData;
-	EfxClipData IClipAttribute.Clip => clipData;
     public BitSet ClipBits => clipBits;
 
     public EFXAttributeTypeStrainRibbonMaterialClip() : base(EfxAttributeType.TypeStrainRibbonMaterialClip) { }

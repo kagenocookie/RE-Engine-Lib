@@ -6,7 +6,6 @@ namespace ReeLib
 
         public RszParser RszParser => Option.RszParser;
         public virtual RSZFile? GetRSZ() => null;
-        public bool Changed { get; protected set; }
         public bool StructChanged { get; protected set; }
 
         public BaseRszFile(RszFileOption option, FileHandler fileHandler)

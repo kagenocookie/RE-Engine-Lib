@@ -1,5 +1,4 @@
 using System.Runtime.InteropServices;
-using ReeLib.Common;
 using ReeLib.InternalAttributes;
 
 namespace ReeLib.Efx.Structs.Common;

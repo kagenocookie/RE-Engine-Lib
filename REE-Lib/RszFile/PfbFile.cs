@@ -20,22 +20,16 @@ namespace ReeLib.Pfb
         public long userdataInfoOffset;
         public long dataOffset;
 
-        private GameVersion Version { get; }
-
-        public PfbHeaderStruct(GameVersion version) {
-            Version = version;
-        }
-
         protected override bool DoRead(FileHandler handler)
         {
             handler.Read(ref magic);
             handler.Read(ref infoCount);
             handler.Read(ref resourceCount);
             handler.Read(ref gameObjectRefInfoCount);
-            if (Version > GameVersion.re2) handler.Read(ref userdataCount);
+            if (handler.FileVersion > 16) handler.Read(ref userdataCount);
             handler.Read(ref gameObjectRefInfoOffset);
             handler.Read(ref resourceInfoOffset);
-            if (Version > GameVersion.re2) handler.Read(ref userdataInfoOffset);
+            if (handler.FileVersion > 16) handler.Read(ref userdataInfoOffset);
             handler.Read(ref dataOffset);
             return true;
         }
@@ -46,10 +40,10 @@ namespace ReeLib.Pfb
             handler.Write(ref infoCount);
             handler.Write(ref resourceCount);
             handler.Write(ref gameObjectRefInfoCount);
-            if (Version > GameVersion.re2) handler.Write(ref userdataCount);
+            if (handler.FileVersion > 16) handler.Write(ref userdataCount);
             handler.Write(ref gameObjectRefInfoOffset);
             handler.Write(ref resourceInfoOffset);
-            if (Version > GameVersion.re2) handler.Write(ref userdataInfoOffset);
+            if (handler.FileVersion > 16) handler.Write(ref userdataInfoOffset);
             handler.Write(ref dataOffset);
             return true;
         }
@@ -149,10 +143,7 @@ namespace ReeLib
 {
     public class PfbFile : BaseRszFile
     {
-        // ResourceInfo
-        // UserdataInfo
-
-        public PfbHeaderStruct Header { get; }
+        public PfbHeaderStruct Header { get; } = new();
         public List<GameObjectInfoModel> GameObjectInfoList { get; } = new();
         public List<GameObjectRefInfoModel> GameObjectRefInfoList { get; } = new();
         public List<ResourceInfo> ResourceInfoList { get; } = new();
@@ -163,7 +154,6 @@ namespace ReeLib
 
         public PfbFile(RszFileOption option, FileHandler fileHandler) : base(option, fileHandler)
         {
-            Header = new(option.Version);
             RSZ = new RSZFile(option, fileHandler);
             if (fileHandler.FilePath != null)
             {
@@ -228,7 +218,7 @@ namespace ReeLib
             }
 
             handler.Seek(header.userdataInfoOffset);
-            if (Option.Version > GameVersion.re2)
+            if (handler.FileVersion > 16)
             {
                 UserdataInfoList.Read(handler, (int)header.userdataCount);
             }
@@ -245,7 +235,7 @@ namespace ReeLib
             }
             else if (ResourceChanged)
             {
-                RszUtils.SyncResourceFromRsz(ResourceInfoList, RSZ!);
+                RszUtils.SyncResourceFromRsz(ResourceInfoList, RSZ);
                 ResourceChanged = false;
             }
             FileHandler handler = FileHandler;
@@ -270,11 +260,11 @@ namespace ReeLib
             // ResourceInfoList.Write(handler);
             foreach (var item in ResourceInfoList)
             {
-                if (Option.Version <= GameVersion.re2) item.HasOffset = false;
+                if (handler.FileVersion <= 16) item.HasOffset = false;
                 if (!item.Write(handler)) return false;
             }
 
-            if (Option.Version > GameVersion.re2 && UserdataInfoList.Count > 0)
+            if (handler.FileVersion > 16 && UserdataInfoList.Count > 0)
             {
                 handler.Align(16);
                 header.userdataInfoOffset = handler.Tell();
@@ -285,7 +275,7 @@ namespace ReeLib
 
             handler.Align(16);
             header.dataOffset = handler.Tell();
-            WriteRsz(RSZ!, header.dataOffset);
+            WriteRsz(RSZ, header.dataOffset);
 
             header.magic = Magic;
             header.infoCount = GameObjectInfoList.Count;
@@ -309,11 +299,11 @@ namespace ReeLib
                 PfbGameObject gameObjectData = new()
                 {
                     Info = info,
-                    Instance = RSZ!.ObjectList[info.Data.objectId],
+                    Instance = RSZ.ObjectList[info.Data.objectId],
                 };
                 for (int i = 0; i < info.Data.componentCount; i++)
                 {
-                    gameObjectData.Components.Add(RSZ!.ObjectList[info.Data.objectId + 1 + i]);
+                    gameObjectData.Components.Add(RSZ.ObjectList[info.Data.objectId + 1 + i]);
                 }
                 gameObjectMap[info.Data.objectId] = gameObjectData;
                 if (info.Data.parentId == -1)
@@ -442,7 +432,7 @@ namespace ReeLib
             var instance = gameObject.Instance!;
             if (instance.ObjectTableIndex != -1) return;
             ref var infoData = ref gameObject.Info!.Data;
-            RSZ!.AddToObjectTable(instance);
+            RSZ.AddToObjectTable(instance);
             infoData.objectId = instance.ObjectTableIndex;
             infoData.parentId = gameObject.Parent?.ObjectId ?? -1;
             infoData.componentCount = (short)gameObject.Components.Count;
@@ -450,7 +440,7 @@ namespace ReeLib
             GameObjectInfoList.Add(gameObject.Info);
             foreach (var item in gameObject.Components)
             {
-                RSZ!.AddToObjectTable(item);
+                RSZ.AddToObjectTable(item);
             }
             foreach (var child in gameObject.Children)
             {
@@ -520,7 +510,7 @@ namespace ReeLib
 
             // 为了可视化重新排序号，否则会显示序号是-1，但实际上保存的时候的序号和现在编号的可能不一致
             // 所以要考虑这步操作是否有必要
-            RSZ!.FixInstanceListIndex(IterGameObjectInstances(newGameObject));
+            RSZ.InsertInstances(IterGameObjectInstances(newGameObject));
 
             if (isDuplicate)
             {
@@ -569,7 +559,7 @@ namespace ReeLib
         /// <param name="className"></param>
         public void AddComponent(IGameObject gameObject, string className)
         {
-            var component = RSZ!.CreateInstance(className);
+            var component = RSZ.CreateInstance(className);
             gameObject.Components.Add(component);
             StructChanged = true;
         }

@@ -77,25 +77,11 @@ namespace ReeLib.Pak
     internal static class Encryption
     {
         // encryption keys and base logic by Ekey/REE.PAK.Tool
-#if NET5_0_OR_GREATER
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static BigInteger UnsignedBigInteger(Span<byte> bytes)
         {
             return new BigInteger(bytes, true);
         }
-#else
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static BigInteger UnsignedBigInteger(Span<byte> bytes)
-        {
-            return UnsignedBigInteger(bytes.ToArray());
-        }
-
-        private static BigInteger UnsignedBigInteger(byte[] bytes)
-        {
-            Array.Resize(ref bytes, bytes.Length + 1);
-            return new BigInteger(bytes);
-        }
-#endif
 
         private static readonly BigInteger keyModulus = UnsignedBigInteger([
             0x7D, 0x0B, 0xF8, 0xC1, 0x7C, 0x23, 0xFD, 0x3B, 0xD4, 0x75, 0x16, 0xD2, 0x33, 0x21, 0xD8, 0x10,
@@ -127,16 +113,10 @@ namespace ReeLib.Pak
             BigInteger m_EncryptedKey = UnsignedBigInteger(key);
             BigInteger result = BigInteger.ModPow(m_EncryptedKey, keyExponent, keyModulus);
             key.Clear();
-#if NET5_0_OR_GREATER
             result.TryWriteBytes(key, out _);
-#else
-            result.ToByteArray().AsSpan().CopyTo(key);
-#endif
         }
 
-#if NET5_0_OR_GREATER
         [SkipLocalsInit]
-#endif
         public unsafe static byte[] DecryptResource(byte[] compressedBytes, int size)
         {
             using var reader = new MemoryStream(compressedBytes, 0, size);
@@ -157,23 +137,13 @@ namespace ReeLib.Pak
                 reader.Read(buffer1);
                 reader.Read(buffer2);
 
-#if NET5_0_OR_GREATER
                 var key = new BigInteger(buffer1);
                 var data = new BigInteger(buffer2);
-#else
-                var key = new BigInteger(buffer1.ToArray());
-                var data = new BigInteger(buffer2.ToArray());
-#endif
 
                 var mod = BigInteger.ModPow(key, resourceExponent, resourceModulus);
                 var result = BigInteger.Divide(data, mod);
 
-#if NET5_0_OR_GREATER
-                result.TryWriteBytes(outSpan.Slice(offset), out _);
-#else
-                var resultBytes = result.ToByteArray();
-                Array.Copy(resultBytes, 0, outBytes, offset, resultBytes.Length);
-#endif
+                result.TryWriteBytes(outSpan[offset..], out _);
             }
 
             return outBytes;

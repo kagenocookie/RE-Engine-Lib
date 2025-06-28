@@ -249,17 +249,17 @@ public static partial class EfxExpressionStringParser
 		ExpressionAtom? result = null;
 		if (args == 1) {
 			result = new ExpressionUnaryOperation() {
-				func = EnumHelper.Parse<EfxExpressionFunction>(nameSpan, true),
+				func = Enum.Parse<EfxExpressionFunction>(nameSpan, true),
 				atom = ParseExpression(ref ctx),
 			};
 		} else if (args == 2) {
-			var bin = new ExpressionBinaryOperation() { oper = EnumHelper.Parse<BinaryExpressionOperator>(nameSpan, true) };
+			var bin = new ExpressionBinaryOperation() { oper = Enum.Parse<BinaryExpressionOperator>(nameSpan, true) };
 			bin.left = ParseExpression(ref ctx);
 			SkipToken(ref ctx, TokenType.Comma);
 			bin.right = ParseExpression(ref ctx);
 			result = bin;
 		} else if (args == 3) {
-			var ter = new ExpressionTernaryOperation() { func = EnumHelper.Parse<EfxExpressionFunction>(nameSpan, true) };
+			var ter = new ExpressionTernaryOperation() { func = Enum.Parse<EfxExpressionFunction>(nameSpan, true) };
 			ter.left = ParseExpression(ref ctx);
 			SkipToken(ref ctx, TokenType.Comma);
 			ter.arg2 = ParseExpression(ref ctx);

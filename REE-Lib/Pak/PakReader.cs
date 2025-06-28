@@ -3,7 +3,6 @@ namespace ReeLib;
 using System;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using ReeLib.Common;
 using ReeLib.Pak;
 
 /// <summary>

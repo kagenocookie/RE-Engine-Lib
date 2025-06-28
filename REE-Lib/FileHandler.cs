@@ -540,11 +540,7 @@ namespace ReeLib
 
         private static string DecodeString(Span<byte> buffer, Encoding encoding)
         {
-#if !NET5_0_OR_GREATER
-            return encoding.GetString(buffer.ToArray());
-#else
             return encoding.GetString(buffer);
-#endif
         }
 
         public string ReadAsciiString(long pos = -1, int charCount = -1, bool jumpBack = true)

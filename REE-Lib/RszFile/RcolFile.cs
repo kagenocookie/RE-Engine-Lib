@@ -36,19 +36,10 @@ namespace ReeLib.Rcol
         public long unknPtr1;
         public ulong uknRe3;
 
-        public GameVersion Version { get; set; }
-        public int ExtensionVersion { get; set; }
-
-        public Header(GameVersion version, int extensionVersion)
-        {
-            Version = version;
-            ExtensionVersion = extensionVersion;
-        }
-
         protected override bool DoRead(FileHandler handler)
         {
             handler.Read(ref magic);
-            if (ExtensionVersion == 2)
+            if (handler.FileVersion == 2)
             {
                 numGroups = handler.ReadByte();
                 numShapes = handler.ReadByte();
@@ -59,7 +50,7 @@ namespace ReeLib.Rcol
             else
             {
                 handler.Read(ref numGroups);
-                if (ExtensionVersion >= 25) {
+                if (handler.FileVersion >= 25) {
                     handler.Read(ref numUserData);
                 } else {
                     handler.Read(ref numShapes);
@@ -68,20 +59,20 @@ namespace ReeLib.Rcol
                 handler.Read(ref numRequestSets);
                 handler.Read(ref maxRequestSetId);
             }
-            if (ExtensionVersion > 11)
+            if (handler.FileVersion > 11)
             {
                 handler.Read(ref numIgnoreTags);
                 handler.Read(ref numAutoGenerateJoints);
             }
             handler.Read(ref userDataSize);
             handler.Read(ref status);
-            if (ExtensionVersion == 2) handler.Read<int>();
-            if (ExtensionVersion == 11)
+            if (handler.FileVersion == 2) handler.Read<int>();
+            if (handler.FileVersion == 11)
             {
                 handler.Read(ref uknRe3_A);
                 handler.Read(ref uknRe3_B);
             }
-            if (ExtensionVersion >= 20)
+            if (handler.FileVersion >= 20)
             {
                 handler.Read(ref ukn1);
                 handler.Read(ref ukn2);
@@ -89,20 +80,20 @@ namespace ReeLib.Rcol
             handler.Read(ref groupsPtrOffset);
             handler.Read(ref dataOffset);
             handler.Read(ref requestSetOffset);
-            if (ExtensionVersion > 11)
+            if (handler.FileVersion > 11)
             {
                 handler.Read(ref ignoreTagOffset);
                 handler.Read(ref autoGenerateJointDescOffset);
             }
-            else if (ExtensionVersion == 2)
+            else if (handler.FileVersion == 2)
             {
                 handler.Read(ref requestSetIDLookupsOffset);
             }
-            else if (ExtensionVersion == 11)
+            else if (handler.FileVersion == 11)
             {
                 handler.Read(ref uknRe3);
             }
-            if (ExtensionVersion >= 20) {
+            if (handler.FileVersion >= 20) {
                 handler.Read(ref unknPtr0);
                 handler.Read(ref unknPtr1);
             }
@@ -112,7 +103,7 @@ namespace ReeLib.Rcol
         protected override bool DoWrite(FileHandler handler)
         {
             handler.Write(ref magic);
-            if (ExtensionVersion == 2)
+            if (handler.FileVersion == 2)
             {
                 handler.WriteByte((byte)numGroups);
                 handler.WriteByte((byte)numShapes);
@@ -123,7 +114,7 @@ namespace ReeLib.Rcol
             else
             {
                 handler.Write(ref numGroups);
-                if (ExtensionVersion >= 25) {
+                if (handler.FileVersion >= 25) {
                     handler.Write(ref numUserData);
                 } else {
                     handler.Write(ref numShapes);
@@ -132,20 +123,20 @@ namespace ReeLib.Rcol
                 handler.Write(ref numRequestSets);
                 handler.Write(ref maxRequestSetId);
             }
-            if (ExtensionVersion > 11)
+            if (handler.FileVersion > 11)
             {
                 handler.Write(ref numIgnoreTags);
                 handler.Write(ref numAutoGenerateJoints);
             }
             handler.Write(ref userDataSize);
             handler.Write(ref status);
-            if (ExtensionVersion == 2) handler.Write<int>(0);
-            if (ExtensionVersion == 11)
+            if (handler.FileVersion == 2) handler.Write<int>(0);
+            if (handler.FileVersion == 11)
             {
                 handler.Write(ref uknRe3_A);
                 handler.Write(ref uknRe3_B);
             }
-            if (ExtensionVersion >= 20)
+            if (handler.FileVersion >= 20)
             {
                 handler.Write(ref ukn1);
                 handler.Write(ref ukn2);
@@ -153,20 +144,20 @@ namespace ReeLib.Rcol
             handler.Write(ref groupsPtrOffset);
             handler.Write(ref dataOffset);
             handler.Write(ref requestSetOffset);
-            if (ExtensionVersion > 11)
+            if (handler.FileVersion > 11)
             {
                 handler.Write(ref ignoreTagOffset);
                 handler.Write(ref autoGenerateJointDescOffset);
             }
-            else if (ExtensionVersion == 2)
+            else if (handler.FileVersion == 2)
             {
                 handler.Write(ref requestSetIDLookupsOffset);
             }
-            else if (ExtensionVersion == 11)
+            else if (handler.FileVersion == 11)
             {
                 handler.Write(ref uknRe3);
             }
-            if (ExtensionVersion >= 20) {
+            if (handler.FileVersion >= 20) {
                 handler.Write(ref unknPtr0);
                 handler.Write(ref unknPtr1);
             }
@@ -665,7 +656,7 @@ namespace ReeLib
 {
     public class RcolFile : BaseRszFile
     {
-        public Header Header { get; }
+        public Header Header { get; } = new();
         public RSZFile RSZ { get; private set; }
         public List<RcolGroup> Groups { get; } = new();
         public List<RequestSet> RequestSets { get; } = new();
@@ -677,8 +668,6 @@ namespace ReeLib
 
         public RcolFile(RszFileOption option, FileHandler fileHandler) : base(option, fileHandler)
         {
-            int extensionVersion = RszUtils.GetFileExtensionVersion(fileHandler.FilePath!);
-            Header = new Header(option.Version, extensionVersion);
             RSZ = new RSZFile(option, fileHandler);
         }
 
@@ -791,7 +780,7 @@ namespace ReeLib
                     requestSet.Instance = RSZ.ObjectList[i];
                     for (int k = 0; k < requestSet.Group.Shapes.Count; ++k) {
                         var shape = requestSet.Group.Shapes[k];
-                        var instanceId = RSZ.ObjectTableList[shape.Info.UserDataIndex + requestSet.Info.ShapeOffset].Data.instanceId;
+                        var instanceId = RSZ.ObjectTableList[shape.Info.UserDataIndex + requestSet.Info.ShapeOffset].InstanceId;
                         requestSet.ShapeUserdata.Add(RSZ.InstanceList[instanceId]);
                     }
                 }
@@ -801,7 +790,7 @@ namespace ReeLib
                     requestSet.Instance = RSZ.ObjectList[i];
                     for (int k = 0; k < requestSet.Group.Shapes.Count; ++k) {
                         var shape = requestSet.Group.Shapes[k];
-                        var instanceId = RSZ.ObjectTableList[shape.Info.UserDataIndex + requestSet.Info.ShapeOffset].Data.instanceId;
+                        var instanceId = RSZ.ObjectTableList[shape.Info.UserDataIndex + requestSet.Info.ShapeOffset].InstanceId;
                         requestSet.ShapeUserdata.Add(RSZ.InstanceList[instanceId]);
                     }
                 }

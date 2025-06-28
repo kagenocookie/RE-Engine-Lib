@@ -107,11 +107,7 @@ namespace ReeLib.Common
                 string? text = reader.GetString();
                 if (text != null)
                 {
-#if NET5_0_OR_GREATER
                     return Enum.Parse<T>(text);
-#else
-                    return (T)Enum.Parse(typeof(T), text);
-#endif
                 }
             }
             return default;

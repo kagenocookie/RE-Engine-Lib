@@ -450,9 +450,7 @@ namespace ReeLib.Efx
     public interface IMaterialClipAttribute : IClipAttribute
     {
         EfxMaterialClipData MaterialClip { get; }
-#if NET5_0_OR_GREATER
         EfxClipData IClipAttribute.Clip => MaterialClip;
-#endif
     }
 
     public static class EfxExtensions

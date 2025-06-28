@@ -4,10 +4,14 @@ namespace ReeLib;
 
 internal sealed partial class FileExtensionCache
 {
-    public FileExtensionCache() { }
+    public Dictionary<string, int> Versions { get; set; }
+    public Dictionary<string, FileExtensionInfo> Info { get; set; }
 
-    public Dictionary<string, int> Versions { get; set; } = null!;
-    public Dictionary<string, FileExtensionInfo> Info { get; set; } = null!;
+    public FileExtensionCache()
+    {
+        Versions = new();
+        Info = new();
+    }
 
     public FileExtensionCache(Dictionary<string, int> versions)
     {
@@ -35,6 +39,9 @@ internal sealed partial class FileExtensionCache
             if (string.IsNullOrWhiteSpace(line)) continue;
 
             HandleFilepath(line);
+        }
+        foreach (var ext in Info) {
+            Versions[ext.Key] = ext.Value.Version;
         }
     }
 

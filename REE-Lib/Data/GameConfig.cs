@@ -3,6 +3,8 @@ namespace ReeLib;
 public class GameConfig(GameIdentifier game)
 {
     public GameIdentifier Game => game;
+    public GameName BuiltInGame => game.GameEnum;
+
     public string GamePath { get; set; } = string.Empty;
     public string ChunkPath { get; set; } = string.Empty;
     public string RszJsonPath { get; set; } = string.Empty;
@@ -10,7 +12,8 @@ public class GameConfig(GameIdentifier game)
     public string FileListPath { get; set; } = string.Empty;
     public string[] PakFiles { get; set; } = [];
 
-    public void LoadValues(params (string key, string value)[] values) => LoadValues((IEnumerable<(string key, string value)>)values);
+    public void LoadValues(params (string key, string value)[] values) => LoadValues(values.AsEnumerable());
+    public void LoadValues(IEnumerable<KeyValuePair<string, string>> values) => LoadValues(values.Select(pair => (pair.Key, pair.Value)));
     public void LoadValues(IEnumerable<(string key, string value)> values)
     {
         foreach (var (key, value) in values)
@@ -18,24 +21,22 @@ public class GameConfig(GameIdentifier game)
             switch (key.Replace("_", "").Replace(" ", "").ToLowerInvariant())
             {
                 case "game":
-                case "gamepath": GamePath = value; break;
+                case "gamepath": GamePath = Path.GetFullPath(value.EndsWith(".exe") ? Path.GetDirectoryName(value)! : value); break;
                 case "chunk":
                 case "chunks":
                 case "chunkpath":
-                case "chunkspath": ChunkPath = value; break;
+                case "chunkspath": ChunkPath = Path.GetFullPath(value); break;
                 case "rszjson":
-                case "rszjsonpath": RszJsonPath = value; break;
+                case "rszjsonpath": RszJsonPath = Path.GetFullPath(value); break;
                 case "il2cpp":
-                case "il2cpppath": Il2cppPath = value; break;
+                case "il2cpppath": Il2cppPath = Path.GetFullPath(value); break;
                 case "filelist":
-                case "filelistpath": FileListPath = value; break;
+                case "filelistpath": FileListPath = Path.GetFullPath(value); break;
                 case "pakfiles":
                 case "paklist":
-#if NET5_0_OR_GREATER
-                    PakFiles = value.Split(',', StringSplitOptions.TrimEntries);
-#else
-                    PakFiles = value.Split(',').Select(f => f.Trim()).ToArray();
-#endif
+                    PakFiles = value.Split(',', StringSplitOptions.TrimEntries)
+                        .Select(Path.GetFullPath)
+                        .ToArray();
                     break;
             }
         }

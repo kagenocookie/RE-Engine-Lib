@@ -1,4 +1,5 @@
 using System.Text.Json;
+using ReeLib.Common;
 
 namespace ReeLib;
 
@@ -9,45 +10,54 @@ namespace ReeLib;
 public sealed class Workspace(GameConfig config) : IDisposable
 {
     public GameConfig Config => config;
-    public bool UsePackedFiles { get; set; }
+    public bool AllowUsePackedFiles { get; set; } = true;
+
+    private RszParser? _rszParser;
+    public RszParser RszParser => _rszParser ??= LoadRszParser();
+
+    private RszFileOption? rszFileOption;
+    public RszFileOption RszFileOption => rszFileOption ??= new RszFileOption(config.BuiltInGame, RszParser);
+
+    private JsonSerializerOptions? _jsonOptions;
+    public JsonSerializerOptions JsonOptions => _jsonOptions ??= CreateJsonSerializerOptions();
 
     public bool CanUsePakFiles => !string.IsNullOrEmpty(config.GamePath);
     public bool CanUseChunkFiles => !string.IsNullOrEmpty(config.ChunkPath);
     public bool CanExtractPakFiles => (!string.IsNullOrEmpty(config.GamePath) || config.PakFiles.Length > 0) && !string.IsNullOrEmpty(config.ChunkPath);
 
+    public bool IsInlineUserdata => config.Game.hash is GameNameHash.re7 or GameNameHash.dmc5 or GameNameHash.re2;
+    public bool IsEmbeddedUserdata => config.Game.hash is GameNameHash.dmc5 or GameNameHash.re2;
+
     public bool BasePathIsX64 => config.Game.hash is GameNameHash.re7 or GameNameHash.dmc5 or GameNameHash.re2;
     public string BasePath => BasePathIsX64 ? "natives/x64/" : "natives/stm/";
     public string BasePathBackslash => BasePathIsX64 ? "natives\\x64\\" : "natives\\stm\\";
 
+    private string _dataDir = string.Empty;
+    public string DataDirectory => _dataDir;
+
     public IEnumerable<string> GameFileExtensions => fileExtensionCache.Versions.Keys;
 
-    public static readonly JsonSerializerOptions jsonOptions = new() {
+    private static readonly JsonSerializerOptions jsonOptions = new() {
         WriteIndented = true,
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault,
     };
+    public static JsonSerializerOptions DefaultJsonOptions { get; set; } = jsonOptions;
 
     private FileExtensionCache fileExtensionCache = null!;
     private ListFileWrapper? listFile;
 
-    private readonly Mutex _lock = new();
+    private readonly Mutex _setupLock = new();
 
     private volatile CachedMemoryPakReader? _baseReader;
-    private CachedMemoryPakReader Reader
-    {
-        get
-        {
-            if (_baseReader == null)
-            {
-                if (_lock.WaitOne(1000))
-                {
-                    _baseReader = new CachedMemoryPakReader
-                    {
+    private CachedMemoryPakReader Reader {
+        get {
+            if (_baseReader == null) {
+                if (_setupLock.WaitOne(1000)) {
+                    _baseReader = new CachedMemoryPakReader {
                         PakFilePriority = config.PakFiles?.ToList() ?? PakUtils.ScanPakFiles(config.GamePath)
                     };
-                    _lock.ReleaseMutex();
-                }
-                else if (_baseReader == null)
-                {
+                    _setupLock.ReleaseMutex();
+                } else if (_baseReader == null) {
                     throw new Exception("Failed to create pak reader");
                 }
             }
@@ -56,27 +66,26 @@ public sealed class Workspace(GameConfig config) : IDisposable
         }
     }
 
-    private string GetExtensionCacheFilepath(string cacheDir) => Path.Combine(cacheDir, $"{config.Game.name}/file_extensions.json");
-    private string GetRefPropsFilepath(string cacheDir) => Path.Combine(cacheDir, $"{config.Game.name}/pfb_ref_props.json");
-    private string GetIl2cppCacheFilepath(string cacheDir) => Path.Combine(cacheDir, $"{config.Game.name}/il2cpp_cache.json");
+    private static string GetExtensionCacheFilepath(string cacheDir) => Path.Combine(cacheDir, "file_extensions.json");
+    private static string GetRefPropsFilepath(string cacheDir) => Path.Combine(cacheDir, "pfb_ref_props.json");
+    private static string GetIl2cppCacheFilepath(string cacheDir) => Path.Combine(cacheDir, "il2cpp_cache.json");
 
     public bool TryGetFileExtensionVersion(string extension, out int version)
     {
         return fileExtensionCache.Versions.TryGetValue(extension, out version);
     }
 
-    public void Init(string cacheDirectory)
+    public void Init(string dataDirectory)
     {
-        if (_lock.WaitOne(10000))
-        {
+        if (_setupLock.WaitOne(10000)) {
             if (_baseReader != null) return;
 
-            _baseReader = new CachedMemoryPakReader
-            {
-                PakFilePriority = config.PakFiles?.ToList() ?? PakUtils.ScanPakFiles(config.GamePath)
+            _dataDir = dataDirectory = Path.GetFullPath(dataDirectory);
+            _baseReader = new CachedMemoryPakReader {
+                PakFilePriority = (config.PakFiles?.Length > 0) ? config.PakFiles.ToList() : PakUtils.ScanPakFiles(config.GamePath)
             };
-            var extCacheFilepath = GetExtensionCacheFilepath(cacheDirectory);
-            if (File.Exists(extCacheFilepath)) {
+            var extCacheFilepath = GetExtensionCacheFilepath(dataDirectory);
+            if (File.Exists(extCacheFilepath) && false) {
                 if (!TryDeserialize(extCacheFilepath, out fileExtensionCache)) {
                     throw new Exception("Failed to read file extension cache");
                 }
@@ -85,8 +94,8 @@ public sealed class Workspace(GameConfig config) : IDisposable
                 fileExtensionCache = new();
                 fileExtensionCache.HandleFilepathsFromList(config.FileListPath);
 
-                Directory.CreateDirectory(Path.GetDirectoryName(cacheDirectory)!);
-                using var fs = File.Create(cacheDirectory);
+                Directory.CreateDirectory(Path.GetDirectoryName(extCacheFilepath)!);
+                using var fs = File.Create(extCacheFilepath);
                 JsonSerializer.Serialize(fs, fileExtensionCache, jsonOptions);
                 Console.WriteLine("File extension cache successfully generated");
             } else {
@@ -94,10 +103,8 @@ public sealed class Workspace(GameConfig config) : IDisposable
                 fileExtensionCache = new();
                 Console.Error.WriteLine("Missing file extension cache file. Files may not resolve correctly.");
             }
-            _lock.ReleaseMutex();
-        }
-        else if (_baseReader == null)
-        {
+            _setupLock.ReleaseMutex();
+        } else if (_baseReader == null) {
             throw new Exception("Failed to initialize REE-Lib workspace");
         }
     }
@@ -107,11 +114,11 @@ public sealed class Workspace(GameConfig config) : IDisposable
         filepath = PrependBasePath(filepath);
         if (!string.IsNullOrEmpty(config.FileListPath)) {
             if (listFile == null) {
-                _lock.WaitOne();
+                _setupLock.WaitOne();
                 try {
                     listFile = new ListFileWrapper(config.FileListPath);
                 } finally {
-                    _lock.ReleaseMutex();
+                    _setupLock.ReleaseMutex();
                 }
             }
 
@@ -200,13 +207,13 @@ public sealed class Workspace(GameConfig config) : IDisposable
     {
         filepath = PrependBasePath(filepath);
 
-        if (UsePackedFiles && CanUsePakFiles)
-        {
+        bool didAttempt = false;
+        if (AllowUsePackedFiles && CanUsePakFiles) {
+            didAttempt = true;
             var file = Reader.GetFile(filepath);
             if (file != null) return file;
         }
-        if (CanUseChunkFiles)
-        {
+        if (CanUseChunkFiles) {
             var outputPath = GetAbsoluteChunkFilepath(filepath);
             if (File.Exists(outputPath)) {
                 return File.OpenRead(outputPath);
@@ -222,6 +229,7 @@ public sealed class Workspace(GameConfig config) : IDisposable
             ofstream.Seek(0, SeekOrigin.Begin);
             return ofstream;
         }
+        if (didAttempt) return null;
         throw new Exception("REE-Lib workspace not fully configured, we are unable to access game resources.");
     }
 
@@ -251,6 +259,34 @@ public sealed class Workspace(GameConfig config) : IDisposable
     {
         if (path.StartsWith(BasePath) || path.StartsWith(BasePathBackslash)) return path[BasePath.Length..];
         return path;
+    }
+
+    private RszParser LoadRszParser()
+    {
+        if (string.IsNullOrEmpty(config.RszJsonPath)) {
+            throw new Exception("RSZ json file setting is not configured");
+        }
+        _setupLock.WaitOne();
+        try {
+            var parser = ReeLib.RszParser.GetInstance(config.RszJsonPath);
+            parser.ReadPatch(Path.Combine(DataDirectory, "rsz_global.json"));
+            parser.ReadPatch(Path.Combine(DataDirectory, "rsz_patches.json"));
+            return parser;
+        } finally {
+            _setupLock.ReleaseMutex();
+        }
+    }
+
+    private JsonSerializerOptions CreateJsonSerializerOptions()
+    {
+        _setupLock.WaitOne();
+        try {
+            var options = new JsonSerializerOptions(DefaultJsonOptions);
+            options.Converters.Add(new RszInstanceJsonConverter(this));
+            return options;
+        } finally {
+            _setupLock.ReleaseMutex();
+        }
     }
 
     public void Dispose()

@@ -97,12 +97,10 @@ public class CachedMemoryPakReader : PakReader, IDisposable
                 foreach (var entry in pak.Entries)
                 {
                     var hash = entry.CombinedHash;
-                    cachedEntries.Add(hash, new PakEntryCache(pak, entry));
-                    searchedPaths.Remove(hash);
+                    if (!cachedEntries.ContainsKey(hash)) {
+                        cachedEntries.Add(hash, new PakEntryCache(pak, entry));
+                    }
                 }
-
-                if (EnableConsoleLogging) Console.WriteLine("Finished caching contents of " + pak.filepath);
-                if (searchedPaths.Count == 0) break;
             }
         } finally {
             _lock.ReleaseMutex();

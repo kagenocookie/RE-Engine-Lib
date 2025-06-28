@@ -51,7 +51,6 @@ public static class PathUtils
         return p1.SequenceEqual(p2);
     }
 
-    public static ReadOnlySpan<char> GetFilenameExtensionWithSuffixes(string filename) => GetFilenameExtensionWithSuffixes(filename.AsSpan());
     public static ReadOnlySpan<char> GetFilenameExtensionWithSuffixes(ReadOnlySpan<char> filename)
     {
         var extIndex = GetFilenameExtensionStartIndex(filename);
@@ -59,7 +58,6 @@ public static class PathUtils
         return filename[extIndex] == '.' ? filename[(extIndex + 1)..] : filename[extIndex..];
     }
 
-    public static ReadOnlySpan<char> GetFilenameExtensionWithoutSuffixes(string filename) => GetFilenameExtensionWithoutSuffixes(filename.AsSpan());
     public static ReadOnlySpan<char> GetFilenameExtensionWithoutSuffixes(ReadOnlySpan<char> filename)
     {
         var fullExt = GetFilenameExtensionWithSuffixes(filename);

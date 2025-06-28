@@ -41,23 +41,23 @@ public class ReeLibGenerator : IIncrementalGenerator
                 sb1.Append(indentStr).AppendLine($"public static class FileFormatExtensions");
                 sb1.Append(indentStr).AppendLine("{");
                 sb1.Append(indentStr2).AppendLine($"public static {name} ExtensionToEnum(string extension) => extension switch {{");
-                sb2.Append(indentStr2).AppendLine($"public static {name} ExtensionHashToEnum(uint hash) => ExtensionHashToEnum((int)hash);");
-                sb2.Append(indentStr2).AppendLine($"public static {name} ExtensionHashToEnum(int hash) => hash switch {{");
+                sb2.Append(indentStr2).AppendLine($"public static {name} ExtensionHashToEnum(int hash) => ExtensionHashToEnum((uint)hash);");
+                sb2.Append(indentStr2).AppendLine($"public static {name} ExtensionHashToEnum(uint hash) => hash switch {{");
                 foreach (var val in enumDecl.Members) {
                     var valName = val.Identifier.Text;
                     if (val.HasLeadingTrivia) {
-                        var doc = val.GetLeadingTrivia().FirstOrDefault(t => t.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia)).GetStructure();
-                        var comp = doc?.ToString();
-                        if (comp != null) {
-                            foreach (var ext in comp.Replace("<summary>", "").Replace("</summary>", "").Replace(" ", "").Replace(".", "").Trim().Split(',')) {
+                        var comp = val.GetLeadingTrivia().ToFullString()
+                            .Replace("\n", "").Replace("\r", "").Replace("<summary>", "").Replace("</summary>", "").Replace("///", "").Replace(" ", "").Replace(".", "").Trim();
+                        if (!string.IsNullOrWhiteSpace(comp)) {
+                            foreach (var ext in comp!.Split(',')) {
                                 sb1.Append(indentStr3).AppendLine($"\"{ext}\" => {name}.{valName},");
                                 sb2.Append(indentStr3).AppendLine($"{MurMur3Hash(ext)} => {name}.{valName},");
                             }
                         } else {
-                            sb1.Append(indentStr3).AppendLine("//unhandled: " + valName);
+                            sb1.Append(indentStr3).AppendLine("//unhandled5: " + valName + " trivia: " + val.GetLeadingTrivia().ToFullString().Replace("\n", ""));
                         }
                     } else {
-                        sb1.Append(indentStr3).AppendLine("//unhandled: " + valName);
+                        sb1.Append(indentStr3).AppendLine("//unhandled2: " + valName);
                     }
                 }
 
@@ -124,11 +124,11 @@ public class ReeLibGenerator : IIncrementalGenerator
         var name = enumDecl.Identifier.Text;
         AppendParentClasses(sb, enumDecl, out var indent);
         var indentStr = new string('\t', indent - 1);
-        sb.Append(indentStr).AppendLine($"public static partial class {name}Hash");
+        sb.Append(indentStr).AppendLine($"public enum {name}Hash");
         sb.Append(indentStr).AppendLine("{");
         foreach (var val in enumDecl.Members) {
             var valName = val.Identifier.Text;
-            sb.Append(indentStr).AppendLine($"\tpublic const int {valName} = {(int)MurMur3Hash(valName)};");
+            sb.Append(indentStr).AppendLine($"\t{valName} = {(int)MurMur3Hash(valName)},");
         }
 
         // sb.Append(indentStr).AppendLine("}");

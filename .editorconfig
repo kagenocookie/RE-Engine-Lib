@@ -15,3 +15,5 @@ dotnet_diagnostic.CA1863.severity = suggestion
 # RS2008: Enable analyzer release tracking for the analyzer project containing rule 'RSZT001'
 dotnet_diagnostic.RS2008.severity = suggestion
 
+dotnet_diagnostic.IDE0130.severity = none
+

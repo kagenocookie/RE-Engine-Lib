@@ -71,13 +71,10 @@ public class LocalResourceCache
         Directory.CreateDirectory(local.DataPath);
         local.LocalPaths.LastUpdatedAtUtc = DateTime.UtcNow;
 
-        var http = new HttpClient();
-
         int i = 0;
         local.LocalPaths.RszPatchFiles = new string[remote.RszPatchFiles.Length];
         foreach (var url in remote.RszPatchFiles) {
             Console.WriteLine($"Fetching {game} RSZ patch file from {url}...");
-            // var data = http.Send(new HttpRequestMessage(HttpMethod.Get, url));
             var data = ResourceRepository.FetchContentFromUrlOrFile(url);
             if (data == null) {
                 Console.Error.WriteLine("Failed to download RSZ patch file from URL " + url);
@@ -96,7 +93,15 @@ public class LocalResourceCache
 
     private static bool SaveRSZTemplateFile(Stream file, string source, string outputPath)
     {
-        if (!source.Contains("reasy", StringComparison.OrdinalIgnoreCase)) {
+        var jsondoc = JsonSerializer.Deserialize<JsonObject>(file);
+        if (jsondoc == null) {
+            Console.Error.WriteLine("Failed to deserialize RSZ JSON file");
+            return false;
+        }
+
+        var isReasy = source.Contains("reasy", StringComparison.OrdinalIgnoreCase) || jsondoc.ContainsKey("metadata");
+
+        if (!isReasy) {
             using var localFs = File.Create(outputPath);
             file.CopyTo(localFs);
             return true;
@@ -104,11 +109,6 @@ public class LocalResourceCache
 
         Console.WriteLine("Detected REasy sourced rsz dump json file. Attempting to clean up for REE Lib use...");
 
-        var jsondoc = JsonSerializer.Deserialize<JsonObject>(file);
-        if (jsondoc == null) {
-            Console.Error.WriteLine("Failed to deserialize file");
-            return false;
-        }
         if (jsondoc.ContainsKey("metadata")) {
             jsondoc.Remove("metadata");
         }

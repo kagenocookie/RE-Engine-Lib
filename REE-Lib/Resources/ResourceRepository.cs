@@ -34,28 +34,27 @@ public class ResourceRepository
         if (shouldRefresh) {
             localIsSetup = ReadLocalResourceListing();
         }
-        if (forceRefresh || !localIsSetup) {
-            if (MetadataRemoteSource.StartsWith("http") && DisableOnlineUpdater) {
-                UpdateLocalCache();
-                Console.WriteLine("Resource auto-updater is disabled. Using purely local data.");
-                return _cache ??= new();
-            }
 
-            var shouldUpdateFromRemote = _cache == null || forceRefresh || (DateTime.UtcNow.Date - _cache.LastUpdateCheckAtUtc.Date).TotalDays >= UpdateCheckIntervalDays;
-            if (!shouldUpdateFromRemote) {
-                Console.WriteLine("Using cached local resource repository data");
+        if (MetadataRemoteSource.StartsWith("http") && DisableOnlineUpdater) {
+            UpdateLocalCache();
+            Console.WriteLine("Resource auto-updater is disabled. Using purely local data.");
+            return _cache ??= new();
+        }
+
+        var shouldUpdateFromRemote = _cache == null || forceRefresh || (DateTime.UtcNow.Date - _cache.LastUpdateCheckAtUtc.Date).TotalDays >= UpdateCheckIntervalDays;
+        if (!shouldUpdateFromRemote) {
+            Console.WriteLine("Using cached local resource repository data");
+        } else {
+            var updateSuccess = TryFetchRemoteResourceListing();
+            if (updateSuccess) {
+                Console.WriteLine("Updated resource repository from remote data");
             } else {
-                var updateSuccess = TryFetchRemoteResourceListing();
-                if (updateSuccess) {
-                    Console.WriteLine("Updated resource repository from remote data");
-                } else {
-                    Console.Error.WriteLine("Failed to update resource repository from remote data");
-                }
+                Console.Error.WriteLine("Failed to update resource repository from remote data");
             }
-            _cache ??= new();
-            if (!localIsSetup || shouldUpdateFromRemote || forceRefresh) {
-                UpdateLocalCache();
-            }
+        }
+        _cache ??= new();
+        if (!localIsSetup || shouldUpdateFromRemote || forceRefresh) {
+            UpdateLocalCache();
         }
 
         return _cache ??= new();

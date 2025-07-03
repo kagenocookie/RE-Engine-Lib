@@ -14,12 +14,6 @@ public class LocalResourceCache
     public static string GetDefaultLocalPathForGame(GameIdentifier game)
         => Path.Combine(Path.GetDirectoryName(ResourceRepository.LocalResourceRepositoryFilepath)!, game.name);
 
-    public LocalResources UpdateAndGet(GameIdentifier game)
-    {
-        EnsureUpToDate(game, out var info);
-        return info;
-    }
-
     public bool EnsureUpToDate(GameIdentifier game, out LocalResources localInfo)
     {
         if (IsUpToDate(game)) {
@@ -32,8 +26,17 @@ public class LocalResourceCache
             Game = game,
             DataPath = previousInfo?.DataPath ?? GetDefaultLocalPathForGame(game),
         };
-        if (!DisableAutoUpdates && DownloadRemoteResources(game)) {
+        if (!DisableAutoUpdates && RemoteInfo.Resources.TryGetValue(game.name, out var remote)) {
             localInfo = LocalInfo[game.name];
+            if (remote.EfxStructs != null) localInfo.LocalPaths.EfxStructs = null;
+            if (remote.RszPatchFiles != null) localInfo.LocalPaths.RszPatchFiles = [];
+            if (remote.FileList != null) localInfo.LocalPaths.FileList = null;
+            if (remote.Il2cppCache != null) localInfo.LocalPaths.Il2cppCache = null;
+            if (remote.ResourceTypes != null) localInfo.LocalPaths.ResourceTypes = null;
+            if (remote.PfbRefs != null) localInfo.LocalPaths.PfbRefs = null;
+            localInfo.LocalPaths.CollisionDefinition = remote.CollisionDefinition;
+            localInfo.LocalPaths.DynamicsDefinition = remote.DynamicsDefinition;
+            localInfo.LocalPaths.LastUpdatedAtUtc = DateTime.UtcNow;
             ResourceRepository.UpdateLocalCache();
             return true;
         }
@@ -44,7 +47,6 @@ public class LocalResourceCache
 
     public bool IsUpToDate(GameIdentifier game)
     {
-        ResourceRepository.Initialize();
         if (!LocalInfo.TryGetValue(game.name, out var local)) {
             return false;
         }
@@ -57,22 +59,136 @@ public class LocalResourceCache
 
         return local.LocalPaths.LastUpdatedAtUtc >= remote.LastUpdatedAtUtc;
     }
+}
 
-    public bool DownloadRemoteResources(GameIdentifier game)
+public class LocalResources
+{
+    public string DataPath { get; set; } = string.Empty;
+    [JsonIgnore]
+    public GameIdentifier Game { get; set; }
+
+    [JsonInclude]
+    public ResourceMetadata LocalPaths { get; set; } = new();
+
+    private ResourceMetadata? RemoteResources => ResourceRepository.Cache.RemoteInfo.Resources.GetValueOrDefault(Game.name);
+
+    private static readonly JsonSerializerOptions jsonOptions = new() {
+        WriteIndented = true,
+        DefaultIgnoreCondition = JsonIgnoreCondition.Never,
+    };
+
+    [JsonIgnore]
+    public string? ResourceTypePath {
+        get => LocalPaths.ResourceTypes;
+        set => LocalPaths.ResourceTypes = GetStringIfFileExists(value);
+    }
+
+    public bool TryGetRszFiles(out string[] paths)
     {
-        if (!RemoteInfo.Resources.TryGetValue(game.name, out var remote)) {
-            return false;
+        if (LocalPaths.RszPatchFiles != null && LocalPaths.RszPatchFiles.Length > 0) {
+            paths = LocalPaths.RszPatchFiles;
+            return true;
         }
 
-        var local = LocalInfo.GetValueOrDefault(game.name) ?? (LocalInfo[game.name] = new() { Game = game });
-        if (string.IsNullOrEmpty(local.DataPath)) {
-            local.DataPath = GetDefaultLocalPathForGame(game);
+        if (DownloadRSZResources(Game, RemoteResources)) {
+            paths = LocalPaths.RszPatchFiles!;
+            ResourceRepository.UpdateLocalCache();
+            return true;
         }
-        Directory.CreateDirectory(local.DataPath);
-        local.LocalPaths.LastUpdatedAtUtc = DateTime.UtcNow;
+
+        paths = LocalPaths.RszPatchFiles ??= [];
+        return false;
+    }
+
+    public bool TryGetResourceTypesCache(out string filepath)
+    {
+        if (LocalPaths.ResourceTypes != null) {
+            filepath = LocalPaths.ResourceTypes;
+            return true;
+        }
+        filepath = Path.Combine(DataPath, "file_extensions.json");
+        if (TryCacheFile(RemoteResources?.ResourceTypes, filepath)) {
+            LocalPaths.ResourceTypes = filepath;
+            ResourceRepository.UpdateLocalCache();
+            return true;
+        }
+
+        return false;
+    }
+
+    public bool TryGetListFilePath(out string filepath)
+    {
+        if (LocalPaths.FileList != null) {
+            filepath = LocalPaths.FileList;
+            return true;
+        }
+        filepath = Path.Combine(DataPath, $"{Game.name}_files.list");
+        if (TryCacheFile(RemoteResources?.FileList, filepath)) {
+            LocalPaths.FileList = filepath;
+            ResourceRepository.UpdateLocalCache();
+            return true;
+        }
+
+        return false;
+    }
+
+    public bool TryGetIl2cppCachePath(out string filepath)
+    {
+        if (LocalPaths.Il2cppCache != null) {
+            filepath = LocalPaths.Il2cppCache;
+            return true;
+        }
+        filepath = Path.Combine(DataPath, $"il2cpp_cache.json");
+        if (TryCacheFile(RemoteResources?.Il2cppCache, filepath)) {
+            LocalPaths.Il2cppCache = filepath;
+            ResourceRepository.UpdateLocalCache();
+            return true;
+        }
+
+        return false;
+    }
+
+    public bool TryGetPfbRefCachePath(out string filepath)
+    {
+        if (LocalPaths.PfbRefs != null) {
+            filepath = LocalPaths.PfbRefs;
+            return true;
+        }
+        filepath = Path.Combine(DataPath, $"pfb_ref_props.json");
+        if (TryCacheFile(RemoteResources?.PfbRefs, filepath)) {
+            LocalPaths.PfbRefs = filepath;
+            ResourceRepository.UpdateLocalCache();
+            return true;
+        }
+
+        return false;
+    }
+
+    public bool TryGetEfxCachePath(out string filepath)
+    {
+        if (LocalPaths.EfxStructs != null) {
+            filepath = LocalPaths.EfxStructs;
+            return true;
+        }
+        filepath = Path.Combine(DataPath, $"efx_structs.json");
+        if (TryCacheFile(RemoteResources?.EfxStructs, filepath)) {
+            LocalPaths.EfxStructs = filepath;
+            ResourceRepository.UpdateLocalCache();
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool DownloadRSZResources(GameIdentifier game, ResourceMetadata? remote)
+    {
+        if (remote == null) return false;
+
+        Directory.CreateDirectory(DataPath);
+        LocalPaths.LastUpdatedAtUtc = DateTime.UtcNow;
 
         int i = 0;
-        local.LocalPaths.RszPatchFiles = new string[remote.RszPatchFiles.Length];
+        LocalPaths.RszPatchFiles = new string[remote.RszPatchFiles.Length];
         foreach (var url in remote.RszPatchFiles) {
             Console.WriteLine($"Fetching {game} RSZ patch file from {url}...");
             var data = ResourceRepository.FetchContentFromUrlOrFile(url);
@@ -80,12 +196,17 @@ public class LocalResourceCache
                 Console.Error.WriteLine("Failed to download RSZ patch file from URL " + url);
                 return false;
             }
-            var localFile = Path.Combine(local.DataPath, i == 0 ? "rsz_template.json" : $"rsz_patch{i}.json");
+            var localFilename = i switch {
+                0 => "rsz_template.json",
+                1 => "rsz_patch.json",
+                _ => $"rsz_patch{i}.json",
+            };
+            var localFile = Path.Combine(DataPath, localFilename);
             if (!SaveRSZTemplateFile(data, url, localFile)) {
                 Console.Error.WriteLine("Failed to save RSZ patch file from URL " + url);
                 return false;
             }
-            local.LocalPaths.RszPatchFiles[i++] = localFile;
+            LocalPaths.RszPatchFiles[i++] = localFile;
         }
 
         return true;
@@ -102,8 +223,9 @@ public class LocalResourceCache
         var isReasy = source.Contains("reasy", StringComparison.OrdinalIgnoreCase) || jsondoc.ContainsKey("metadata");
 
         if (!isReasy) {
+            Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
             using var localFs = File.Create(outputPath);
-            file.CopyTo(localFs);
+            JsonSerializer.Serialize(localFs, jsondoc, jsonOptions);
             return true;
         }
 
@@ -156,59 +278,6 @@ public class LocalResourceCache
         Console.WriteLine("Saved cleaned RSZ template to " + outputPath);
         return true;
     }
-}
-
-public class LocalResources
-{
-    public string DataPath { get; set; } = string.Empty;
-    [JsonIgnore]
-    public GameIdentifier Game { get; set; }
-
-    [JsonInclude]
-    internal ResourceMetadata LocalPaths { get; set; } = new();
-
-    private ResourceMetadata? RemoteResources => ResourceRepository.Cache.RemoteInfo.Resources.GetValueOrDefault(Game.name);
-
-    private static readonly JsonSerializerOptions jsonOptions = new() {
-        WriteIndented = true,
-        DefaultIgnoreCondition = JsonIgnoreCondition.Never,
-    };
-
-    [JsonIgnore]
-    public string? ResourceTypePath {
-        get => LocalPaths.ResourceTypes;
-        set => LocalPaths.ResourceTypes = GetStringIfFileExists(value);
-    }
-
-    public bool TryDownloadResource(out string filepath)
-    {
-        if (LocalPaths.ResourceTypes != null) {
-            filepath = LocalPaths.ResourceTypes;
-            return true;
-        }
-        filepath = Path.Combine(DataPath, "file_extensions.json");
-        if (TryCacheFile(RemoteResources?.ResourceTypes, filepath)) {
-            LocalPaths.ResourceTypes = filepath;
-            return true;
-        }
-
-        return false;
-    }
-
-    public bool TryGetListFilePath(out string filepath)
-    {
-        if (LocalPaths.FileList != null) {
-            filepath = LocalPaths.FileList;
-            return true;
-        }
-        filepath = Path.Combine(DataPath, $"{Game.name}_files.list");
-        if (TryCacheFile(RemoteResources?.FileList, filepath)) {
-            LocalPaths.FileList = filepath;
-            return true;
-        }
-
-        return false;
-    }
 
     private static string? GetStringIfFileExists(string? path)
     {
@@ -224,6 +293,7 @@ public class LocalResources
         if (stream == null) {
             return false;
         }
+        Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
         using var outfs = File.Create(outputPath);
         stream.CopyTo(outfs);
         return true;

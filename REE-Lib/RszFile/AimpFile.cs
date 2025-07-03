@@ -942,14 +942,14 @@ namespace ReeLib
 
         private static AimpType DetermineMapTypeFromFilename(string? filename)
         {
-            RszUtils.GetFileExtension(filename!, out var ext, out _);
+            var ext = PathUtils.GetFilenameExtensionWithoutSuffixes(filename);
             return ext switch {
-                ".aimap" => AimpType.Map,
-                ".aiwayp" => AimpType.Waypoint,
-                ".aiwaypmgr" => AimpType.WaypointManager,
-                ".aivspc" => AimpType.VolumeSpace,
-                ".ainvm" => AimpType.Navmesh,
-                ".ainvmmgr" => AimpType.NavmeshManager,
+                "aimap" => AimpType.Map,
+                "aiwayp" => AimpType.Waypoint,
+                "aiwaypmgr" => AimpType.WaypointManager,
+                "aivspc" => AimpType.VolumeSpace,
+                "ainvm" => AimpType.Navmesh,
+                "ainvmmgr" => AimpType.NavmeshManager,
                 _ => AimpType.Invalid,
             };
         }

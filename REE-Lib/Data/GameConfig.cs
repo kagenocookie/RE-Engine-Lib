@@ -22,10 +22,11 @@ public class GameConfig
     /// Gets the local resource metadata for the current game. If it has not yet been initialized, it will be fetched and updated.
     /// Will fetch and download from remote if the data is missing with a blocking HTTP request, and read cached files from the local disk otherwise.
     /// </summary>
-    public LocalResources Resources => _resources ??= ResourceRepository.Cache.UpdateAndGet(Game);
+    public LocalResources Resources => _resources ??= ResourceRepository.UpdateAndGet(Game);
 
     public string GamePath { get; set; } = string.Empty;
     public string ChunkPath { get; set; } = string.Empty;
+    public string? Il2cppDumpPath { get; set; }
     public string[] PakFiles { get; set; } = [];
 
     public string[] RszPatchFiles => Resources.LocalPaths.RszPatchFiles;
@@ -60,13 +61,15 @@ public class GameConfig
         }
     }
 
+    public string? GuessIl2cppDumpPath() => Il2cppDumpPath ?? (string.IsNullOrEmpty(GamePath) ? null : Path.Combine(Path.GetDirectoryName(GamePath) ?? string.Empty, "il2cpp_dump.json"));
+
     /// <summary>
     /// Create a new config from the public remote game resource repository.
     /// </summary>
     public static GameConfig CreateFromRepository(GameIdentifier game)
     {
         var config = new GameConfig(game);
-        config._resources = ResourceRepository.Cache.UpdateAndGet(game);
+        config._resources = ResourceRepository.UpdateAndGet(game);
         return config;
     }
 }

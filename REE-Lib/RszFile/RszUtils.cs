@@ -99,27 +99,15 @@ namespace ReeLib
             return int.TryParse(versionStr, out var version) ? version : 0;
         }
 
-        public static FileType GetFileType(string path)
+        public static void CheckFileExtension(ReadOnlySpan<char> path, string extension, int version)
         {
-            GetFileExtension(path, out var extension, out _);
-            return extension switch {
-                ".user" => FileType.user,
-                ".pfb" => FileType.pfb,
-                ".scn" => FileType.scn,
-                ".mdf2" => FileType.mdf2,
-                ".rcol" => FileType.rcol,
-                _ => FileType.unknown,
-            };
-        }
-
-        public static void CheckFileExtension(ReadOnlySpan<char> path, string extension, string? version)
-        {
-            GetFileExtension(path, out var realExtension, out var realVersion);
+            var realExtension = PathUtils.GetFilenameExtensionWithoutSuffixes(path);
+            var realVersion = PathUtils.ParseFileFormat(path).version;
             if (!realExtension.SequenceEqual(extension))
             {
                 Console.Error.WriteLine($"extension should be {extension}, got {realExtension}");
             }
-            if (!realVersion.SequenceEqual(version))
+            if (version != 0 && realVersion != version)
             {
                 Console.Error.WriteLine($"extension should be {version}, got {realVersion}");
             }

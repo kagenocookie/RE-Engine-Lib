@@ -64,15 +64,16 @@ public class ReeLibGenerator : IIncrementalGenerator
                         var comp = val.GetLeadingTrivia().ToFullString()
                             .Replace("\n", "").Replace("\r", "").Replace("<summary>", "").Replace("</summary>", "").Replace("///", "").Replace(" ", "").Replace(".", "").Trim();
                         if (!string.IsNullOrWhiteSpace(comp)) {
-                            foreach (var ext in comp!.Split(',')) {
+                            var extensionList = comp!.Split(',');
+                            foreach (var ext in extensionList) {
                                 sb1.Append(indentStr3).AppendLine($"\"{ext}\" => {name}.{valName},");
                                 sb2.Append(indentStr3).AppendLine($"{MurMur3Hash(ext)} => {name}.{valName},");
                             }
                         } else {
-                            sb1.Append(indentStr3).AppendLine("//unhandled5: " + valName + " trivia: " + val.GetLeadingTrivia().ToFullString().Replace("\n", ""));
+                            sb1.Append(indentStr3).AppendLine("//unhandled: " + valName);
                         }
                     } else {
-                        sb1.Append(indentStr3).AppendLine("//unhandled2: " + valName);
+                        sb1.Append(indentStr3).AppendLine("//unhandled: " + valName);
                     }
                 }
 

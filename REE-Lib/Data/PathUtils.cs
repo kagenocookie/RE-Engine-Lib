@@ -84,6 +84,15 @@ public static class PathUtils
         return period + lastSlash;
     }
 
+    public static string CombineChunkSubpath(string chunkBasePath, string filepath, bool isX64)
+    {
+        var leftIsNatives = chunkBasePath.Contains("natives/x64") || chunkBasePath.Contains("natives/stm");
+        var rightIsNatives = filepath.StartsWith("natives/x64") || filepath.StartsWith("natives/stm");
+        if (leftIsNatives && rightIsNatives) return Path.Combine(chunkBasePath, filepath[("natives/stm".Length + 1)..]);
+        if (!leftIsNatives && !rightIsNatives) return Path.Combine(chunkBasePath, isX64 ? "natives/x64" : "natives/stm", filepath);
+        return Path.Combine(chunkBasePath, filepath);
+    }
+
     public static string GetExtensionWithoutPeriod(this string path) => path.AsSpan().GetExtensionWithoutPeriod();
     public static string GetExtensionWithoutPeriod(this ReadOnlySpan<char> path)
     {

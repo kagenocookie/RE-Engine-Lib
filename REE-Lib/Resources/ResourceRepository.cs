@@ -1,3 +1,4 @@
+using System.Net.Http;
 using System.Text.Json;
 
 namespace ReeLib;
@@ -12,7 +13,7 @@ public class ResourceRepository
     internal static LocalResourceCache Cache => _cache ??= Initialize();
 
     /// <summary>
-    /// The local filepath to store the repository cache JSON file in.
+    /// The local filepath to store the repository cache JSON file in. Should be the json filepath.
     /// </summary>
     public static string LocalResourceRepositoryFilepath { get; set; } = "resources/resource-cache.json";
     /// <summary>
@@ -26,6 +27,12 @@ public class ResourceRepository
     public static string MetadataRemoteSource { get; set; } = "https://raw.githubusercontent.com/kagenocookie/REE-Lib-Resources/refs/heads/master/resource-info.json";
 
     private const int UpdateCheckIntervalDays = 1;
+
+    public static LocalResources UpdateAndGet(GameIdentifier game)
+    {
+        Cache.EnsureUpToDate(game, out var resources);
+        return resources;
+    }
 
     public static LocalResourceCache Initialize(bool forceRefresh = false)
     {
@@ -92,12 +99,17 @@ public class ResourceRepository
                 return null;
             }
 
-            var http = new HttpClient();
-            var response = http.Send(new HttpRequestMessage(HttpMethod.Get, path));
-            if (!response.IsSuccessStatusCode) {
-                return null;
+            Console.WriteLine("Fetching content from " + path);
+            try {
+                var http = new HttpClient();
+                var response = http.Send(new HttpRequestMessage(HttpMethod.Get, path));
+                if (!response.IsSuccessStatusCode) {
+                    return null;
+                }
+                return response.Content.ReadAsStream();
+            } catch (Exception) {
+                Console.Error.WriteLine("Failed to get remote REE-Lib resource status");
             }
-            return response.Content.ReadAsStream();
         }
         if (File.Exists(path)) {
             return File.OpenRead(path);

@@ -11,11 +11,10 @@ public class CachedMemoryPakReader : PakReader, IDisposable
 {
     private sealed record class PakEntryCache(PakFile file, PakEntry entry);
 
-    private Dictionary<ulong, PakFile>? cachedPaks;
-    private Dictionary<ulong, PakEntryCache>? cachedEntries;
+    private volatile Dictionary<ulong, PakEntryCache>? cachedEntries;
     private MemoryStream memoryStream = new();
 
-    private readonly Mutex _lock = new();
+    private readonly object _lock = new();
     private const int PakCacheTimeout = 30000;
 
     /// <summary>
@@ -32,7 +31,7 @@ public class CachedMemoryPakReader : PakReader, IDisposable
     /// </summary>
     public MemoryStream? GetFile(ulong filepathHash)
     {
-        if (cachedEntries == null || cachedPaks == null)
+        if (cachedEntries == null)
         {
             CacheEntries();
             if (cachedEntries == null) throw new Exception("Failed to generate cache of PAK entries");
@@ -59,7 +58,7 @@ public class CachedMemoryPakReader : PakReader, IDisposable
     /// </summary>
     public MemoryStream? GetFileCached(ulong filepathHash)
     {
-        if (cachedEntries == null || cachedPaks == null)
+        if (cachedEntries == null)
         {
             CacheEntries();
             if (cachedEntries == null) throw new Exception("Failed to generate cache of PAK entries");
@@ -78,18 +77,16 @@ public class CachedMemoryPakReader : PakReader, IDisposable
     }
 
     /// <summary>
-    /// Scan all PAK files and cache lookup info for each file entry.
+    /// Scan all PAK files and cache lookup info for every file entry hash.
     /// </summary>
     public void CacheEntries()
     {
-        if (!_lock.WaitOne(PakCacheTimeout)) {
-            if (cachedEntries == null || cachedEntries.Count == 0) {
-                throw new Exception("Pak reader cache lookup timed out");
+        lock(_lock)  {
+            if (cachedEntries?.Count > 0) {
+                Console.WriteLine("CacheEntries was previously done " + cachedEntries.Count);
+                return;
             }
-            return;
-        }
 
-        try {
             Clear();
             cachedEntries = new();
             foreach (var pak in EnumeratePaks())
@@ -102,9 +99,26 @@ public class CachedMemoryPakReader : PakReader, IDisposable
                     }
                 }
             }
-        } finally {
-            _lock.ReleaseMutex();
         }
+    }
+
+    /// <summary>
+    /// Creates a new reader instance based on the currently cached data. Use for access to non-thread-safe operations when you need thread safety.
+    /// Must call <see cref="CacheEntries"/> before to ensure a consistent state.
+    /// </summary>
+    public CachedMemoryPakReader Clone()
+    {
+        if (!(cachedEntries?.Count > 0))
+        {
+            throw new Exception("PAK file entry cache has not been built yet");
+        }
+
+        var reader = new CachedMemoryPakReader();
+        reader.cachedEntries = cachedEntries;
+        reader.PakFilePriority = PakFilePriority;
+        reader.Filter = Filter;
+        reader.MaxThreads = MaxThreads;
+        return reader;
     }
 
     /// <summary>
@@ -113,15 +127,8 @@ public class CachedMemoryPakReader : PakReader, IDisposable
     /// </summary>
     public void Clear()
     {
-        if (cachedPaks != null)
-        {
-            foreach (var pak in cachedPaks.Values)
-            {
-                pak.Dispose();
-            }
-            cachedPaks.Clear();
-        }
         cachedEntries?.Clear();
+        searchedPaths.Clear();
     }
 
     public void Dispose()

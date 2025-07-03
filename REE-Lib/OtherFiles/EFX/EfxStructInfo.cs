@@ -1,5 +1,8 @@
 namespace ReeLib;
 
+using System.Text.Json.Serialization;
+using ReeLib.Common;
+
 public class EfxStructCache
 {
     /// <summary>
@@ -48,11 +51,13 @@ public class EfxStructInfo
 public class EfxFieldInfo
 {
     public string Name { get; set; } = string.Empty;
+    [JsonConverter(typeof(JsonStringEnumConverter<RszFieldType>))]
     public RszFieldType FieldType { get; set; }
     public string? Classname { get; set; }
     public bool IsArray { get; set; }
     public int FixedLength { get; set; }
 
+    [JsonConverter(typeof(JsonStringEnumConverter<EfxFieldFlags>))]
     public EfxFieldFlags Flag { get; set; }
     public string? FlagTarget { get; set; }
 

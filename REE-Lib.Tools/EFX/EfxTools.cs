@@ -119,6 +119,7 @@ public static class EfxTools
         }
 
         var json = JsonSerializer.Serialize(output, GetJsonOptions());
+        Directory.CreateDirectory(Path.GetDirectoryName(outputFile)!);
         File.WriteAllText(outputFile, json);
 
         Console.WriteLine($"Done.");

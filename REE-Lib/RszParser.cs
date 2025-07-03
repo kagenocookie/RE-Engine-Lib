@@ -111,32 +111,36 @@ namespace ReeLib
 
             foreach (var item in dict)
             {
-                var classPatch = item.Value;
-                classPatch.Name = item.Key;
-                if (!classNameDict.TryGetValue(classPatch.Name, out var rszClass)) continue;
-                if (!string.IsNullOrEmpty(classPatch.ReplaceName))
+                ApplyPatch(item.Key, item.Value);
+            }
+        }
+
+        public void ApplyPatch(string classname, RszClassPatch patch)
+        {
+            if (!classNameDict.TryGetValue(classname, out var rszClass)) return;
+
+            if (!string.IsNullOrEmpty(patch.ReplaceName))
+            {
+                rszClass.name = patch.ReplaceName!;
+            }
+            if (patch.FieldPatches != null)
+            {
+                foreach (var fieldPatch in patch.FieldPatches)
                 {
-                    rszClass.name = classPatch.ReplaceName!;
-                }
-                if (classPatch.FieldPatches != null)
-                {
-                    foreach (var fieldPatch in classPatch.FieldPatches)
+                    if (rszClass.GetField(fieldPatch.Name!) is RszField rszField)
                     {
-                        if (rszClass.GetField(fieldPatch.Name!) is RszField rszField)
+                        if (!string.IsNullOrEmpty(fieldPatch.ReplaceName))
                         {
-                            if (!string.IsNullOrEmpty(fieldPatch.ReplaceName))
-                            {
-                                rszField.name = fieldPatch.ReplaceName!;
-                            }
-                            if (!string.IsNullOrEmpty(fieldPatch.OriginalType))
-                            {
-                                rszField.original_type = fieldPatch.OriginalType!;
-                            }
-                            if (fieldPatch.Type != RszFieldType.ukn_error && fieldPatch.Type != rszField.type)
-                            {
-                                rszField.type = fieldPatch.Type;
-                                rszField.IsTypeInferred = true;
-                            }
+                            rszField.name = fieldPatch.ReplaceName!;
+                        }
+                        if (!string.IsNullOrEmpty(fieldPatch.OriginalType))
+                        {
+                            rszField.original_type = fieldPatch.OriginalType!;
+                        }
+                        if (fieldPatch.Type != RszFieldType.ukn_error && fieldPatch.Type != rszField.type)
+                        {
+                            rszField.type = fieldPatch.Type;
+                            rszField.IsTypeInferred = true;
                         }
                     }
                 }
@@ -275,7 +279,7 @@ namespace ReeLib
         public int size { get; set; }
         public bool array { get; set; }
         public bool native { get; set; }
-        [JsonConverter(typeof(EnumJsonConverter<RszFieldType>))]
+        [JsonConverter(typeof(JsonStringEnumConverter<RszFieldType>))]
         public RszFieldType type { get; set; }
         public string original_type { get; set; } = "";
         public RszClass? StructClass { get; set; }
@@ -338,6 +342,11 @@ namespace ReeLib
         public string? Name { get; set; }
         public string? ReplaceName { get; set; }
         public RszFieldPatch[]? FieldPatches { get; set; }
+
+        public void AddFieldPatch(RszFieldPatch patch)
+        {
+            FieldPatches = FieldPatches == null ? [patch] : FieldPatches.Append(patch).ToArray();
+        }
     }
 
 
@@ -346,7 +355,11 @@ namespace ReeLib
         public string? Name { get; set; }
         public string? ReplaceName { get; set; }
         public string? OriginalType { get; set; }
-        [JsonConverter(typeof(EnumJsonConverter<RszFieldType>))]
+        [JsonConverter(typeof(JsonStringEnumConverter<RszFieldType>))]
         public RszFieldType Type { get; set; }
+        [JsonConverter(typeof(JsonStringEnumConverter<KnownFileFormats>))]
+        public KnownFileFormats FileFormat { get; set; }
+
+        public override string ToString() => $"{Type} {Name} => {ReplaceName ?? Name}";
     }
 }

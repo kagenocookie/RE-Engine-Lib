@@ -107,18 +107,6 @@ namespace ReeLib
     }
 
 
-    public enum FileType
-    {
-        unknown,
-        user,
-        scn,
-        pfb,
-        mdf2,
-        gui,
-        rcol,
-    }
-
-
     public enum GameName
     {
         unknown,
@@ -174,19 +162,20 @@ namespace ReeLib
         /// <summary>.pfb</summary>
         Prefab,
         /// <summary>.user</summary>
-        Userdata,
+        UserData,
         /// <summary>.mdf2</summary>
         MaterialDefinition,
         /// <summary>.rcol</summary>
-        Rcol,
+        RequestSetCollider,
         /// <summary>.uvar</summary>
-        Uvar,
+        UserVariables,
         /// <summary>.mot</summary>
         Motion,
         /// <summary>.motlist</summary>
         MotionList,
         /// <summary>.motbank</summary>
         MotionBank,
+        GpuMotionList,
         /// <summary>.cfil</summary>
         CollisionFilter,
         /// <summary>.cdef</summary>
@@ -198,21 +187,27 @@ namespace ReeLib
         /// <summary>.mmtr</summary>
         MasterMaterial,
         /// <summary>.gpbf</summary>
-        GpuBuffer,
+        ByteBuffer,
         /// <summary>.gpuc</summary>
         GpuCloth,
         /// <summary>.rtex</summary>
         RenderTexture,
         /// <summary>.efx</summary>
-        Efx,
+        Effect,
         /// <summary>.tml</summary>
         Timeline,
+        /// <summary>.clip</summary>
+        Clip,
         /// <summary>.uvs</summary>
         UVSequence,
         /// <summary>.gui</summary>
-        Gui,
+        GUI,
         /// <summary>.mcol</summary>
-        MeshCollider,
+        CollisionMesh,
+        /// <summary>.fsm</summary>
+        Fsm,
+        /// <summary>.fsmv2</summary>
+        Fsm2,
         /// <summary>.motfsm</summary>
         MotionFsm,
         /// <summary>.motfsm2</summary>
@@ -222,17 +217,15 @@ namespace ReeLib
         /// <summary>.chain2</summary>
         Chain2,
         /// <summary>.lprb</summary>
-        LightProbe,
+        LightProbes,
         /// <summary>.prb</summary>
-        Probe,
+        Probes,
         /// <summary>.aimap, .ainvm, .aivspc, .aiwayp, .aiwaypmgr, .ainvmmgr</summary>
-        AiMap,
+        AIMap,
         /// <summary>.hf</summary>
         HeightField,
         /// <summary>.chf</summary>
-        ColliderHeightField,
-        /// <summary>.clip</summary>
-        Clip,
+        CollisionHeightField,
         /// <summary>.bhvt</summary>
         BehaviorTree,
         /// <summary>.msg</summary>
@@ -244,7 +237,7 @@ namespace ReeLib
         /// <summary>.rdd</summary>
         Ragdoll,
         /// <summary>.sdftex</summary>
-        SdfTexture,
+        SDFTexture,
         /// <summary>.rmesh</summary>
         RigidBodyMesh,
         /// <summary>.mpci</summary>
@@ -264,21 +257,28 @@ namespace ReeLib
         /// <summary>.skeleton</summary>
         Skeleton,
         /// <summary>.ikleg2</summary>
-        IKLeg2,
+        IkLeg2,
         /// <summary>.iklookat2</summary>
-        IKLookat2,
+        IkLookAt2,
         /// <summary>.ikls</summary>
-        IKLegSpine,
+        IkLegSpine,
         /// <summary>.ikbodyrig</summary>
-        IKBodyRig,
+        IkBodyRig,
         /// <summary>.ikhd</summary>
-        IKHand,
+        IkHand2,
         /// <summary>.ikmulti</summary>
-        IKMulti,
+        IkMultiBone,
+        IkTrain,
         /// <summary>.iktrain2</summary>
-        IKTrain2,
+        IkTrain2,
+        /// <summary>.ikdamage</summary>
+        IkDamageAction,
+        /// <summary>.iklizard</summary>
+        IkLizard,
+        /// <summary>.ikwagon</summary>
+        IkWagon,
         /// <summary>.fbik</summary>
-        FullBodyIK,
+        FullBodyIKRig,
         /// <summary>.amix</summary>
         AudioMixer,
         /// <summary>.vsrc</summary>
@@ -324,8 +324,12 @@ namespace ReeLib
         SpeedTreeMesh,
         /// <summary>.abcmesh</summary>
         AlembicMesh,
+        /// <summary>.motcam</summary>
+        MotionCamera,
         /// <summary>.mcamlist</summary>
         MotionCameraList,
+        /// <summary>.mcambank</summary>
+        MotionCameraBank,
         /// <summary>.tmlfsm2</summary>
         TimelineFsm2,
         /// <summary>.oft</summary>
@@ -341,12 +345,12 @@ namespace ReeLib
         /// <summary>.mov</summary>
         Movie,
         /// <summary>.aimapattr</summary>
-        AiMapAttribute,
+        AIMapAttribute,
         /// <summary>.swms</summary>
         MemorySettings,
-        /// <summary>.sbnk</summary>
+        /// <summary>.sbnk, .bnk</summary>
         SoundBank,
-        /// <summary>.spck</summary>
+        /// <summary>.spck, .pck</summary>
         SoundPackage,
         /// <summary>.vsdf</summary>
         VfxShader,
@@ -363,11 +367,11 @@ namespace ReeLib
         /// <summary>.tmlbld</summary>
         TimelineBlend,
         /// <summary>.jointlodgroup</summary>
-        JointLodGroup,
+        JointLODGroup,
         /// <summary>.jntexprgraph</summary>
         JointExpressionGraph,
         /// <summary>.vmap</summary>
-        MeshVertexMaping,
+        MeshVertexMapping,
         /// <summary>.ziva</summary>
         ZivaRT,
         /// <summary>.zivacomb</summary>
@@ -380,16 +384,13 @@ namespace ReeLib
         DialogueList,
         /// <summary>.dlgtml</summary>
         DialogueTimeline,
+        DialogueTimelineList,
         /// <summary>.clrp</summary>
         ClothResetPose,
         /// <summary>.cset</summary>
         ColliderSet,
         /// <summary>.fpolygon</summary>
         FreePolygon,
-        /// <summary>.iklizard</summary>
-        IKLizard,
-        /// <summary>.ikwagon</summary>
-        IKWagon,
         /// <summary>.sts</summary>
         Strands,
         /// <summary>.htex</summary>
@@ -398,6 +399,8 @@ namespace ReeLib
         NetworkConfig,
         /// <summary>.psop</summary>
         PSOPatch,
+        /// <summary>.sst</summary>
+        SetStateList,
 
         /// <summary>.fxct</summary>
         fxct, // EffectCollision?
@@ -411,5 +414,10 @@ namespace ReeLib
         rcfg,
         /// <summary>.sdf</summary>
         sdf, // BankInfo?
+
+        TimelineBase, // Timeline or Clip
+        MotionBase, // Motion or MotionList or GpuMotionList or MotionCamera or MotionCameraList
+        DynamicsBase, // RigidBodyMesh or HeightField
+        BehaviorTreeBase, // BehaviorTree or Fsm2
     }
 }

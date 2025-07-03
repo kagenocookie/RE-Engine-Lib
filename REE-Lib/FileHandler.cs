@@ -23,7 +23,7 @@ namespace ReeLib
             get {
                 if (fileVersion != -1) return fileVersion;
                 if (FilePath == null) return 0;
-                return fileVersion = RszUtils.GetFileExtensionVersion(FilePath);
+                return fileVersion = PathUtils.ParseFileFormat(FilePath).version;
             }
             set => fileVersion = value;
         }
@@ -40,9 +40,10 @@ namespace ReeLib
             Stream ??= new MemoryStream();
         }
 
-        public FileHandler(Stream stream)
+        public FileHandler(Stream stream, string? filepath = null)
         {
             Stream = stream;
+            FilePath = filepath;
         }
 
         ~FileHandler()

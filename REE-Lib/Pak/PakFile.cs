@@ -117,18 +117,18 @@ namespace ReeLib.Pak
         }
 
         [SkipLocalsInit]
-        public unsafe static byte[] DecryptResource(byte[] compressedBytes, int size)
+        public unsafe static byte[] DecryptResource(byte[] compressedBytes, ref int size)
         {
             using var reader = new MemoryStream(compressedBytes, 0, size);
-            int blockCount = (compressedBytes.Length - 8) / 128;
+            int blockCount = (size - 8) / 128;
             var byteSize = blockCount * 8;
 
-            Span<byte> buffer1 = stackalloc byte[8];
-            Span<byte> buffer2 = stackalloc byte[8];
-            reader.Read(buffer1);
-            var decryptedSize = BitConverter.ToInt64(buffer1);
+            Span<byte> buffer1 = stackalloc byte[64];
+            Span<byte> buffer2 = stackalloc byte[64];
+            reader.Read(buffer1.Slice(0, 8));
+            size = (int)BitConverter.ToInt64(buffer1.Slice(0, 8));
 
-            var outBytes = ArrayPool<byte>.Shared.Rent((int)(decryptedSize + 1));
+            var outBytes = ArrayPool<byte>.Shared.Rent((int)(size + 1));
             var outSpan = outBytes.AsSpan();
             outSpan.Clear();
 
@@ -323,7 +323,7 @@ namespace ReeLib
 
                 if (entry.encryption != EncryptionType.None)
                 {
-                    var decrypted = Encryption.DecryptResource(bytes, size);
+                    var decrypted = Encryption.DecryptResource(bytes, ref size);
                     ArrayPool<byte>.Shared.Return(bytes);
                     bytes = decrypted;
                 }

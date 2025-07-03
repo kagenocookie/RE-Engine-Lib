@@ -36,14 +36,14 @@ namespace ReeLib
         }
 
         public const uint Magic = 0x525355;
-        public const string Extension = ".user";
+        public const string Extension = "user";
 
-        public string? GetVersionExt()
+        public int GetVersionExt()
         {
             return Option.GameName switch
             {
-                GameName.mhwilds => ".3",
-                _ => ".2"
+                GameName.mhwilds => 3,
+                _ => 2
             };
         }
 

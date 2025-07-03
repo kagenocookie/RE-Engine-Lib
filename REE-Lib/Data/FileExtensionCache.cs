@@ -1,4 +1,6 @@
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using ReeLib.Common;
 
 namespace ReeLib;
 
@@ -25,8 +27,12 @@ internal sealed partial class FileExtensionCache
         Versions = info.ToDictionary(k => k.Key, v => v.Value.Version);
     }
 
-    [GeneratedRegex("\\.(?:x64|stm)\\.([a-z]{2,})$")]
+    // locale can be en, pt, ptbr, es, es419, zhcn, zhtw, ...
+    [GeneratedRegex("\\.(?:x64|stm)\\.([a-z]{2}[a-zA-Z0-9]*)$")]
     private static partial Regex IsLocalizedFileRegex();
+
+    [GeneratedRegex("\\.(?:\\d+)\\.([a-z]{2}[a-zA-Z0-9]*)$")]
+    private static partial Regex IsLocalizedNonPlatformFileRegex();
 
     public void HandleFilepathsFromList(string listFilepath)
     {
@@ -60,6 +66,10 @@ internal sealed partial class FileExtensionCache
             isLocalized = true;
             locale = IsLocalizedFileRegex().Match(filepath).Groups[1].Value;
             filepath = Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(filepath));
+        } else if (IsLocalizedNonPlatformFileRegex().IsMatch(filepath)) {
+            isLocalized = true;
+            locale = IsLocalizedNonPlatformFileRegex().Match(filepath).Groups[1].Value;
+            filepath = Path.GetFileNameWithoutExtension(filepath);
         } else if (filepath.EndsWith(".x64")) {
             hasX64 = true;
             filepath = Path.GetFileNameWithoutExtension(filepath);
@@ -102,6 +112,7 @@ internal sealed partial class FileExtensionCache
     public sealed class FileExtensionInfo
     {
         public List<string> Locales { get; set; } = new();
+        [JsonConverter(typeof(JsonStringEnumConverter<KnownFileFormats>))]
         public KnownFileFormats Type { get; set; } = KnownFileFormats.Unknown;
         public int Version { get; set; }
         public bool CanHaveX64 { get; set; }

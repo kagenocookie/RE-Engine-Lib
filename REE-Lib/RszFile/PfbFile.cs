@@ -162,26 +162,26 @@ namespace ReeLib
         }
 
         public const uint Magic = 0x424650;
-        public const string Extension2 = ".pfb";
+        public const string Extension2 = "pfb";
 
-        public string? GetVersionExt()
+        public int GetVersionExt()
         {
             return Option.GameName switch
             {
-                GameName.re2 => ".16",
-                GameName.re2rt => ".17",
-                GameName.re3 => ".17",
-                GameName.re3rt => ".17",
-                GameName.re4 => ".17",
-                GameName.re8 => ".17",
-                GameName.re7 => ".16",
-                GameName.re7rt => ".17",
-                GameName.dmc5 =>".16",
-                GameName.mhrise => ".17",
-                GameName.sf6 => ".17",
-                GameName.dd2 => ".17",
-                GameName.mhwilds => ".18",
-                _ => null
+                GameName.re2 => 16,
+                GameName.re2rt => 17,
+                GameName.re3 => 17,
+                GameName.re3rt => 17,
+                GameName.re4 => 17,
+                GameName.re8 => 17,
+                GameName.re7 => 16,
+                GameName.re7rt => 17,
+                GameName.dmc5 =>16,
+                GameName.mhrise => 17,
+                GameName.sf6 => 17,
+                GameName.dd2 => 17,
+                GameName.mhwilds => 18,
+                _ => 0
             };
         }
 

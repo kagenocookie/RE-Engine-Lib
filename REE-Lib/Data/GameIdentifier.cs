@@ -21,6 +21,8 @@ public readonly partial struct GameIdentifier
         this.hash = hash;
     }
 
+    public static readonly GameIdentifier Unknown = new GameIdentifier(string.Empty, 0);
+
     public static implicit operator GameIdentifier(string name) => new GameIdentifier(name);
     public static implicit operator GameNameHash(GameIdentifier id) => id.hash;
     public static implicit operator GameName(GameIdentifier id) => id.GameEnum;

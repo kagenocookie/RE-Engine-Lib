@@ -67,12 +67,13 @@ public class PakReader
 
     /// <summary>
     /// Finds requested files and returns a memory stream for each of them.
-    /// The returned stream is transient, do not hold a permanent reference to it - copy any data you need somewhere else.
+    /// The returned stream is transient, do not hold a permanent reference to it - copy any data you need somewhere else and don't Dispose() it.
     /// </summary>
-    public IEnumerable<(string path, MemoryStream stream)> FindFiles()
+    public IEnumerable<(string path, MemoryStream stream)> FindFiles(CancellationToken cancellationToken = default)
     {
         var pak = new PakFile();
         foreach (var pakfile in EnumerateTempPaksWithSearchedFiles(pak)) {
+            if (cancellationToken.IsCancellationRequested) yield break;
             var ctx = new ChunkContextBase(pak, 0, pak.Entries.Count);
             foreach (var (entry, data) in FindEntriesInChunk(ctx)) {
                 yield return (entry.path!, data);
@@ -268,7 +269,9 @@ public class PakReader
         where TContextType : ChunkContextBase
     {
         var chunkId = ctx.endOffset == ctx.startOffset + 1 ? ctx.startOffset : ctx.startOffset / (ctx.endOffset - ctx.startOffset - 1);
-        if (EnableConsoleLogging) Console.WriteLine($"Starting extraction for chunk {chunkId}: entries {ctx.startOffset} - {ctx.endOffset} for file {ctx.file.filepath}");
+        if (EnableConsoleLogging && (ctx.startOffset > 0 || ctx.endOffset < ctx.file.Entries.Count - 1)) {
+            Console.WriteLine($"Starting chunk {chunkId}: entries {ctx.startOffset} - {ctx.endOffset} for file {ctx.file.filepath}");
+        }
         using var fs = File.OpenRead(ctx.file.filepath);
         for (int i = ctx.startOffset; i < ctx.endOffset; ++i) {
             var entry = ctx.file.Entries[i];

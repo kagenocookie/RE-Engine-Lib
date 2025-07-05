@@ -109,6 +109,7 @@ public class LocalResources
         if (cache.RemoteInfo.FileExtensions != null && (cache.FileExtensionsPath == null || cache.RemoteInfo.FileExtensions.LastUpdatedAt > cache.FileExtensionsPath.LastUpdatedAt)) {
             var globalCacheLocalPath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(ResourceRepository.LocalResourceRepositoryFilepath)!, "global/file_extensions.json"));
             if (TryCacheFile(cache.RemoteInfo.FileExtensions.Uri, globalCacheLocalPath)) {
+                cache.FileExtensions.Clear();
                 cache.FileExtensionsPath = new DatedResourcePath(globalCacheLocalPath, DateTime.UtcNow);
                 ResourceRepository.UpdateLocalCache();
             }
@@ -116,6 +117,14 @@ public class LocalResources
 
         if (TryGetResourceTypesCache(out var gameSpecific)) {
             return TryDeserialize<FileExtensionCache>(gameSpecific, out var data) ? data : null;
+        }
+
+        if (!string.IsNullOrEmpty(cache.FileExtensionsPath?.Uri) && cache.FileExtensions.Count == 0) {
+            if (TryDeserialize<Dictionary<string, FileExtensionCache>>(cache.FileExtensionsPath.Uri, out var data)) {
+                foreach (var p in data) {
+                    cache.FileExtensions.TryAdd(p.Key, p.Value);
+                }
+            }
         }
 
         return cache.FileExtensions?.GetValueOrDefault(Game.name);

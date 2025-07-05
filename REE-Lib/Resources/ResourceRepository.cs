@@ -34,6 +34,30 @@ public class ResourceRepository
         return resources;
     }
 
+    /// <summary>
+    /// Reset all local cache data. A full assembly reload / restart is required for any resources that have already been loaded into memory.
+    /// </summary>
+    public static void ResetCache()
+    {
+        foreach (var cache in Cache.LocalInfo) {
+            cache.Value.LocalPaths.LastUpdatedAtUtc = DateTime.MinValue;
+        }
+        Cache.LastUpdateCheckAtUtc = DateTime.MinValue;
+        UpdateLocalCache();
+    }
+
+    /// <summary>
+    /// Reset the local cache data for a specific game. A full assembly reload / restart is required for any resources that have already been loaded into memory.
+    /// </summary>
+    public static void ResetCache(GameIdentifier game)
+    {
+        if (Cache.LocalInfo.TryGetValue(game.name, out var info)) {
+            info.LocalPaths.LastUpdatedAtUtc = DateTime.MinValue;
+            Cache.LastUpdateCheckAtUtc = DateTime.MinValue;
+            UpdateLocalCache();
+        }
+    }
+
     public static LocalResourceCache Initialize(bool forceRefresh = false)
     {
         var shouldRefresh = (forceRefresh || _cache == null);

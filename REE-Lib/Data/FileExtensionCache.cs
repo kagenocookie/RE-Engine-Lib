@@ -4,7 +4,7 @@ using ReeLib.Common;
 
 namespace ReeLib;
 
-internal sealed partial class FileExtensionCache
+public sealed partial class FileExtensionCache
 {
     public Dictionary<string, int> Versions { get; set; }
     public Dictionary<string, FileExtensionInfo> Info { get; set; }

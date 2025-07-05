@@ -292,23 +292,34 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
 
     private FileExtensionCache LoadFileExtensionCache()
     {
-        if (!config.Resources.TryGetResourceTypesCache(out var cacheFilepath) || !TryDeserialize(cacheFilepath, out _fileExtensionCache)) {
-            if (config.Resources.TryGetListFilePath(out var listfile)) {
-                Console.WriteLine("Missing or invalid file extension cache file. Attempting to regenerate from file list ...");
-                _fileExtensionCache = new();
-                _fileExtensionCache.HandleFilepathsFromList(listfile);
+        if (_fileExtensionCache != null) {
+            return _fileExtensionCache;
+        }
 
+        _fileExtensionCache = config.Resources.GetResourceFileTypeCache();
+        if (_fileExtensionCache == null && !config.Resources.TryGetResourceTypesCache(out var cacheFilepath)) {
+            _fileExtensionCache = GenerateFileExtensionCache();
+            if (_fileExtensionCache != null) {
                 Directory.CreateDirectory(Path.GetDirectoryName(cacheFilepath)!);
                 using var fs = File.Create(cacheFilepath);
                 JsonSerializer.Serialize(fs, _fileExtensionCache, jsonOptions);
-                Console.WriteLine("File extension cache successfully generated");
+                Console.WriteLine($"File extension cache for {config.Game} successfully generated");
                 config.Resources.ResourceTypePath = cacheFilepath;
-            } else {
-                _fileExtensionCache = new();
-                Console.Error.WriteLine("Missing file extension cache file. Files may not resolve correctly.");
             }
         }
         return _fileExtensionCache ??= new();
+    }
+
+    public FileExtensionCache? GenerateFileExtensionCache()
+    {
+        if (config.Resources.TryGetListFilePath(out var listfile)) {
+            _fileExtensionCache = new();
+            _fileExtensionCache.HandleFilepathsFromList(listfile);
+            return _fileExtensionCache;
+        }
+
+        Console.Error.WriteLine("Missing file extension cache file. Files may not resolve correctly.");
+        return null;
     }
 
     /// <summary>

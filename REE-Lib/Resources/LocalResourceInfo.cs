@@ -7,6 +7,9 @@ namespace ReeLib;
 public class LocalResourceCache
 {
     public DateTime LastUpdateCheckAtUtc { get; set; }
+    [JsonIgnore]
+    public Dictionary<string, FileExtensionCache> FileExtensions { get; } = new();
+    public DatedResourcePath? FileExtensionsPath { get; set; }
     public Dictionary<string, LocalResources> LocalInfo { get; set; } = new();
     public RemoteResourceConfig RemoteInfo { get; set; } = new();
     public bool DisableAutoUpdates { get; set; }
@@ -98,6 +101,24 @@ public class LocalResources
 
         paths = LocalPaths.RszPatchFiles ??= [];
         return false;
+    }
+
+    public FileExtensionCache? GetResourceFileTypeCache()
+    {
+        var cache = ResourceRepository.Cache;
+        if (cache.RemoteInfo.FileExtensions != null && (cache.FileExtensionsPath == null || cache.RemoteInfo.FileExtensions.LastUpdatedAt > cache.FileExtensionsPath.LastUpdatedAt)) {
+            var globalCacheLocalPath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(ResourceRepository.LocalResourceRepositoryFilepath)!, "global/file_extensions.json"));
+            if (TryCacheFile(cache.RemoteInfo.FileExtensions.Uri, globalCacheLocalPath)) {
+                cache.FileExtensionsPath = new DatedResourcePath(globalCacheLocalPath, DateTime.UtcNow);
+                ResourceRepository.UpdateLocalCache();
+            }
+        }
+
+        if (TryGetResourceTypesCache(out var gameSpecific)) {
+            return TryDeserialize<FileExtensionCache>(gameSpecific, out var data) ? data : null;
+        }
+
+        return cache.FileExtensions?.GetValueOrDefault(Game.name);
     }
 
     public bool TryGetResourceTypesCache(out string filepath)
@@ -311,8 +332,17 @@ public class LocalResources
 
 public class RemoteResourceConfig
 {
+    [JsonPropertyName("file_extensions")]
+    public DatedResourcePath? FileExtensions { get; set; }
+
     [JsonPropertyName("resources")]
     public Dictionary<string, ResourceMetadata> Resources { get; set; } = new();
+}
+
+public record DatedResourcePath(string Uri, DateTime LastUpdatedAt)
+{
+    public string Uri { get; set; } = Uri;
+    public DateTime LastUpdatedAt { get; set; } = LastUpdatedAt;
 }
 
 public class ResourceMetadata

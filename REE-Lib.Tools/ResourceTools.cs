@@ -8,30 +8,43 @@ using ReeLib.Il2cpp;
 
 public static class FileExtensionTools
 {
-    public static void ExtractAllFileExtensionCacheData(GameName game = GameName.unknown)
+    public static void ExtractAllFileExtensionCacheData(GameIdentifier game = default)
     {
-        var games = game == GameName.unknown ? Enum.GetValues<GameName>() : [game];
+
+        var games = game.hash == 0 ? Enum.GetNames<GameName>().Select(n => new GameIdentifier(n)) : [game];
+        Dictionary<string, FileExtensionCache> dict = new();
         foreach (var item in games) {
-            if (item == GameName.unknown) continue;
+            if (item.hash == 0) continue;
+
             Console.WriteLine("Handling file extensions for game " + item);
             var config = GameConfig.CreateFromRepository(item.ToString());
-            var wasOnlineDisabled = ResourceRepository.DisableOnlineUpdater;
-            ResourceRepository.DisableOnlineUpdater = false;
             var env = new Workspace(config);
             if (env.ListFile == null) {
-                ResourceRepository.DisableOnlineUpdater = wasOnlineDisabled;
                 Console.WriteLine("No file list available for game " + item);
                 continue;
             }
-            ResourceRepository.DisableOnlineUpdater = true;
-            try {
-                config.Resources.LocalPaths.ResourceTypes = null;
-                _ = env.GameFileExtensions;
-            } finally {
-                ResourceRepository.DisableOnlineUpdater = wasOnlineDisabled;
+            var cache = env.GenerateFileExtensionCache();
+            if (cache != null) {
+                dict[item.ToString()] = cache;
+                var path = $"output/{item.name}/file_extensions.json";
+                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                using var singleFs = File.Create(path);
+                JsonSerializer.Serialize(singleFs, dict, jsonOptions);
+                Console.WriteLine($"File extension cache for {item.name} successfully generated");
             }
         }
+
+        var cacheFilepath = Path.GetFullPath("output/file_extensions.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(cacheFilepath)!);
+        using var fs = File.Create(cacheFilepath);
+        JsonSerializer.Serialize(fs, dict, jsonOptions);
+        Console.WriteLine($"File extension cache successfully generated");
     }
+
+    private static readonly JsonSerializerOptions jsonOptions = new() {
+        WriteIndented = true,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault,
+    };
 }
 
 public class ResourceTools(Workspace workspace)

@@ -134,5 +134,6 @@ public class CachedMemoryPakReader : PakReader, IDisposable
     public void Dispose()
     {
         Clear();
+        GC.SuppressFinalize(this);
     }
 }

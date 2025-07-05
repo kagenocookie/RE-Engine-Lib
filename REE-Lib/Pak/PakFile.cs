@@ -348,6 +348,7 @@ namespace ReeLib
         public void Dispose()
         {
             pakStream?.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }

@@ -219,7 +219,7 @@ public partial class EFXAttributeTypeStrainRibbonV3 : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeStrainRibbonExpression, EfxVersion.RE2, EfxVersion.DMC5, EfxVersion.RE8, EfxVersion.RERT)]
 public partial class EFXAttributeTypeStrainRibbonExpression : EFXAttribute, IExpressionAttribute
 {
-	public EFXExpressionList Expression { get => expressions; set => expressions = value; }
+	public EFXExpressionList? Expression { get => expressions; set => expressions = value!; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeTypeStrainRibbonExpression() : base(EfxAttributeType.TypeStrainRibbonExpression) { }
@@ -247,7 +247,7 @@ public partial class EFXAttributeTypeStrainRibbonExpression : EFXAttribute, IExp
 	public ExpressionAssignType unkn14;
 	public ExpressionAssignType unkn15;
 
-	[RszClassInstance] public EFXExpressionList expressions = new();
+	[RszClassInstance] public EFXExpressionList? expressions = new();
 }
 
 

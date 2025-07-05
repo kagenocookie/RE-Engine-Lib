@@ -51,14 +51,6 @@ namespace ReeLib.Common
         }
 
         /// <summary>
-        /// 对齐字节
-        /// </summary>
-        /// <param name="n"></param>
-        /// <param name="size"></param>
-        /// <returns></returns>
-        public static IntPtr AlignSize(IntPtr n, int size) => (IntPtr)AlignSize((long)n, size);
-
-        /// <summary>
         /// 对齐4字节
         /// </summary>
         /// <param name="n"></param>

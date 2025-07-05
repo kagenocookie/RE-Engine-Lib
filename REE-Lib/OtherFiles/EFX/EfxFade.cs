@@ -20,7 +20,7 @@ public partial class EFXAttributeFadeByAngle : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.FadeByAngleExpression, EfxVersion.DMC5, EfxVersion.RE4)]
 public partial class EFXAttributeFadeByAngleExpression : EFXAttribute, IExpressionAttribute
 {
-	public EFXExpressionList Expression { get => expressions; set => expressions = value; }
+	public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeFadeByAngleExpression() : base(EfxAttributeType.FadeByAngleExpression) { }
@@ -31,7 +31,7 @@ public partial class EFXAttributeFadeByAngleExpression : EFXAttribute, IExpressi
 	} };
     public ExpressionAssignType minAngle;
     public ExpressionAssignType maxAngle;
-	[RszClassInstance] public EFXExpressionList expressions = new();
+	[RszClassInstance] public EFXExpressionList? expressions = new();
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.FadeByDepth, EfxVersion.DMC5, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
 public partial class EFXAttributeFadeByDepth : EFXAttribute

@@ -301,7 +301,7 @@ public partial class EFXAttributeTypeNodeBillboard : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeNodeBillboardExpression, EfxVersion.DMC5, EfxVersion.RERT, EfxVersion.RE4)]
 public partial class EFXAttributeTypeNodeBillboardExpression : EFXAttribute, IExpressionAttribute
 {
-	public EFXExpressionList Expression { get => expressions; set => expressions = value; }
+	public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeTypeNodeBillboardExpression() : base(EfxAttributeType.TypeNodeBillboardExpression) { }
@@ -393,7 +393,7 @@ public partial class EFXAttributeTypeNodeBillboardExpression : EFXAttribute, IEx
 	public ExpressionAssignType speedUnknRand;
 	public ExpressionAssignType unkn41;
 	public ExpressionAssignType unkn42;
-	[RszClassInstance] public EFXExpressionList expressions = new();
+	[RszClassInstance] public EFXExpressionList? expressions = new();
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuBillboard, EfxVersion.RE2, EfxVersion.DMC5, EfxVersion.RE3, EfxVersion.RE8, EfxVersion.RERT)]

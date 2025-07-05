@@ -14,7 +14,7 @@ namespace ReeLib.Clip
         RE8 = MHR_DEMO,
         RE2_RT = 43,
         RE3_RT = RE2_RT,
-        MHR = 43,
+        MHR = RE2_RT,
         SF6 = 53,
         RE4 = 54,
     }

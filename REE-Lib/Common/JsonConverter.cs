@@ -26,8 +26,6 @@ namespace ReeLib.Common
 
     public class RszInstanceJsonConverter(Workspace env) : JsonConverter<RszInstance>
     {
-        private JsonSerializerOptions? recursionPair;
-
         public override RszInstance? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
             var dict = JsonSerializer.Deserialize<JsonObject>(ref reader, options);

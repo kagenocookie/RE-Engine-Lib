@@ -231,9 +231,7 @@ public class LocalResources
 
         Console.WriteLine("Detected REasy sourced rsz dump json file. Attempting to clean up for REE Lib use...");
 
-        if (jsondoc.ContainsKey("metadata")) {
-            jsondoc.Remove("metadata");
-        }
+        jsondoc.Remove("metadata");
         foreach (var prop in jsondoc) {
             var item = prop.Value!.AsObject();
             if (!item.ContainsKey("fields")) continue;

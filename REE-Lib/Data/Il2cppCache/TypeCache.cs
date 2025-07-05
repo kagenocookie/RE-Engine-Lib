@@ -4,7 +4,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 
-internal class TypeCacheData
+internal sealed class TypeCacheData
 {
     public static readonly int CurrentCacheVersion = 2;
 

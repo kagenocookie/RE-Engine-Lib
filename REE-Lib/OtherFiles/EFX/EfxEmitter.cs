@@ -60,7 +60,7 @@ public partial class EFXAttributeEmitterShape2D : EFXAttribute
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.EmitterShape2DExpression, EfxVersion.RE4)]
 public partial class EFXAttributeEmitterShape2DExpression : EFXAttribute, IExpressionAttribute
 {
-	public EFXExpressionList Expression { get => expressions; set => expressions = value; }
+	public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeEmitterShape2DExpression() : base(EfxAttributeType.EmitterShape2DExpression) { }
@@ -77,7 +77,7 @@ public partial class EFXAttributeEmitterShape2DExpression : EFXAttribute, IExpre
 	public ExpressionAssignType size;
 	public ExpressionAssignType unkn4;
 	public ExpressionAssignType unkn5;
-	[RszClassInstance] public EFXExpressionList expressions = new();
+	[RszClassInstance] public EFXExpressionList? expressions = new();
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.EmitterShape3D, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
@@ -225,7 +225,7 @@ public partial class EFXAttributeMeshEmitterClip : ReeLib.Efx.EFXAttribute, ICli
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.MeshEmitterExpression, EfxVersion.DMC5)]
 public partial class EFXAttributeMeshEmitterExpression : ReeLib.Efx.EFXAttribute, IExpressionAttribute
 {
-    public EFXExpressionList Expression { get => expressions; set => expressions = value; }
+    public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
     public EFXAttributeMeshEmitterExpression() : base(EfxAttributeType.MeshEmitterExpression) { }
@@ -249,5 +249,5 @@ public partial class EFXAttributeMeshEmitterExpression : ReeLib.Efx.EFXAttribute
     public ExpressionAssignType unkn14;
     public ExpressionAssignType unkn15;
     public ExpressionAssignType unkn16;
-	[RszClassInstance] public EFXExpressionList expressions = new();
+	[RszClassInstance] public EFXExpressionList? expressions = new();
 }

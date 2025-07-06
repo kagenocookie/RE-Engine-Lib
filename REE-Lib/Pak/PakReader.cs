@@ -261,7 +261,7 @@ public class PakReader
     {
         var outputFile = Path.Combine(ctx.outputDir, path);
         Directory.CreateDirectory(Path.GetDirectoryName(outputFile)!);
-        return File.OpenWrite(outputFile);
+        return File.Create(outputFile);
     }
 
     protected IEnumerable<(PakEntry entry, TStream stream)> ReadEntriesInChunk<TStream, TContextType>(TContextType ctx, Func<TContextType, string, TStream> writeStreamProvider)

@@ -301,7 +301,7 @@ public class LocalResources
                 }
             }
         }
-        using var outfs = File.OpenWrite(outputPath);
+        using var outfs = File.Create(outputPath);
         JsonSerializer.Serialize(outfs, jsondoc);
         Console.WriteLine("Saved cleaned RSZ template to " + outputPath);
         return true;

@@ -708,9 +708,9 @@ namespace ReeLib
         /// <summary>
         /// Create an array element item
         /// </summary>
-        public static object? CreateArrayItem(RszParser rszParser, RszField field, string? className = null)
+        public static object CreateArrayItem(RszParser rszParser, RszField field, string? className = null)
         {
-            if (field.type == RszFieldType.Object)
+            if (field.type is RszFieldType.Object or RszFieldType.Struct)
             {
                 className ??= GetElementType(field.original_type);
                 var rszClass = rszParser.GetRSZClass(className) ??

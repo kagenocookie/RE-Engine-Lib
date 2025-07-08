@@ -115,5 +115,16 @@ namespace ReeLib
             StructChanged = false;
             ResourceChanged = false;
         }
+
+        /// <summary>
+        /// Clears all data from the file.
+        /// </summary>
+        public void Clear()
+        {
+            RSZ.ClearInstances();
+            RSZ.ClearObjects();
+            UserdataInfoList.Clear();
+            ResourceInfoList.Clear();
+        }
     }
 }

@@ -283,15 +283,12 @@ namespace ReeLib
         public RszFieldType type { get; set; }
         public string original_type { get; set; } = "";
         public RszClass? StructClass { get; set; }
-        /// <summary>
-        /// rsz json中存的是Data，根据实际情况推测是其他类型
-        /// </summary>
         [JsonIgnore]
         public bool IsTypeInferred { get; set; }
         private string? displayType = null;
-        /// <summary>
-        /// 显示类型
-        /// </summary>
+
+        public string? OriginalTypeOrNull => string.IsNullOrEmpty(original_type) ? null : original_type;
+
         public string DisplayType
         {
             get

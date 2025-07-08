@@ -281,6 +281,21 @@ namespace ReeLib.via
     {
         public uint rgba;
 
+        public Color(uint rgba)
+        {
+            this.rgba = rgba;
+        }
+
+        public Color(byte r, byte g, byte b, byte a)
+        {
+            rgba = r + ((uint)(g) << 8) + ((uint)(b) << 16) + ((uint)(a) << 24);
+        }
+
+        public int R => (int)(rgba >> 0) & 0xff;
+        public int G => (int)(rgba >> 8) & 0xff;
+        public int B => (int)(rgba >> 16) & 0xff;
+        public int A => (int)(rgba >> 24) & 0xff;
+
         public readonly string Hex()
         {
             return rgba.ToString("X8");
@@ -300,6 +315,11 @@ namespace ReeLib.via
         {
             return new Color { rgba = uint.Parse(hex, System.Globalization.NumberStyles.HexNumber) };
         }
+
+        public Vector4 ToVector4() => new Vector4(R / 255f, G / 255f, B / 255f, A / 255f);
+        public Color Inverse() => new Color((byte)(255 - R), (byte)(255 - G), (byte)(255 - B), (byte)A);
+
+        public static Color FromVector4(Vector4 vec) => new Color((byte)(vec.X * 255), (byte)(vec.Y * 255), (byte)(vec.Z * 255), (byte)(vec.W * 255));
     }
 
 

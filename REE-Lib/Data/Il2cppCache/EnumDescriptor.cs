@@ -6,8 +6,6 @@ using ReeLib;
 
 public abstract class EnumDescriptor
 {
-    public abstract string GetLabel(object value);
-    public abstract string GetLabel(JsonElement value);
     public abstract Type BackingType { get; }
 
     public abstract IEnumerable<EnumCacheItem> CacheItems { get; }
@@ -17,6 +15,11 @@ public abstract class EnumDescriptor
 
     public bool IsEmpty { get; private set; } = true;
     public bool IsFlags { get; set; }
+
+    public abstract string GetLabel(object value);
+    public abstract string GetLabel(JsonElement value);
+    public abstract string[] GetLabels();
+    public abstract object[] GetValues();
 
     public void ParseIl2cppData(ObjectDef item)
     {
@@ -57,6 +60,7 @@ public abstract class EnumDescriptor
 public sealed class EnumDescriptor<T> : EnumDescriptor where T : struct, IBinaryInteger<T>, IBitwiseOperators<T, T, T>
 {
     public readonly Dictionary<T, string> ValueToLabels = new();
+    private readonly List<KeyValuePair<string, T>> OrderedValues = new();
 
     public override Type BackingType => typeof(T);
     public override IEnumerable<EnumCacheItem> CacheItems => ValueToLabels
@@ -67,6 +71,24 @@ public sealed class EnumDescriptor<T> : EnumDescriptor where T : struct, IBinary
 
     public override string GetLabel(object value) => ValueToLabels.TryGetValue((T)value, out var val) ? val : string.Empty;
     public override string GetLabel(JsonElement value) => GetLabel(Converter(value));
+
+    private string[]? _labelsArray;
+    public override string[] GetLabels()
+    {
+        if (_labelsArray == null) {
+            _labelsArray = OrderedValues.Select(kv => kv.Key).ToArray();
+        }
+        return _labelsArray;
+    }
+
+    private object[]? _valuesArray;
+    public override object[] GetValues()
+    {
+        if (_valuesArray == null) {
+            _valuesArray = OrderedValues.Select(kv => (object)kv.Value).ToArray();
+        }
+        return _valuesArray;
+    }
 
     private static Func<JsonElement, T>? converter;
     private static Func<JsonElement, T> Converter {
@@ -119,6 +141,9 @@ public sealed class EnumDescriptor<T> : EnumDescriptor where T : struct, IBinary
         }
         T val = converter!(elem);
         ValueToLabels[val] = name;
+        OrderedValues.Add(new KeyValuePair<string, T>(name, val));
+        _labelsArray = null;
+        _valuesArray = null;
     }
 
     private static void CreateConverter()

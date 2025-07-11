@@ -5,7 +5,7 @@ namespace ReeLib.Common
 {
     public class MurMur3HashUtils
     {
-        private static uint MurMur3Hash(ReadOnlySpan<byte> bytes)
+        public static uint MurMur3Hash(ReadOnlySpan<byte> bytes)
         {
             const uint c1 = 0xcc9e2d51;
             const uint c2 = 0x1b873593;

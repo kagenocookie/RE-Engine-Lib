@@ -21,6 +21,10 @@ public abstract class EnumDescriptor
     public abstract string[] GetLabels();
     public abstract object[] GetValues();
 
+    public abstract bool HasFlag(object number, object flag);
+    public abstract object AddFlag(object number, object flag);
+    public abstract object RemoveFlag(object number, object flag);
+
     public void ParseIl2cppData(ObjectDef item)
     {
         if (item.fields == null) return;
@@ -61,6 +65,11 @@ public sealed class EnumDescriptor<T> : EnumDescriptor where T : struct, IBinary
 {
     public readonly Dictionary<T, string> ValueToLabels = new();
     private readonly List<KeyValuePair<string, T>> OrderedValues = new();
+
+    // need to use Convert.ChangeType because we aren't always getting the same type (e.g. rsz says uint, enum say int)
+    public override bool HasFlag(object number, object flag) => ((T)Convert.ChangeType(number, typeof(T)) & (T)flag) != T.Zero;
+    public override object AddFlag(object number, object flag) => Convert.ChangeType( ((T)Convert.ChangeType(number, typeof(T)) | (T)flag), number.GetType());
+    public override object RemoveFlag(object number, object flag) => Convert.ChangeType( ((T)Convert.ChangeType(number, typeof(T)) & (~(T)flag)), number.GetType());
 
     public override Type BackingType => typeof(T);
     public override IEnumerable<EnumCacheItem> CacheItems => ValueToLabels

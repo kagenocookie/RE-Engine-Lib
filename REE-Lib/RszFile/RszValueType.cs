@@ -707,26 +707,40 @@ namespace ReeLib.via
     // Size=16
     public struct Rect
     {
-        public float l;
-        public float t;
-        public float r;
-        public float b;
+        public float left;
+        public float top;
+        public float right;
+        public float bottom;
+
+        public Rect()
+        {
+        }
+
+        public Rect(float left, float top, float right, float bottom)
+        {
+            this.left = left;
+            this.top = top;
+            this.right = right;
+            this.bottom = bottom;
+        }
 
         public float this[int index]
         {
             get
             {
                 ValueTypeUtils.CheckIndex(index, 4);
-                ref float ptr = ref l;
+                ref float ptr = ref left;
                 return Unsafe.Add(ref ptr, index);
             }
             set
             {
                 ValueTypeUtils.CheckIndex(index, 4);
-                ref float ptr = ref l;
+                ref float ptr = ref left;
                 Unsafe.Add(ref ptr, index) = value;
             }
         }
+
+        public Vector4 AsVector => new Vector4(left, top, right, bottom);
     }
 
 

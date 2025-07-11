@@ -365,4 +365,7 @@ public class ResourceMetadata
     public string? ResourceTypes { get; set; }
     public string? CollisionDefinition { get; set; }
     public string? DynamicsDefinition { get; set; }
+
+    [JsonIgnore]
+    public bool IsFullySupported => Il2cppCache != null && RszPatchFiles.Length > 0 && EfxStructs != null;
 }

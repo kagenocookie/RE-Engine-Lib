@@ -28,6 +28,8 @@ public class ResourceRepository
 
     private const int UpdateCheckIntervalDays = 1;
 
+    public static RemoteResourceConfig RemoteInfo => Cache.RemoteInfo;
+
     public static LocalResources UpdateAndGet(GameIdentifier game)
     {
         Cache.EnsureUpToDate(game, out var resources);

@@ -77,7 +77,7 @@ namespace ReeLib.Msg
     }
 
 
-    public class SubEntryHeader(Header header) : BaseModel
+    public class MessageEntryHeader(Header header) : BaseModel
     {
         public Guid guid;
         public uint unknown;
@@ -86,6 +86,8 @@ namespace ReeLib.Msg
         public long attributeOffset;
         public object? attributeValue;
         public List<long>? ContentOffsetsByLangs { get; set; }
+
+        public uint EntryHash => IsHash ? hashOrIndex : MurMur3HashUtils.GetHash(entryName);
 
         public Header MsgHeader { get; set; } = header;
 
@@ -128,9 +130,9 @@ namespace ReeLib.Msg
     }
 
 
-    public class SubEntry(SubEntryHeader header, List<AttributeItem> attributeItems)
+    public class MessageEntry(MessageEntryHeader header, List<AttributeItem> attributeItems)
     {
-        public SubEntryHeader Header { get; } = header;
+        public MessageEntryHeader Header { get; } = header;
         public List<AttributeItem> AttributeItems { get; } = attributeItems;
         public object[]? AttributeValues { get; set; }
         public string[] Strings { get; } = new string[(int)Language.Max];
@@ -210,7 +212,7 @@ namespace ReeLib.Msg
 
 namespace ReeLib
 {
-    public class MsgFile(RszFileOption option, FileHandler fileHandler) : BaseRszFile(option, fileHandler)
+    public class MsgFile(FileHandler fileHandler) : BaseFile(fileHandler)
     {
         public const uint Magic = 0x47534D47;
         public const string Extension = ".msg";
@@ -220,7 +222,7 @@ namespace ReeLib
         public Header Header { get; } = new();
         public Language[]? Languages { get; set; }
         public List<AttributeItem> AttributeItems { get; } = new();
-        public List<SubEntry> SubEntryList { get; } = new();
+        public List<MessageEntry> Entries { get; } = new();
 
         private static void Decrypt(byte[] data)
         {
@@ -255,7 +257,7 @@ namespace ReeLib
         protected override bool DoRead()
         {
             AttributeItems.Clear();
-            SubEntryList.Clear();
+            Entries.Clear();
 
             var handler = FileHandler;
             ref var header = ref Header.Data;
@@ -263,6 +265,11 @@ namespace ReeLib
             if (header.magic != Magic)
             {
                 throw new InvalidDataException($"{handler.FilePath} Not a MSG file");
+            }
+
+            if (header.dataOffset == handler.FileSize())
+            {
+                return true;
             }
 
             // Decrypt
@@ -282,6 +289,8 @@ namespace ReeLib
             // Read attribute types
             handler.Seek(header.attributeOffset);
             var attributeValueTypes = handler.ReadArray<AttributeValueType>(header.attributeCount);
+
+            handler.Seek(header.attributeNameOffset);
             for (int i = 0; i < header.attributeCount; i++)
             {
                 AttributeItems.Add(new AttributeItem
@@ -295,9 +304,9 @@ namespace ReeLib
             for (int i = 0; i < header.entryCount; i++)
             {
                 handler.Seek(entryOffsets[i]);
-                SubEntry item = new(new SubEntryHeader(Header), AttributeItems);
+                MessageEntry item = new(new MessageEntryHeader(Header), AttributeItems);
                 item.Read(handler);
-                SubEntryList.Add(item);
+                Entries.Add(item);
             }
 
             return true;
@@ -310,7 +319,7 @@ namespace ReeLib
             ref var header = ref Header.Data;
             handler.Seek(Header.Size);
 
-            header.entryCount = SubEntryList.Count;
+            header.entryCount = Entries.Count;
             header.attributeCount = AttributeItems.Count;
             header.langCount = Languages!.Length;
 
@@ -336,14 +345,14 @@ namespace ReeLib
             }
 
             // entry
-            for (int i = 0; i < SubEntryList.Count; i++)
+            for (int i = 0; i < Entries.Count; i++)
             {
                 entryOffsets[i] = handler.Tell();
-                SubEntryList[i].WriteHeader(handler);
+                Entries[i].WriteHeader(handler);
             }
-            for (int i = 0; i < SubEntryList.Count; i++)
+            for (int i = 0; i < Entries.Count; i++)
             {
-                SubEntryList[i].WriteAttributes(handler);
+                Entries[i].WriteAttributes(handler);
             }
             {
                 using var back = handler.SeekJumpBack(entryOffsetsStart);

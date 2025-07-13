@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -291,10 +292,14 @@ namespace ReeLib.via
             rgba = r + ((uint)(g) << 8) + ((uint)(b) << 16) + ((uint)(a) << 24);
         }
 
-        public int R => (int)(rgba >> 0) & 0xff;
-        public int G => (int)(rgba >> 8) & 0xff;
-        public int B => (int)(rgba >> 16) & 0xff;
-        public int A => (int)(rgba >> 24) & 0xff;
+        public readonly int R => (int)(rgba >> 0) & 0xff;
+        public readonly int G => (int)(rgba >> 8) & 0xff;
+        public readonly int B => (int)(rgba >> 16) & 0xff;
+        public readonly int A => (int)(rgba >> 24) & 0xff;
+
+        public readonly int ARGB => A + (R << 8) + (G << 16) + (B << 24);
+        public readonly int ABGR => A + (B << 8) + (G << 16) + (R << 24);
+        public readonly int BGRA => B + (G << 8) + (R << 16) + (A << 24);
 
         public readonly string Hex()
         {
@@ -316,8 +321,18 @@ namespace ReeLib.via
             return new Color { rgba = uint.Parse(hex, System.Globalization.NumberStyles.HexNumber) };
         }
 
-        public Vector4 ToVector4() => new Vector4(R / 255f, G / 255f, B / 255f, A / 255f);
-        public Color Inverse() => new Color((byte)(255 - R), (byte)(255 - G), (byte)(255 - B), (byte)A);
+        public static bool TryParse(string hex, out Color color)
+        {
+            if (uint.TryParse(hex, System.Globalization.NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var parsed)) {
+                color = new Color { rgba = parsed };
+                return true;
+            }
+            color = default;
+            return false;
+        }
+
+        public readonly Vector4 ToVector4() => new Vector4(R / 255f, G / 255f, B / 255f, A / 255f);
+        public readonly Color Inverse() => new Color((byte)(255 - R), (byte)(255 - G), (byte)(255 - B), (byte)A);
 
         public static Color FromVector4(Vector4 vec) => new Color((byte)(vec.X * 255), (byte)(vec.Y * 255), (byte)(vec.Z * 255), (byte)(vec.W * 255));
     }
@@ -446,8 +461,8 @@ namespace ReeLib.via
         public Vector3 Minpos { readonly get => minpos; set => minpos = value; }
         public Vector3 Maxpos { readonly get => maxpos; set => maxpos = value; }
 
-        public Vector3 Size => maxpos - minpos;
-        public Vector3 Center => (minpos + maxpos) / 2;
+        public readonly Vector3 Size => maxpos - minpos;
+        public readonly Vector3 Center => (minpos + maxpos) / 2;
 
         public static readonly AABB MaxMin = new ReeLib.via.AABB(new System.Numerics.Vector3(float.MaxValue), new System.Numerics.Vector3(float.MinValue));
 
@@ -740,7 +755,7 @@ namespace ReeLib.via
             }
         }
 
-        public Vector4 AsVector => new Vector4(left, top, right, bottom);
+        public readonly Vector4 AsVector => new Vector4(left, top, right, bottom);
     }
 
 

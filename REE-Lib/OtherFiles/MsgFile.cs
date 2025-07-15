@@ -193,9 +193,13 @@ namespace ReeLib.Msg
             int langCount = header.MsgHeader.Data.langCount;
             long pos = handler.Tell();
             handler.Seek(header.ContentOffsetsByLangsStart);
+            if (header.ContentOffsetsByLangs == null)
+            {
+                header.ContentOffsetsByLangs = new List<long>(Enumerable.Repeat(0L, langCount));
+            }
             for (int i = 0; i < langCount; i++)
             {
-                header.ContentOffsetsByLangs![i] = handler.Tell();
+                header.ContentOffsetsByLangs[i] = handler.Tell();
                 handler.WriteOffsetWString(Strings[i]);
             }
             handler.Seek(pos);
@@ -354,23 +358,76 @@ namespace ReeLib
             {
                 Entries[i].WriteAttributes(handler);
             }
+            using (var back = handler.SeekJumpBack(entryOffsetsStart))
             {
-                using var back = handler.SeekJumpBack(entryOffsetsStart);
                 handler.WriteArray(entryOffsets);
             }
 
             header.dataOffset = handler.Tell();
             handler.StringTableFlush();
             // Encrypt
-            byte[] data = handler.ReadBytes(header.dataOffset, (int)(handler.FileSize() - header.dataOffset));
             if (header.version > 12)
             {
+                byte[] data = handler.ReadBytes(header.dataOffset, (int)(handler.FileSize() - header.dataOffset));
                 Encrypt(data);
+                handler.WriteBytes(header.dataOffset, data);
             }
-            handler.WriteBytes(header.dataOffset, data);
 
             Header.Write(handler, 0);
             return true;
+        }
+
+        public MessageEntry? FindEntryByKey(string key)
+        {
+            foreach (var entry in Entries)
+            {
+                if (entry.Header.entryName == key)
+                {
+                    return entry;
+                }
+            }
+
+            return null;
+        }
+
+        public MessageEntry? FindEntryByKeyHash(uint keyHash)
+        {
+            foreach (var entry in Entries)
+            {
+                if (entry.Header.EntryHash == keyHash)
+                {
+                    return entry;
+                }
+            }
+
+            return null;
+        }
+
+        public MessageEntry AddNewEntry(string messageKey, Guid guid)
+        {
+            var header = new MessageEntryHeader(Header)
+            {
+                entryName = messageKey,
+                guid = guid,
+            };
+            var entry = new MessageEntry(header, AttributeItems)
+            {
+                AttributeValues = new object[AttributeItems.Count]
+            };
+            for (int i = 0; i < AttributeItems.Count; i++)
+            {
+                switch (AttributeItems[i].ValueType)
+                {
+                    case AttributeValueType.Long: entry.AttributeValues[i] = 0L; break;
+                    case AttributeValueType.Double: entry.AttributeValues[i] = 0.0; break;
+                    case AttributeValueType.NullString:
+                    case AttributeValueType.String:
+                        entry.AttributeValues[i] = "";
+                        break;
+                }
+            }
+            Entries.Add(entry);
+            return entry;
         }
     }
 }

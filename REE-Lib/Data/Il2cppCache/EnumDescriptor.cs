@@ -149,7 +149,9 @@ public sealed class EnumDescriptor<T> : EnumDescriptor where T : struct, IBinary
             CreateConverter();
         }
         T val = converter!(elem);
-        ValueToLabels[val] = name;
+        if (!ValueToLabels.TryAdd(val, name)) {
+            return;
+        }
         OrderedValues.Add(new KeyValuePair<string, T>(name, val));
         _labelsArray = null;
         _valuesArray = null;

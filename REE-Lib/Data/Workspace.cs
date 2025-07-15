@@ -193,6 +193,17 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
     }
 
     /// <summary>
+    /// Gets a <see cref="Stream"/> for a single file. The filename should include the full file extension, version and any suffixes.
+    /// Will throw an exception if the file is not found.
+    /// </summary>
+    public Stream GetRequiredFile(string filepath)
+    {
+        var file = GetFile(filepath);
+        if (file == null) throw new NullReferenceException($"File not found: {filepath}");
+        return file;
+    }
+
+    /// <summary>
     /// Extracts a file to the given folder and returns its full filepath. Only returns the filepath if the file already exists (even if it's not up to date).
     /// </summary>
     public string? GetExtractedFilepath(string filepath, string extractionPath)

@@ -278,7 +278,7 @@ namespace ReeLib.via
 
 
     // Size=4
-    public struct Color
+    public struct Color : IEquatable<Color>
     {
         public uint rgba;
 
@@ -335,6 +335,12 @@ namespace ReeLib.via
         public readonly Color Inverse() => new Color((byte)(255 - R), (byte)(255 - G), (byte)(255 - B), (byte)A);
 
         public static Color FromVector4(Vector4 vec) => new Color((byte)(vec.X * 255), (byte)(vec.Y * 255), (byte)(vec.Z * 255), (byte)(vec.W * 255));
+
+        public bool Equals(Color other) => other.rgba == rgba;
+        public override bool Equals(object? obj) => obj is Color col && col.rgba == rgba;
+        public static bool operator ==(Color left, Color right) => left.rgba == right.rgba;
+        public static bool operator !=(Color left, Color right) => left.rgba != right.rgba;
+        public override int GetHashCode() => rgba.GetHashCode();
     }
 
 

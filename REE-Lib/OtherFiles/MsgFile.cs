@@ -46,7 +46,7 @@ namespace ReeLib.Msg
 
     public enum AttributeValueType
     {
-        NullString = -1,
+        Empty = -1,
         Long,
         Double,
         String,
@@ -136,6 +136,8 @@ namespace ReeLib.Msg
         public List<AttributeItem> AttributeItems { get; } = attributeItems;
         public object[]? AttributeValues { get; set; }
         public string[] Strings { get; } = new string[(int)Language.Max];
+        public string Name => Header.entryName;
+        public Guid Guid => Header.guid;
 
         public bool Read(FileHandler handler)
         {
@@ -154,7 +156,7 @@ namespace ReeLib.Msg
                 {
                     AttributeValueType.Long => handler.ReadInt64(),
                     AttributeValueType.Double => handler.ReadDouble(),
-                    AttributeValueType.NullString or AttributeValueType.String => handler.ReadOffsetWString(),
+                    AttributeValueType.Empty or AttributeValueType.String => handler.ReadOffsetWString(),
                     _ => throw new Exception($"Unknown attribute value type: {AttributeItems[i].ValueType}"),
                 };
             }
@@ -183,7 +185,7 @@ namespace ReeLib.Msg
                 {
                     case AttributeValueType.Long: handler.Write((long)AttributeValues[i]); break;
                     case AttributeValueType.Double: handler.Write((double)AttributeValues[i]); break;
-                    case AttributeValueType.NullString:
+                    case AttributeValueType.Empty:
                     case AttributeValueType.String:
                         handler.WriteOffsetWString((string)AttributeValues[i]);
                         break;
@@ -343,6 +345,7 @@ namespace ReeLib
             {
                 handler.Write(AttributeItems[i].ValueType);
             }
+            header.attributeNameOffset = handler.Tell();
             for (int i = 0; i < AttributeItems.Count; i++)
             {
                 handler.WriteOffsetWString(AttributeItems[i].Name);
@@ -403,11 +406,22 @@ namespace ReeLib
             return null;
         }
 
-        public MessageEntry AddNewEntry(string messageKey, Guid guid)
+        private string GetUniqueNewKey()
+        {
+            var basename = "new_entry_name";
+            int i = 1;
+            while (FindEntryByKey(basename) != null) {
+                basename = "new_entry_name_" + i++;
+            }
+            return basename;
+        }
+
+        public MessageEntry AddNewEntry(string? messageKey = null) => AddNewEntry(messageKey, Guid.NewGuid());
+        public MessageEntry AddNewEntry(string? messageKey, Guid guid)
         {
             var header = new MessageEntryHeader(Header)
             {
-                entryName = messageKey,
+                entryName = messageKey ?? GetUniqueNewKey(),
                 guid = guid,
             };
             var entry = new MessageEntry(header, AttributeItems)
@@ -420,12 +434,13 @@ namespace ReeLib
                 {
                     case AttributeValueType.Long: entry.AttributeValues[i] = 0L; break;
                     case AttributeValueType.Double: entry.AttributeValues[i] = 0.0; break;
-                    case AttributeValueType.NullString:
+                    case AttributeValueType.Empty:
                     case AttributeValueType.String:
                         entry.AttributeValues[i] = "";
                         break;
                 }
             }
+            Array.Fill(entry.Strings, "");
             Entries.Add(entry);
             return entry;
         }

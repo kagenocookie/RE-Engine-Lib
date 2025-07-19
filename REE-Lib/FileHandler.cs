@@ -16,7 +16,7 @@ namespace ReeLib
         public StringTable? StringTable { get; private set; }
         public StringTable? AsciiStringTable { get; private set; }
         public OffsetContentTable? OffsetContentTable { get; private set; }
-        private Sunday? searcher = new();
+        private Sunday? searcher;
         private int fileVersion = -1;
 
         public int FileVersion {

@@ -179,8 +179,9 @@ namespace ReeLib
             return new DDSFile.DdsMipMapIterator(FileHandler, (uint)Header.width, (uint)Header.height, Header.mipCount, Header.BitsPerPixel, compressed);
         }
 
-        public TexMipMapIterator CreateNonPo2Iterator()
+        public TexMipMapIterator CreateNonPo2Iterator(int imageIndex = 0)
         {
+            FileHandler.Seek(Mips[imageIndex * Header.mipCount].offset);
             return new TexMipMapIterator(FileHandler, Mips, Header.mipCount, Header.width, Header.height, Header.format.GetCompressedBlockSize());
         }
 

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Numerics;
 using ReeLib.InternalAttributes;
 
@@ -53,9 +54,11 @@ namespace ReeLib.Uvs
         public int textureIndex;
         public int cutoutUVCount;
 
+        public (Vector2 topleft, Vector2 botright) GetBoundingPoints() => (new Vector2(left, top), new Vector2(right, bottom));
+
         [RszList(nameof(cutoutUVCount))] public readonly List<Vector2> cutoutUVs = new(0);
 
-        public override string ToString() => $"L:{left} T:{top} R:{right} B:{bottom} tex:{textureIndex}";
+        public override string ToString() => $"L:{left.ToString(CultureInfo.InvariantCulture)} T:{top.ToString(CultureInfo.InvariantCulture)} R:{right.ToString(CultureInfo.InvariantCulture)} B:{bottom.ToString(CultureInfo.InvariantCulture)} tex:{textureIndex}";
     }
 }
 
@@ -81,6 +84,9 @@ namespace ReeLib
             var handler = FileHandler;
             Header.Read(handler);
 
+            Textures.Clear();
+            Sequences.Clear();
+
             handler.Seek(Header.texOffset);
             Textures.Read(handler, Header.textureCount);
 
@@ -102,6 +108,40 @@ namespace ReeLib
             return true;
         }
 
+        /// <summary>
+        /// Removes any textures that are no longer used and updates the texture index for all patterns.
+        /// </summary>
+        public void TrimOrphanTextures()
+        {
+            var unreferenced = new HashSet<int>(Enumerable.Range(0, Textures.Count));
+            foreach (var seq in Sequences) {
+                foreach (var pat in seq.patterns) {
+                    unreferenced.Remove(pat.textureIndex);
+                }
+            }
+
+            if (unreferenced.Count == 0) return;
+
+            foreach (var unref in unreferenced.OrderByDescending(a => a)) {
+                Textures.RemoveAt(unref);
+            }
+
+            var remapDict = new Dictionary<int, int>();
+            for (int i = 0; i < Textures.Count; i++) {
+                if (unreferenced.Contains(i)) continue;
+
+                var tex = Textures[i];
+                var lowerCount = unreferenced.Count(r => r < i);
+                remapDict[i] = i - lowerCount;
+            }
+
+            foreach (var seq in Sequences) {
+                foreach (var pat in seq.patterns) {
+                    pat.textureIndex = remapDict[pat.textureIndex];
+                }
+            }
+        }
+
         protected override bool DoWrite()
         {
             var handler = FileHandler;
@@ -113,7 +153,7 @@ namespace ReeLib
             var strings = new StringBuilder();
             foreach (var tex in Textures) {
                 tex.pathStringOffset = strings.Length;
-                strings.Append(tex.path).Append("\0\0");
+                strings.Append(tex.path).Append('\0');
                 tex.Write(handler);
             }
 

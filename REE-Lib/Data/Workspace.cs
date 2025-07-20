@@ -13,7 +13,16 @@ namespace ReeLib;
 public sealed partial class Workspace(GameConfig config) : IDisposable
 {
     public GameConfig Config => config;
+
+    /// <summary>
+    /// Whether to allow fetching resources directly from the game's PAK files.
+    /// </summary>
     public bool AllowUsePackedFiles { get; set; } = true;
+    /// <summary>
+    /// <para>Whether to allow fetching resources from the loose file folder in the game path. Loose files are evaluated before packed files, same as if the loose file loader was enabled ingame.</para>
+    /// Defaults to false to prevent accidentally fetching modded files.
+    /// </summary>
+    public bool AllowUseLooseFiles { get; set; } = false;
 
     private RszParser? _rszParser;
     public RszParser RszParser => _rszParser ??= LoadRszParser();
@@ -40,6 +49,7 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
 
     public bool CanUsePakFiles => !string.IsNullOrEmpty(config.GamePath);
     public bool CanUseChunkFiles => !string.IsNullOrEmpty(config.ChunkPath);
+    public bool CanUseLooseFiles => !string.IsNullOrEmpty(config.GamePath);
     public bool CanExtractPakFiles => (!string.IsNullOrEmpty(config.GamePath) || config.PakFiles.Length > 0) && !string.IsNullOrEmpty(config.ChunkPath);
 
     /// <summary>
@@ -83,7 +93,6 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
         var fileList = GetFileList();
         if (fileList != null) {
             foreach (var c in fileList.GetFileExtensionVariants(filepath)) yield return c;
-            yield break;
         }
 
         var basepath = PathUtils.GetFilepathWithoutExtensionOrVersion(filepath);
@@ -145,17 +154,29 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
     /// <summary>
     /// Attempt to match the filename to a single file and return a <see cref="Stream"/> for it. Automatically adds any missing file extensions and suffixes.
     /// </summary>
-    public Stream? FindSingleFile(string filepath)
+    public Stream? FindSingleFile(string filepath) => FindSingleFile(filepath, out _);
+
+    /// <summary>
+    /// Attempt to match the filename to a single file and return a <see cref="Stream"/> for it. Automatically adds any missing file extensions and suffixes.
+    /// </summary>
+    public Stream? FindSingleFile(string filepath, [MaybeNull] out string resolvedFilename)
     {
         filepath = PrependBasePath(filepath);
         var match = GetFile(filepath);
-        if (match != null) return match;
+        if (match != null) {
+            resolvedFilename = filepath;
+            return match;
+        }
 
         foreach (var candidate in FindPossibleFilepaths(filepath)) {
             match = GetFile(candidate);
-            if (match != null) return match;
+            if (match != null) {
+                resolvedFilename = filepath;
+                return match;
+            }
         }
 
+        resolvedFilename = null;
         return null;
     }
 
@@ -167,6 +188,13 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
         filepath = PrependBasePath(filepath);
 
         bool didAttempt = false;
+        if (AllowUseLooseFiles && CanUseLooseFiles) {
+            didAttempt = true;
+            var loosePath = Path.Combine(config.GamePath, filepath);
+            if (File.Exists(loosePath)) {
+                return File.OpenRead(loosePath);
+            }
+        }
         if (AllowUsePackedFiles && CanUsePakFiles) {
             didAttempt = true;
             var file = PakReader.GetFile(filepath);

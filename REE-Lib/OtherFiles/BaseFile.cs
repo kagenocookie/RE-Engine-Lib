@@ -86,7 +86,8 @@ namespace ReeLib
 
         public bool WriteTo(string path)
         {
-            using var handler = new FileHandler(path, true);
+            using var file = File.Create(path);
+            var handler = new FileHandler(file, path);
             return WriteTo(handler);
         }
 

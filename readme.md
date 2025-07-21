@@ -28,7 +28,7 @@ This project does not provide any actual tooling by itself, it is intended to be
 **Read and modify a user.2 file**
 ```cs
 // GameConfig.CreateFromRepository() will fetch any required resources / JSON files according to https://github.com/kagenocookie/REE-Lib-Resources
-// these resources are cached locally in `resources/resource-cache.json` by default, can be changed with `ResourceRepository.LocalResourceRepositoryFilepath`
+// these resources are cached locally in `%appdata%/REE-Lib/resources/resource-cache.json` by default, can be changed with `ResourceRepository.LocalResourceRepositoryFilepath`
 // the config can also be manually set up instead
 var config = GameConfig.CreateFromRepository(GameIdentifier.dd2);
 

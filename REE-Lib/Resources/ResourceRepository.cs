@@ -13,9 +13,12 @@ public class ResourceRepository
     internal static LocalResourceCache Cache => _cache ??= Initialize();
 
     /// <summary>
-    /// The local filepath to store the repository cache JSON file in. Should be the json filepath.
+    /// The local filepath to store the repository cache JSON file in. Should point to the main json filepath, requested files will be downloaded next to it.
     /// </summary>
-    public static string LocalResourceRepositoryFilepath { get; set; } = "resources/resource-cache.json";
+    public static string LocalResourceRepositoryFilepath { get; set; } = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        "REE-Lib/resources/resource-cache.json");
+
     /// <summary>
     /// Disable all online resource cache update features.
     /// </summary>

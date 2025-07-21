@@ -29,6 +29,11 @@ public class ResourceRepository
     /// </summary>
     public static string MetadataRemoteSource { get; set; } = "https://raw.githubusercontent.com/kagenocookie/REE-Lib-Resources/refs/heads/master/resource-info.json";
 
+    /// <summary>
+    /// Whether to make HTTP requests in a separate worker thread instead of the calling thread. The results will stil be resolved in sync from the caller thread, just the actual requests will be done separately.
+    /// </summary>
+    public static bool AllowThreadedFetch { get; set; } = true;
+
     private const int UpdateCheckIntervalDays = 1;
 
     public static RemoteResourceConfig RemoteInfo => Cache.RemoteInfo;
@@ -130,8 +135,7 @@ public class ResourceRepository
 
             Console.WriteLine("Fetching content from " + path);
             try {
-                var http = new HttpClient();
-                var response = http.Send(new HttpRequestMessage(HttpMethod.Get, path));
+                var response = Fetch(path);
                 if (!response.IsSuccessStatusCode) {
                     return null;
                 }
@@ -145,6 +149,22 @@ public class ResourceRepository
         }
 
         return null;
+    }
+
+    private static HttpResponseMessage Fetch(string url)
+    {
+        if (!AllowThreadedFetch) {
+            var http = new HttpClient();
+            return http.Send(new HttpRequestMessage(HttpMethod.Get, url));
+        }
+
+        var task = Task.Run(() => {
+            var http = new HttpClient();
+            return http.Send(new HttpRequestMessage(HttpMethod.Get, url));
+        });
+
+        task.Wait();
+        return task.Result;
     }
 
     private static bool ReadLocalResourceListing()

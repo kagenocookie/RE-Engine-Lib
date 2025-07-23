@@ -248,6 +248,17 @@ namespace ReeLib
         public bool native { get; set; }
         public RszField[] fields { get; set; } = [];
 
+        /// <summary>
+        /// Returns the plain class name without namespaces or parent classes.
+        /// </summary>
+        public string ShortName
+        {
+            get {
+                int idx = name.LastIndexOf('.');
+                return idx == -1 ? name : name.Substring(idx + 1);
+            }
+        }
+
         public static readonly RszClass Empty = new();
 
         public int IndexOfField(string name)

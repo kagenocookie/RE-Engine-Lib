@@ -1,7 +1,6 @@
 namespace ReeLib;
 
 using System.Text.Json.Serialization;
-using ReeLib.Common;
 
 public class EfxStructCache
 {

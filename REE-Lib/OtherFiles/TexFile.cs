@@ -87,7 +87,6 @@ namespace ReeLib.Tex
 namespace ReeLib
 {
     using System.Buffers;
-    using System.Security.Cryptography;
     using ReeLib.Tex;
 
     public class TexFile : BaseFile

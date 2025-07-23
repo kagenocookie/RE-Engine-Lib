@@ -1,7 +1,6 @@
 namespace ReeLib.Il2cpp;
 
 using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 
 internal sealed class TypeCacheData

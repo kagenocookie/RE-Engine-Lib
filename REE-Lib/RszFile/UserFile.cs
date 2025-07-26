@@ -35,6 +35,15 @@ namespace ReeLib
             RSZ = new RSZFile(option, fileHandler);
         }
 
+        public UserFile(RszFileOption option, FileHandler fileHandler, RSZFile rszFile) : base(option, fileHandler)
+        {
+            if (fileHandler.FilePath != null)
+            {
+                RszUtils.CheckFileExtension(fileHandler.FilePath, Extension, GetVersionExt());
+            }
+            RSZ = rszFile;
+        }
+
         public const uint Magic = 0x525355;
         public const string Extension = "user";
 

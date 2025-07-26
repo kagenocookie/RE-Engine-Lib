@@ -171,7 +171,7 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
         foreach (var candidate in FindPossibleFilepaths(filepath)) {
             match = GetFile(candidate);
             if (match != null) {
-                resolvedFilename = filepath;
+                resolvedFilename = candidate;
                 return match;
             }
         }

@@ -229,6 +229,7 @@ namespace ReeLib
         public Language[]? Languages { get; set; }
         public List<AttributeItem> AttributeItems { get; } = new();
         public List<MessageEntry> Entries { get; } = new();
+        private Stream? decryptedStream;
 
         private static void Decrypt(byte[] data)
         {
@@ -278,13 +279,16 @@ namespace ReeLib
                 return true;
             }
 
-            // Decrypt
-            byte[] data = handler.ReadBytes(header.dataOffset, (int)(handler.FileSize() - header.dataOffset));
-            if (header.version > 12)
-            {
-                Decrypt(data);
+            // Decrypt - in case we already decrypted this exact stream before, do nothing
+            if (decryptedStream != FileHandler.Stream) {
+                byte[] data = handler.ReadBytes(header.dataOffset, (int)(handler.FileSize() - header.dataOffset));
+                if (header.version > 12)
+                {
+                    Decrypt(data);
+                }
+                handler.WriteBytes(header.dataOffset, data);
+                decryptedStream = FileHandler.Stream;
             }
-            handler.WriteBytes(header.dataOffset, data);
 
             long[] entryOffsets = handler.ReadArray<long>(header.entryCount);
 
@@ -374,6 +378,7 @@ namespace ReeLib
                 byte[] data = handler.ReadBytes(header.dataOffset, (int)(handler.FileSize() - header.dataOffset));
                 Encrypt(data);
                 handler.WriteBytes(header.dataOffset, data);
+                decryptedStream = null;
             }
 
             Header.Write(handler, 0);

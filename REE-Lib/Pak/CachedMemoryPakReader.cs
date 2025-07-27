@@ -13,6 +13,8 @@ public class CachedMemoryPakReader : PakReader, IDisposable
 
     private volatile Dictionary<ulong, PakEntryCache>? cachedEntries;
     private MemoryStream memoryStream = new();
+    public int MatchedEntryCount => cachedEntries?.Count ?? 0;
+    public IEnumerable<string> CachedPaths => cachedEntries?.Values.Select(e => e.entry.path ?? ("__Unknown/" + e.entry.CombinedHash.ToString("X16"))) ?? Array.Empty<string>();
 
     private readonly object _lock = new();
     private const int PakCacheTimeout = 30000;
@@ -51,6 +53,18 @@ public class CachedMemoryPakReader : PakReader, IDisposable
         return null;
     }
 
+    public bool FileExists(string filepath) => FileExists(PakUtils.GetFilepathHash(filepath));
+    public bool FileExists(ulong filepathHash)
+    {
+        if (cachedEntries == null)
+        {
+            CacheEntries();
+            if (cachedEntries == null) throw new Exception("Failed to generate cache of PAK entries");
+        }
+
+        return cachedEntries.ContainsKey(filepathHash);
+    }
+
     /// <summary>
     /// Reads a file into a MemoryStream using a reused file stream.<br/>
     /// Not thread safe.<br/><br/>
@@ -79,7 +93,7 @@ public class CachedMemoryPakReader : PakReader, IDisposable
     /// <summary>
     /// Scan all PAK files and cache lookup info for every file entry hash.
     /// </summary>
-    public void CacheEntries()
+    public void CacheEntries(bool assignEntryPaths = false)
     {
         lock(_lock)  {
             if (cachedEntries?.Count > 0) {
@@ -87,9 +101,8 @@ public class CachedMemoryPakReader : PakReader, IDisposable
                 return;
             }
 
-            Clear();
             cachedEntries = new();
-            foreach (var pak in EnumeratePaks())
+            foreach (var pak in EnumeratePaks(assignEntryPaths))
             {
                 foreach (var entry in pak.Entries)
                 {

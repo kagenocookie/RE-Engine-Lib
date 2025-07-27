@@ -45,9 +45,9 @@ public class ListFileWrapper
         ReadFileList(fileList);
     }
 
-    public ListFileWrapper(string[] files)
+    public ListFileWrapper(IEnumerable<string> files)
     {
-        Files = files.Select(f => NormalizePath(f).ToLowerInvariant()).Order().ToArray();
+        Files = files.Where(f => !string.IsNullOrEmpty(f)).Select(f => NormalizePath(f).ToLowerInvariant()).Order().ToArray();
     }
 
     public void ReadFileList(string listFilepath)
@@ -132,6 +132,7 @@ public class ListFileWrapper
 
     private static ReadOnlySpan<char> GetSubfolderPath(string path, string fromFolder)
     {
+        if (path.Length < fromFolder.Length) return path;
         var nextSlash = fromFolder.EndsWith('/') ? path.IndexOf('/', fromFolder.Length) : path.IndexOf('/', fromFolder.Length + 1);
         if (nextSlash == -1) return path;
         return path.AsSpan().Slice(0, nextSlash);

@@ -37,13 +37,19 @@ public class PakReader
 
     public void AddFilesFromListFile(string fileList)
     {
-        using var f = new StreamReader(File.OpenRead(fileList));
+        using var stream = File.OpenRead(fileList);
+        AddFilesFromListFile(stream);
+    }
+
+    public void AddFilesFromListFile(Stream stream)
+    {
+        var f = new StreamReader(stream);
         while (!f.EndOfStream) {
             var line = f.ReadLine();
             if (!string.IsNullOrWhiteSpace(line)) {
                 if (Filter != null && !Filter.IsMatch(line)) continue;
 
-                searchedPaths.Add(PakUtils.GetFilepathHash(line), line);
+                searchedPaths.TryAdd(PakUtils.GetFilepathHash(line), line);
             }
         }
     }
@@ -76,6 +82,7 @@ public class PakReader
             if (cancellationToken.IsCancellationRequested) yield break;
             var ctx = new ChunkContextBase(pak, 0, pak.Entries.Count);
             foreach (var (entry, data) in FindEntriesInChunk(ctx)) {
+                data.Seek(0, SeekOrigin.Begin);
                 yield return (entry.path!, data);
             }
 
@@ -163,7 +170,7 @@ public class PakReader
         }
     }
 
-    protected IEnumerable<PakFile> EnumeratePaks()
+    protected IEnumerable<PakFile> EnumeratePaks(bool assignEntryPaths)
     {
         for (var i = PakFilePriority.Count - 1; i >= 0; i--) {
             var pakfile = PakFilePriority[i];
@@ -172,7 +179,7 @@ public class PakReader
 
             var pak = new PakFile();
             pak.filepath = pakfile;
-            pak.ReadContents(pakfile);
+            pak.ReadContents(pakfile, assignEntryPaths ? searchedPaths : null);
 
             if (pak.Entries.Count > 0) {
                 yield return pak;

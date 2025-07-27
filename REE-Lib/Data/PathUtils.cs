@@ -99,6 +99,59 @@ public static class PathUtils
         var ext = Path.GetExtension(path);
         return ext.IsEmpty ? string.Empty : ext[1..].ToString();
     }
+
+    public static bool IsNativePath(this string path)
+    {
+        return path.StartsWith("natives/");
+    }
+
+    /// <summary>
+    /// Converts an absolute path into a relative native path (e.g. C:/files/my-game/natives/stm/subpath/file.scn.20 => natives/stm/subpath/file.scn.20).
+    /// </summary>
+    public static string? GetNativeFromFullFilepath(string filepath)
+    {
+        filepath = filepath.Replace('\\', '/');
+        var nativesStart = filepath.IndexOf("/natives/", StringComparison.OrdinalIgnoreCase);
+        if (nativesStart == -1) {
+            return null;
+        }
+
+        return filepath.Substring(nativesStart + 1);
+    }
+
+    /// <summary>
+    /// Converts a native path into an internal path (e.g. natives/stm/subpath/file.scn.20 => subpath/file.scn).
+    /// </summary>
+    public static string GetInternalFromNativePath(string nativePath)
+    {
+        return RemoveNativesFolder(GetFilepathWithoutVersion(nativePath));
+    }
+
+    /// <summary>
+    /// Removes a natives/ prefix or suffix from the path and normalizes it with forward slashes.
+    /// </summary>
+    /// <param name="path"></param>
+    /// <returns></returns>
+    public static string RemoveNativesFolder(string path)
+    {
+        path = path.Replace('\\', '/');
+        if (path.EndsWith('/')) {
+            path = path[..^1];
+        }
+        if (path.EndsWith("/natives/x64", StringComparison.OrdinalIgnoreCase)) {
+            path = path.Substring(0, path.IndexOf("/natives/x64", StringComparison.OrdinalIgnoreCase));
+        }
+        if (path.EndsWith("/natives/stm", StringComparison.OrdinalIgnoreCase)) {
+            path = path.Substring(0, path.IndexOf("/natives/stm", StringComparison.OrdinalIgnoreCase));
+        }
+        if (path.StartsWith("natives/x64/", StringComparison.OrdinalIgnoreCase)) {
+            path = path.Substring("natives/x64/".Length);
+        }
+        if (path.StartsWith("natives/stm/", StringComparison.OrdinalIgnoreCase)) {
+            path = path.Substring("natives/stm/".Length);
+        }
+        return path;
+    }
 }
 
 public record struct REFileFormat(KnownFileFormats format, int version)

@@ -78,6 +78,7 @@ public class LocalResources
     private static readonly JsonSerializerOptions jsonOptions = new() {
         WriteIndented = true,
         DefaultIgnoreCondition = JsonIgnoreCondition.Never,
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
 
     [JsonIgnore]
@@ -302,7 +303,7 @@ public class LocalResources
             }
         }
         using var outfs = File.Create(outputPath);
-        JsonSerializer.Serialize(outfs, jsondoc);
+        JsonSerializer.Serialize(outfs, jsondoc, jsonOptions);
         Console.WriteLine("Saved cleaned RSZ template to " + outputPath);
         return true;
     }

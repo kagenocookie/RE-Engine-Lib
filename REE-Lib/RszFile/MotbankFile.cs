@@ -49,6 +49,8 @@ namespace ReeLib.Motbank
             handler.Write(ref BankTypeMaskBits);
             return true;
         }
+
+        public override string ToString() => $"{BankID}:{BankType} - {Path}";
     }
 }
 

@@ -250,6 +250,8 @@ namespace ReeLib.Efx
             }
             return true;
         }
+
+        public override string ToString() => name ?? $"Entry {index}";
     }
 
     [RszGenerate, RszAutoReadWrite]
@@ -262,6 +264,16 @@ namespace ReeLib.Efx
         public float value2;
         public float value3;
         [RszIgnore] public string? name;
+
+        public Vector2 Float2
+        {
+            get => type == EfxExpressionParameterType.Float2 ? new Vector2(value1, value2) : throw new Exception("Expression parameter is not a float2");
+            set {
+                type = EfxExpressionParameterType.Float2;
+                value1 = value.X;
+                value2 = value.Y;
+            }
+        }
 
         public via.Color Color
         {
@@ -282,6 +294,8 @@ namespace ReeLib.Efx
                 value3 = value.Z;
             }
         }
+
+        public override string ToString() => type == EfxExpressionParameterType.Color ? $"{type} {Color}" : $"{type} {value1} {value2} {value3}";
     }
 
     internal struct EFXBoneNameValuePair

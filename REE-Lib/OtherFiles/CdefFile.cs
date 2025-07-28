@@ -68,6 +68,8 @@ namespace ReeLib.Cdef
         public via.Color color;
         public uint ukn3;
         public uint ukn4;
+
+        public override string ToString() => name ?? guid.ToString();
     }
 
     [RszGenerate, RszAutoReadWrite]
@@ -81,6 +83,8 @@ namespace ReeLib.Cdef
         public int maskId;
         public uint padding1;
         public uint padding2;
+
+        public override string ToString() => name ?? guid.ToString();
     }
 
     [RszGenerate, RszAutoReadWrite]
@@ -92,6 +96,8 @@ namespace ReeLib.Cdef
         public uint nameHash;
         [RszPaddingAfter(4, "handler.FileVersion >= 7")]
         public via.Color color;
+
+        public override string ToString() => name ?? guid.ToString();
     }
 
     [RszGenerate, RszAutoReadWrite]
@@ -101,6 +107,8 @@ namespace ReeLib.Cdef
         [RszOffsetWString] public string? name;
         [RszStringHash(nameof(name))] public uint nameHash;
         public uint padding;
+
+        public override string ToString() => name ?? guid.ToString();
     }
 
     [RszGenerate, RszAutoReadWrite]
@@ -118,6 +126,8 @@ namespace ReeLib.Cdef
         public int ukn2;
         [RszPaddingAfter(8, "handler.FileVersion >= 4")]
         public uint ukn3;
+
+        public override string ToString() => (name ?? guid.ToString()) + (description == null ? "" : $" [{description}]");
     }
 }
 

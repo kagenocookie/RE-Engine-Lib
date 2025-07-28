@@ -28,6 +28,8 @@ namespace ReeLib.Def
         public uint ukn3;
         public uint ukn4;
         [RszIgnore] public uint bits;
+
+        public override string ToString() => name ?? guid.ToString();
     }
 
     [RszGenerate, RszAutoReadWrite]
@@ -38,6 +40,8 @@ namespace ReeLib.Def
         public uint nameHash;
         public short ukn1;
         public short ukn2;
+
+        public override string ToString() => name ?? guid.ToString();
     }
 
     [RszGenerate, RszAutoReadWrite]
@@ -51,6 +55,8 @@ namespace ReeLib.Def
         public float uknFlt2;
         public float uknFlt3;
         public UndeterminedFieldType ukn2;
+
+        public override string ToString() => name ?? guid.ToString();
     }
 
     [RszGenerate, RszAutoReadWrite]
@@ -64,6 +70,8 @@ namespace ReeLib.Def
         public UndeterminedFieldType ukn2;
         public UndeterminedFieldType ukn3;
         public UndeterminedFieldType ukn4;
+
+        public override string ToString() => name ?? guid.ToString();
     }
 }
 

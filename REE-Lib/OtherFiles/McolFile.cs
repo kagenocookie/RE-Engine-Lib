@@ -39,7 +39,12 @@ namespace ReeLib
 
             handler.Seek(Header.stringTableOffset);
             for (int i = 0; i < Header.stringCount * 2; ++i) {
-                stringTable.Add(handler.ReadOffsetWString());
+                var offset = handler.ReadInt64();
+                if (offset == 0) {
+                    stringTable.Add("");
+                } else {
+                    stringTable.Add(handler.ReadWString(offset));
+                }
             }
             return true;
         }

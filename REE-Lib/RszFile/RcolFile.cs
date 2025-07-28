@@ -269,6 +269,8 @@ namespace ReeLib.Rcol
             }
             return true;
         }
+
+        public override string ToString() => Name;
     }
 
 
@@ -614,6 +616,8 @@ namespace ReeLib.Rcol
 
             return true;
         }
+
+        public override string ToString() => Name;
     }
 
 

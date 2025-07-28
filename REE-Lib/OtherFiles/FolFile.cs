@@ -55,6 +55,8 @@ namespace ReeLib
 
                 return true;
             }
+
+            public override string ToString() => $"mesh: {meshPath} + mat: {materialPath}";
         }
 
         protected override bool DoRead()

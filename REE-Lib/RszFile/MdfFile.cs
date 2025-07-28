@@ -164,6 +164,8 @@ namespace ReeLib.Mdf
             if (Version >= GameVersion.re3) handler.Skip(8);
             return true;
         }
+
+        public override string ToString() => $"{texType}: {texPath}";
     }
 
     public class ParamHeader : BaseModel
@@ -231,6 +233,8 @@ namespace ReeLib.Mdf
             }
             return true;
         }
+
+        public override string ToString() => $"{paramName}: {parameter}";
     }
 
     public class GpbfHeader : BaseModel
@@ -268,6 +272,8 @@ namespace ReeLib.Mdf
             handler.Write(ref asciiHash);
             return true;
         }
+
+        public override string ToString() => $"{name}";
     }
 
     public class MatData

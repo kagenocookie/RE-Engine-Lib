@@ -66,24 +66,19 @@ namespace ReeLib.Mdf
             set => alphaFlags = (uint)((((int)value & 0xff) << 24) + (alphaFlags & ~0xff000000));
         }
 
-        private GameVersion Version { get; }
-
-        public MatHeader(GameVersion version)
-        {
-            Version = version;
-        }
 
         protected override bool DoRead(FileHandler handler)
         {
+            var Version = handler.FileVersion;
             long pos = handler.Tell();
             handler.Read(ref matNameOffset);
             matName = handler.ReadWString(matNameOffset);
             handler.Read(ref matNameHash);
-            if (Version == GameVersion.re7) handler.Read(ref uknRE7);
+            if (Version == 6) handler.Read(ref uknRE7);
             handler.Read(ref paramsSize);
             handler.Read(ref paramCount);
             handler.Read(ref texCount);
-            if (Version >= GameVersion.re8)
+            if (Version >= 19)
             {
                 handler.Read(ref gpbfNameCount);
                 handler.Read(ref gpbfDataCount);
@@ -93,24 +88,25 @@ namespace ReeLib.Mdf
                 }
             }
             handler.Read(ref shaderType);
-            if (Version >= GameVersion.re4) handler.Read(ref ukn);
+            if (Version >= 32) handler.Read(ref ukn);
             handler.Read(ref alphaFlags);
-            if (Version >= GameVersion.re4) handler.Read(ref ukn1);
+            if (Version >= 32) handler.Read(ref ukn1);
             handler.Read(ref paramHeaderOffset);
             handler.Read(ref texHeaderOffset);
-            if (Version >= GameVersion.re8)
+            if (Version >= 19)
             {
                 handler.Read(ref gpbfOffset);
             }
             handler.Read(ref paramsOffset);
             handler.Read(ref mmtrPathOffset);
             mmtrPath = handler.ReadWString(mmtrPathOffset);
-            if (Version >= GameVersion.re4) handler.Read(ref texIDsOffset);
+            if (Version >= 32) handler.Read(ref texIDsOffset);
             return true;
         }
 
         protected override bool DoWrite(FileHandler handler)
         {
+            var Version = handler.FileVersion;
             if (matName != null)
             {
                 handler.StringTableAdd(matName);
@@ -118,30 +114,32 @@ namespace ReeLib.Mdf
             }
             handler.Write(ref matNameOffset);
             handler.Write(ref matNameHash);
-            if (Version == GameVersion.re7) handler.Write(ref uknRE7);
+            if (Version == 6) handler.Write(ref uknRE7);
             handler.Write(ref paramsSize);
             handler.Write(ref paramCount);
             handler.Write(ref texCount);
-            if (Version >= GameVersion.re8) {
+            if (Version >= 19) {
                 handler.Write(ref gpbfNameCount);
                 handler.Write(ref gpbfDataCount);
             }
             handler.Write(ref shaderType);
-            if (Version >= GameVersion.re4) handler.Write(ref ukn);
+            if (Version >= 32) handler.Write(ref ukn);
             handler.Write(ref alphaFlags);
-            if (Version >= GameVersion.re4) handler.Write(ref ukn1);
+            if (Version >= 32) handler.Write(ref ukn1);
             handler.Write(ref paramHeaderOffset);
             handler.Write(ref texHeaderOffset);
-            if (Version >= GameVersion.re8)
+            if (Version >= 19)
             {
                 handler.Write(ref gpbfOffset);
             }
             handler.Write(ref paramsOffset);
             handler.StringTableAdd(mmtrPath);
             handler.Write(ref mmtrPathOffset);
-            if (Version >= GameVersion.re4) handler.Write(ref texIDsOffset);
+            if (Version >= 32) handler.Write(ref texIDsOffset);
             return true;
         }
+
+        public override MatHeader Clone() => (MatHeader)base.Clone();
     }
 
     [Flags]
@@ -204,12 +202,7 @@ namespace ReeLib.Mdf
         public long texPathOffset;
         public string? texPath;
 
-        private GameVersion Version { get; }
-
-        public TexHeader(GameVersion version)
-        {
-            Version = version;
-        }
+        public override TexHeader Clone() => (TexHeader)base.Clone();
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -220,7 +213,7 @@ namespace ReeLib.Mdf
             texType = handler.ReadWString(texTypeOffset);
             texPath = handler.ReadWString(texPathOffset);
             // RE3R+
-            if (Version >= GameVersion.re3) handler.Skip(8);
+            if (handler.FileVersion >= 13) handler.Skip(8);
             return true;
         }
 
@@ -237,7 +230,7 @@ namespace ReeLib.Mdf
             handler.Write(ref asciiHash);
             handler.StringTableAdd(texPath);
             handler.Write(ref texPathOffset);
-            if (Version >= GameVersion.re3) handler.Skip(8);
+            if (handler.FileVersion >= 13) handler.Skip(8);
             return true;
         }
 
@@ -259,20 +252,13 @@ namespace ReeLib.Mdf
         public int gapSize;
         public Vector4 parameter;
 
-        private GameVersion Version { get; }
-
-        public ParamHeader(GameVersion version)
-        {
-            Version = version;
-        }
-
         protected override bool DoRead(FileHandler handler)
         {
             handler.Read(ref paramNameOffset);
             handler.Read(ref hash);
             handler.Read(ref asciiHash);
             // RE3R+
-            if (Version >= GameVersion.re3)
+            if (handler.FileVersion >= 13)
             {
                 handler.Read(ref paramRelOffset);
                 handler.Read(ref componentCount);
@@ -297,7 +283,7 @@ namespace ReeLib.Mdf
             handler.Write(ref paramNameOffset);
             handler.Write(ref hash);
             handler.Write(ref asciiHash);
-            if (Version >= GameVersion.re3)
+            if (handler.FileVersion >= 13)
             {
                 handler.Write(ref paramRelOffset);
                 handler.Write(ref componentCount);
@@ -309,6 +295,8 @@ namespace ReeLib.Mdf
             }
             return true;
         }
+
+        public override ParamHeader Clone() => (ParamHeader)base.Clone();
 
         public override string ToString() => $"{paramName}: {parameter}";
     }
@@ -354,27 +342,37 @@ namespace ReeLib.Mdf
 
     public class MatData
     {
+        public MatData() { }
         public MatData(MatHeader matHeader)
         {
             Header = matHeader;
         }
 
-        public MatHeader Header;
+        public MatHeader Header = new();
         public List<TexHeader> Textures = new();
         public List<ParamHeader> Parameters = new();
         public List<(GpbfHeader name, GpbfHeader data)> GpuBuffers = new();
 
         public override string ToString() => Header.matName + " :  " + Path.GetFileName(Header.mmtrPath);
+
+        public MatData Clone()
+        {
+            return new MatData(Header.Clone()) {
+                Textures = Textures.Select(tex => tex.Clone()).ToList(),
+                GpuBuffers = GpuBuffers.Select(gpbf => (new GpbfHeader(gpbf.name.name), new GpbfHeader(gpbf.data.name))).ToList(),
+                Parameters = Parameters.Select(tex => tex.Clone()).ToList(),
+            };
+        }
     }
 }
 
 
 namespace ReeLib
 {
-    public class MdfFile : BaseRszFile
+    public class MdfFile : BaseFile
     {
 
-        public MdfFile(RszFileOption option, FileHandler fileHandler) : base(option, fileHandler)
+        public MdfFile(FileHandler fileHandler) : base(fileHandler)
         {
         }
 
@@ -382,28 +380,7 @@ namespace ReeLib
         public List<MatData> MatDatas = new();
 
         public const uint Magic = 0x46444d;
-        public const string Extension2 = ".mdf2";
-
-        public string? GetExtension()
-        {
-            return Option.GameName switch
-            {
-                GameName.re2 => ".10",
-                GameName.re2rt => ".21",
-                GameName.re3 => ".13",
-                GameName.re3rt => ".21",
-                GameName.re4 => ".32",
-                GameName.re8 => ".19",
-                GameName.re7 => ".6",
-                GameName.re7rt => ".21",
-                GameName.dmc5 =>".10",
-                GameName.mhrise => ".23",
-                GameName.sf6 => ".31",
-                GameName.dd2 => ".31",
-                GameName.mhwilds => ".45",
-                _ => null
-            };
-        }
+        public const string Extension = ".mdf2";
 
         protected override bool DoRead()
         {
@@ -419,7 +396,7 @@ namespace ReeLib
             handler.Align(16);
             for (int i = 0; i < Header.Data.matCount; i++)
             {
-                MatData matData = new(new(Option.Version));
+                MatData matData = new();
                 matData.Header.Read(handler);
                 MatDatas.Add(matData);
             }
@@ -429,7 +406,7 @@ namespace ReeLib
                 handler.Seek(matData.Header.texHeaderOffset);
                 for (int i = 0; i < matData.Header.texCount; i++)
                 {
-                    TexHeader texHeader = new(Option.Version);
+                    TexHeader texHeader = new();
                     texHeader.Read(handler);
                     matData.Textures.Add(texHeader);
                 }
@@ -440,7 +417,7 @@ namespace ReeLib
                 handler.Seek(matData.Header.paramHeaderOffset);
                 for (int i = 0; i < matData.Header.paramCount; i++)
                 {
-                    ParamHeader paramHeader = new(Option.Version);
+                    ParamHeader paramHeader = new();
                     paramHeader.Read(handler);
                     paramHeader.paramAbsOffset = matData.Header.paramsOffset + paramHeader.paramRelOffset;
                     if (i == 0)

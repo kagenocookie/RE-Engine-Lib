@@ -137,5 +137,16 @@ namespace ReeLib.Common
                 sb.Append("    ");
             }
         }
+
+        public static string GetUniqueName(this string basename, Func<string, bool> existsCheck)
+        {
+            var name = basename;
+            int attempts = 2;
+            while (existsCheck.Invoke(name)) {
+                name = $"{basename}_{attempts++}";
+            }
+
+            return name;
+        }
     }
 }

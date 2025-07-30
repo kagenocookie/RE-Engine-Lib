@@ -32,6 +32,17 @@ public static class PathUtils
         return FileFormatExtensions.ExtensionHashToEnum(hash);
     }
 
+    public static ReadOnlySpan<char> GetFilepathWithoutSuffixes(ReadOnlySpan<char> filename)
+    {
+        var extIndex = GetFilenameExtensionStartIndex(filename);
+        if (extIndex == -1) return filename;
+        var nextDot = filename.Slice(extIndex + 1).IndexOf('.') + extIndex + 1;
+        if (nextDot > extIndex) {
+            return filename.Slice(0, nextDot);
+        }
+        return filename;
+    }
+
     public static string GetFilepathWithoutVersion(string filepath)
     {
         var versionDot = filepath.LastIndexOf('.');
@@ -124,7 +135,7 @@ public static class PathUtils
     /// </summary>
     public static string GetInternalFromNativePath(string nativePath)
     {
-        return RemoveNativesFolder(GetFilepathWithoutVersion(nativePath));
+        return RemoveNativesFolder(GetFilepathWithoutSuffixes(nativePath).ToString());
     }
 
     /// <summary>

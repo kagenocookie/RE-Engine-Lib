@@ -24,7 +24,7 @@ namespace ReeLib.Mdf
         // tdbVersion >= 69, RE8+
         public int gpbfNameCount;
         public int gpbfDataCount;
-        public uint shaderType; // 6
+        public ShadingType shaderType; // 6
         // tdbVersion >= 71, SF6+
         public uint ukn;
         public uint alphaFlags; // 7
@@ -168,6 +168,31 @@ namespace ReeLib.Mdf
         RequireDualQuaternion = (1 << 5),
         PixelDepthOffsetUsed = (1 << 6),
         NoRayTracing = (1 << 7),
+    }
+
+    public enum ShadingType
+    {
+        Standard = 0,
+        Decal = 1,
+        DecalWithMetallic = 2,
+        DecalNRMR = 3,
+        Transparent = 4,
+        Distortion = 5,
+        PrimitiveMesh = 6,
+        PrimitiveSolidMesh = 7,
+        Water = 8,
+        SpeedTree = 9,
+        GUI = 10,
+        GUIMesh = 11,
+        GUIMeshTransparent = 12,
+        ExpensiveTransparent = 13,
+        Forward = 14,
+        RenderTarget = 15,
+        PostProcess = 16,
+        PrimitiveMaterial = 17,
+        PrimitiveSolidMaterial = 18,
+        SpineMaterial = 19,
+        ReflectiveTransparent = 20,
     }
 
     public class TexHeader : BaseModel

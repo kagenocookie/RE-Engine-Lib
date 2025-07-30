@@ -14,7 +14,7 @@ namespace ReeLib.Mdf
     public class MatHeader : BaseModel
     {
         public long matNameOffset; // 1
-        public string? matName;
+        public string matName = string.Empty;
         public uint matNameHash; // 2
         // tdbVersion == 49, RE7
         public ulong uknRE7;
@@ -40,6 +40,31 @@ namespace ReeLib.Mdf
         public string? mmtrPath;
         // tdbVersion >= 71, SF6+
         public long texIDsOffset;
+
+
+        public MaterialFlags1 Flags1
+        {
+            get => (MaterialFlags1)(alphaFlags & 0x03ff);
+            set => alphaFlags = (uint)(((int)value & 0x03ff) + (alphaFlags & ~0x03ff));
+        }
+
+        public int Tesselation
+        {
+            get => (int)(((alphaFlags & 0xfc00) >> 10) & 0x3f);
+            set => alphaFlags = (uint)(((value & 0x3f) << 10) + (alphaFlags & ~0xfc00));
+        }
+
+        public int Phong
+        {
+            get => (int)(((alphaFlags & 0xff0000) >> 16) & 0xff);
+            set => alphaFlags = (uint)(((value & 0xff) << 16) + (alphaFlags & ~0xff0000));
+        }
+
+        public MaterialFlags2 Flags2
+        {
+            get => (MaterialFlags2)(((alphaFlags & 0xff000000) >> 24) & 0xff);
+            set => alphaFlags = (uint)((((int)value & 0xff) << 24) + (alphaFlags & ~0xff000000));
+        }
 
         private GameVersion Version { get; }
 
@@ -119,10 +144,36 @@ namespace ReeLib.Mdf
         }
     }
 
+    [Flags]
+    public enum MaterialFlags1 {
+        BaseTwoSideEnable = (1 << 0),
+        BaseAlphaTestEnable = (1 << 1),
+        ShadowCastDisable = (1 << 2),
+        VertexShaderUsed = (1 << 3),
+        EmissiveUsed = (1 << 4),
+        TessellationEnable = (1 << 5),
+        EnableIgnoreDepth = (1 << 6),
+        AlphaMaskUsed = (1 << 7),
+        ForcedTwoSideEnable = (1 << 8),
+        TwoSideEnable = (1 << 9),
+    }
+
+    [Flags]
+    public enum MaterialFlags2 {
+        RoughTransparentEnable = (1 << 0),
+        ForcedAlphaTestEnable = (1 << 1),
+        AlphaTestEnable = (1 << 2),
+        SSSProfileUsed = (1 << 3),
+        EnableStencilPriority = (1 << 4),
+        RequireDualQuaternion = (1 << 5),
+        PixelDepthOffsetUsed = (1 << 6),
+        NoRayTracing = (1 << 7),
+    }
+
     public class TexHeader : BaseModel
     {
         public long texTypeOffset;
-        public string? texType;
+        public string texType = string.Empty;
         public uint hash;
         public uint asciiHash;
         public long texPathOffset;
@@ -171,7 +222,7 @@ namespace ReeLib.Mdf
     public class ParamHeader : BaseModel
     {
         public long paramNameOffset;
-        public string? paramName;
+        public string paramName = string.Empty;
         public uint hash;
         public uint asciiHash;
         public int componentCount;
@@ -240,7 +291,7 @@ namespace ReeLib.Mdf
     public class GpbfHeader : BaseModel
     {
         public long nameOffset;
-        public string? name;
+        public string name = string.Empty;
         public uint utf16Hash;
         public uint asciiHash;
 
@@ -284,9 +335,11 @@ namespace ReeLib.Mdf
         }
 
         public MatHeader Header;
-        public List<TexHeader> TexHeaders = new();
-        public List<ParamHeader> ParamHeaders = new();
-        public List<(GpbfHeader name, GpbfHeader data)> GpbfHeaders = new();
+        public List<TexHeader> Textures = new();
+        public List<ParamHeader> Parameters = new();
+        public List<(GpbfHeader name, GpbfHeader data)> GpuBuffers = new();
+
+        public override string ToString() => Header.matName + " :  " + Path.GetFileName(Header.mmtrPath);
     }
 }
 
@@ -353,7 +406,7 @@ namespace ReeLib
                 {
                     TexHeader texHeader = new(Option.Version);
                     texHeader.Read(handler);
-                    matData.TexHeaders.Add(texHeader);
+                    matData.Textures.Add(texHeader);
                 }
             }
 
@@ -371,7 +424,7 @@ namespace ReeLib
                     }
                     else
                     {
-                        var prevHeader = matData.ParamHeaders[i - 1];
+                        var prevHeader = matData.Parameters[i - 1];
                         paramHeader.gapSize = (int)(
                             paramHeader.paramAbsOffset - prevHeader.paramAbsOffset +
                             prevHeader.componentCount * 4);
@@ -384,10 +437,10 @@ namespace ReeLib
                     {
                         handler.Read(paramHeader.paramAbsOffset, ref paramHeader.parameter.X);
                     }
-                    matData.ParamHeaders.Add(paramHeader);
+                    matData.Parameters.Add(paramHeader);
                 }
 
-                matData.GpbfHeaders = new();
+                matData.GpuBuffers = new();
                 var tell = handler.Tell();
                 handler.Seek(matData.Header.gpbfOffset);
                 for (int i = 0; i < matData.Header.gpbfNameCount; ++i) {
@@ -395,7 +448,7 @@ namespace ReeLib
                     var data = new GpbfHeader();
                     name.Read(handler);
                     data.Read(handler);
-                    matData.GpbfHeaders.Add((name, data));
+                    matData.GpuBuffers.Add((name, data));
                 }
                 handler.Seek(tell);
             }
@@ -419,13 +472,13 @@ namespace ReeLib
             foreach (var matData in MatDatas)
             {
                 matData.Header.texHeaderOffset = handler.Tell();
-                matData.TexHeaders.Write(handler);
+                matData.Textures.Write(handler);
             }
 
             foreach (var matData in MatDatas)
             {
                 matData.Header.paramHeaderOffset = handler.Tell();
-                matData.ParamHeaders.Write(handler);
+                matData.Parameters.Write(handler);
             }
 
             handler.Align(16);
@@ -433,8 +486,8 @@ namespace ReeLib
             foreach (var matData in MatDatas)
             {
                 matData.Header.gpbfOffset = handler.Tell();
-                matData.Header.gpbfNameCount = matData.Header.gpbfDataCount = matData.GpbfHeaders.Count;
-                foreach (var gpbf in matData.GpbfHeaders) {
+                matData.Header.gpbfNameCount = matData.Header.gpbfDataCount = matData.GpuBuffers.Count;
+                foreach (var gpbf in matData.GpuBuffers) {
                     gpbf.name.Write(handler);
                     gpbf.data.Write(handler);
                 }
@@ -447,7 +500,7 @@ namespace ReeLib
             {
                 int size = 0;
                 matData.Header.paramsOffset = handler.Tell();
-                foreach (var paramHeader in matData.ParamHeaders)
+                foreach (var paramHeader in matData.Parameters)
                 {
                     size += paramHeader.componentCount * 4;
                     if (paramHeader.gapSize > 0)

@@ -412,6 +412,8 @@ namespace ReeLib.UVar
             handler.Write(Start + 32, expressionOffset = handler.Tell());
             Expression.Write(handler);
         }
+
+        public override string ToString() => $"{Name} = {Value}";
     }
 
 
@@ -547,7 +549,6 @@ namespace ReeLib
 
         public HeaderStruct Header { get; set; } = new();
         public List<Variable> Variables { get; set; } = new();
-        public List<string> Strings { get; set; } = new();
         public List<UVarFile> EmbeddedUVARs { get; set; } = new();
         public HashData HashData { get; } = new();
 
@@ -562,22 +563,12 @@ namespace ReeLib
             }
             header.name = handler.ReadWString(header.stringsOffset);
             Variables.Clear();
-            Strings.Clear();
             EmbeddedUVARs.Clear();
 
             if (header.variableCount > 0 && header.dataOffset > 0)
             {
                 handler.Seek(header.dataOffset);
                 Variables.Read(handler, header.variableCount);
-            }
-
-            if (header.stringsOffset > 0)
-            {
-                handler.Seek(header.stringsOffset);
-                for (int i = 0; i < header.variableCount + 1; i++)
-                {
-                    Strings.Add(handler.ReadWString(jumpBack: false));
-                }
             }
 
             if (header.embedCount > 0 && header.embedsInfoOffset > 0)

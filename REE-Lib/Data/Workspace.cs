@@ -36,6 +36,9 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
     private TypeCache? _typeCache;
     public TypeCache TypeCache => _typeCache ??= LoadTypeCache();
 
+    private CommonRszClasses? _classes;
+    public CommonRszClasses Classes => _classes ??= new CommonRszClasses(RszParser);
+
     private Dictionary<string, Dictionary<string, PrefabGameObjectRefProperty>>? _refPropCache;
     public Dictionary<string, Dictionary<string, PrefabGameObjectRefProperty>> PfbRefProps => _refPropCache ??= LoadPfbRefData();
 

@@ -62,6 +62,7 @@ namespace ReeLib
 
         public static bool Read<T>(this List<T> list, FileHandler handler, int count) where T : IModel, new()
         {
+            list.EnsureCapacity(count);
             for (int i = 0; i < count; i++)
             {
                 T item = new();
@@ -71,15 +72,13 @@ namespace ReeLib
             return true;
         }
 
-        public static bool Read<T>(this List<T> list, FileHandler handler, int count, GameVersion version) where T : VersionedBaseModel, new()
+        public static bool ReadStructList<T>(this List<T> list, FileHandler handler, int count) where T : unmanaged
         {
+            list.EnsureCapacity(count);
             for (int i = 0; i < count; i++)
             {
-                T item = new()
-                {
-                    Version = version
-                };
-                if (!item.Read(handler)) return false;
+                T item = new();
+                handler.Read(ref item);
                 list.Add(item);
             }
             return true;
@@ -107,6 +106,15 @@ namespace ReeLib
             foreach (var item in list)
             {
                 if (!item.Write(handler)) return false;
+            }
+            return true;
+        }
+
+        public static bool Write<T>(this IEnumerable<T> list, FileHandler handler) where T : unmanaged
+        {
+            foreach (var item in list)
+            {
+                if (!handler.Write(item)) return false;
             }
             return true;
         }

@@ -1,11 +1,8 @@
 using System.Collections.ObjectModel;
 using ReeLib.Common;
+using ReeLib.Data;
 using ReeLib.Pfb;
-
-
-using GameObjectInfoModel = ReeLib.StructModel<ReeLib.Pfb.PfbGameObjectInfo>;
-using GameObjectRefInfoModel = ReeLib.StructModel<ReeLib.Pfb.PfbGameObjectRefInfo>;
-
+using ReeLib.via;
 
 namespace ReeLib.Pfb
 {
@@ -56,19 +53,23 @@ namespace ReeLib.Pfb
     }
 
     public struct PfbGameObjectRefInfo {
-        public uint objectId;
+        public int objectId;
         public int propertyId;
         public int arrayIndex;
-        public uint targetId;
+        public int targetId;
+
+        public override string ToString() => $"<{objectId}>.{propertyId}[{arrayIndex}] = {targetId}";
     }
 
     public class PfbGameObject : IGameObject
     {
         private WeakReference<PfbGameObject>? parentRef;
-        public GameObjectInfoModel? Info { get; set; }
+        public PfbGameObjectInfo Info;
         public ObservableCollection<RszInstance> Components { get; private set; } = new();
         public ObservableCollection<PfbGameObject> Children { get; private set; } = new();
         public RszInstance? Instance { get; set; }
+
+        IList<RszInstance> IGameObject.Components => Components;
 
         /// <summary>
         /// 从ScnFile.GameObject生成GameObject
@@ -81,13 +82,9 @@ namespace ReeLib.Pfb
             {
                 Info = new()
                 {
-                    Data = new PfbGameObjectInfo
-                    {
-                        // objectId 和 parentId 应该重新生成
-                        objectId = -1,
-                        parentId = -1,
-                        componentCount = scnGameObject.Components.Count,
-                    }
+                    objectId = -1,
+                    parentId = -1,
+                    componentCount = scnGameObject.Components.Count,
                 },
                 Components = new(scnGameObject.Components.Select(item => item.CloneCached())),
                 Instance = scnGameObject.Instance?.CloneCached()
@@ -108,15 +105,15 @@ namespace ReeLib.Pfb
             set => parentRef = value != null ? new(value) : null;
         }
 
-        public string? Name => (Instance?.GetFieldValue("v0") ?? Instance?.GetFieldValue("Name")) as string;
+        public string? Name => Instance?.Values[0] as string;
 
-        public int? ObjectId => Info?.Data.objectId;
+        public int? ObjectId => Info.objectId;
 
-        public object Clone()
+        public PfbGameObject Clone()
         {
             PfbGameObject gameObject = new()
             {
-                Info = Info != null ? new() { Data = Info.Data } : null,
+                Info = Info,
                 Components = new(Components.Select(item => item.CloneCached())),
                 Instance = Instance?.CloneCached(),
             };
@@ -144,12 +141,12 @@ namespace ReeLib
     public class PfbFile : BaseRszFile
     {
         public PfbHeaderStruct Header { get; } = new();
-        public List<GameObjectInfoModel> GameObjectInfoList { get; } = new();
-        public List<GameObjectRefInfoModel> GameObjectRefInfoList { get; } = new();
+        public List<PfbGameObjectInfo> GameObjectInfoList { get; } = new();
+        public List<PfbGameObjectRefInfo> GameObjectRefInfoList { get; } = new();
         public List<ResourceInfo> ResourceInfoList { get; } = new();
         public List<UserdataInfo> UserdataInfoList { get; } = new();
         public RSZFile RSZ { get; }
-        public ObservableCollection<PfbGameObject>? GameObjects { get; set; }
+        public ObservableCollection<PfbGameObject> GameObjects { get; } = new();
         public bool ResourceChanged { get; set; } = false;
 
         public PfbFile(RszFileOption option, FileHandler fileHandler) : base(option, fileHandler)
@@ -203,10 +200,10 @@ namespace ReeLib
                 throw new InvalidDataException($"{handler.FilePath} Not a PFB file");
             }
 
-            GameObjectInfoList.Read(handler, header.infoCount);
+            GameObjectInfoList.ReadStructList(handler, header.infoCount);
 
             handler.Seek(header.gameObjectRefInfoOffset);
-            GameObjectRefInfoList.Read(handler, header.gameObjectRefInfoCount);
+            GameObjectRefInfoList.ReadStructList(handler, header.gameObjectRefInfoCount);
 
             handler.Seek(header.resourceInfoOffset);
             // ResourceInfoList.Read(handler, header.resourceCount);
@@ -231,7 +228,7 @@ namespace ReeLib
         {
             if (StructChanged)
             {
-                RebuildInfoTable();
+                RebuildInfoTables();
             }
             else if (ResourceChanged)
             {
@@ -288,25 +285,24 @@ namespace ReeLib
         }
 
         /// <summary>
-        /// 解析关联的关系，形成树状结构
+        /// Go through the read game object data and set up the game object hierarchy and references.
         /// </summary>
         public void SetupGameObjects()
         {
             Dictionary<int, PfbGameObject> gameObjectMap = new();
-            GameObjects ??= new();
             foreach (var info in GameObjectInfoList)
             {
                 PfbGameObject gameObjectData = new()
                 {
                     Info = info,
-                    Instance = RSZ.ObjectList[info.Data.objectId],
+                    Instance = RSZ.ObjectList[info.objectId],
                 };
-                for (int i = 0; i < info.Data.componentCount; i++)
+                for (int i = 0; i < info.componentCount; i++)
                 {
-                    gameObjectData.Components.Add(RSZ.ObjectList[info.Data.objectId + 1 + i]);
+                    gameObjectData.Components.Add(RSZ.ObjectList[info.objectId + 1 + i]);
                 }
-                gameObjectMap[info.Data.objectId] = gameObjectData;
-                if (info.Data.parentId == -1)
+                gameObjectMap[info.objectId] = gameObjectData;
+                if (info.parentId == -1)
                 {
                     GameObjects.Add(gameObjectData);
                 }
@@ -315,11 +311,41 @@ namespace ReeLib
             // add children and set parent
             foreach (var info in GameObjectInfoList)
             {
-                var gameObject = gameObjectMap[info.Data.objectId];
-                if (gameObjectMap.TryGetValue(info.Data.parentId, out var parent))
+                var gameObject = gameObjectMap[info.objectId];
+                if (gameObjectMap.TryGetValue(info.parentId, out var parent))
                 {
                     parent.Children.Add(gameObject);
                     gameObject.Parent = parent;
+                }
+            }
+
+            var props = RszParser.PrefabGameObjectRefProps;
+            if (props == null) return;
+
+            foreach (var pfbref in GameObjectRefInfoList) {
+                var src = RSZ.ObjectList[pfbref.objectId];
+                if (!props.TryGetValue(src.RszClass.name, out var reflist)) {
+                    Log.Error($"Could not resolve prefab game object references for class {src.RszClass.name}");
+                    continue;
+                }
+                var target = RSZ.ObjectList[pfbref.targetId];
+                var targetGo = IterGameObjects(null, true).First(cf => cf.Instance!.ObjectTableIndex == target.ObjectTableIndex);
+                var found = false;
+                for (int i = 0; i < src.Fields.Length; i++) {
+                    var field = src.Fields[i];
+                    if (reflist.TryGetValue(field.name, out var refdata) && refdata.PropertyId == pfbref.propertyId) {
+                        found = true;
+                        if (field.array) {
+                            var list = (List<object>)src.Values[i];
+                            ((GameObjectRef)list[pfbref.arrayIndex]).target = targetGo;
+                        } else {
+                            ((GameObjectRef)src.Values[i]).target = targetGo;
+                        }
+                        break;
+                    }
+                }
+                if (!found) {
+                    Log.Error($"Could not resolve prefab game object reference {pfbref}");
                 }
             }
         }
@@ -388,13 +414,10 @@ namespace ReeLib
             return IterGameObjects(includeChildren: includeChildren);
         }
 
-        /// <summary>
-        /// 根据GameObjects和FolderDatas重建其他表
-        /// </summary>
-        public void RebuildInfoTable()
+        public void RebuildInfoTables()
         {
-            // 重新生成实例表
-            List<RszInstance> rszInstances = new() { RszInstance.NULL };
+            // Reconstruct instance list
+            List<RszInstance> rszInstances = new();
             if (GameObjects != null)
             {
                 foreach (var gameObjectData in GameObjects)
@@ -405,13 +428,9 @@ namespace ReeLib
 
             RSZ.RebuildInstanceList(rszInstances);
             RSZ.RebuildInstanceInfo(false, false);
-            foreach (var instance in rszInstances)
-            {
-                instance.ObjectTableIndex = -1;
-            }
             RSZ.ClearObjects();
 
-            // 重新构建
+            // Reconstruct game object infos
             GameObjectInfoList.Clear();
             if (GameObjects != null)
             {
@@ -423,15 +442,66 @@ namespace ReeLib
 
             RszUtils.SyncUserDataFromRsz(UserdataInfoList, RSZ);
             RszUtils.SyncResourceFromRsz(ResourceInfoList, RSZ);
+            RebuildPfbRefs();
             StructChanged = false;
             ResourceChanged = false;
+        }
+
+        private void RebuildPfbRefs()
+        {
+            var props = RszParser.PrefabGameObjectRefProps;
+            if (props == null) return;
+
+            GameObjectRefInfoList.Clear();
+            foreach (var instance in RSZ.InstanceList) {
+                if (!props.TryGetValue(instance.RszClass.name, out var pfbRefs)) continue;
+
+                for (int i = 0; i < instance.Fields.Length; i++) {
+                    var field = instance.Fields[i];
+                    if (field.type != RszFieldType.GameObjectRef) continue;
+
+                    if (field.array) {
+                        var list = (List<object>)instance.Values[i];
+                        for (int index = 0; index < list.Count; index++) {
+                            GameObjectRef? item = (GameObjectRef?)list[index];
+                            if (item?.target?.Instance == null) continue;
+                            TryAddRef(instance, pfbRefs, field, index, item.target.Instance);
+                        }
+                    } else {
+                        var gref = (GameObjectRef)instance.Values[i];
+                        if (gref?.target?.Instance == null) continue;
+
+                        TryAddRef(instance, pfbRefs, field, 0, gref.target.Instance);
+                    }
+                }
+            }
+
+            bool TryAddRef(RszInstance instance, Dictionary<string, PrefabGameObjectRefProperty> pfbRefs, RszField field, int index, RszInstance target)
+            {
+                if (instance.ObjectTableIndex == -1) {
+                    RSZ.AddToObjectTable(instance);
+                }
+
+                if (!pfbRefs.TryGetValue(field.name, out var refdata)) {
+                    Log.Error("Unknown PFB game object ref field " + field.name);
+                    return false;
+                }
+
+                GameObjectRefInfoList.Add(new ReeLib.Pfb.PfbGameObjectRefInfo() {
+                    arrayIndex = index,
+                    objectId = instance.ObjectTableIndex,
+                    propertyId = refdata.PropertyId,
+                    targetId = target.ObjectTableIndex,
+                });
+                return true;
+            }
         }
 
         private void AddGameObjectInfoRecursion(PfbGameObject gameObject)
         {
             var instance = gameObject.Instance!;
             if (instance.ObjectTableIndex != -1) return;
-            ref var infoData = ref gameObject.Info!.Data;
+            ref var infoData = ref gameObject.Info;
             RSZ.AddToObjectTable(instance);
             infoData.objectId = instance.ObjectTableIndex;
             infoData.parentId = gameObject.Parent?.ObjectId ?? -1;
@@ -455,16 +525,9 @@ namespace ReeLib
         public void PfbFromScnGameObject(Scn.ScnGameObject scnGameObject)
         {
             PfbGameObject gameObject = PfbGameObject.FromScnGameObject(scnGameObject);
-            if (GameObjects == null)
-            {
-                GameObjects = new();
-            }
-            else
-            {
-                GameObjects.Clear();
-            }
+            GameObjects.Clear();
             GameObjects.Add(gameObject);
-            RebuildInfoTable();
+            RebuildInfoTables();
         }
 
         public void RemoveGameObject(PfbGameObject gameObject)
@@ -482,18 +545,16 @@ namespace ReeLib
         }
 
         /// <summary>
-        /// 导入外部的游戏对象
-        /// 文件夹和父对象只能指定一个
+        /// Add a fully constructed game object to the file.
         /// </summary>
-        /// <param name="gameObject"></param>
-        /// <param name="folder">文件夹</param>
-        /// <param name="parent">父对象</param>
-        /// <param name="isDuplicate">在原对象的位置后面添加</param>
-        /// <returns>新游戏对象</returns>
-        public PfbGameObject ImportGameObject(PfbGameObject gameObject,
-                                     PfbGameObject? parent = null, bool isDuplicate = false)
+        /// <param name="gameObject">The game object to add.</param>
+        /// <param name="parent">The parent under which the game object should be added.</param>
+        /// <param name="insertIndex">The child index at which to insert the new game object relative to its parent.</param>
+        /// <returns>The imported game object (new instance if shouldClone was true, otherwise the same instance that was passed in).</returns>
+        public PfbGameObject AddGameObject(PfbGameObject gameObject,
+                                     PfbGameObject? parent = null, int insertIndex = -1)
         {
-            PfbGameObject newGameObject = (PfbGameObject)gameObject.Clone();
+            PfbGameObject newGameObject = gameObject;
 
             newGameObject.Parent = null;
             ObservableCollection<PfbGameObject> collection;
@@ -504,19 +565,15 @@ namespace ReeLib
             }
             else
             {
-                GameObjects ??= [];
                 collection = GameObjects;
             }
 
-            // 为了可视化重新排序号，否则会显示序号是-1，但实际上保存的时候的序号和现在编号的可能不一致
-            // 所以要考虑这步操作是否有必要
+            // Preliminary inserts so the RszInstances have some indices, not really necessary
             RSZ.InsertInstances(IterGameObjectInstances(newGameObject));
 
-            if (isDuplicate)
+            if (insertIndex != -1)
             {
-                int index = collection.IndexOf(gameObject);
-                index = index == -1 ? collection.Count : index + 1;
-                collection.Insert(index, newGameObject);
+                collection.Insert(insertIndex, newGameObject);
             }
             else
             {
@@ -527,36 +584,21 @@ namespace ReeLib
             return newGameObject;
         }
 
-        /// <summary>
-        /// 导入外部的游戏对象
-        /// 批量添加建议直接GameObjects添加，最后再RebuildInfoTable
-        /// </summary>
-        /// <param name="gameObject"></param>
-        public void ImportGameObjects(
+        public void AddGameObjects(
             IEnumerable<PfbGameObject> gameObjects,
             PfbGameObject? parent = null)
         {
             foreach (var gameObject in gameObjects)
             {
-                ImportGameObject(gameObject, parent);
+                AddGameObject(gameObject, parent);
             }
         }
 
-        /// <summary>
-        /// 复制游戏对象
-        /// </summary>
-        /// <param name="gameObject"></param>
-        /// <returns>新游戏对象</returns>
         public PfbGameObject DuplicateGameObject(PfbGameObject gameObject)
         {
-            return ImportGameObject(gameObject, gameObject.Parent, true);
+            return AddGameObject(gameObject.Clone(), gameObject.Parent, (gameObject.Parent?.Children ?? GameObjects).IndexOf(gameObject));
         }
 
-        /// <summary>
-        /// 添加组件
-        /// </summary>
-        /// <param name="gameObject"></param>
-        /// <param name="className"></param>
         public void AddComponent(IGameObject gameObject, string className)
         {
             var component = RSZ.CreateInstance(className);
@@ -564,26 +606,24 @@ namespace ReeLib
             StructChanged = true;
         }
 
-        /// <summary>
-        /// 添加组件
-        /// </summary>
-        /// <param name="gameObject"></param>
-        /// <param name="component"></param>
         public void AddComponent(IGameObject gameObject, RszInstance component)
         {
             gameObject.Components.Add(component);
             StructChanged = true;
         }
 
-        /// <summary>
-        /// 移除组件
-        /// </summary>
-        /// <param name="gameObject"></param>
-        /// <param name="component"></param>
         public void RemoveComponent(IGameObject gameObject, RszInstance component)
         {
             gameObject.Components.Remove(component);
             StructChanged = true;
+        }
+
+        public void ClearGameObjects()
+        {
+            GameObjects?.Clear();
+            GameObjectInfoList.Clear();
+            GameObjectRefInfoList.Clear();
+            RSZ.ClearInstances();
         }
     }
 }

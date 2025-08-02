@@ -159,7 +159,7 @@ public class ResourceRepository
 
         var task = Task.Run(() => {
             var http = new HttpClient();
-            return http.Send(new HttpRequestMessage(HttpMethod.Get, url));
+            return http.SendAsync(new HttpRequestMessage(HttpMethod.Get, url));
         });
 
         task.Wait();

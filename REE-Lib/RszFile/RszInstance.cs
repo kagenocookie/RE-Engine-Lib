@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Text;
 using ReeLib.Common;
+using ReeLib.via;
 
 namespace ReeLib
 {
@@ -107,7 +108,7 @@ namespace ReeLib
                 {
                     throw new InvalidDataException($"{field.name} count {count} < 0");
                 }
-                if (count > 10000)
+                if (count > 15000)
                 {
                     throw new InvalidDataException($"{field.name} count {count} too large");
                 }
@@ -192,36 +193,38 @@ namespace ReeLib
 
         public object ReadNormalField(FileHandler handler, RszField field)
         {
-            if (field.IsString)
-            {
-                int charCount = handler.ReadInt();
-                long stringStart = handler.Tell();
-                string value = charCount <= 1 ? "" : handler.ReadWString(charCount: charCount);
-                handler.Seek(stringStart + charCount * 2);
-                // TODO checkOpenResource
-                return value;
-            }
-            else if (field.type == RszFieldType.RuntimeType)
-            {
-                var count = (int)handler.ReadUInt();
-                var str = handler.ReadAsciiString(-1, count, false);
-                return str;
-            }
-            else
-            {
-                long startPos = handler.Tell();
-                object value;
-                if (field.type == RszFieldType.Data)
+            switch (field.type) {
+                case RszFieldType.String or RszFieldType.Resource:
                 {
-                    value = handler.ReadBytes(field.size);
+                    int charCount = handler.ReadInt();
+                    long stringStart = handler.Tell();
+                    string value = charCount <= 1 ? "" : handler.ReadWString(charCount: charCount);
+                    handler.Seek(stringStart + charCount * 2);
+                    // TODO checkOpenResource
+                    return value;
                 }
-                else
+                case RszFieldType.RuntimeType:
+                    var count = (int)handler.ReadUInt();
+                    var str = handler.ReadAsciiString(-1, count, false);
+                    return str;
+                case RszFieldType.GameObjectRef:
+                    return new GameObjectRef(handler.Read<Guid>());
+                default:
                 {
-                    Type dataType = RszFieldTypeToCSharpType(field.type);
-                    value = handler.ReadObject(dataType);
+                    long startPos = handler.Tell();
+                    object value;
+                    if (field.type == RszFieldType.Data)
+                    {
+                        value = handler.ReadBytes(field.size);
+                    }
+                    else
+                    {
+                        Type dataType = RszFieldTypeToCSharpType(field.type);
+                        value = handler.ReadObject(dataType);
+                    }
+                    handler.Seek(startPos + field.size);
+                    return value;
                 }
-                handler.Seek(startPos + field.size);
-                return value;
             }
         }
 
@@ -244,6 +247,8 @@ namespace ReeLib
                     return handler.Write(value is RszInstance instance ? instance.Index : (int)value);
                 case RszFieldType.Struct:
                     return ((RszInstance)value).Write(handler);
+                case RszFieldType.GameObjectRef:
+                    return handler.Write(((GameObjectRef)value).guid);
                 default:
                     long startPos = handler.Tell();
                     if (field.type == RszFieldType.Data)
@@ -294,7 +299,7 @@ namespace ReeLib
             [RszFieldType.OBB] = typeof(via.OBB),
             [RszFieldType.AABB] = typeof(via.AABB),
             [RszFieldType.Guid] = typeof(Guid),
-            [RszFieldType.GameObjectRef] = typeof(Guid),
+            [RszFieldType.GameObjectRef] = typeof(GameObjectRef),
             [RszFieldType.Uri] = typeof(Guid),
             [RszFieldType.Color] = typeof(via.Color),
             [RszFieldType.Range] = typeof(via.Range),
@@ -534,47 +539,49 @@ namespace ReeLib
         /// </summary>
         public IEnumerable<RszInstance> GetChildren(Func<RszInstance, bool>? condition = null)
         {
-            if (RSZUserData == null)
+            if (RSZUserData != null) {
+                yield return this;
+                yield break;
+            }
+
+            var fields = RszClass.fields;
+            for (int i = 0; i < fields.Length; i++)
             {
-                var fields = RszClass.fields;
-                for (int i = 0; i < fields.Length; i++)
+                var field = fields[i];
+                if (!field.IsReference) continue;
+
+                if (field.array)
                 {
-                    var field = fields[i];
-                    if (!field.IsReference) continue;
-
-                    if (field.array)
+                    var items = (List<object>)Values[i];
+                    foreach (object item in items)
                     {
-                        var items = (List<object>)Values[i];
-                        foreach (object item in items)
+                        if (item is RszInstance instanceValue)
                         {
-                            if (item is RszInstance instanceValue)
-                            {
-                                if (condition?.Invoke(instanceValue) == false) continue;
+                            if (condition?.Invoke(instanceValue) == false) continue;
 
-                                foreach (var child in instanceValue.GetChildren(condition))
-                                {
-                                    yield return child;
-                                }
-                            }
-                            else
+                            foreach (var child in instanceValue.GetChildren(condition))
                             {
-                                throw new InvalidOperationException("Instance should unflatten first");
+                                yield return child;
                             }
                         }
-                    }
-                    else if (Values[i] is RszInstance instanceValue)
-                    {
-                        if (condition?.Invoke(instanceValue) == false) continue;
-
-                        foreach (var item in instanceValue.GetChildren(condition))
+                        else
                         {
-                            yield return item;
+                            throw new InvalidOperationException("Instance should unflatten first");
                         }
                     }
-                    else
+                }
+                else if (Values[i] is RszInstance instanceValue)
+                {
+                    if (condition?.Invoke(instanceValue) == false) continue;
+
+                    foreach (var item in instanceValue.GetChildren(condition))
                     {
-                        throw new InvalidOperationException("Instance should unflatten first");
+                        yield return item;
                     }
+                }
+                else
+                {
+                    throw new InvalidOperationException("Instance should unflatten first");
                 }
             }
             yield return this;

@@ -311,11 +311,13 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
         if (config.RszPatchFiles.Length == 0 && !config.Resources.TryGetRszFiles(out _)) {
             throw new Exception("RSZ json file setting is not configured");
         }
+        var pfbRefs = PfbRefProps;
         lock (_setupLock) {
             var parser = RszParser.GetInstance(config.RszPatchFiles[0]);
             for (int i = 1; i < config.RszPatchFiles.Length; ++i) {
                 parser.ReadPatch(config.RszPatchFiles[i]);
             }
+            parser.SetupPfbGameObjectRefs(pfbRefs);
             return parser;
         }
     }

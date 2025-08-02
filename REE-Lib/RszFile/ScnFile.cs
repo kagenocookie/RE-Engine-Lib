@@ -195,6 +195,8 @@ namespace ReeLib.Scn
         public ObservableCollection<RszInstance> Components { get; private set; } = new();
         public ObservableCollection<ScnGameObject> Children { get; private set; } = new();
 
+        IList<RszInstance> IGameObject.Components => Components;
+
         public ScnFolderData? Folder
         {
             get => folderRef?.GetTarget();
@@ -636,10 +638,6 @@ namespace ReeLib
 
             RSZ.RebuildInstanceList(rszInstances);
             RSZ.RebuildInstanceInfo(false, false);
-            foreach (var instance in rszInstances)
-            {
-                instance.ObjectTableIndex = -1;
-            }
             RSZ.ClearObjects();
 
             GameObjectInfoList.Clear();

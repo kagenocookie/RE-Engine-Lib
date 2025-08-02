@@ -120,16 +120,16 @@ namespace ReeLib
             handler.Seek(Header.dataOffset);
             for (int i = 0; i < InstanceInfoList.Count; i++)
             {
-                RszClass? rszClass = RszParser.GetRSZClass(InstanceInfoList[i].typeId);
-                if (rszClass == null)
+                var typeId = InstanceInfoList[i].typeId;
+                if (typeId == 0)
                 {
-                    if (InstanceInfoList[i].typeId != 0)
-                    {
-                        throw new Exception($"RszClass {InstanceInfoList[i].typeId} not found!");
-                    }
-
                     InstanceList.Add(RszInstance.NULL);
                     continue;
+                }
+                RszClass? rszClass = RszParser.GetRSZClass(typeId);
+                if (rszClass == null)
+                {
+                    throw new Exception($"RszClass {typeId} not found!");
                 }
                 if (!instanceIdToUserData.TryGetValue(i, out int userDataIdx))
                 {
@@ -213,11 +213,13 @@ namespace ReeLib
         {
             InstanceList.Clear();
             InstanceList.Add(RszInstance.NULL);
-            InstanceInfoList.Add(new InstanceInfo(Option.Version));
         }
 
         public void ClearObjects()
         {
+            foreach (var obj in ObjectList) {
+                obj.ObjectTableIndex = -1;
+            }
             ObjectTableList.Clear();
             ObjectList.Clear();
         }
@@ -268,7 +270,7 @@ namespace ReeLib
         }
 
         /// <summary>
-        /// Reconstructs the full instance list based on the given list.
+        /// Reconstructs the full instance list based on the given list including nested instances.
         /// Unreferenced / dangling instances will be discarded.
         /// </summary>
         public void RebuildInstanceList(IList<RszInstance> srcList)
@@ -279,6 +281,7 @@ namespace ReeLib
             {
                 foreach (var item in instance.GetChildren(x => x.Index != -1))
                 {
+                    if (item.RszClass == RszClass.Empty) continue;
                     item.Index = -1;
                 }
             }
@@ -378,9 +381,9 @@ namespace ReeLib
         /// 根据实例列表，重建InstanceInfo
         /// </summary>
         /// <param name="flatten">是否先进行flatten</param>
-        public void RebuildInstanceInfo(bool rebuldInstances = true, bool rebuildObjectTable = true)
+        public void RebuildInstanceInfo(bool rebuildInstances = true, bool rebuildObjectTable = true)
         {
-            if (rebuldInstances)
+            if (rebuildInstances)
             {
                 RebuildInstanceList();
             }

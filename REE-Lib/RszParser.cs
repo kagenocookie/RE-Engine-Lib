@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using ReeLib.Common;
+using ReeLib.Data;
 
 namespace ReeLib
 {
@@ -24,6 +25,8 @@ namespace ReeLib
 
         private readonly Dictionary<uint, RszClass> classDict;
         private readonly Dictionary<string, RszClass> classNameDict;
+
+        public Dictionary<string, Dictionary<string, PrefabGameObjectRefProperty>>? PrefabGameObjectRefProps;
 
         public Dictionary<uint, RszClass> ClassDict => classDict;
         public string[]? nonGenericClassNames;
@@ -235,6 +238,11 @@ namespace ReeLib
         public bool IsFieldNative(uint classHash, uint fieldIndex)
         {
             return GetField(classHash, fieldIndex)?.native ?? false;
+        }
+
+        internal void SetupPfbGameObjectRefs(Dictionary<string, Dictionary<string, PrefabGameObjectRefProperty>> pfbRefs)
+        {
+            PrefabGameObjectRefProps = pfbRefs;
         }
     }
 

@@ -82,7 +82,7 @@ namespace ReeLib
     {
         string? Name { get; }
         RszInstance? Instance { get; }
-        ObservableCollection<RszInstance> Components { get; }
+        IList<RszInstance> Components { get; }
 
         IEnumerable<IGameObject> GetChildren();
     }

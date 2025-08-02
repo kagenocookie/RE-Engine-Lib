@@ -4,7 +4,19 @@ namespace ReeLib
     {
         public static bool IsResourcePath(string path)
         {
-            return path.Contains('/') && Path.GetExtension(path) != "";
+            if (!path.Contains('/')) return false;
+            var ext = Path.GetExtension(path.AsSpan()).Trim();
+            if (ext.IsEmpty) return false;
+
+            // there are fields that can seem like paths (e.g. developer comments) but turns out aren't, this should cross those out
+            // example: re7 app.EPVStandardData.Element "Comment"
+            // 初壁登場/モーション【Enemy/em4000/fbx/em4000_Slow_Appear_first.mot.fbx】
+            if (!char.IsAscii(path[0])) return false;
+            foreach (var ch in ext) {
+                if (!char.IsAscii(ch)) return false;
+            }
+
+            return true;
         }
 
         public static void AddUserDataFromRsz(List<UserdataInfo> userdataInfos, RSZFile rsz, int userDataStart = 0, int length = -1)

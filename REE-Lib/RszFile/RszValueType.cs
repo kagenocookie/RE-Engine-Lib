@@ -2,6 +2,8 @@ using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using ReeLib.Pfb;
+using ReeLib.Scn;
 
 namespace ReeLib.via
 {
@@ -837,5 +839,31 @@ namespace ReeLib.via
         public Quaternion rot;
         [FieldOffset(32)]
         public Vector3 scale;
+    }
+
+    public class GameObjectRef
+    {
+        public Guid guid;
+        public IGameObject? target;
+
+        public GameObjectRef() { }
+
+        public GameObjectRef(Guid guid)
+        {
+            this.guid = guid;
+        }
+
+        public GameObjectRef(ScnGameObject gameObj)
+        {
+            this.guid = gameObj.Guid;
+            target = gameObj;
+        }
+
+        public GameObjectRef(PfbGameObject gameObj)
+        {
+            target = gameObj;
+        }
+
+        public override string ToString() => $"{guid} => {target}";
     }
 }

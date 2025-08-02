@@ -156,7 +156,7 @@ public class ResourceTools(Workspace workspace)
         }
         var game = workspace.Config.Game;
         foreach (var refinfo in pfb.GameObjectRefInfoList) {
-            var src = pfb.RSZ.ObjectList[(int)refinfo.Data.objectId];
+            var src = pfb.RSZ.ObjectList[(int)refinfo.objectId];
             var refFields = src.RszClass.fields.Where(IsGameObjectRef).ToArray();
 
             var propInfoDict = workspace.PfbRefProps.GetValueOrDefault(src.RszClass.name);
@@ -166,14 +166,14 @@ public class ResourceTools(Workspace workspace)
             }
 
             var refValues = pfb.GameObjectRefInfoList.Where(rf =>
-                rf.Data.objectId == src.ObjectTableIndex &&
-                (rf.Data.arrayIndex == 0 || 1 == pfb.GameObjectRefInfoList.Count(rf2 => rf2.Data.objectId == src.ObjectTableIndex))
-            ).OrderBy(b => b.Data.propertyId);
+                rf.objectId == src.ObjectTableIndex &&
+                (rf.arrayIndex == 0 || 1 == pfb.GameObjectRefInfoList.Count(rf2 => rf2.objectId == src.ObjectTableIndex))
+            ).OrderBy(b => b.propertyId);
 
             if (refFields.Length == refValues.Count()) {
                 propInfoDict = new();
                 int i = 0;
-                foreach (var propId in refValues.Select(r => r.Data.propertyId)) {
+                foreach (var propId in refValues.Select(r => r.propertyId)) {
                     var refField = refFields[i++];
                     var prop = new PrefabGameObjectRefProperty() { PropertyId = propId, AutoDetected = true };
                     propInfoDict[refField.name] = prop;
@@ -403,7 +403,7 @@ internal sealed class ResourceFieldFinder(Workspace env, ResourceTools resourceT
         var cls = instance.RszClass.name;
         if (resourceFields.nonResources.Contains((cls, field.name))) return false;
 
-        var seemsLikePath = value != null && value.Contains('/') && value.Contains('.');
+        var seemsLikePath = RszUtils.IsResourcePath(value);
         if (!seemsLikePath) {
             // there are fields that can seem like paths (e.g. developer comments) but turns out aren't, this will cross those out
             resourceFields.nonResources.Add((cls, field.name));

@@ -162,24 +162,24 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
     /// <summary>
     /// Attempt to match the filename to a single file and return a <see cref="Stream"/> for it. Automatically adds any missing file extensions and suffixes.
     /// </summary>
-    public Stream? FindSingleFile(string filepath, [MaybeNull] out string resolvedFilename)
+    public Stream? FindSingleFile(string filepath, [MaybeNull] out string resolvedNativeFilepath)
     {
         filepath = PrependBasePath(filepath);
         var match = GetFile(filepath);
         if (match != null) {
-            resolvedFilename = filepath;
+            resolvedNativeFilepath = filepath;
             return match;
         }
 
         foreach (var candidate in FindPossibleFilepaths(filepath)) {
             match = GetFile(candidate);
             if (match != null) {
-                resolvedFilename = candidate;
+                resolvedNativeFilepath = candidate;
                 return match;
             }
         }
 
-        resolvedFilename = null;
+        resolvedNativeFilepath = null;
         return null;
     }
 

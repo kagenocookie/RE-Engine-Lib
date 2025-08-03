@@ -62,6 +62,11 @@ public static class PathUtils
         return p1.SequenceEqual(p2);
     }
 
+    public static string NormalizeFilepath(this string str)
+    {
+        return str.Replace('\\', '/');
+    }
+
     public static ReadOnlySpan<char> GetFilenameExtensionWithSuffixes(ReadOnlySpan<char> filename)
     {
         var extIndex = GetFilenameExtensionStartIndex(filename);

@@ -60,7 +60,7 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
     /// </summary>
     public bool CanUseListFile => ListFile?.Files.Length > 0;
 
-    public bool IsInlineUserdata => config.Game.hash is GameNameHash.re7 or GameNameHash.dmc5 or GameNameHash.re2;
+    public bool IsEmbeddedInstanceInfoUserdata => config.Game.hash is GameNameHash.re7;
     public bool IsEmbeddedUserdata => config.Game.hash is GameNameHash.dmc5 or GameNameHash.re2;
 
     public bool BasePathIsX64 => config.Game.hash is GameNameHash.re7 or GameNameHash.dmc5 or GameNameHash.re2;

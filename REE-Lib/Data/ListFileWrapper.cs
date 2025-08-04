@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace ReeLib;
 
 public class ListFileWrapper
@@ -87,6 +89,44 @@ public class ListFileWrapper
                 yield break;
             }
         }
+    }
+
+
+    public string[] GetFiles(string filter, int limit)
+    {
+        if (filter.Contains('*')) {
+            return FilterAllFiles(filter, limit);
+        } else {
+            return GetFilesInFolder(filter);
+        }
+    }
+
+    /// <summary>
+    /// Filter paths by a regex pattern. The matcher converts ** into .* to allow for "standard" glob patterns.
+    /// </summary>
+    public string[] FilterAllFiles(string pattern, int limit)
+    {
+        pattern = NormalizePath(pattern);
+        var cacheKey = pattern.ToLowerInvariant();
+        if (folderListCache.TryGetValue(cacheKey, out var names)) {
+            return names;
+        }
+
+        var regex = new Regex("^" + pattern.Replace("/.", "\\.").Replace("**", ".*") + "$");
+        return folderListCache[cacheKey] = FilterAllFiles(regex, limit).ToArray();
+    }
+
+    public List<string> FilterAllFiles(Regex regex, int limit)
+    {
+        var list = new List<string>();
+        foreach (var path in Files) {
+            if (regex.IsMatch(path)) {
+                list.Add(path);
+                if (list.Count >= limit) break;
+            }
+        }
+
+        return list;
     }
 
     public string[] GetFilesInFolder(string folder)

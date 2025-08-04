@@ -139,6 +139,8 @@ namespace ReeLib.Msg
         public string Name => Header.entryName;
         public Guid Guid => Header.guid;
 
+        public string GetMessage(Language language) => Strings[(int)language];
+
         public bool Read(FileHandler handler)
         {
             var header = Header;

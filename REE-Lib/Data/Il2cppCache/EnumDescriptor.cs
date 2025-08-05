@@ -19,6 +19,7 @@ public abstract class EnumDescriptor
     public abstract string GetLabel(object value);
     public abstract string GetLabel(JsonElement value);
     public abstract string[] GetLabels();
+    public abstract string[] GetDisplayLabels();
     public abstract object[] GetValues();
 
     public abstract bool HasFlag(object number, object flag);
@@ -59,12 +60,20 @@ public abstract class EnumDescriptor
 
     protected abstract bool GuessIsFlags();
     public abstract void AddValue(string name, JsonElement elem);
+
+    public abstract void ClearDisplayLabels();
+    public abstract void SetDisplayLabel(JsonElement value, string name);
+    public abstract void SetDisplayLabels(IEnumerable<KeyValuePair<JsonElement, string>> labels);
+    public abstract void SetDisplayLabel(string label, string name);
+    public abstract void SetDisplayLabels(IEnumerable<KeyValuePair<string, string>> labels);
 }
 
 public sealed class EnumDescriptor<T> : EnumDescriptor where T : struct, IBinaryInteger<T>, IBitwiseOperators<T, T, T>
 {
     public readonly Dictionary<T, string> ValueToLabels = new();
+    public readonly Dictionary<T, string> ValueToDisplayLabels = new();
     private readonly List<KeyValuePair<string, T>> OrderedValues = new();
+    public readonly Dictionary<string, T> LabelToValues = new();
 
     // need to use Convert.ChangeType because we aren't always getting the same type (e.g. rsz says uint, enum say int)
     public override bool HasFlag(object number, object flag) => ((T)Convert.ChangeType(number, typeof(T)) & (T)flag) != T.Zero;
@@ -97,6 +106,17 @@ public sealed class EnumDescriptor<T> : EnumDescriptor where T : struct, IBinary
             _valuesArray = OrderedValues.Select(kv => (object)kv.Value).ToArray();
         }
         return _valuesArray;
+    }
+
+    private string[]? _displayLabelsArray;
+    public override string[] GetDisplayLabels()
+    {
+        if (_displayLabelsArray == null) {
+            _displayLabelsArray = OrderedValues
+                .Select(kv => ValueToDisplayLabels.TryGetValue(kv.Value, out var display) ? display : kv.Key)
+                .ToArray();
+        }
+        return _displayLabelsArray;
     }
 
     private static Func<JsonElement, T>? converter;
@@ -153,6 +173,7 @@ public sealed class EnumDescriptor<T> : EnumDescriptor where T : struct, IBinary
             return;
         }
         OrderedValues.Add(new KeyValuePair<string, T>(name, val));
+        LabelToValues[name] = val;
         _labelsArray = null;
         _valuesArray = null;
     }
@@ -185,6 +206,52 @@ public sealed class EnumDescriptor<T> : EnumDescriptor where T : struct, IBinary
             converter = static (e) => (T)(object)e.GetByte();
         } else {
             converter = static (e) => default(T);
+        }
+    }
+
+    public override void ClearDisplayLabels()
+    {
+        _displayLabelsArray = null;
+        ValueToDisplayLabels.Clear();
+    }
+
+    public override void SetDisplayLabel(JsonElement value, string name)
+    {
+        _displayLabelsArray = null;
+        if (converter == null) {
+            CreateConverter();
+        }
+        T val = converter!(value);
+        ValueToDisplayLabels[val] = name;
+    }
+
+    public override void SetDisplayLabels(IEnumerable<KeyValuePair<JsonElement, string>> labels)
+    {
+        _displayLabelsArray = null;
+        if (converter == null) {
+            CreateConverter();
+        }
+        foreach (var (key, label) in labels) {
+            T val = converter!(key);
+            ValueToDisplayLabels[val] = label;
+        }
+    }
+
+    public override void SetDisplayLabel(string label, string displayLabel)
+    {
+        if (!LabelToValues.TryGetValue(label, out var value)) {
+            return;
+        }
+        ValueToDisplayLabels[value] = displayLabel;
+    }
+
+    public override void SetDisplayLabels(IEnumerable<KeyValuePair<string, string>> labels)
+    {
+        foreach (var (label, displayLabel) in labels) {
+            if (!LabelToValues.TryGetValue(label, out var value)) {
+                return;
+            }
+            ValueToDisplayLabels[value] = displayLabel;
         }
     }
 }

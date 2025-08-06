@@ -3,9 +3,6 @@ using System.Collections.ObjectModel;
 using ReeLib.Scn;
 
 
-using FolderInfoModel = ReeLib.StructModel<ReeLib.Scn.ScnFolderInfo>;
-
-
 namespace ReeLib.Scn
 {
     public class ScnHeaderStruct : BaseModel {
@@ -153,7 +150,7 @@ namespace ReeLib.Scn
     public class ScnFolderData
     {
         private WeakReference<ScnFolderData>? parentRef;
-        public FolderInfoModel? Info { get; set; }
+        public ScnFolderInfo Info;
         public ObservableCollection<ScnFolderData> Children { get; private set; } = new();
         public ObservableCollection<ScnGameObject> GameObjects { get; private set; } = new();
         public ObservableCollection<ScnPrefabInfo> Prefabs { get; private set; } = new();
@@ -165,7 +162,7 @@ namespace ReeLib.Scn
             set => parentRef = value != null ? new(value) : null;
         }
 
-        public int? ObjectId => Info?.Data.objectId;
+        public int? ObjectId => Info.objectId;
 
         public string? Name
         {
@@ -299,7 +296,7 @@ namespace ReeLib
     {
         public ScnHeaderStruct Header { get; } = new();
         public List<ScnGameObjectInfo> GameObjectInfoList { get; } = new();
-        public List<FolderInfoModel> FolderInfoList { get; } = new();
+        public List<ScnFolderInfo> FolderInfoList { get; } = new();
         public List<ResourceInfo> ResourceInfoList { get; } = new();
         public List<ScnPrefabInfo> PrefabInfoList { get; } = new();
         public List<UserdataInfo> UserdataInfoList { get; } = new();
@@ -346,13 +343,7 @@ namespace ReeLib
 
         protected override bool DoRead()
         {
-            GameObjectInfoList.Clear();
-            FolderInfoList.Clear();
-            ResourceInfoList.Clear();
-            PrefabInfoList.Clear();
-            UserdataInfoList.Clear();
-            FolderDatas?.Clear();
-            GameObjects?.Clear();
+            Clear();
 
             var handler = FileHandler;
             var header = Header;
@@ -365,7 +356,7 @@ namespace ReeLib
             GameObjectInfoList.Read(handler, header.infoCount);
 
             handler.Seek(header.folderInfoOffset);
-            FolderInfoList.Read(handler, header.folderCount);
+            FolderInfoList.ReadStructList(handler, header.folderCount);
 
             handler.Seek(header.resourceInfoOffset);
             for (int i = 0; i < header.resourceCount; i++)
@@ -443,6 +434,17 @@ namespace ReeLib
             return true;
         }
 
+        public void Clear()
+        {
+            GameObjectInfoList.Clear();
+            FolderInfoList.Clear();
+            ResourceInfoList.Clear();
+            PrefabInfoList.Clear();
+            UserdataInfoList.Clear();
+            FolderDatas?.Clear();
+            GameObjects?.Clear();
+        }
+
         /// <summary>
         /// 解析关联的关系，形成树状结构
         /// </summary>
@@ -458,13 +460,13 @@ namespace ReeLib
                     ScnFolderData folderData = new()
                     {
                         Info = info,
-                        Instance = RSZ.ObjectList[info.Data.objectId],
+                        Instance = RSZ.ObjectList[info.objectId],
                     };
-                    if (info.Data.parentId == -1)
+                    if (info.parentId == -1)
                     {
                         FolderDatas.Add(folderData);
                     }
-                    folderIdxMap[info.Data.objectId] = folderData;
+                    folderIdxMap[info.objectId] = folderData;
                 }
             }
 
@@ -511,9 +513,9 @@ namespace ReeLib
 
             foreach (var info in FolderInfoList)
             {
-                if (folderIdxMap.TryGetValue(info.Data.parentId, out var folder))
+                if (folderIdxMap.TryGetValue(info.parentId, out var folder))
                 {
-                    var childFolder = folderIdxMap[info.Data.objectId];
+                    var childFolder = folderIdxMap[info.objectId];
                     folder.Children.Add(childFolder);
                     childFolder.Parent = folder;
                 }
@@ -731,10 +733,10 @@ namespace ReeLib
         private void AddFolderInfoRecursion(ScnFolderData folder)
         {
             RSZ.AddToObjectTable(folder.Instance!);
-            ref var infoData = ref folder.Info!.Data;
+            ref var infoData = ref folder.Info;
             infoData.objectId = folder.Instance!.ObjectTableIndex;
             infoData.parentId = folder.Parent?.ObjectId ?? -1;
-            FolderInfoList.Add(folder.Info!);
+            FolderInfoList.Add(folder.Info);
             foreach (var gameObject in folder.GameObjects)
             {
                 AddGameObjectInfoRecursion(gameObject);
@@ -1082,7 +1084,6 @@ namespace ReeLib
             var folder = new ScnFolderData
             {
                 Instance = RSZ.CreateInstance("via.Folder"),
-                Info = new FolderInfoModel(),
                 Name = name
             };
             if (parent != null)

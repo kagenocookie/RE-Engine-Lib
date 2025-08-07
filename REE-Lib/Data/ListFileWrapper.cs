@@ -27,7 +27,7 @@ public class ListFileWrapper
         queueFolders.Enqueue(folder);
         while (queueFolders.Count > 0) {
             foreach (var file in GetFilesInFolder(queueFolders.Dequeue())) {
-                if (Path.GetExtension(file.AsSpan()).Length > 0) {
+                if (Path.GetExtension(file.AsSpan()).Length == 0) {
                     queueFolders.Enqueue(file);
                 } else if (Filter?.Invoke(file) != false) {
                     list.Add(file);

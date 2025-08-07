@@ -2,6 +2,7 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using ReeLib.Common;
 using ReeLib.UVar;
+using ReeLib.via;
 
 namespace ReeLib.UVar
 {
@@ -224,8 +225,12 @@ namespace ReeLib.UVar
         public UvarFlags flags;
         public uint nameHash;
 
+        public bool IsVec3 => (flags & UvarFlags.IsVec3) != 0;
+
         public object? Value;
         public UvarExpression? Expression { get; set; }
+        public Type? ValueType => GetValueType(type, flags);
+        public Type? RszValueType => GetValueType(type, flags);
 
         // likely set of flags: Const, Expression, HasRange, ReadOnly, WriteProtect, + at least 2 more (Valid?)
         [Flags]
@@ -273,6 +278,86 @@ namespace ReeLib.UVar
             Num = 22,
         }
 
+        public static Type? GetValueType(TypeKind type, UvarFlags flags)
+        {
+            switch (type) {
+                case TypeKind.C8: return typeof(string);
+                case TypeKind.C16: return typeof(string);
+                case TypeKind.String: return typeof(string);
+                case TypeKind.Trigger: return (flags & UvarFlags.IsVec3) == 0 ? null : throw new Exception($"Unhandled uvar vec3 variable type " + type);
+                default:
+                    var vt = GetValueRszType(type, flags);
+                    var baseType = RszInstance.RszFieldTypeToCSharpType(vt.type);
+                    if (vt.array) {
+                        return baseType.MakeArrayType();
+                    }
+                    return baseType;
+            }
+        }
+
+        public static (RszFieldType type, bool array) GetValueRszType(TypeKind type, UvarFlags flags)
+        {
+            if ((flags & UvarFlags.IsVec3) != 0) {
+                switch (type) {
+                    case TypeKind.Int8: return (RszFieldType.S8, true);
+                    case TypeKind.Uint8: return (RszFieldType.U8, true);
+                    case TypeKind.Int16: return (RszFieldType.S16, true);
+                    case TypeKind.Uint16: return (RszFieldType.U16, true);
+                    case TypeKind.Int32: return (RszFieldType.Int3, false);
+                    case TypeKind.Uint32: return (RszFieldType.Uint3, false);
+                    case TypeKind.Int64: return (RszFieldType.S64, true);
+                    case TypeKind.Single: return (RszFieldType.Vec3, false);
+                    case TypeKind.Double: return (RszFieldType.Position, false);
+                    default:
+                        throw new Exception($"Unhandled uvar vec3 variable type " + type);
+                }
+            }
+            switch (type) {
+                case TypeKind.Enum: return (RszFieldType.S32, false);
+                case TypeKind.Boolean: return (RszFieldType.Bool, false);
+                case TypeKind.Int8: return (RszFieldType.S8, false);
+                case TypeKind.Uint8: return (RszFieldType.U8, false);
+                case TypeKind.Int16: return (RszFieldType.S16, false);
+                case TypeKind.Uint16: return (RszFieldType.U16, false);
+                case TypeKind.Int32: return (RszFieldType.S32, false);
+                case TypeKind.Uint32: return (RszFieldType.U32, false);
+                case TypeKind.Single: return (RszFieldType.F32, false);
+                case TypeKind.Double: return (RszFieldType.F64, false);
+                case TypeKind.C8: return (RszFieldType.String, false);
+                case TypeKind.C16: return (RszFieldType.String, false);
+                case TypeKind.String: return (RszFieldType.String, false);
+                case TypeKind.Trigger: return (RszFieldType.Undefined, false);
+                case TypeKind.Vec2: return (RszFieldType.Vec2, false);
+                case TypeKind.Vec3: return (RszFieldType.Vec3, false);
+                case TypeKind.Vec4: return (RszFieldType.Vec4, false);
+                case TypeKind.Matrix: return (RszFieldType.Mat4, false);
+                case TypeKind.GUID: return (RszFieldType.Guid, false);
+                default:
+                    throw new Exception($"Unhandled uvar variable type " + type);
+            }
+        }
+
+        public void ResetValue()
+        {
+            var varType = GetValueType(type, flags);
+            if (varType == null) {
+                Value = null;
+                return;
+            }
+
+            if (varType.IsArray) {
+                Value = Array.CreateInstance(varType.GetElementType()!, 3);
+                return;
+            }
+
+            if (varType == typeof(string)) {
+                Value = string.Empty;
+                return;
+            }
+
+            Value = Activator.CreateInstance(varType);
+        }
+
         protected override bool DoRead(FileHandler handler)
         {
             handler.Read(ref guid);
@@ -289,16 +374,17 @@ namespace ReeLib.UVar
 
             if (valueOffset > 0) {
                 handler.Seek(valueOffset);
-                if ((flags & UvarFlags.IsVec3) != 0)
+                if (IsVec3)
                 {
                     switch (type) {
                         case TypeKind.Int8: Value = handler.ReadArray<sbyte>(3); break;
                         case TypeKind.Uint8: Value = handler.ReadArray<byte>(3); break;
                         case TypeKind.Int16: Value = handler.ReadArray<short>(3); break;
                         case TypeKind.Uint16: Value = handler.ReadArray<ushort>(3); break;
-                        case TypeKind.Int32: Value = handler.ReadArray<int>(3); break;
-                        case TypeKind.Uint32: Value = handler.ReadArray<uint>(3); break;
+                        case TypeKind.Int32: Value = handler.Read<Int3>(); break;
+                        case TypeKind.Uint32: Value = handler.Read<Uint3>(); break;
                         case TypeKind.Single: Value = handler.Read<Vector3>(); break;
+                        case TypeKind.Double: Value = handler.Read<Position>(); break;
                         default:
                             throw new Exception($"Unhandled vec3 variable type " + Name + " = " + type);
                     }
@@ -306,27 +392,13 @@ namespace ReeLib.UVar
                 else
                 {
                     switch (type) {
-                        case TypeKind.Enum: Value = handler.Read<int>(); break;
-                        case TypeKind.Boolean: Value = handler.Read<bool>(); break;
-                        case TypeKind.Int8: Value = handler.Read<sbyte>(); break;
-                        case TypeKind.Uint8: Value = handler.Read<byte>(); break;
-                        case TypeKind.Int16: Value = handler.Read<short>(); break;
-                        case TypeKind.Uint16: Value = handler.Read<ushort>(); break;
-                        case TypeKind.Int32: Value = handler.Read<int>(); break;
-                        case TypeKind.Uint32: Value = handler.Read<uint>(); break;
-                        case TypeKind.Single: Value = handler.Read<float>(); break;
-                        case TypeKind.Double: Value = handler.Read<double>(); break;
                         case TypeKind.C8: Value = handler.ReadOffsetAsciiString(); break;
                         case TypeKind.C16: Value = handler.ReadOffsetWString(); break;
                         case TypeKind.String: Value = handler.ReadWString(); break;
                         case TypeKind.Trigger: break;
-                        case TypeKind.Vec2: Value = handler.Read<Vector2>(); break;
-                        case TypeKind.Vec3: Value = handler.Read<Vector3>(); break;
-                        case TypeKind.Vec4: Value = handler.Read<Vector4>(); break;
-                        case TypeKind.Matrix: Value = handler.Read<via.mat4>(); break;
-                        case TypeKind.GUID: Value = handler.Read<Guid>(); break;
                         default:
-                            throw new Exception("Unhandled variable type " + Name + " = " + type);
+                            Value = handler.ReadObject(ValueType!);
+                            break;
                     }
                 }
             }
@@ -360,14 +432,14 @@ namespace ReeLib.UVar
             if (Value != null)
             {
                 handler.Write(Start + 24, valueOffset = handler.Tell());
-                if ((flags & UvarFlags.IsVec3) != 0) {
+                if (IsVec3) {
                     switch (type) {
                         case TypeKind.Int8: handler.WriteArray((sbyte[])Value); break;
                         case TypeKind.Uint8: handler.WriteArray((byte[])Value); break;
                         case TypeKind.Int16: handler.WriteArray((short[])Value); break;
                         case TypeKind.Uint16: handler.WriteArray((ushort[])Value); break;
-                        case TypeKind.Int32: handler.WriteArray((int[])Value); break;
-                        case TypeKind.Uint32: handler.WriteArray((uint[])Value); break;
+                        case TypeKind.Int32: handler.Write((Int3)Value); break;
+                        case TypeKind.Uint32: handler.Write((Uint3)Value); break;
                         case TypeKind.Single: handler.Write((Vector3)Value); break;
                         default:
                             throw new Exception("Unhandled vec3 variable type " + Name + " = " + type);
@@ -375,31 +447,13 @@ namespace ReeLib.UVar
                     return;
                 }
                 switch (type) {
-                    case TypeKind.Enum: handler.Write((int)Value); break;
-                    case TypeKind.Boolean: handler.Write((bool)Value); break;
-                    case TypeKind.Int8: handler.Write((sbyte)Value); break;
-                    case TypeKind.Uint8: handler.Write((byte)Value); break;
-                    case TypeKind.Int16: handler.Write((short)Value); break;
-                    case TypeKind.Uint16: handler.Write((ushort)Value); break;
-                    case TypeKind.Int32: handler.Write((int)Value); break;
-                    case TypeKind.Uint32: handler.Write((uint)Value); break;
-                    case TypeKind.Single:
-                            // TODO: sometimes it seems to be 3 float and not just one?s
-                        if ((flags & UvarFlags.IsVec3) != 0) handler.Write((Vector3)Value);
-                        else handler.Write((float)Value);
-                        break;
-                    case TypeKind.Double: handler.Write((double)Value); break;
                     case TypeKind.C8: handler.Write(handler.Tell() + 8); handler.WriteAsciiString((string)Value); break;
                     case TypeKind.C16: handler.Write(handler.Tell() + 8); handler.WriteWString((string)Value); break;
                     case TypeKind.String: handler.WriteWString((string)Value); break;
                     case TypeKind.Trigger: break;
-                    case TypeKind.Vec2: handler.Write((Vector2)Value); break;
-                    case TypeKind.Vec3: handler.Write((Vector3)Value); break;
-                    case TypeKind.Vec4: handler.Write((Vector4)Value); break;
-                    case TypeKind.Matrix: handler.Write((Matrix4x4)Value); break;
-                    case TypeKind.GUID: handler.Write((Guid)Value); break;
                     default:
-                        throw new Exception("Unhandled variable type " + Name + " = " + type);
+                        handler.WriteObject(Value);
+                        break;
                 }
                 handler.Align(4);
             }
@@ -413,7 +467,7 @@ namespace ReeLib.UVar
             Expression.Write(handler);
         }
 
-        public override string ToString() => $"{Name} = {Value}";
+        public override string ToString() => $"{Name} = {(Value?.GetType().IsArray == true ? string.Join(", ", ((Array)Value).Cast<object>()) : Value?.ToString() ?? "No Value")}";
     }
 
 

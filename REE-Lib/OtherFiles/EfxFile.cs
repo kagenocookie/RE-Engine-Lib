@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using ReeLib.Common;
 using ReeLib.Efx.Structs.Common;
@@ -177,6 +178,7 @@ namespace ReeLib.Efx
         };
 
         public EfxVersion Version;
+        public bool IsTypeAttribute => type.ToString().StartsWith("Type") && this is not IExpressionAttribute and not IClipAttribute and not IMaterialExpressionAttribute;
 
         public static EFXAttribute Create(EfxVersion version, EfxAttributeType type, int seqNum = -1)
         {
@@ -192,24 +194,92 @@ namespace ReeLib.Efx
         {
         }
 
-        public override string ToString() => type.ToString();
+        public override string ToString() => type.ToString() + " " + NodePosition;
     }
 
-    public class EFXEntry : BaseModel
+    public abstract class EFXEntryBase : BaseModel
     {
         public EfxVersion Version;
-
-        public int index;
-        public uint effectNameHash;
-        public EfxEntryEnum entryAssignment;
+        public uint nameHash;
         public string? name;
         public List<EFXAttribute> Attributes { get; } = new();
+
+        public EFXAttribute? TypeAttribute => Attributes.FirstOrDefault(attr => attr.IsTypeAttribute);
+
+        public bool Contains(EfxAttributeType type) => Attributes.Any(attr => attr.type == type);
+        public bool TryGet<T>([MaybeNullWhen(false)] out T attr) where T : EFXAttribute => (attr = Attributes.OfType<T>().FirstOrDefault()) != null;
+        public void ReorderEntries() => Attributes.Sort(AttributeTypeIdComparer.Instance);
+
+        public bool AddAttribute(EFXAttribute attr)
+        {
+            if (attr.IsTypeAttribute && Attributes.Any(other => other.IsTypeAttribute)) {
+                Log.Error($"Entry already has a Type* attribute!");
+                return false;
+            }
+            if (attr is IExpressionAttribute && Enum.TryParse<EfxAttributeType>(attr.type.ToString().Replace("Expression", ""), out var exprType) && !Contains(exprType)) {
+                Log.Error($"Matching main attribute {attr.type.ToString().Replace("Expression", "")} not found!");
+                return false;
+            }
+            if (attr is IMaterialExpressionAttribute && Enum.TryParse<EfxAttributeType>(attr.type.ToString().Replace("MaterialExpression", ""), out var matexprType) && !Contains(matexprType)) {
+                Log.Error($"Matching main attribute {attr.type.ToString().Replace("MaterialExpression", "")} not found!");
+                return false;
+            }
+            if (attr is IClipAttribute && Enum.TryParse<EfxAttributeType>(attr.type.ToString().Replace("MaterialClip", "").Replace("Clip", ""), out var clipType) && !Contains(clipType)) {
+                Log.Error($"Matching main attribute {attr.type.ToString().Replace("MaterialClip", "").Replace("Clip", "")} not found!");
+                return false;
+            }
+            if (attr.type is EfxAttributeType.PlayEmitter or EfxAttributeType.PlayEfx && this is EFXEntry) {
+                Log.Error($"PlayEmitter and PlayEfx (probably) can't be added to the base EFX entries!");
+                return false;
+            }
+
+            var newId = EfxAttributeTypeRemapper.ToAttributeTypeID(Version, attr.type);
+            var nextIndex = Attributes.FindIndex(other => EfxAttributeTypeRemapper.ToAttributeTypeID(Version, other.type) >= newId);
+            if (nextIndex == -1) {
+                Attributes.Add(attr);
+            } else {
+                var higher = Attributes[nextIndex];
+                if (higher.type == attr.type) {
+                    Log.Error($"{attr.type} already exists!");
+                    return false;
+                }
+
+                Attributes.Insert(nextIndex, attr);
+            }
+            return true;
+        }
+
+        public EFXAttribute? AddAttribute(EfxAttributeType key)
+        {
+            var attr = EFXAttribute.Create(Version, key);
+            if (AddAttribute(attr)) {
+                return attr;
+            }
+
+            return null;
+        }
+
+        private sealed class AttributeTypeIdComparer : IComparer<EFXAttribute>
+        {
+            public static readonly AttributeTypeIdComparer Instance = new();
+            public int Compare(EFXAttribute? x, EFXAttribute? y)
+            {
+                if (x == null || y == null) return 0;
+                return EfxAttributeTypeRemapper.ToAttributeTypeID(x.Version, x.type).CompareTo(EfxAttributeTypeRemapper.ToAttributeTypeID(y.Version, y.type));
+            }
+        }
+    }
+
+    public class EFXEntry : EFXEntryBase
+    {
+        public int index;
+        public EfxEntryEnum entryAssignment;
         public List<string> Groups { get; } = new();
 
         protected override bool DoRead(FileHandler handler)
         {
             handler.Read(ref index);
-            handler.Read(ref effectNameHash);
+            handler.Read(ref nameHash);
             handler.Read(ref entryAssignment);
             var attributeCount = handler.Read<int>();
             int lastAttributeTypeId = -1;
@@ -239,8 +309,8 @@ namespace ReeLib.Efx
         protected override bool DoWrite(FileHandler handler)
         {
             handler.Write(ref index);
-            effectNameHash = MurMur3HashUtils.GetUTF8Hash(name ?? string.Empty);
-            handler.Write(ref effectNameHash);
+            nameHash = MurMur3HashUtils.GetUTF8Hash(name ?? string.Empty);
+            handler.Write(ref nameHash);
             handler.Write(ref entryAssignment);
             handler.Write(Attributes.Count);
             foreach (var attr in Attributes) {
@@ -304,21 +374,15 @@ namespace ReeLib.Efx
         public uint value;
     }
 
-    public class EFXAction : BaseModel
+    public class EFXAction : EFXEntryBase
     {
         public int actionUnkn0;
-        public uint actionNameHash;
         public int actionAttributeCount;
-        public List<EFXAttribute> Attributes { get; } = new();
-
-        public string? name;
-
-        public EfxVersion Version;
 
         protected override bool DoRead(FileHandler handler)
         {
             handler.Read(ref actionUnkn0);
-            handler.Read(ref actionNameHash);
+            handler.Read(ref nameHash);
             handler.Read(ref actionAttributeCount);
             for (int i = 0; i < actionAttributeCount; ++i) {
                 var type = Version.GetAttributeType(handler.Read<int>());
@@ -334,10 +398,10 @@ namespace ReeLib.Efx
         protected override bool DoWrite(FileHandler handler)
         {
             actionAttributeCount = Attributes.Count;
-            actionNameHash = MurMur3HashUtils.GetUTF8Hash(name ?? string.Empty);
+            nameHash = MurMur3HashUtils.GetUTF8Hash(name ?? string.Empty);
 
             handler.Write(ref actionUnkn0);
-            handler.Write(ref actionNameHash);
+            handler.Write(ref nameHash);
             handler.Write(ref actionAttributeCount);
             foreach (var attr in Attributes) {
                 handler.Write(Version.ToAttributeTypeID(attr.type));
@@ -346,6 +410,8 @@ namespace ReeLib.Efx
             }
             return true;
         }
+
+        public override string ToString() => name ?? $"Action {actionUnkn0}";
     }
 
     [RszGenerate]
@@ -647,6 +713,14 @@ namespace ReeLib
             {
                 SetupBoneReferences();
             }
+
+            foreach (var action in Actions) {
+                foreach (var a in action.Attributes.OfType<EFXAttributePlayEmitter>()) {
+                    if (a.efxrData != null) {
+                        a.efxrData.parentFile = this;
+                    }
+                }
+            }
             return true;
         }
 
@@ -666,7 +740,6 @@ namespace ReeLib
             foreach (var action in Actions) {
                 foreach (var a in action.Attributes.OfType<EFXAttributePlayEmitter>()) {
                     if (a.efxrData != null) {
-                        a.efxrData.parentFile = this;
                         a.efxrData.ParseExpressions();
                     }
                 }

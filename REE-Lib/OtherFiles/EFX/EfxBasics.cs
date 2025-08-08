@@ -492,10 +492,11 @@ public sealed partial class EFXAttributePlayEmitter : EFXAttribute, IDisposable
 
     protected override bool DoWrite(FileHandler handler)
     {
-		var start = handler.Position;
+		var sizeMarker = handler.Position;
 		handler.Skip(sizeof(uint));
-		efxrData?.WriteTo(handler.WithOffset(handler.Position), false);
-		handler.Write(start, (uint)(handler.Position - start));
+		var start = handler.Position;
+		efxrData?.WriteTo(handler.WithOffset(start), false);
+		handler.Write(sizeMarker, (uint)(handler.Position - start));
 		return true;
     }
 

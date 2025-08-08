@@ -423,6 +423,8 @@ namespace ReeLib.Efx
     {
         public string name = string.Empty;
         public uint value;
+
+        public override string ToString() => $"{name} = {value}";
     }
 
     [RszGenerate, RszAutoReadWrite]
@@ -498,10 +500,6 @@ namespace ReeLib
         public List<EFXFieldParameterValue> FieldParameterValues = new();
         private List<EffectGroup>? _effectGroups;
         public List<EFXUvarGroup> UvarGroups = new();
-        /// <summary>
-        /// RE7
-        /// </summary>
-        public int[]? expressionData;
 
         public EfxFile? parentFile;
 
@@ -556,6 +554,16 @@ namespace ReeLib
         };
         public static EfxVersion[] AllVersions => (EfxVersion[])Enum.GetValues(typeof(EfxVersion));
 
+        public void Clear()
+        {
+            ExpressionParameters.Clear();
+            FieldParameterValues.Clear();
+            BoneRelations.Clear();
+            Actions.Clear();
+            Entries.Clear();
+            UvarGroups.Clear();
+        }
+
         protected override bool DoRead()
         {
             var handler = FileHandler;
@@ -563,6 +571,8 @@ namespace ReeLib
             Header.Read(handler);
             Strings = new Strings(Header);
             Strings.Read(handler);
+
+            Clear();
 
             for (int i = 0; i < Header.expressionParameterCount; ++i) {
                 var param = new EFXExpressionParameter();
@@ -579,7 +589,6 @@ namespace ReeLib
                     value = data.value,
                 });
             }
-            BoneRelations.Clear();
             for (int i = 0; i < Header.boneAttributeEntryCount; ++i) BoneRelations.Add(handler.Read<short>());
 
             if (Header.Version > EfxVersion.RE7) {
@@ -597,7 +606,6 @@ namespace ReeLib
                 ReadActions(handler);
             }
 
-            Entries.Clear();
             for (int i = 0; i < Header.entryCount; ++i) {
                 var entry = new EFXEntry() { Version = Header.Version };
                 entry.name = Strings.EfxNames[i];
@@ -623,13 +631,11 @@ namespace ReeLib
                 if (uvarType1 != 0) {
                     var grp = new EFXUvarGroup() { uvarType = uvarType1 };
                     grp.Read(handler);
-                    UvarGroups ??= new();
                     UvarGroups.Add(grp);
                 }
                 if (uvarType2 != 0) {
                     var grp = new EFXUvarGroup() { uvarType = uvarType2 };
                     grp.Read(handler);
-                    UvarGroups ??= new();
                     UvarGroups.Add(grp);
                 }
                 if (uvarType1 > 2 || uvarType2 > 2) {

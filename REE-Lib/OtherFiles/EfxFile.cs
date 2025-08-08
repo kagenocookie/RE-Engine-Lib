@@ -194,7 +194,7 @@ namespace ReeLib.Efx
         {
         }
 
-        public override string ToString() => type.ToString() + " " + NodePosition;
+        public override string ToString() => type.ToString();
     }
 
     public abstract class EFXEntryBase : BaseModel

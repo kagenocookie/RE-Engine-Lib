@@ -12,6 +12,7 @@ public partial class EFXAttributeEmitterColor : EFXAttribute
 	public uint unkn2;
 	public via.Color color;
 
+    public override string ToString() => $"EmitterColor: {color}";
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.EmitterColorClip, EfxVersion.RE4)]
@@ -207,6 +208,8 @@ public partial class EFXAttributeMeshEmitter : EFXAttribute
 
 	[RszVersion(EfxVersion.DD2), RszInlineWString(nameof(nameLength))]
 	public string? name;
+
+    public override string ToString() => !string.IsNullOrEmpty(meshPath) ? meshPath : type.ToString();
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.MeshEmitterClip, EfxVersion.DMC5)]

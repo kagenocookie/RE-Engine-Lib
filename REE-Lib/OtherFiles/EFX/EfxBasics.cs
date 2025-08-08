@@ -52,8 +52,10 @@ public partial class EFXAttributeSpawn : EFXAttribute
 	public uint re4_unkn6;
 
 	[RszVersion(EfxVersion.MHWilds)] public byte mhws_unkn_toggle;
-	// [RszVersion(EfxVersion.MHWilds)] public uint mhws_unkn1;
-	// [RszVersion(EfxVersion.MHWilds)] public uint mhws_unkn2;
+    // [RszVersion(EfxVersion.MHWilds)] public uint mhws_unkn1;
+    // [RszVersion(EfxVersion.MHWilds)] public uint mhws_unkn2;
+
+    public override string ToString() => $"Count = {spawnNum}";
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.SpawnExpression, EfxVersion.RE3, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
@@ -101,6 +103,8 @@ public partial class EFXAttributeParentOptions : EFXAttribute, IBoneRelationAttr
 	[RszInlineWString] public string? boneName;
 
     public string? ParentBone { get; set; }
+
+    public override string ToString() => !string.IsNullOrEmpty(boneName) ? boneName : type.ToString();
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.ParentOptionsExpression, EfxVersion.DD2)]
@@ -134,6 +138,8 @@ public partial class EFXAttributeLife : EFXAttribute
 	public uint unkn9;
 
 	public EFXAttributeLife() : base(EfxAttributeType.Life) { }
+
+    public override string ToString() => $"Appear {AppearFrameRange}, Keep {KeepFrameRange}, Vanish {VanishFrameRange}";
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.LifeExpression, EfxVersion.RE7, EfxVersion.RE2, EfxVersion.DMC5, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
@@ -207,6 +213,8 @@ public partial class TextureUnitData : BaseModel
 	public UndeterminedFieldType unkn37;
 	public float unkn38;
 	public float unkn39;
+
+    public override string ToString() => $"TextureUnitData: Color = {color}";
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TextureUnit, EfxVersion.DMC5, EfxVersion.RE4, EfxVersion.DD2)]
@@ -219,12 +227,14 @@ public partial class EFXAttributeTextureUnit : EFXAttribute
 	[RszClassInstance] public TextureUnitData? texUnit2;
 	[RszClassInstance] public TextureUnitData? texUnit3;
 
-	public uint uvs0PathCharCount;
-	public uint uvs1PathCharCount;
-	public uint uvs2PathCharCount;
+	[RszStringLengthField(nameof(uvs0Path))] public int uvs0PathCharCount;
+	[RszStringLengthField(nameof(uvs1Path))] public int uvs1PathCharCount;
+	[RszStringLengthField(nameof(uvs2Path))] public int uvs2PathCharCount;
 	[RszInlineWString(nameof(uvs0PathCharCount))] public string? uvs0Path;
 	[RszInlineWString(nameof(uvs1PathCharCount))] public string? uvs1Path;
 	[RszInlineWString(nameof(uvs2PathCharCount))] public string? uvs2Path;
+
+    public override string ToString() => $"UVS path: {uvs0Path}, {uvs1Path}, {uvs2Path}";
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TextureUnitExpression, EfxVersion.DD2)]
@@ -283,6 +293,8 @@ public partial class EFXAttributeUVSequence : EFXAttribute
 	public float animationSpeedRandom;
 	public uint mode;//<comment="0 - Show only starting frame,1 - Looped Animation, 2 - Play once and disappear after last frame, 3 - Play once and stay on last frame until end of duration in Life struct.">;
 	[RszInlineWString] public string? uvsPath;
+
+    public override string ToString() => $"UVS path: {uvsPath}";
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UVSequenceModifier, EfxVersion.RE4, EfxVersion.DD2)]
 public partial class EFXAttributeUVSequenceModifier : EFXAttribute
@@ -468,6 +480,8 @@ public partial class EFXAttributePlayEfx : EFXAttribute
 
 	// [RszVersion(EfxVersion.MHWilds)] public uint mhws_unkn;
 	[RszInlineWString] public string? efxPath;
+
+    public override string ToString() => $"Efx path: {efxPath}";
 }
 
 [RszGenerate, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PlayEmitter, EfxVersion.DMC5, EfxVersion.RE4)]
@@ -513,4 +527,6 @@ public partial class EFXAttributeRenderTarget : EFXAttribute
 
 	public uint unkn_toggle;
 	[RszInlineWString] public string? rtexPath;
+
+    public override string ToString() => $"RenderTarget: {rtexPath}";
 }

@@ -183,6 +183,8 @@ public partial class EFXAttributePtBehavior : EFXAttribute
 	[RszVersion(EfxVersion.MHWilds)] [RszArraySizeField(nameof(properties))] public int varCount_mhws;
 	[RszClassInstance, RszList(nameof(Version), '<', EfxVersion.MHWilds, '?', nameof(varCount), ':', nameof(varCount_mhws)), RszConstructorParams(nameof(Version))]
 	public List<PtBehaviorVariable> properties = new();
+
+    public override string ToString() => $"{behaviorString}";
 }
 
 
@@ -285,6 +287,8 @@ public partial class EFXAttributePtColor : EFXAttribute
 	public uint unkn1;
 	public uint unkn2;
 	public via.Color color0;
+
+	public override string ToString() => $"PtColor: {color0}";
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtColorClip, EfxVersion.DMC5)]

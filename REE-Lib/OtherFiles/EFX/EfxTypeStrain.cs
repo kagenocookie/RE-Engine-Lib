@@ -53,6 +53,8 @@ public partial class EFXAttributeTypeStrainRibbonV1 : ReeLib.Efx.EFXAttribute
     public float ukn4_0;
     public float ukn4_1;
     [RszInlineWString] public string? boneName;
+
+    public override string ToString() => !string.IsNullOrEmpty(boneName) ? boneName : type.ToString();
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeStrainRibbon, EfxVersion.RE8, EfxVersion.RERT)]
@@ -136,6 +138,8 @@ public partial class EFXAttributeTypeStrainRibbonV2 : EFXAttribute, IBoneRelatio
 	[RszInlineWString] public string? boneName;
 
     public string? ParentBone { get; set; }
+
+    public override string ToString() => !string.IsNullOrEmpty(boneName) ? boneName : type.ToString();
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeStrainRibbon, EfxVersion.RE4)]
@@ -213,6 +217,8 @@ public partial class EFXAttributeTypeStrainRibbonV3 : EFXAttribute
 	public float unkn8_4;
 	public int unkn8_5;
 	public float unkn8_6;
+
+    public override string ToString() => !string.IsNullOrEmpty(boneName) ? boneName : type.ToString();
 }
 
 

@@ -12,6 +12,8 @@ public partial class EFXAttributeTransform2D : EFXAttribute
 	public Vector2 scale;
 
 	public EFXAttributeTransform2D() : base(EfxAttributeType.Transform2D) { }
+
+    public override string ToString() => $"Translate {position} rotate {rotation} scale {scale}";
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Transform2DClip, EfxVersion.RERT)]
@@ -107,6 +109,8 @@ public partial class EFXAttributeTransform3D : EFXAttribute
 	public Vector3 rotation;
 	public Vector3 scale;
 	public int rotationOrder;
+
+    public override string ToString() => $"Translate {translation} rotate {rotation} scale {scale}";
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Transform3DExpression, EfxVersion.DMC5, EfxVersion.RE4, EfxVersion.DD2)]

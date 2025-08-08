@@ -276,6 +276,8 @@ public partial class EFXAttributeEffectOptimizeShader : EFXAttribute
     public ByteSet unkn20;
 
 	[RszInlineWString] public string? shaderPath;
+
+    public override string ToString() => !string.IsNullOrEmpty(shaderPath) ? shaderPath : type.ToString();
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Attractor, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
@@ -298,6 +300,8 @@ public partial class EFXAttributeAttractor : EFXAttribute, IBoneRelationAttribut
 	[RszInlineWString] public string? boneName;
 
     public string? ParentBone { get; set; }
+
+    public override string ToString() => !string.IsNullOrEmpty(boneName) ? boneName : type.ToString();
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.AttractorClip, EfxVersion.RE8)]
@@ -529,6 +533,8 @@ public partial class EFXAttributeVanishArea3D : EFXAttribute, IBoneRelationAttri
 	[RszInlineWString] public string? boneName;
 
     public string? ParentBone { get; set; }
+
+    public override string ToString() => !string.IsNullOrEmpty(boneName) ? boneName : type.ToString();
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.VanishArea3DExpression, EfxVersion.RE4)]
 public partial class EFXAttributeVanishArea3DExpression : EFXAttribute, IExpressionAttribute
@@ -764,6 +770,8 @@ public partial class EFXAttributeFlowMap : EFXAttribute
 	public float unkn8;
 
 	[RszInlineWString] public string? flowmapMaskPath;
+
+    public override string ToString() => !string.IsNullOrEmpty(flowmapMaskPath) ? flowmapMaskPath : type.ToString();
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.AssignCSV, EfxVersion.RE4)]
@@ -778,6 +786,8 @@ public partial class EFXAttributeAssignCSV : EFXAttribute
     [RszInlineWString] public string? unknString0;
     [RszInlineWString] public string? unknString1;
     [RszInlineWString] public string? unknString2;
+
+    public override string ToString() => !string.IsNullOrEmpty(efcsvPath) ? efcsvPath : type.ToString();
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.DestinationCSV, EfxVersion.DD2)]
@@ -796,6 +806,8 @@ public partial class EFXAttributeDestinationCSV : EFXAttribute
 	[RszInlineWString] public string? unknPath2;
 	[RszInlineWString] public string? unknPath3;
 	[RszInlineWString] public string? unknPath4;
+
+    public override string ToString() => !string.IsNullOrEmpty(efcsvPath) ? efcsvPath : type.ToString();
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TerrainSnap, EfxVersion.DD2)]

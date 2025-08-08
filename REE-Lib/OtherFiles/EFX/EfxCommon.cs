@@ -79,6 +79,8 @@ public partial class EfxMaterialStructV1 : EfxMaterialStructBase
     [RszInlineWString(nameof(mdfPathLength))] public string? mdfPath;
     [RszInlineWString(nameof(mmtrPathLength))] public string? mmtrPath;
 	[RszInlineWString, RszList(nameof(texCount))] public string[]? texPaths;
+
+    public override string ToString() => $"Material: {mdfPath}";
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion))]
@@ -102,6 +104,8 @@ public partial class EfxMaterialStructV2 : EfxMaterialStructBase
     public List<MdfProperty> properties = new();
 	public uint texBlockSize;
 	[RszInlineWString, RszList(nameof(texCount))] public string[]? texPaths;
+
+    public override string ToString() => $"Material: {mdfPath}";
 }
 
 public struct ByteSet

@@ -100,6 +100,8 @@ public partial class EFXAttributeTypeLightning3DV1 : ReeLib.Efx.EFXAttribute, IB
 	[RszInlineWString] public string? boneName;
 
     public string? ParentBone { get; set; }
+
+	public override string ToString() => !string.IsNullOrEmpty(boneName) ? boneName : type.ToString();
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeLightning3D, EfxVersion.MHRiseSB, EfxVersion.DD2)]
 public partial class EFXAttributeTypeLightning3D : EFXAttribute, IBoneRelationAttribute
@@ -196,6 +198,8 @@ public partial class EFXAttributeTypeLightning3D : EFXAttribute, IBoneRelationAt
 	[RszInlineWString] public string? boneName;
 
     public string? ParentBone { get; set; }
+
+    public override string ToString() => !string.IsNullOrEmpty(boneName) ? boneName : type.ToString();
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeLightning3DExpression, EfxVersion.DD2)]
 public partial class EFXAttributeTypeLightning3DExpression : EFXAttribute, IExpressionAttribute
@@ -353,6 +357,8 @@ public partial class EFXAttributeTypeLightning3DMaterial : EFXAttribute
 	)]
 	public EfxMaterialStructBase? material;
 	[RszInlineWString] public string? uknString;
+
+    public override string ToString() => !string.IsNullOrEmpty(uknString) ? uknString : type.ToString();
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeLightning3DMaterialClip, EfxVersion.DD2)]
@@ -541,6 +547,8 @@ public partial class EFXAttributeTypeGpuLightning3D : EFXAttribute
 	[RszInlineWString(-1)] public string? str1;
 	[RszInlineWString(-1)] public string? str2;
 	[RszInlineWString(-1)] public string? str3;
+
+	public override string ToString() => !string.IsNullOrEmpty(str1) ? str1 : type.ToString();
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeLightningExpensive, EfxVersion.MHWilds)]

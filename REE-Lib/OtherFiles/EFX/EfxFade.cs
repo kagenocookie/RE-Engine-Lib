@@ -42,6 +42,8 @@ public partial class EFXAttributeFadeByDepth : EFXAttribute
 	public float nearEnd;
 	public float farStart;
 	public float farEnd;
+
+    public override string ToString() => $"{nearStart} - {nearEnd} - {farStart} - {farEnd}";
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.FadeByDepthExpression, EfxVersion.DMC5, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]

@@ -53,6 +53,8 @@ public partial class EFXAttributeTypeMesh : ReeLib.Efx.EFXAttribute
 
     [RszVersion(EfxVersion.RE2)]
 	[RszInlineWString, RszList(nameof(texCount))] public string[]? texPaths;
+
+    public override string ToString() => meshPath ?? GetType().Name;
 }
 
 [RszGenerate, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeMesh, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2, EfxVersion.MHWilds)]
@@ -120,6 +122,8 @@ public partial class EFXAttributeTypeMeshV2 : EFXAttribute
         propertiesDataSize = properties.Count * MdfProperty.GetSize(Version);
         return DefaultWrite(handler);
     }
+
+    public override string ToString() => meshPath ?? GetType().Name;
 }
 
 
@@ -392,6 +396,8 @@ public partial class EFXAttributeTypeGpuMesh : EFXAttribute
 		DefaultWrite(handler);
 		return true;
     }
+
+    public override string ToString() => !string.IsNullOrEmpty(meshPath) ? meshPath : type.ToString();
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuMeshClip, EfxVersion.DD2)]
@@ -514,6 +520,8 @@ public partial class EFXAttributeTypeGpuMeshTrail : EFXAttribute
 	// [RszFixedSizeArray(nameof(dataSize), '/', 4)] public uint[]? data;
     public uint texBlockLength;
 	// [RszInlineWString, RszList(nameof(texCount))] public string[]? texPaths;
+
+    public override string ToString() => !string.IsNullOrEmpty(meshPath) ? meshPath : type.ToString();
 }
 
 [RszGenerate, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuMeshTrail, EfxVersion.DD2)]
@@ -594,6 +602,8 @@ public partial class EFXAttributeTypeGpuMeshTrailV2 : EFXAttribute
         propertiesDataSize = properties.Count * MdfProperty.GetSize(Version);
         return DefaultWrite(handler);
     }
+
+    public override string ToString() => !string.IsNullOrEmpty(meshPath) ? meshPath : type.ToString();
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuMeshTrailClip, EfxVersion.DD2)]

@@ -1,6 +1,7 @@
 namespace ReeLib.Data;
 
 using System.Reflection;
+using System.Text.Json.Serialization;
 using ReeLib.Efx;
 using ReeLib.Il2cpp;
 
@@ -35,6 +36,12 @@ public sealed class EfxCacheData
     public Dictionary<string, EfxClassInfo> AttributeTypes = new();
     public Dictionary<string, EfxClassInfo> Structs = new();
     public Dictionary<string, EnumDescriptor> Enums = new();
+
+    [JsonIgnore]
+    private Dictionary<EfxAttributeType, EfxClassInfo>? _enumAttributeTypes;
+    [JsonIgnore]
+    public Dictionary<EfxAttributeType, EfxClassInfo> EnumAttributeTypes
+        => _enumAttributeTypes ??= AttributeTypes.ToDictionary(kv => Enum.Parse<EfxAttributeType>(kv.Key), kv => kv.Value);
 }
 
 public static class EfxExtensions

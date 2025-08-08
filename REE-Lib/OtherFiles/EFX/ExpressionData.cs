@@ -92,6 +92,19 @@ public struct EFXExpressionParameterName
 	public float constantValue; // default value for External, constant value for Constant
 	public ExpressionParameterSource source;
 
+    public readonly string? GetName(IExpressionParameterSource paramSource)
+    {
+		switch (source) {
+			case ExpressionParameterSource.Parameter:
+				return paramSource.FindParameterByHash(parameterNameHash)?.name;
+			case ExpressionParameterSource.External:
+			case ExpressionParameterSource.Constant:
+				return EfxExpressionTreeUtils.KnownExternalHashes.GetValueOrDefault(parameterNameHash);
+			default:
+				return null;
+		}
+    }
+
     public override string ToString() => source is ExpressionParameterSource.Constant or ExpressionParameterSource.External
 		? $"{source}:{parameterNameHash}={constantValue}"
 		: $"{source}:{parameterNameHash}";

@@ -401,7 +401,7 @@ public static partial class EfxExpressionStringParser
 public static class EfxExpressionTreeUtils
 {
 	public static readonly HashSet<uint> UnknownParameterHashes = new();
-	private static readonly Dictionary<uint, string> KnownExternalHashes = new() {
+	public static readonly Dictionary<uint, string> KnownExternalHashes = new() {
 		[4068760923] = "PI",
 		[2715150528] = "speed",
 		[4102950055] = "Speed",

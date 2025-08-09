@@ -489,6 +489,8 @@ namespace ReeLib.via
             var mv = new Vector3(margin);
             return new AABB(minpos - mv, maxpos + mv);
         }
+
+        public readonly override string ToString() => $"AABB({minpos} {maxpos})";
     }
 
 
@@ -512,6 +514,8 @@ namespace ReeLib.via
             AABB b2 = new Sphere { r = r, pos = p1 }.GetBounds(margin);
             return b1.Extend(b2);
         }
+
+        public readonly override string ToString() => $"Capsule(P1={p0}, P2={p1}, R={r})";
     }
 
 
@@ -565,6 +569,8 @@ namespace ReeLib.via
                 }
             }
         }
+
+        public readonly override string ToString() => $"Position({x}, {y}, {z})";
     }
 
 
@@ -576,6 +582,8 @@ namespace ReeLib.via
 
         public Vector4 VertexRadiusA { readonly get => vertexRadiusA; set => vertexRadiusA = value; }
         public Vector4 VertexRadiusB { readonly get => vertexRadiusB; set => vertexRadiusB = value; }
+
+        public readonly override string ToString() => $"TaperedCapsule({vertexRadiusA}, {vertexRadiusB})";
     }
 
 
@@ -586,6 +594,8 @@ namespace ReeLib.via
         public float r0;
         public Vector3 p1;
         public float r1;
+
+        public readonly override string ToString() => $"Cone({p0} ({r0}), {p1} ({r1}))";
     }
 
 
@@ -596,6 +606,8 @@ namespace ReeLib.via
         public Vector3 from;
         [FieldOffset(16)]
         public Vector3 dir;
+
+        public readonly override string ToString() => $"Line({from} -> {dir})";
     }
 
 
@@ -606,6 +618,8 @@ namespace ReeLib.via
         public Vector3 start;
         [FieldOffset(16)]
         public Vector3 end;
+
+        public readonly override string ToString() => $"LineSegment({start} -> {end})";
     }
 
 
@@ -614,6 +628,8 @@ namespace ReeLib.via
     {
         public Vector3 normal;
         public float dist;
+
+        public readonly override string ToString() => $"Plane({normal}, Dist = {dist})>";
     }
 
 
@@ -621,6 +637,8 @@ namespace ReeLib.via
     public struct PlaneXZ
     {
         public float dist;
+
+        public readonly override string ToString() => dist.ToString();
     }
 
 
@@ -629,6 +647,8 @@ namespace ReeLib.via
     {
         public float x;
         public float y;
+
+        public readonly override string ToString() => $"<{x}, {y}>";
     }
 
 
@@ -652,6 +672,8 @@ namespace ReeLib.via
                 else h = value;
             }
         }
+
+        public readonly override string ToString() => $"<{w}, {h}>";
     }
 
 
@@ -662,6 +684,8 @@ namespace ReeLib.via
         public Vector3 from;
         [FieldOffset(16)]
         public Vector3 dir;
+
+        public readonly override string ToString() => $"Ray({from} -> {dir})";
     }
 
 
@@ -670,6 +694,8 @@ namespace ReeLib.via
     {
         public Vector3 from;
         public float dir;
+
+        public readonly override string ToString() => $"RayY({from}, Dir={dir})";
     }
 
 
@@ -680,6 +706,8 @@ namespace ReeLib.via
         public Vector4 from;
         [FieldOffset(16)]
         public Vector3 dir;
+
+        public readonly override string ToString() => $"Segment({from} -> {dir})";
     }
 
 
@@ -692,6 +720,8 @@ namespace ReeLib.via
         public Vector3 p1;
         [FieldOffset(32)]
         public Vector3 p2;
+
+        public readonly override string ToString() => $"Triangle({p1} {p1} {p2})";
     }
 
 
@@ -704,6 +734,8 @@ namespace ReeLib.via
         public Vector3 p1;
         [FieldOffset(32)]
         public float r;
+
+        public readonly override string ToString() => $"Cylinder(P1={p0}, P2={p1}, R={r})";
     }
 
 
@@ -714,6 +746,8 @@ namespace ReeLib.via
         public Vector3 pos;
         [FieldOffset(16)]
         public Vector3 r;
+
+        public readonly override string ToString() => $"Ellipsoid(Pos={pos}, R={r})";
     }
 
 
@@ -724,6 +758,8 @@ namespace ReeLib.via
         public float r;
         public Vector3 axis;
         public float cr;
+
+        public readonly override string ToString() => $"Torus(pos={pos}, r={r}, axis={axis}, cr={cr})";
     }
 
 
@@ -764,6 +800,8 @@ namespace ReeLib.via
         }
 
         public readonly Vector4 AsVector => new Vector4(left, top, right, bottom);
+
+        public readonly override string ToString() => AsVector.ToString();
     }
 
 

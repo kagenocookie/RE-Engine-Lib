@@ -515,6 +515,8 @@ namespace ReeLib.Rcol
             handler.Seek(tell + sizeof(float) * 4 * 5);
             return true;
         }
+
+        public override string ToString() => shape == null ? $"{nameof(RcolShape)} [{Instance}]" : $"{shape} [{Instance}]";
     }
 
 
@@ -621,25 +623,38 @@ namespace ReeLib.Rcol
     }
 
 
-    public class RequestSet(int index = 0, RequestSetInfo? info = null)
+    public class RequestSet(int index = 0, RequestSetInfo? info = null) : ICloneable
     {
         public int Index { get; set; } = index;
         public RequestSetInfo Info { get; set; } = info ?? new();
         public RcolGroup? Group { get; set; }
         public RszInstance? Instance { get; set; }
         public List<RszInstance> ShapeUserdata { get; set; } = new();
+
+        public override string ToString() => $"[{Index:00000000}] {Info.Name}";
+
+        object ICloneable.Clone() => Clone();
+
+        public RequestSet Clone()
+        {
+            var clone = new RequestSet(Index, (RequestSetInfo)Info.Clone());
+            clone.Instance = Instance;
+            clone.Group = Group;
+            clone.ShapeUserdata = new List<RszInstance>(ShapeUserdata);
+            return clone;
+        }
     }
 
 
     public class IgnoreTag : BaseModel
     {
-        public string ignoreTagString = string.Empty;
+        public string tag = string.Empty;
         public uint hash;
         public uint ukn;
 
         protected override bool DoRead(FileHandler handler)
         {
-            handler.ReadOffsetWString(out ignoreTagString);
+            handler.ReadOffsetWString(out tag);
             handler.Read(ref hash);
             handler.Read(ref ukn);
             return true;
@@ -647,11 +662,13 @@ namespace ReeLib.Rcol
 
         protected override bool DoWrite(FileHandler handler)
         {
-            handler.WriteOffsetWString(ignoreTagString);
+            handler.WriteOffsetWString(tag);
             handler.Write(ref hash);
             handler.Write(ref ukn);
             return true;
         }
+
+        public override string ToString() => tag;
     }
 }
 

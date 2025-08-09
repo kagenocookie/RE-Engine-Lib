@@ -18,7 +18,7 @@ This project does not provide any actual tooling by itself, it is intended to be
 
 ## How to use this tool
 
-- Clone the repository and build the project with `dotnet build`, link the resulting .dll in your own project
+- Clone the repository and build the project with `dotnet build`, link the resulting .dll in your own project OR set up a git submodule and add it as a project reference
 - Create a new `GameConfig` instance. This can be either through the `GameConfig.CreateFromRepository` method, which will download any resources automatically, or you can set up your own configuration from an ini file, json file, hardcoded, whatever you wish. Different configuration files are required depending on what kind of operation you wish to do.
 - Create a new `Workspace` instance and provide it a base cache folder through the `Init(string cachePath)` method for where it should hold its cache data
 - All file format readers are named in the format `<FileType>File` and their interface should be more or less identical, except that some of them also require a RszFileOption instance

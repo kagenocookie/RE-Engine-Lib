@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -10,8 +12,7 @@ namespace ReeLib.Common
 
         public void Start(string name)
         {
-            if (StartUs != 0)
-            {
+            if (StartUs != 0) {
                 End();
             }
             Name = name;
@@ -66,12 +67,10 @@ namespace ReeLib.Common
 
         public static bool DetectFloat(Span<byte> data, out float floatValue)
         {
-            if (data.Length == 4)
-            {
+            if (data.Length == 4) {
                 floatValue = MemoryUtils.AsRef<float>(data);
                 float absValue = Math.Abs(floatValue);
-                if (data[3] < 255 && absValue > 0.0000001 && absValue < 10000000)
-                {
+                if (data[3] < 255 && absValue > 0.0000001 && absValue < 10000000) {
                     return true;
                 }
             }
@@ -122,8 +121,7 @@ namespace ReeLib.Common
         public static int GetIndexOrAdd<T>(this List<T> list, T obj)
         {
             int index = list.IndexOf(obj);
-            if (index == -1)
-            {
+            if (index == -1) {
                 index = list.Count;
                 list.Add(obj);
             }
@@ -132,21 +130,78 @@ namespace ReeLib.Common
 
         public static void AppendIndent(this StringBuilder sb, int indent)
         {
-            for (int i = 0; i < indent; i++)
-            {
+            for (int i = 0; i < indent; i++) {
                 sb.Append("    ");
             }
         }
 
-        public static string GetUniqueName(this string basename, Func<string, bool> existsCheck)
+        public static string GetUniqueName(this string basename, Func<string, bool> existsCheck, string? suffix = null)
         {
             var name = basename;
-            int attempts = 2;
+            int attempts = 1;
             while (existsCheck.Invoke(name)) {
-                name = $"{basename}_{attempts++}";
+                name = $"{basename}_{(suffix == null ? ++attempts : (suffix + attempts++))}";
             }
 
             return name;
+        }
+
+        /// <summary>
+        /// Makes a deep clone of the target object. NOTE: probably doesn't handle arrays/lists correctly yet.
+        /// </summary>
+        [return: NotNullIfNotNull(nameof(target))]
+        public static T? DeepClone<T>(this object? target)
+        {
+            return (T?)DeepClone(target);
+        }
+
+        /// <summary>
+        /// Makes a deep clone of the target object. NOTE: probably doesn't handle arrays/lists correctly yet.
+        /// </summary>
+        [return: NotNullIfNotNull(nameof(target))]
+        public static object? DeepClone(this object? target)
+        {
+            if (target == null) return null;
+            return typeof(DeepCloneUtil<>).MakeGenericType(target.GetType()).GetMethod("Clone")!.Invoke(null, [target])!;
+        }
+
+        /// <summary>
+        /// Makes a deep clone of the target object. NOTE: probably doesn't handle arrays/lists correctly yet.
+        /// </summary>
+        public static T DeepCloneGeneric<T>(this T target) where T : class
+        {
+            return DeepCloneUtil<T>.Clone(target);
+        }
+    }
+
+    public static class DeepCloneUtil<T> where T : class
+    {
+        private static readonly MethodInfo CloneMethod = typeof(Object).GetMethod("MemberwiseClone", BindingFlags.NonPublic | BindingFlags.Instance)!;
+
+        private static FieldInfo[]? _classFields;
+        private static FieldInfo[]? _cloneableFields;
+
+        /// <summary>
+        /// Makes a deep clone of the target object. NOTE: probably doesn't handle arrays/lists correctly yet.
+        /// </summary>
+        public static T Clone(T target)
+        {
+            if (_classFields == null) {
+                var allFields = typeof(T).GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                var fields = allFields.Where(fi => fi.FieldType.IsClass && fi.FieldType != typeof(string));
+                _classFields = fields.Where(f => !f.FieldType.IsAssignableTo(typeof(ICloneable))).ToArray();
+                _cloneableFields = fields.Where(f => f.FieldType.IsAssignableTo(typeof(ICloneable))).ToArray();
+            }
+
+            var clone = (T)CloneMethod.Invoke(target, Array.Empty<object?>())!;
+            foreach (var plain in _classFields) {
+                plain.SetValue(clone, plain.GetValue(target).DeepClone());
+            }
+            foreach (var plain in _cloneableFields!) {
+                plain.SetValue(clone, ((ICloneable)plain.GetValue(target)!).Clone());
+            }
+
+            return clone;
         }
     }
 }

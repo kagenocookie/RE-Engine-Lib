@@ -1,3 +1,4 @@
+using ReeLib.Common;
 using ReeLib.InternalAttributes;
 
 namespace ReeLib.Efx.Structs.Common;
@@ -115,10 +116,10 @@ public partial class EFXExpressionObject : BaseModel
 {
 	[RszIgnore] public EfxVersion Version;
 
-    public EFXExpressionObject() { }
-    public EFXExpressionObject(EfxVersion version) { Version = version; }
+	public EFXExpressionObject() { }
+	public EFXExpressionObject(EfxVersion version) { Version = version; }
 
-    [RszArraySizeField(nameof(parameters))] public int parameterCount;
+	[RszArraySizeField(nameof(parameters))] public int parameterCount;
 	[RszArraySizeField(nameof(components))] public int componentsCount;
 	[RszVersion(EfxVersion.DD2)] public int struct3Count;
 
@@ -130,21 +131,29 @@ public partial class EFXExpressionObject : BaseModel
 
 	[RszIgnore] public EFXExpressionTree? expressionTree;
 
-    protected override bool DoRead(FileHandler handler)
-    {
+	protected override bool DoRead(FileHandler handler)
+	{
 		return DefaultRead(handler);
-    }
+	}
 
-    protected override bool DoWrite(FileHandler handler)
-    {
+	protected override bool DoWrite(FileHandler handler)
+	{
 		return DefaultWrite(handler);
-    }
+	}
 
-    public List<EFXExpressionData> Components => components;
-    public List<EFXExpressionParameterName> Parameters {
+	public List<EFXExpressionData> Components => components;
+	public List<EFXExpressionParameterName> Parameters {
 		get => parameters ??= new();
 		set => parameters = value is List<EFXExpressionParameterName> arr ? arr : value?.ToList() ?? new();
 	}
+
+	public override EFXExpressionObject Clone()
+	{
+		var clone = new EFXExpressionObject(Version);
+		clone.components.AddRange(components.Select(c => new EFXExpressionData() { data = (EFXExpressionDataBase)c.data.Clone(), type = c.type }));
+		clone.parameters = parameters?.ToList();
+		return clone;
+    }
 }
 
 [RszGenerate, RszVersionedObject(typeof(EfxVersion))]
@@ -176,6 +185,19 @@ public partial class EFXMaterialExpression : EFXExpressionObject
 			yield return basefield;
 		}
 	}
+
+	public override EFXMaterialExpression Clone()
+	{
+		var clone = new EFXMaterialExpression(Version);
+		clone.unkn1 = unkn1;
+		clone.unkn2 = unkn2;
+		clone.mdfPropertyHash = mdfPropertyHash;
+		clone.propertyComponentIndex = propertyComponentIndex;
+		clone.unkn5 = unkn5;
+		clone.components.AddRange(components.Select(c => new EFXExpressionData() { data = (EFXExpressionDataBase)c.data.Clone(), type = c.type }));
+		clone.parameters = parameters?.ToList();
+		return clone;
+    }
 }
 
 [RszGenerate, RszAutoReadWrite]
@@ -185,9 +207,20 @@ public abstract partial class EFXExpressionContainer : BaseModel
 
 	public List<EFXExpressionTree>? ParsedExpressions { get; set; }
 
-    public abstract IEnumerable<EFXExpressionObject> Expressions { get; }
-    public virtual int ExpressionCount => Expressions.Count();
+	public abstract IEnumerable<EFXExpressionObject> Expressions { get; }
+	public virtual int ExpressionCount => Expressions.Count();
 	public abstract void AddExpression(EFXExpressionObject obj);
+
+	public override EFXExpressionContainer Clone()
+	{
+		var clone = (EFXExpressionContainer)Activator.CreateInstance(GetType())!;
+		clone.solverSize = solverSize;
+		clone.ParsedExpressions = ParsedExpressions == null ? null : new List<EFXExpressionTree>(ParsedExpressions.Select(ex => new EFXExpressionTree() {
+			parameters = ex.parameters.ToList(),
+			root = ex.root.DeepClone<ExpressionAtom>()
+		}));
+		return clone;
+    }
 }
 
 [RszGenerate]
@@ -195,17 +228,17 @@ public partial class EFXExpressionList : EFXExpressionContainer
 {
 	[RszIgnore] public EfxVersion Version;
 
-    public EFXExpressionList() { }
-    public EFXExpressionList(EfxVersion version) { Version = version; }
+	public EFXExpressionList() { }
+	public EFXExpressionList(EfxVersion version) { Version = version; }
 
 	[RszClassInstance, RszList] public List<EFXExpressionObject> expressions = new();
 
-    public override int ExpressionCount => expressions.Count;
+	public override int ExpressionCount => expressions.Count;
 	public override IEnumerable<EFXExpressionObject> Expressions => expressions;
 	public override void AddExpression(EFXExpressionObject obj) => expressions.Add(obj);
 
-    protected override bool DoRead(FileHandler handler)
-    {
+	protected override bool DoRead(FileHandler handler)
+	{
 		handler.Read(ref solverSize);
 		var end = handler.Tell() + solverSize;
 		while (handler.Tell() < end) {
@@ -214,14 +247,22 @@ public partial class EFXExpressionList : EFXExpressionContainer
 			expressions.Add(expr);
 		}
 		return true;
-    }
+	}
 
-    protected override bool DoWrite(FileHandler handler)
-    {
+	protected override bool DoWrite(FileHandler handler)
+	{
 		handler.Write(ref solverSize);
 		expressions.Write(handler);
 		handler.Write(Start, (uint)(handler.Tell() - Start) - 4);
 		return true;
+	}
+
+	public override EFXExpressionList Clone()
+	{
+		var clone = (EFXExpressionList)base.Clone();
+		clone.Version = Version;
+		clone.expressions.AddRange(expressions.Select(e => e.Clone()));
+		return clone;
     }
 }
 
@@ -271,5 +312,13 @@ public partial class EFXMaterialExpressionList : EFXExpressionContainer
 		handler.Write(Start, (uint)(handler.Tell() - expressionStart));
 		handler.WriteArray(indices);
 		return true;
+    }
+
+	public override EFXMaterialExpressionList Clone()
+	{
+		var clone = (EFXMaterialExpressionList)base.Clone();
+		clone.Version = Version;
+		clone.expressions.AddRange(expressions.Select(e => e.Clone()));
+		return clone;
     }
 }

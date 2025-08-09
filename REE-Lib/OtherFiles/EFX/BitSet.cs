@@ -117,12 +117,17 @@ public class BitSet : BaseModel
 
     public override string ToString() => $"BitSet: {Count} / {BitCount} {StringifyBits()} <Max: {HighestBit}>";
 
+    public override BitSet Clone()
+    {
+        return new BitSet(BitCount, Bits.ToArray()) { BitNames = BitNames };
+    }
+
     private string StringifyBits()
     {
         var nameCount = BitNames?.Length ?? 0;
         var sb = new StringBuilder();
         var first = true;
-        for (int i = 0; i < BitCount;++i) {
+        for (int i = 0; i < BitCount; ++i) {
             if (HasBit(i)) {
                 if (!first) sb.Append(", ");
                 first = false;

@@ -195,6 +195,11 @@ namespace ReeLib.Efx
         }
 
         public override string ToString() => type.ToString();
+
+        public override EFXAttribute Clone()
+        {
+            return this.DeepClone<EFXAttribute>();
+        }
     }
 
     public abstract class EFXEntryBase : BaseModel
@@ -268,6 +273,18 @@ namespace ReeLib.Efx
                 return EfxAttributeTypeRemapper.ToAttributeTypeID(x.Version, x.type).CompareTo(EfxAttributeTypeRemapper.ToAttributeTypeID(y.Version, y.type));
             }
         }
+
+        public override EFXEntryBase Clone()
+        {
+            var clone = (EFXEntryBase)Activator.CreateInstance(GetType())!;
+            clone.name = name;
+            clone.nameHash = nameHash;
+            clone.Version = Version;
+            foreach (var attr in Attributes) {
+                clone.Attributes.Add((EFXAttribute)attr.Clone());
+            }
+            return clone;
+        }
     }
 
     public class EFXEntry : EFXEntryBase
@@ -321,6 +338,16 @@ namespace ReeLib.Efx
             return true;
         }
 
+        public override EFXEntry Clone()
+        {
+            var clone = (EFXEntry)base.Clone();
+            clone.Groups.Clear();
+            clone.Groups.AddRange(Groups);
+            clone.entryAssignment = entryAssignment;
+            clone.index = index;
+            return clone;
+        }
+
         public override string ToString() => name ?? $"Entry {index}";
     }
 
@@ -365,7 +392,13 @@ namespace ReeLib.Efx
             }
         }
 
-        public override string ToString() => type == EfxExpressionParameterType.Color ? $"{type} {Color}" : $"{type} {value1} {value2} {value3}";
+        public override string ToString() => type switch {
+            EfxExpressionParameterType.Color => $"{type}  {Color}",
+            EfxExpressionParameterType.Float => value1.ToString(),
+            EfxExpressionParameterType.Float2 => $"{type}  {Float2}",
+            EfxExpressionParameterType.Range => $"{type}  {Range}",
+            _ => $"{type}  {Range}",
+        };
     }
 
     internal struct EFXBoneNameValuePair
@@ -377,13 +410,12 @@ namespace ReeLib.Efx
     public class EFXAction : EFXEntryBase
     {
         public int actionUnkn0;
-        public int actionAttributeCount;
 
         protected override bool DoRead(FileHandler handler)
         {
             handler.Read(ref actionUnkn0);
             handler.Read(ref nameHash);
-            handler.Read(ref actionAttributeCount);
+            var actionAttributeCount = handler.Read<int>();
             for (int i = 0; i < actionAttributeCount; ++i) {
                 var type = Version.GetAttributeType(handler.Read<int>());
                 var seqNum = handler.Read<int>();
@@ -397,18 +429,24 @@ namespace ReeLib.Efx
 
         protected override bool DoWrite(FileHandler handler)
         {
-            actionAttributeCount = Attributes.Count;
             nameHash = MurMur3HashUtils.GetUTF8Hash(name ?? string.Empty);
 
             handler.Write(ref actionUnkn0);
             handler.Write(ref nameHash);
-            handler.Write(ref actionAttributeCount);
+            handler.Write(Attributes.Count);
             foreach (var attr in Attributes) {
                 handler.Write(Version.ToAttributeTypeID(attr.type));
                 handler.Write(attr.unknSeqNum);
                 attr.Write(handler);
             }
             return true;
+        }
+
+        public override EFXAction Clone()
+        {
+            var clone = (EFXAction)base.Clone();
+            clone.actionUnkn0 = actionUnkn0;
+            return clone;
         }
 
         public override string ToString() => name ?? $"Action {actionUnkn0}";

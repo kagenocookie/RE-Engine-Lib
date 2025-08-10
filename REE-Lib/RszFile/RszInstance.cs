@@ -171,7 +171,7 @@ namespace ReeLib
                     field.type = RszFieldType.Object;
                     field.IsTypeInferred = true;
                     data = intValue;
-                    Console.WriteLine($"Detect {Name}.{field.name} as Object");
+                    Log.Info($"Detect {Name}.{field.name} as Object");
                     return true;
                 }
                 // Determine whether it's more likely a float or an int

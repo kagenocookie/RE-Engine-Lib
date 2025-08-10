@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using ReeLib.Common;
 using ReeLib.Il2cpp;
 
 namespace ReeLib;
@@ -12,14 +13,14 @@ public sealed partial class Workspace : IDisposable
         _typeCache = new TypeCache();
         if (!config.Resources.TryGetIl2cppCachePath(out var baseCacheFile) || !TryDeserialize(baseCacheFile, out _typeCache)) {
             RegenerateTypeCache(Config.GuessIl2cppDumpPath(), baseCacheFile);
-            Console.WriteLine("Regenerated source il2cpp data in " + time.Elapsed);
+            Log.Info("Regenerated source il2cpp data in " + time.Elapsed);
         } else {
             var cacheLastUpdate = File.GetLastWriteTimeUtc(baseCacheFile);
             var il2cppPath = Config.GuessIl2cppDumpPath();
             var il2cppLastUpdate = !File.Exists(il2cppPath) ? DateTime.MinValue : File.GetLastWriteTimeUtc(il2cppPath);
             if (il2cppLastUpdate > cacheLastUpdate) {
                 RegenerateTypeCache(Config.GuessIl2cppDumpPath(), baseCacheFile);
-                Console.WriteLine("Regenerated source il2cpp data in " + time.Elapsed);
+                Log.Info("Regenerated source il2cpp data in " + time.Elapsed);
             }
         }
         time.Restart();
@@ -28,12 +29,12 @@ public sealed partial class Workspace : IDisposable
         var success = TryApplyTypeCache(_typeCache, baseCacheFile);
         if (!success) {
             RegenerateTypeCache(Config.GuessIl2cppDumpPath(), baseCacheFile);
-            Console.WriteLine("Regenerated source il2cpp data in " + time.Elapsed);
+            Log.Info("Regenerated source il2cpp data in " + time.Elapsed);
             success = TryApplyTypeCache(_typeCache, baseCacheFile);
         }
         // TryApplyEnumOverrides(_il2cpp, paths.EnumOverridesDir);
         if (success) {
-            Console.WriteLine("Loaded cached il2cpp data in " + time.Elapsed);
+            Log.Info("Loaded cached il2cpp data in " + time.Elapsed);
         } else {
             Console.Error.WriteLine("Failed to load il2cpp cache data from " + baseCacheFile);
         }
@@ -54,7 +55,7 @@ public sealed partial class Workspace : IDisposable
         _typeCache.ApplyIl2cppData(entries);
         // TryApplyTypePatches(_il2cpp, paths.TypePatchFilepath);
 
-        Console.WriteLine("Updating il2cpp cache... " + cachePath);
+        Log.Info("Updating il2cpp cache... " + cachePath);
         Directory.CreateDirectory(Path.GetDirectoryName(cachePath)!);
         using var outfs = File.Create(cachePath);
         JsonSerializer.Serialize(outfs, _typeCache.ToCacheData(), jsonOptions);

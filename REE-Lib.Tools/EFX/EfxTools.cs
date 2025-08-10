@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using ReeLib.Common;
 using ReeLib.Efx;
 using ReeLib.Efx.Structs.Basic;
 using ReeLib.InternalAttributes;
@@ -34,7 +35,7 @@ public static class EfxTools
     {
         if (efxVersion == EfxVersion.Unknown) return;
 
-        Console.WriteLine($"Generating {efxVersion} EFX structs to {outputFile} ...");
+        Log.Info($"Generating {efxVersion} EFX structs to {outputFile} ...");
 
         var asm = typeof(EFXAttributeSpawn).Assembly;
 
@@ -122,7 +123,7 @@ public static class EfxTools
         Directory.CreateDirectory(Path.GetDirectoryName(outputFile)!);
         File.WriteAllText(outputFile, json);
 
-        Console.WriteLine($"Done.");
+        Log.Info($"Done.");
     }
 
     private static void GenerateStructFields(Type instanceType, EfxStructInfo structInfo, EfxVersion efxVersion, HashSet<Type> referencedTypes)

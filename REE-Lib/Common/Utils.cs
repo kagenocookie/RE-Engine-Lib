@@ -103,11 +103,6 @@ namespace ReeLib.Common
             ulong newValue = (value & ~(mask << bitOffset)) | ((data & mask) << bitOffset);
             return newValue;
         }
-
-        public static void Debug(object value, [CallerArgumentExpression(nameof(value))] string? name = null)
-        {
-            Console.WriteLine($"{name} = {value}");
-        }
     }
 
     public static class Extensions

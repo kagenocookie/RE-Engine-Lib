@@ -3,6 +3,7 @@ namespace ReeLib;
 using System;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using ReeLib.Common;
 using ReeLib.Pak;
 
 /// <summary>
@@ -88,7 +89,7 @@ public class PakReader
 
             int _ = 0;
             UpdateSearchedPaths(searchedPaths, [ctx], ref _);
-            if (EnableConsoleLogging) Console.WriteLine("Finished searching " + pakfile);
+            if (EnableConsoleLogging) Log.Info("Finished searching " + pakfile);
             if (searchedPaths.Count == 0) break;
         }
     }
@@ -121,7 +122,7 @@ public class PakReader
             }
 
             UpdateSearchedPaths(searchedPaths, chunks, ref unpackedCount);
-            if (EnableConsoleLogging) Console.WriteLine("Finished unpacking " + pakfile);
+            if (EnableConsoleLogging) Log.Info("Finished unpacking " + pakfile);
             if (searchedPaths.Count == 0) break;
         }
 
@@ -153,7 +154,7 @@ public class PakReader
             while (chunks.Any(c => !c.finished)) await Task.Delay(25);
 
             UpdateSearchedPaths(searchedPaths, chunks, ref unpackedCount);
-            if (EnableConsoleLogging) Console.WriteLine("Finished unpacking " + pakfile);
+            if (EnableConsoleLogging) Log.Info("Finished unpacking " + pakfile);
             if (searchedPaths.Count == 0) break;
         }
 
@@ -277,7 +278,7 @@ public class PakReader
     {
         var chunkId = ctx.endOffset == ctx.startOffset + 1 ? ctx.startOffset : ctx.startOffset / (ctx.endOffset - ctx.startOffset - 1);
         if (EnableConsoleLogging && (ctx.startOffset > 0 || ctx.endOffset < ctx.file.Entries.Count - 1)) {
-            Console.WriteLine($"Starting chunk {chunkId}: entries {ctx.startOffset} - {ctx.endOffset} for file {ctx.file.filepath}");
+            Log.Info($"Starting chunk {chunkId}: entries {ctx.startOffset} - {ctx.endOffset} for file {ctx.file.filepath}");
         }
         using var fs = File.OpenRead(ctx.file.filepath);
         for (int i = ctx.startOffset; i < ctx.endOffset; ++i) {
@@ -295,6 +296,6 @@ public class PakReader
             yield return (entry, outStream);
         }
 
-        if (EnableConsoleLogging) Console.WriteLine("Finished chunk " + chunkId);
+        if (EnableConsoleLogging) Log.Info("Finished chunk " + chunkId);
     }
 }

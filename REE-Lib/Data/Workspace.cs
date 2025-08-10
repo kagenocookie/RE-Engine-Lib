@@ -259,12 +259,12 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
     {
         var list = GetFileList();
         if (list == null) {
-            Console.Error.WriteLine("No list file for game " + config.Game);
+            Log.Error("No list file for game " + config.Game);
             return [];
         }
 
         if (!TryGetFileExtensionVersion(extension, out var version)) {
-            Console.Error.WriteLine($"File extension {extension} not supported for {config.Game}");
+            Log.Error($"File extension {extension} not supported for {config.Game}");
             return [];
         }
 
@@ -347,7 +347,7 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
                 Directory.CreateDirectory(Path.GetDirectoryName(cacheFilepath)!);
                 using var fs = File.Create(cacheFilepath);
                 JsonSerializer.Serialize(fs, _fileExtensionCache, jsonOptions);
-                Console.WriteLine($"File extension cache for {config.Game} successfully generated");
+                Log.Info($"File extension cache for {config.Game} successfully generated");
                 config.Resources.ResourceTypePath = cacheFilepath;
             }
         }
@@ -362,7 +362,7 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
             return _fileExtensionCache;
         }
 
-        Console.Error.WriteLine("Missing file extension cache file. Files may not resolve correctly.");
+        Log.Error("Missing file extension cache file. Files may not resolve correctly.");
         return null;
     }
 

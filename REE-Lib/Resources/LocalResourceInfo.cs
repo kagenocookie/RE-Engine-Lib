@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using ReeLib.Common;
 
 namespace ReeLib;
 
@@ -221,7 +222,7 @@ public class LocalResources
         int i = 0;
         LocalPaths.RszPatchFiles = new string[remote.RszPatchFiles.Length];
         foreach (var url in remote.RszPatchFiles) {
-            Console.WriteLine($"Fetching {game} RSZ patch file from {url}...");
+            Log.Info($"Fetching {game} RSZ patch file from {url}...");
             var data = ResourceRepository.FetchContentFromUrlOrFile(url);
             if (data == null) {
                 Console.Error.WriteLine("Failed to download RSZ patch file from URL " + url);
@@ -260,7 +261,7 @@ public class LocalResources
             return true;
         }
 
-        Console.WriteLine("Detected REasy sourced rsz dump json file. Attempting to clean up for REE Lib use...");
+        Log.Info("Detected REasy sourced rsz dump json file. Attempting to clean up for REE Lib use...");
 
         jsondoc.Remove("metadata");
         foreach (var prop in jsondoc) {
@@ -304,7 +305,7 @@ public class LocalResources
         }
         using var outfs = File.Create(outputPath);
         JsonSerializer.Serialize(outfs, jsondoc, jsonOptions);
-        Console.WriteLine("Saved cleaned RSZ template to " + outputPath);
+        Log.Info("Saved cleaned RSZ template to " + outputPath);
         return true;
     }
 

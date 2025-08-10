@@ -97,7 +97,6 @@ public class CachedMemoryPakReader : PakReader, IDisposable
     {
         lock(_lock)  {
             if (cachedEntries?.Count > 0) {
-                Console.WriteLine("CacheEntries was previously done " + cachedEntries.Count);
                 return;
             }
 

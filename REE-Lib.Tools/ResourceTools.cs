@@ -60,8 +60,6 @@ public class ResourceTools(Workspace workspace)
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault,
     };
 
-    public Action<string> Log { get; set; } = (msg) => Console.WriteLine(msg);
-
     /// <summary>
     /// Attempts to read every file that uses RSZ data to determine their real field types.
     /// Uses the already configured RszPatchFiles from the workspace as a base.
@@ -88,7 +86,7 @@ public class ResourceTools(Workspace workspace)
         var resourceFinder = new ResourceFieldFinder(workspace, this);
         var dupeHandler = new DuplicateInstanceRefHandler(workspace);
 
-        static (int succ, int fail) HandleFiles(Action<string> log, Workspace workspace, string extension, Action<string, Stream> callback)
+        static (int succ, int fail) HandleFiles(Workspace workspace, string extension, Action<string, Stream> callback)
         {
             int success = 0;
             int fails = 0;
@@ -96,19 +94,19 @@ public class ResourceTools(Workspace workspace)
                 try {
                     callback.Invoke(path, stream);
                     if (++success % 100 == 0) {
-                        log($"Handled {success} files...");
+                        Log.Info($"Handled {success} files...");
                     }
                 } catch (Exception e) {
                     fails++;
                     Console.Error.WriteLine($"Failed to handle file {path}: {e.Message}");
                 }
             }
-            log($"Finished {success} {extension} files with {fails} failures");
+            Log.Info($"Finished {success} {extension} files with {fails} failures");
             return (success, fails);
         }
 
-        Log("Handling scn files ...");
-        HandleFiles(Log, workspace, "scn", (path, stream) => {
+        Log.Info("Handling scn files ...");
+        HandleFiles(workspace, "scn", (path, stream) => {
             var file = new ScnFile(workspace.RszFileOption, new FileHandler(stream, path));
             file.Read();
             dupeHandler.FindDuplicateRszObjectInstances(file.RSZ, path);
@@ -118,8 +116,8 @@ public class ResourceTools(Workspace workspace)
         resourceFinder.ApplyRszPatches();
         StoreInferredRszTypes(workspace.RszParser.ClassDict.Values);
 
-        Log("Handling pfb files ...");
-        HandleFiles(Log, workspace, "pfb", (path, stream) => {
+        Log.Info("Handling pfb files ...");
+        HandleFiles(workspace, "pfb", (path, stream) => {
             var file = new PfbFile(workspace.RszFileOption, new FileHandler(stream, path));
             file.Read();
             dupeHandler.FindDuplicateRszObjectInstances(file.RSZ, path);
@@ -129,8 +127,8 @@ public class ResourceTools(Workspace workspace)
         resourceFinder.ApplyRszPatches();
         StoreInferredRszTypes(workspace.RszParser.ClassDict.Values);
 
-        Log("Handling user files ...");
-        HandleFiles(Log, workspace, "user", (path, stream) => {
+        Log.Info("Handling user files ...");
+        HandleFiles(workspace, "user", (path, stream) => {
             var file = new UserFile(workspace.RszFileOption, new FileHandler(stream, path));
             file.Read();
             dupeHandler.FindDuplicateRszObjectInstances(file.RSZ, path);
@@ -139,8 +137,8 @@ public class ResourceTools(Workspace workspace)
         resourceFinder.ApplyRszPatches();
         StoreInferredRszTypes(workspace.RszParser.ClassDict.Values);
 
-        Log("Handling rcol files ...");
-        HandleFiles(Log, workspace, "rcol", (path, stream) => {
+        Log.Info("Handling rcol files ...");
+        HandleFiles(workspace, "rcol", (path, stream) => {
             var file = new RcolFile(workspace.RszFileOption, new FileHandler(stream, path));
             file.Read();
         });
@@ -177,7 +175,7 @@ public class ResourceTools(Workspace workspace)
                     var prop = new PrefabGameObjectRefProperty() { PropertyId = propId, AutoDetected = true };
                     propInfoDict[refField.name] = prop;
                     workspace.PfbRefProps[src.RszClass.name] = propInfoDict;
-                    Log($"Auto-detected GameObjectRef property {src.RszClass.name} {refField.name} as propertyId {propId}.");
+                    Log.Info($"Auto-detected GameObjectRef property {src.RszClass.name} {refField.name} as propertyId {propId}.");
                 }
 
                 var fn = $"{BaseOutputPath}/pfb_ref_props.json";
@@ -260,7 +258,7 @@ public class ResourceTools(Workspace workspace)
         }
 
         SaveRszPatchFile();
-        Log($"Updating RSZ inferred field type cache with {changes} changes");
+        Log.Info($"Updating RSZ inferred field type cache with {changes} changes");
     }
 
     internal void SaveRszPatchFile()

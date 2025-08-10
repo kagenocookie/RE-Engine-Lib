@@ -1,4 +1,5 @@
 using System.Text.Json;
+using ReeLib.Common;
 
 namespace ReeLib;
 
@@ -77,17 +78,17 @@ public class ResourceRepository
 
         if (MetadataRemoteSource.StartsWith("http") && DisableOnlineUpdater) {
             UpdateLocalCache();
-            Console.WriteLine("Resource auto-updater is disabled. Using purely local data.");
+            Log.Info("Resource auto-updater is disabled. Using purely local data.");
             return _cache ??= new();
         }
 
         var shouldUpdateFromRemote = _cache == null || forceRefresh || (DateTime.UtcNow.Date - _cache.LastUpdateCheckAtUtc.Date).TotalDays >= UpdateCheckIntervalDays;
         if (!shouldUpdateFromRemote) {
-            Console.WriteLine("Using cached local resource repository data");
+            Log.Info("Using cached local resource repository data");
         } else {
             var updateSuccess = TryFetchRemoteResourceListing();
             if (updateSuccess) {
-                Console.WriteLine("Updated resource repository from remote data");
+                Log.Info("Updated resource repository from remote data");
             } else {
                 Console.Error.WriteLine("Failed to update resource repository from remote data");
             }
@@ -128,11 +129,11 @@ public class ResourceRepository
         var isUrl = path.StartsWith("http://") || path.StartsWith("https://");
         if (isUrl) {
             if (DisableOnlineUpdater) {
-                Console.WriteLine("Online resource updater is disabled, can't fetch " + path);
+                Log.Info("Online resource updater is disabled, can't fetch " + path);
                 return null;
             }
 
-            Console.WriteLine("Fetching content from " + path);
+            Log.Info("Fetching content from " + path);
             try {
                 var response = Fetch(path);
                 if (!response.IsSuccessStatusCode) {

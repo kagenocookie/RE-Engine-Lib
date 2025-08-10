@@ -42,7 +42,7 @@ namespace ReeLib
         public RSZFile(RszFileOption option, FileHandler fileHandler) : base(option, fileHandler)
         {
             Header.version = option.Version == GameVersion.re7 ? 3u
-                : option.Version <= GameVersion.re2 ? 8u
+                : option.Version == GameVersion.re2 ? 8u
                 : 16u;
         }
 
@@ -83,7 +83,7 @@ namespace ReeLib
 
             handler.Seek(Header.userdataOffset);
             Dictionary<int, int> instanceIdToUserData = new();
-            if (Option.Version <= GameVersion.re2)
+            if (Header.version < 16)
             {
                 if (Header.userdataCount > 0)
                 {
@@ -179,8 +179,7 @@ namespace ReeLib
             handler.Align(16);
             handler.StringTableFlush();
 
-            // embedded userdata
-            if (Option.Version <= GameVersion.re2 && EmbeddedRSZFileList != null)
+            if (EmbeddedRSZFileList != null)
             {
                 for (int i = 0; i < RSZUserDataInfoList.Count; i++)
                 {

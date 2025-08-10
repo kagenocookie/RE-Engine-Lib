@@ -3,24 +3,23 @@ namespace ReeLib.Tools;
 
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
+using ReeLib.Common;
 using ReeLib.Data;
 using ReeLib.Il2cpp;
 
 public static class FileExtensionTools
 {
-    public static void ExtractAllFileExtensionCacheData(GameIdentifier game = default, Action<string>? logger = null)
+    public static void ExtractAllFileExtensionCacheData(IEnumerable<GameIdentifier> games)
     {
-        logger ??= static (msg) => Console.WriteLine(msg);
-        var games = game.hash == 0 ? Enum.GetNames<GameName>().Select(n => new GameIdentifier(n)) : [game];
         Dictionary<string, FileExtensionCache> dict = new();
         foreach (var item in games) {
             if (item.hash == 0) continue;
 
-            logger("Handling file extensions for game " + item);
+            Log.Info("Handling file extensions for game " + item);
             var config = GameConfig.CreateFromRepository(item.ToString());
             var env = new Workspace(config);
             if (env.ListFile == null) {
-                logger("No file list available for game " + item);
+                Log.Info("No file list available for game " + item);
                 continue;
             }
             var cache = env.GenerateFileExtensionCache();
@@ -30,7 +29,7 @@ public static class FileExtensionTools
                 Directory.CreateDirectory(Path.GetDirectoryName(path)!);
                 using var singleFs = File.Create(path);
                 JsonSerializer.Serialize(singleFs, dict, jsonOptions);
-                logger($"File extension cache for {item.name} successfully generated");
+                Log.Info($"File extension cache for {item.name} successfully generated");
             }
         }
 
@@ -38,7 +37,7 @@ public static class FileExtensionTools
         Directory.CreateDirectory(Path.GetDirectoryName(cacheFilepath)!);
         using var fs = File.Create(cacheFilepath);
         JsonSerializer.Serialize(fs, dict, jsonOptions);
-        logger($"File extension cache successfully generated");
+        Log.Info("File extension cache successfully generated");
     }
 
     private static readonly JsonSerializerOptions jsonOptions = new() {

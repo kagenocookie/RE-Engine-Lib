@@ -179,7 +179,7 @@ namespace ReeLib.Common
             }
             dict["_data"] = JsonSerializer.SerializeToElement(value.Instance, options);
             foreach (var comp in value.Components) {
-                dict[comp.RszClass.name] = JsonSerializer.SerializeToElement(value.Instance, options);
+                dict[comp.RszClass.name] = JsonSerializer.SerializeToElement(comp, options);
             }
             JsonSerializer.Serialize(writer, dict, options);
         }

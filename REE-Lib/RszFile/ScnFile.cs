@@ -162,6 +162,16 @@ namespace ReeLib.Scn
             set => parentRef = value != null ? new(value) : null;
         }
 
+        public string? Path
+        {
+            get => Instance?.Values[5] as string;
+            set {
+                if (Instance != null) {
+                    Instance.Values[5] = value ?? string.Empty;
+                }
+            }
+        }
+
         public int? ObjectId => Info.objectId;
 
         public string? Name

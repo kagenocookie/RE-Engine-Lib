@@ -177,9 +177,9 @@ namespace ReeLib.Common
             if (!string.IsNullOrEmpty(value.Prefab?.Path)) {
                 dict["_prefab"] = value.Prefab.Path;
             }
-            dict["_data"] = JsonSerializer.Serialize(value.Instance, options);
+            dict["_data"] = JsonSerializer.SerializeToElement(value.Instance, options);
             foreach (var comp in value.Components) {
-                dict[comp.RszClass.name] = JsonSerializer.Serialize(value.Instance, options);
+                dict[comp.RszClass.name] = JsonSerializer.SerializeToElement(value.Instance, options);
             }
             JsonSerializer.Serialize(writer, dict, options);
         }

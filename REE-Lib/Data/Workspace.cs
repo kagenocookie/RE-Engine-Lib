@@ -73,6 +73,9 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
     private static readonly JsonSerializerOptions jsonOptions = new() {
         WriteIndented = true,
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault,
+        IncludeFields = true,
+        IgnoreReadOnlyFields = true,
+        IgnoreReadOnlyProperties = true,
     };
     public static JsonSerializerOptions DefaultJsonOptions { get; set; } = jsonOptions;
 
@@ -389,6 +392,8 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
     {
         var options = new JsonSerializerOptions(DefaultJsonOptions);
         options.Converters.Add(new RszInstanceJsonConverter(this));
+        options.Converters.Add(new PfbGameObjectJsonConverter());
+        options.Converters.Add(new ScnGameObjectJsonConverter());
         return options;
     }
 

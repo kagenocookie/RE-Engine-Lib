@@ -1,6 +1,8 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using ReeLib.Pfb;
+using ReeLib.Scn;
 
 namespace ReeLib.Common
 {
@@ -44,6 +46,7 @@ namespace ReeLib.Common
                 var type = field.type switch {
                     RszFieldType.Object or RszFieldType.Struct => typeof(RszInstance),
                     // RszFieldType.UserData => typeof(string), // TODO
+                    RszFieldType.String or RszFieldType.RuntimeType or RszFieldType.Resource => typeof(string),
                     _ => RszInstance.RszFieldTypeToCSharpType(field.type),
                 };
                 if (field.array) {
@@ -109,4 +112,76 @@ namespace ReeLib.Common
         }
     }
 
+    public class PfbGameObjectJsonConverter : JsonConverter<PfbGameObject>
+    {
+        public override PfbGameObject? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            var dict = JsonSerializer.Deserialize<JsonObject>(ref reader, options);
+            if (dict == null) return null;
+            var obj = new PfbGameObject();
+            foreach (var (key, prop) in dict) {
+                if (prop == null) continue;
+                if (key == "_data") {
+                    obj.Instance = prop.Deserialize<RszInstance>(options);
+                } else {
+                    var comp = prop.Deserialize<RszInstance>(options);
+                    obj.Components.Add(comp!);
+                }
+            }
+
+            return obj;
+        }
+
+        public override void Write(Utf8JsonWriter writer, PfbGameObject value, JsonSerializerOptions options)
+        {
+            var dict = new Dictionary<string, object>();
+            dict["_data"] = JsonSerializer.SerializeToElement(value.Instance, options);
+            foreach (var comp in value.Components) {
+                dict[comp.RszClass.name] = JsonSerializer.SerializeToElement(comp, options);
+            }
+            JsonSerializer.Serialize(writer, dict, options);
+        }
+    }
+
+    public class ScnGameObjectJsonConverter : JsonConverter<ScnGameObject>
+    {
+        public override ScnGameObject? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            var dict = JsonSerializer.Deserialize<JsonObject>(ref reader, options);
+            if (dict == null) return null;
+            var obj = new ScnGameObject();
+            foreach (var (key, prop) in dict) {
+                if (prop == null) continue;
+                if (key == "_guid") {
+                    if (Guid.TryParse(prop.GetValue<string>(), out var guid)) {
+                        obj.Guid = guid;
+                    }
+                } else if (key == "_prefab") {
+                    obj.Prefab ??= new();
+                    obj.Prefab.Path = prop.GetValue<string>();
+                } else if (key == "_data") {
+                    obj.Instance = prop.Deserialize<RszInstance>(options);
+                } else {
+                    var comp = prop.Deserialize<RszInstance>(options);
+                    obj.Components.Add(comp!);
+                }
+            }
+
+            return obj;
+        }
+
+        public override void Write(Utf8JsonWriter writer, ScnGameObject value, JsonSerializerOptions options)
+        {
+            var dict = new Dictionary<string, object>();
+            dict["_guid"] = value.Guid.ToString();
+            if (!string.IsNullOrEmpty(value.Prefab?.Path)) {
+                dict["_prefab"] = value.Prefab.Path;
+            }
+            dict["_data"] = JsonSerializer.Serialize(value.Instance, options);
+            foreach (var comp in value.Components) {
+                dict[comp.RszClass.name] = JsonSerializer.Serialize(value.Instance, options);
+            }
+            JsonSerializer.Serialize(writer, dict, options);
+        }
+    }
 }

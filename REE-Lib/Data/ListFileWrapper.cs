@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using ReeLib.Common;
 
 namespace ReeLib;
 
@@ -112,8 +113,13 @@ public class ListFileWrapper
             return names;
         }
 
-        var regex = new Regex("^" + pattern.Replace("/.", "\\.").Replace("**", ".*") + "$");
-        return folderListCache[cacheKey] = FilterAllFiles(regex, limit).ToArray();
+        try {
+            var regex = new Regex("^" + pattern.Replace("/.", "\\.").Replace("**", ".*") + "$");
+            return folderListCache[cacheKey] = FilterAllFiles(regex, limit).ToArray();
+        } catch (Exception) {
+            Log.Error("Failed to parse regex pattern: " + pattern);
+            return folderListCache[cacheKey] = [];
+        }
     }
 
     public List<string> FilterAllFiles(Regex regex, int limit)

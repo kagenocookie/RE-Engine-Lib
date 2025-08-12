@@ -40,11 +40,11 @@ public class GameConfig
             switch (key.Replace("_", "").Replace(" ", "").ToLowerInvariant())
             {
                 case "game":
-                case "gamepath": GamePath = Path.GetFullPath(value.EndsWith(".exe") ? Path.GetDirectoryName(value)! : value).NormalizeFilepath(); break;
+                case "gamepath": GamePath = string.IsNullOrEmpty(value) ? "" : Path.GetFullPath(value.EndsWith(".exe") ? Path.GetDirectoryName(value)! : value).NormalizeFilepath(); break;
                 case "chunk":
                 case "chunks":
                 case "chunkpath":
-                case "chunkspath": ChunkPath = Path.GetFullPath(value).NormalizeFilepath(); break;
+                case "chunkspath": ChunkPath = string.IsNullOrEmpty(value) ? "" : Path.GetFullPath(value).NormalizeFilepath(); break;
                 case "rszjson":
                 case "rszjsonpath":
                     Resources.LocalPaths.RszPatchFiles = value.Split('|', StringSplitOptions.RemoveEmptyEntries|StringSplitOptions.TrimEntries)
@@ -52,12 +52,12 @@ public class GameConfig
                         .ToArray();
                         break;
                 case "il2cpp":
-                case "il2cpppath": Resources.LocalPaths.Il2cppCache = Path.GetFullPath(value).NormalizeFilepath(); break;
+                case "il2cpppath": Resources.LocalPaths.Il2cppCache = string.IsNullOrEmpty(value) ? "" : Path.GetFullPath(value).NormalizeFilepath(); break;
                 case "filelist":
-                case "filelistpath": Resources.LocalPaths.FileList = Path.GetFullPath(value).NormalizeFilepath(); break;
+                case "filelistpath": Resources.LocalPaths.FileList = string.IsNullOrEmpty(value) ? "" : Path.GetFullPath(value).NormalizeFilepath(); break;
                 case "pakfiles":
                 case "paklist":
-                    PakFiles = value.Split('|', StringSplitOptions.RemoveEmptyEntries|StringSplitOptions.TrimEntries)
+                    PakFiles = string.IsNullOrEmpty(value) ? [] : value.Split('|', StringSplitOptions.RemoveEmptyEntries|StringSplitOptions.TrimEntries)
                         .Select(s => Path.GetFullPath(s).NormalizeFilepath())
                         .ToArray();
                     break;

@@ -69,7 +69,16 @@ namespace ReeLib.Common
                     }
                     inst.SetFieldValue(key, list);
                 } else {
-                    inst.SetFieldValue(key, val.Deserialize(type, options)!);
+                    var deserialized = val?.GetValueKind() switch {
+                        JsonValueKind.True => true,
+                        JsonValueKind.False => false,
+                        JsonValueKind.Number => val.Deserialize(type, options),
+                        JsonValueKind.Null or JsonValueKind.Undefined => null,
+                        JsonValueKind.String => type == typeof(string) ? val.GetValue<string>() : val.Deserialize(type, options),
+                        JsonValueKind.Object or JsonValueKind.Array or _ => val.Deserialize(type, options)!,
+                    };
+                    if (deserialized?.GetType() != type) deserialized = Convert.ChangeType(deserialized, type);
+                    inst.SetFieldValue(key, deserialized ?? Activator.CreateInstance(type)!);
                 }
             }
             return inst;
@@ -149,7 +158,7 @@ namespace ReeLib.Common
         {
             var dict = JsonSerializer.Deserialize<JsonObject>(ref reader, options);
             if (dict == null) return null;
-            var obj = new ScnGameObject();
+            var obj = new ScnGameObject() { Info = new() };
             foreach (var (key, prop) in dict) {
                 if (prop == null) continue;
                 if (key == "_guid") {

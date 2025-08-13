@@ -345,6 +345,7 @@ namespace ReeLib
 
         public bool IsReference => type == RszFieldType.Object || type == RszFieldType.UserData;
         public bool IsString => type == RszFieldType.String || type == RszFieldType.Resource;
+        public bool IsGameObjectRef => type == RszFieldType.GameObjectRef || type == RszFieldType.Uri;
 
         public override string ToString() => $"{type} {name}";
     }

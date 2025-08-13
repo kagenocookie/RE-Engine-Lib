@@ -458,7 +458,7 @@ namespace ReeLib
 
                 for (int i = 0; i < instance.Fields.Length; i++) {
                     var field = instance.Fields[i];
-                    if (field.type != RszFieldType.GameObjectRef) continue;
+                    if (!field.IsGameObjectRef) continue;
 
                     if (field.array) {
                         var list = (List<object>)instance.Values[i];

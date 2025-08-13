@@ -207,7 +207,7 @@ namespace ReeLib
                     var count = (int)handler.ReadUInt();
                     var str = handler.ReadAsciiString(-1, count, false);
                     return str;
-                case RszFieldType.GameObjectRef:
+                case RszFieldType.GameObjectRef or RszFieldType.Uri:
                     return new GameObjectRef(handler.Read<Guid>());
                 default:
                 {
@@ -247,7 +247,7 @@ namespace ReeLib
                     return handler.Write(value is RszInstance instance ? instance.Index : (int)value);
                 case RszFieldType.Struct:
                     return ((RszInstance)value).Write(handler);
-                case RszFieldType.GameObjectRef:
+                case RszFieldType.GameObjectRef or RszFieldType.Uri:
                     return handler.Write(((GameObjectRef)value).guid);
                 default:
                     long startPos = handler.Tell();
@@ -300,7 +300,7 @@ namespace ReeLib
             [RszFieldType.AABB] = typeof(via.AABB),
             [RszFieldType.Guid] = typeof(Guid),
             [RszFieldType.GameObjectRef] = typeof(GameObjectRef),
-            [RszFieldType.Uri] = typeof(Guid),
+            [RszFieldType.Uri] = typeof(GameObjectRef),
             [RszFieldType.Color] = typeof(via.Color),
             [RszFieldType.Range] = typeof(via.Range),
             [RszFieldType.RangeI] = typeof(via.RangeI),

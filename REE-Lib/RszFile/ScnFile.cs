@@ -962,7 +962,7 @@ namespace ReeLib
                     for (int i = 0; i < fields.Length; i++)
                     {
                         RszField field = fields[i];
-                        if (field.type == RszFieldType.GameObjectRef)
+                        if (field.IsGameObjectRef)
                         {
                             gameObjectRefDatas ??= new();
                             if (field.array)

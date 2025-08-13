@@ -147,14 +147,10 @@ public class ResourceTools(Workspace workspace)
 
     private void CheckGameObjectRefInstances(PfbFile pfb)
     {
-        static bool IsGameObjectRef(RszField field)
-        {
-            return field.type == RszFieldType.GameObjectRef || field.type == RszFieldType.Uri && field.original_type.Contains("via.GameObjectRef");
-        }
         var game = workspace.Config.Game;
         foreach (var refinfo in pfb.GameObjectRefInfoList) {
             var src = pfb.RSZ.ObjectList[(int)refinfo.objectId];
-            var refFields = src.RszClass.fields.Where(IsGameObjectRef).ToArray();
+            var refFields = src.RszClass.fields.Where(f => f.IsGameObjectRef).ToArray();
 
             var propInfoDict = workspace.PfbRefProps.GetValueOrDefault(src.RszClass.name);
             if (propInfoDict?.Count == refFields.Length) {

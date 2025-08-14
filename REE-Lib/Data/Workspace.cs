@@ -158,6 +158,20 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
     }
 
     /// <summary>
+    /// Attempt to match the filename to a single file and return the filename. Automatically adds any missing file extensions and suffixes.
+    /// </summary>
+    public string? ResolveFilepath(string filepath)
+    {
+        var stream = FindSingleFile(filepath, out var path);
+        if (stream == null) {
+            return null;
+        }
+
+        stream.Dispose();
+        return path;
+    }
+
+    /// <summary>
     /// Attempt to match the filename to a single file and return a <see cref="Stream"/> for it. Automatically adds any missing file extensions and suffixes.
     /// </summary>
     public Stream? FindSingleFile(string filepath) => FindSingleFile(filepath, out _);

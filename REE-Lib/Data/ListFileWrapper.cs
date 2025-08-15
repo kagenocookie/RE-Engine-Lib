@@ -122,6 +122,11 @@ public class ListFileWrapper
         }
     }
 
+    public void ResetResultCache()
+    {
+        folderListCache.Clear();
+    }
+
     public List<string> FilterAllFiles(Regex regex, int limit)
     {
         var list = new List<string>();

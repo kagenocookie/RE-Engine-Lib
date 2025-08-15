@@ -147,17 +147,26 @@ public class ListFileWrapper
         if (string.IsNullOrEmpty(lower)) {
             return GetFolderFileNames(string.Empty);
         }
-        return GetFolderFileNames(lower + "/");
+        return GetFolderFileNames(lower);
     }
 
     private string[] GetFolderFileNames(string folderNormalized)
     {
+        if (folderNormalized.EndsWith('/')) {
+            folderNormalized = folderNormalized[..^1];
+        }
         if (folderListCache.TryGetValue(folderNormalized, out var names)) {
             return names;
         }
 
+        var cacheKey = folderNormalized;
         var startIndex = Array.BinarySearch(Files, folderNormalized);
-        if (startIndex < 0) {
+        if (startIndex >= 0) {
+            return folderListCache[folderNormalized] = names = [folderNormalized];
+        } else {
+            if (!folderNormalized.EndsWith('/')) {
+                folderNormalized += "/";
+            }
             startIndex = ~startIndex;
             if (startIndex > Files.Length) return [];
         }
@@ -178,7 +187,7 @@ public class ListFileWrapper
             }
         }
 
-        return folderListCache[folderNormalized] = names = list.ToArray();
+        return folderListCache[cacheKey] = names = list.ToArray();
     }
 
     private static ReadOnlySpan<char> GetSubfolderPath(string path, string fromFolder)

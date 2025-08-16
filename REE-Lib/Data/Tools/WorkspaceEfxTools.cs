@@ -11,10 +11,8 @@ public sealed partial class Workspace : IDisposable
 
     private EfxCacheData LoadEfxDataCache()
     {
-        if (config.Resources.TryGetEfxCachePath(out var baseCacheFile) && TryDeserialize<EfxStructCache>(baseCacheFile, out var structCache)) {
-            _efxCache = ReadEfxCache(structCache);
-        }
-
+        var structCache = EfxTools.GenerateEFXStructsJson(config.Game.ToEfxVersion(), null);
+        _efxCache = ReadEfxCache(structCache);
         return _efxCache ??= new();
     }
 

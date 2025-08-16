@@ -7,7 +7,7 @@ using ReeLib.Efx;
 using ReeLib.Efx.Structs.Basic;
 using ReeLib.InternalAttributes;
 
-namespace ReeLib.Tools;
+namespace ReeLib.Efx;
 
 public static class EfxTools
 {
@@ -31,11 +31,13 @@ public static class EfxTools
         return method.Invoke(null, [version]) as IEnumerable<(string name, Type type)> ?? EmptyFields;
     }
 
-    public static void GenerateEFXStructsJson(string outputFile, EfxVersion efxVersion)
+    public static EfxStructCache GenerateEFXStructsJson(EfxVersion efxVersion, string? outputFile)
     {
-        if (efxVersion == EfxVersion.Unknown) return;
+        if (efxVersion == EfxVersion.Unknown) throw new Exception("Invalid EFX version");
 
-        Log.Info($"Generating {efxVersion} EFX structs to {outputFile} ...");
+        if (outputFile != null) {
+            Log.Info($"Generating {efxVersion} EFX structs to {outputFile} ...");
+        }
 
         var asm = typeof(EFXAttributeSpawn).Assembly;
 
@@ -96,9 +98,8 @@ public static class EfxTools
                     info.Hash = (uint)GetStableStringHashCode(info.Classname);
                     GenerateStructFields(type, info, efxVersion, unhandled);
                     output.Structs.Add(info.Classname, info);
-                }
-                else // structs
-                {
+                } else // structs
+                  {
                     var structInfo = new EfxStructInfo() {
                         Classname = type.FullName!,
                     };
@@ -119,11 +120,13 @@ public static class EfxTools
             unhandledReferencedTypes = unhandled;
         }
 
-        var json = JsonSerializer.Serialize(output, GetJsonOptions());
-        Directory.CreateDirectory(Path.GetDirectoryName(outputFile)!);
-        File.WriteAllText(outputFile, json);
+        if (outputFile != null) {
+            var json = JsonSerializer.Serialize(output, GetJsonOptions());
+            Directory.CreateDirectory(Path.GetDirectoryName(outputFile)!);
+            File.WriteAllText(outputFile, json);
+        }
 
-        Log.Info($"Done.");
+        return output;
     }
 
     private static void GenerateStructFields(Type instanceType, EfxStructInfo structInfo, EfxVersion efxVersion, HashSet<Type> referencedTypes)

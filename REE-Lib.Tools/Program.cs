@@ -22,11 +22,11 @@ internal sealed class Program
             case "efx-structs":
                 var version = GetArgEfxVersion(args, 2);
                 if (version.HasValue) {
-                    EfxTools.GenerateEFXStructsJson(GetArgFilePath(args, 1), version.Value);
+                    EfxTools.GenerateEFXStructsJson(version.Value, GetArgFilePath(args, 1));
                 } else {
                     var folder = GetArgFolderPath(args, 1);
                     foreach (var ver in Enum.GetValues<EfxVersion>()) {
-                        EfxTools.GenerateEFXStructsJson(Path.Combine(folder, Enum.GetName<EfxVersion>(ver) + ".json"), ver);
+                        EfxTools.GenerateEFXStructsJson(ver, Path.Combine(folder, Enum.GetName<EfxVersion>(ver) + ".json"));
                     }
                 }
                 break;

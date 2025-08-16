@@ -72,7 +72,7 @@ namespace ReeLib.Motlist
 
     public class MotIndex : BaseModel
     {
-        public uint motClipOffset;  // may point to MotClip
+        public long motClipOffset;  // may point to MotClip
         public ushort motNumber;
         public ushort Switch;
         uint[]? data;
@@ -93,8 +93,7 @@ namespace ReeLib.Motlist
             handler.Read(ref motNumber);
             handler.Read(ref Switch);
             int dataCount = DataCount;
-            if (dataCount > 0)
-            {
+            if (dataCount > 0) {
                 data = handler.ReadArray<uint>(dataCount);
             }
             return true;
@@ -105,12 +104,13 @@ namespace ReeLib.Motlist
             handler.Write(ref motClipOffset);
             handler.Write(ref motNumber);
             handler.Write(ref Switch);
-            if (data != null)
-            {
+            if (data != null) {
                 handler.WriteArray(data);
             }
             return true;
         }
+
+        public override string ToString() => $"Mot {motNumber} {MotClip}";
     }
 }
 
@@ -144,12 +144,24 @@ namespace ReeLib
             BoneHeaders? boneHeaders = null;
             for (int i = 0; i < motOffsets.Length; i++)
             {
-                if (uniqueOffsets.Add(motOffsets[i]))
+                if (motOffsets[i] == 0)
                 {
-                    MotFile motFile = new(Option, handler.WithOffset(motOffsets[i]), boneHeaders);
-                    boneHeaders ??= motFile.BoneHeaders;
-                    motFile.Read();
-                    MotFiles.Add(motFile);
+                    continue;
+                }
+                if (uniqueOffsets.Add(motOffsets[i])) {
+                    var fileHandler = handler.WithOffset(motOffsets[i]);
+                    var magic = fileHandler.ReadInt(4);
+                    if (magic == MotFile.Magic) {
+                        MotFile motFile = new(fileHandler, boneHeaders);
+                        motFile.Embedded = true;
+                        boneHeaders ??= motFile.BoneHeaders;
+                        motFile.Read();
+                        MotFiles.Add(motFile);
+                    } else if (magic == MotTreeFile.Magic) {
+                        // MotTreeFile mtre = new MotTreeFile(fileHandler);
+                        // mtre.Read();
+                        throw new NotSupportedException("MotTree motions are not supported");
+                    }
                 }
             }
 

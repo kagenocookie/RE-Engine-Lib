@@ -235,7 +235,7 @@ public class TypeCache
     public KnownFileFormats[] GetResourceSubtypes(KnownFileFormats format)
     {
         return format switch {
-            KnownFileFormats.MotionBase => [ KnownFileFormats.Motion, KnownFileFormats.MotionList, KnownFileFormats.GpuMotionList, KnownFileFormats.MotionCamera, KnownFileFormats.MotionCameraList ],
+            KnownFileFormats.MotionBase => [ KnownFileFormats.Motion, KnownFileFormats.MotionTree, KnownFileFormats.MotionList, KnownFileFormats.GpuMotionList, KnownFileFormats.MotionCamera, KnownFileFormats.MotionCameraList ],
             KnownFileFormats.TimelineBase => [ KnownFileFormats.Timeline, KnownFileFormats.Clip ],
             KnownFileFormats.DynamicsBase => [ KnownFileFormats.RigidBodyMesh, KnownFileFormats.HeightField ],
             KnownFileFormats.BehaviorTreeBase => [ KnownFileFormats.BehaviorTree, KnownFileFormats.Fsm2 ],

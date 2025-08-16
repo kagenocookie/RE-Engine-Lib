@@ -47,6 +47,7 @@ namespace ReeLib.Mot
         public ushort uknShort;
 
         public string motName = string.Empty;
+        public string? jmap;
 
         protected override bool ReadWrite(IFileHandlerAction action)
         {
@@ -95,6 +96,8 @@ namespace ReeLib.Mot
 
         public BoneClipHeader? ClipHeader { get; set; }
         public TRACKS? Tracks { get; set; }
+
+        public override string ToString() => Header.boneName;
     }
 
 
@@ -123,6 +126,8 @@ namespace ReeLib.Mot
                  ?.Then(ref padding);
             return action.Success;
         }
+
+        public override string ToString() => $"[{Index}] {boneName}";
     }
 
 
@@ -172,7 +177,6 @@ namespace ReeLib.Mot
         Rotation = 2,
         Scale = 4
     }
-
 
     public class BoneClipHeader : BaseModel
     {
@@ -1190,6 +1194,8 @@ namespace ReeLib.Mot
             handler.Write(Start + 16, endClipStructsRelocation);
             return true;
         }
+
+        public override string ToString() => $"MotClip: {ClipEntry}";
     }
 
 
@@ -1230,8 +1236,8 @@ namespace ReeLib.Mot
 
 namespace ReeLib
 {
-    public class MotFile(RszFileOption option, FileHandler fileHandler, BoneHeaders? boneHeaders = null)
-        : BaseRszFile(option, fileHandler)
+    public class MotFile(FileHandler fileHandler, BoneHeaders? boneHeaders = null)
+        : BaseFile(fileHandler)
     {
         public const uint Magic = 0x20746F6D;
         public const string Extension = ".mot";
@@ -1240,6 +1246,8 @@ namespace ReeLib
         public BoneHeaders BoneHeaders { get; } = boneHeaders ?? new();
         public List<Bone> Bones { get; } = new();
         public List<MotClip> MotClips { get; } = new();
+
+        public MotFile(FileHandler fileHandler) : this(fileHandler, null) { }
 
         protected override bool DoRead()
         {
@@ -1253,7 +1261,7 @@ namespace ReeLib
                 throw new InvalidDataException($"{handler.FilePath} Not a MOT file");
             }
 
-            if (header.boneHeaderOffsetStart > 0 && header.motSize == 0 || header.motSize > header.boneHeaderOffsetStart)
+            if (!Embedded || header.boneHeaderOffsetStart > 0 && (header.motSize == 0 || header.motSize > header.boneHeaderOffsetStart))
             {
                 handler.Seek(header.boneHeaderOffsetStart);
                 BoneHeaders.Read(handler);
@@ -1275,6 +1283,12 @@ namespace ReeLib
                 {
                     BoneClipHeader clipHeader = new(header.version);
                     clipHeader.Read(handler);
+
+                    // not yet sure why - sometimes bone indices go past the actual bone count
+                    while (clipHeader.boneIndex >= bones.Count)
+                    {
+                        bones.Add(new Bone(new BoneHeader() { Index = clipHeader.boneIndex }));
+                    }
                     bones[clipHeader.boneIndex].ClipHeader = clipHeader;
                     boneClipHeaders[i] = clipHeader;
                 }
@@ -1289,7 +1303,7 @@ namespace ReeLib
 
             if (header.jmapOffset > 0)
             {
-                throw new NotImplementedException("Jmap not supported yet");
+                header.jmap = handler.ReadWString(header.jmapOffset);
             }
 
             if (header.clipFileOffset > 0 && header.clipCount > 0)
@@ -1336,5 +1350,7 @@ namespace ReeLib
             Header.Write(handler, 0);
             return true;
         }
+
+        public override string ToString() => $"{Header.motName}";
     }
 }

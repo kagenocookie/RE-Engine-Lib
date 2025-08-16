@@ -171,6 +171,8 @@ namespace ReeLib
         UserVariables,
         /// <summary>.mot</summary>
         Motion,
+        /// <summary>.mottree</summary>
+        MotionTree,
         /// <summary>.motlist</summary>
         MotionList,
         /// <summary>.motbank</summary>
@@ -416,7 +418,7 @@ namespace ReeLib
         sdf, // BankInfo?
 
         TimelineBase, // Timeline or Clip
-        MotionBase, // Motion or MotionList or GpuMotionList or MotionCamera or MotionCameraList
+        MotionBase, // Motion or MotionTree or MotionList or GpuMotionList or MotionCamera or MotionCameraList
         DynamicsBase, // RigidBodyMesh or HeightField
         BehaviorTreeBase, // BehaviorTree or Fsm2
     }

@@ -17,10 +17,12 @@ namespace ReeLib.Clip
         MHR = RE2_RT,
         SF6 = 53,
         RE4 = 54,
+        DD2 = 62,
+        MHWilds = 85,
     }
 
 
-    public enum InterpolationType
+    public enum InterpolationType : byte
     {
         Unknown = 0x0,
         Discrete = 0x1,
@@ -351,6 +353,8 @@ namespace ReeLib.Clip
                     throw new Exception($"Unsupported PropertyType: {PropertyType}");
             }
         }
+
+        public override string ToString() => $"[{frame}]: {Value}";
     }
 
 
@@ -418,7 +422,7 @@ namespace ReeLib.Clip
                     action.Do(ref uknByte00);
                 action.Do(ref uknByte);
                 action.Do(ref lastKeyOffset);
-                if (Version != ClipVersion.RE4)
+                if (Version < ClipVersion.RE4)
                 {
                     action.Do(ref speedPointOffset);
                     action.Do(ref clipPropertyOffset);
@@ -518,6 +522,8 @@ namespace ReeLib.Clip
                 }
             }
         }
+
+        public override string ToString() => $"{Info.FunctionName} [{Info.startFrame}-{Info.endFrame}]";
     }
 
 
@@ -585,7 +591,7 @@ namespace ReeLib.Clip
         {
             if (Version >= ClipVersion.RE3)
             {
-                Name = handler.ReadWString(header.unicodeNamesOffset + nameOffset);
+                Name = handler.ReadWString(header.unicodeNamesOffset + nameOffset * 2);
             }
             else if (header.namesOffsetExtra != null)
             {
@@ -606,6 +612,8 @@ namespace ReeLib.Clip
                 nameOffset = stringItem!.TableOffset;
             }
         }
+
+        public override string ToString() => Name ?? $"Hash: {nameHash}";
     }
 
 
@@ -644,7 +652,7 @@ namespace ReeLib.Clip
             handler.Read(ref numNodes);
             handler.Read(ref numProperties);
             handler.Read(ref numKeys);
-            if (version != ClipVersion.RE3 && version < ClipVersion.RE8)
+            if (version < ClipVersion.RE3)
             {
                 handler.Read(ref guid);
             }
@@ -708,6 +716,8 @@ namespace ReeLib.Clip
         public int ukn;
         public uint ukn1;
         public ulong ukn2;
+
+        public override string ToString() => $"{ukn} {ukn1} {ukn2}";
     }
 
 
@@ -738,10 +748,8 @@ namespace ReeLib.Clip
 
         public int KeySize => Version switch
         {
-            ClipVersion.RE3 or
-            ClipVersion.MHR_DEMO or ClipVersion.RE8 or
-            ClipVersion.SF6 or ClipVersion.RE4 => 32,
-            _ => 40,
+            < ClipVersion.RE3 => 40,
+            _ => 32,
         };
 
         protected override bool DoRead(FileHandler handler)
@@ -834,8 +842,8 @@ namespace ReeLib.Clip
 
             if (Version != ClipVersion.RE7 && clipHeader.numNodes > 1)
             {
-                long endClipStructsRelocation = handler.ReadInt64(clipHeader.endClipStructsOffset1 + 8);
-                handler.Seek(endClipStructsRelocation);
+                // long endClipStructsRelocation = handler.ReadInt64(clipHeader.endClipStructsOffset1 + 8);
+                handler.Seek(clipHeader.endClipStructsOffset1 + 8);
                 EndClipStructs = handler.ReadArray<EndClipStruct>(clipHeader.numNodes - 1);
             }
 
@@ -908,6 +916,8 @@ namespace ReeLib.Clip
             clipHeader.Write(handler, start);
             return true;
         }
+
+        public override string ToString() => $"Clip {Header.guid}";
     }
 }
 

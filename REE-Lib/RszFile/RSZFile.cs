@@ -539,9 +539,9 @@ namespace ReeLib
             return true;
         }
 
-        public void ReadClassName(RszParser parser)
+        public string ReadClassName(RszParser parser)
         {
-            ClassName = parser.GetRSZClassName(typeId);
+            return ClassName = parser.GetRSZClassName(typeId);
         }
 
         public UserdataInfo ToUserdataInfo(RszParser parser)
@@ -590,9 +590,9 @@ namespace ReeLib
             return true;
         }
 
-        public void ReadClassName(RszParser parser)
+        public string ReadClassName(RszParser parser)
         {
-            ClassName = parser.GetRSZClassName(typeId);
+            return ClassName = parser.GetRSZClassName(typeId);
         }
     }
 }

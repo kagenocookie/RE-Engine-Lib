@@ -45,7 +45,7 @@ namespace ReeLib.Common
                 var field = cls.fields[fieldIdx];
                 var type = field.type switch {
                     RszFieldType.Object or RszFieldType.Struct => typeof(RszInstance),
-                    // RszFieldType.UserData => typeof(string), // TODO
+                    RszFieldType.UserData => typeof(RszInstance),
                     RszFieldType.String or RszFieldType.RuntimeType or RszFieldType.Resource => typeof(string),
                     _ => RszInstance.RszFieldTypeToCSharpType(field.type),
                 };
@@ -68,6 +68,19 @@ namespace ReeLib.Common
                         }
                     }
                     inst.SetFieldValue(key, list);
+                } else if (field.type == RszFieldType.UserData) {
+                    var userClassName = val?.AsObject()["class"]?.GetValue<string>() ?? string.Empty;
+                    var userClass = env.RszParser.GetRSZClass(userClassName);
+                    if (userClass == null) {
+                        throw new Exception("Could not deserialize user data reference " + val);
+                    }
+                    var path = val?.AsObject()["path"]?.GetValue<string>() ?? string.Empty;
+
+                    if (env.IsEmbeddedInstanceInfoUserdata || env.IsEmbeddedUserdata) {
+                        inst.SetFieldValue(key, new RszInstance(userClass, -1, new RSZUserDataInfo_TDB_LE_67() { jsonPathHash = MurMur3HashUtils.GetHash(path) }));
+                    } else {
+                        inst.SetFieldValue(key, new RszInstance(userClass, -1, new RSZUserDataInfo() { Path = path }));
+                    }
                 } else {
                     var deserialized = val?.GetValueKind() switch {
                         JsonValueKind.True => true,
@@ -87,8 +100,7 @@ namespace ReeLib.Common
         public override void Write(Utf8JsonWriter writer, RszInstance value, JsonSerializerOptions options)
         {
             var dict = new Dictionary<string, object>(value.Fields.Length + 1);
-            // TODO handle userdata
-            // TODO handle dictionary arrays (KeyValuePair) as dictionaries
+            // NOTE: could be nice to handle dictionary arrays (KeyValuePair) as dictionaries, but not required
             dict["$type"] = value.RszClass.name;
             for (var i = 0; i < value.Fields.Length; i++) {
                 var field = value.Fields[i];
@@ -101,17 +113,22 @@ namespace ReeLib.Common
                         { "items", fieldValue },
                     };
                 } else if (field.type == RszFieldType.UserData) {
-                    // var rszField = (RszInstance)fieldValue;
-                    if (env.IsEmbeddedInstanceInfoUserdata) {
-                        if (field.array) {
-                            // TODO
-                        } else {
-                            // TODO
-                        }
-                    } else if (env.IsEmbeddedUserdata) {
-                        // TODO
+                    var userRef = (RszInstance)fieldValue;
+                    if (userRef.RSZUserData == null) {
+                        // leave null
+                    } else if (userRef.RSZUserData is RSZUserDataInfo curUser) {
+                        dict[field.name] = new Dictionary<string, string>() {
+                            { "class", curUser.ClassName ?? curUser.ReadClassName(env.RszParser) },
+                            { "path", curUser.Path ?? string.Empty }
+                        };
+                    } else if (userRef.RSZUserData is RSZUserDataInfo_TDB_LE_67 oldUser) {
+                        var path = oldUser.EmbeddedRSZ?.ObjectList[0].Values[0] as string;
+                        dict[field.name] = new Dictionary<string, string>() {
+                            { "class", oldUser.ClassName ?? oldUser.ReadClassName(env.RszParser) },
+                            { "path", path ?? string.Empty }
+                        };
                     } else {
-                        // TODO
+                        throw new NotSupportedException("Unsupported rsz userdata type " + (userRef.RSZUserData?.GetType().Name ?? "NULL"));
                     }
                 } else {
                     dict[field.name] = fieldValue;

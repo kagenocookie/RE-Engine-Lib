@@ -99,6 +99,11 @@ public class TypeCache
         return subclasses[baseclass] = new List<string>() { baseclass };
     }
 
+    public bool IsAssignableTo(string classname, string baseClassname)
+    {
+        return classname == baseClassname || GetSubclasses(baseClassname).Contains(classname);
+    }
+
     public EnumDescriptor GetEnumDescriptor(string classname)
     {
         if (enums.TryGetValue(classname, out var descriptor)) {

@@ -117,7 +117,7 @@ namespace ReeLib.Motlist
 
 namespace ReeLib
 {
-    public class MotlistFile(RszFileOption option, FileHandler fileHandler) : BaseRszFile(option, fileHandler)
+    public class MotlistFile(FileHandler fileHandler) : BaseFile(fileHandler)
     {
         public const uint Magic = 0x74736C6D;
         public const string Extension = ".motlist";

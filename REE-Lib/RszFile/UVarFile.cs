@@ -715,5 +715,7 @@ namespace ReeLib
             HashData.Write(handler);
             return true;
         }
+
+        public override string ToString() => Header.name ?? "UVarFile";
     }
 }

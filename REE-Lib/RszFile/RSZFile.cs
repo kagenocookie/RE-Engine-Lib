@@ -499,6 +499,8 @@ namespace ReeLib
         {
             ClassName = parser.GetRSZClassName(typeId);
         }
+
+        public override string ToString() => ClassName ?? CRC.ToString();
     }
 
 

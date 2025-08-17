@@ -22,6 +22,8 @@ namespace ReeLib.Motfsm2
     {
         public uint transitionId;
         public int dataIndex;
+
+        public readonly override string ToString() => $"[{transitionId}] {dataIndex}";
     }
 
 
@@ -174,6 +176,8 @@ namespace ReeLib.Motfsm2
             handler.Skip(4);
             return true;
         }
+
+        public override string ToString() => $"{id} [{startFrame}-{exitFrame}]";
     }
 }
 

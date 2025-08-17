@@ -26,7 +26,7 @@ namespace ReeLib.Bhvt
         public long variableOffset;
         public long baseVariableOffset;
 
-        long referencePrefabGameObjectsOffset;
+        public long referencePrefabGameObjectsOffset;
 
         public GameVersion Version { get; set; }
 
@@ -39,7 +39,14 @@ namespace ReeLib.Bhvt
         {
             handler.Read(ref magic);
             handler.Skip(4);
-            handler.ReadRange(ref nodeOffset, ref baseVariableOffset);
+            handler.ReadRange(ref nodeOffset, ref resourcePathsOffset);
+            if (Version > GameVersion.re2)
+            {
+                handler.Read(ref userdataPathsOffset);
+            }
+
+            handler.Read(ref variableOffset);
+            handler.Read(ref baseVariableOffset);
             if (Version > GameVersion.dmc5)
             {
                 handler.Read(ref referencePrefabGameObjectsOffset);
@@ -137,6 +144,7 @@ namespace ReeLib.Bhvt
         {
             // if !finished
             handler.Read(ref tagsCount);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(tagsCount, 1000);
             for (int i = 0; i < tagsCount; i++)
             {
                 Tags.Add(handler.ReadUInt());
@@ -224,6 +232,8 @@ namespace ReeLib.Bhvt
         public uint ChildNode;
         public uint ChildNodeEx;
         public uint Conditions;
+
+        public override string ToString() => $"{ChildNode} {ChildNodeEx} {Conditions}";
     }
 
 
@@ -415,7 +425,7 @@ namespace ReeLib.Bhvt
                     mStartState = data[1, i],
                     mStartStateTransition = (BHVTId)data[2, i]
                 };
-                if (!(Version == GameVersion.re2 || Version == GameVersion.dmc5))
+                if (Version > GameVersion.re2)
                 {
                     transitions[i].mStartStateEx = data[3, i];
                 }
@@ -466,6 +476,8 @@ namespace ReeLib.Bhvt
         public TAGS Tags { get; } = new();
         public bool isBranch;
         public bool isEnd;
+
+        public override string ToString() => Name;
 
         public NStates States { get; } = new();
         public NAllStates AllStates { get; } = new();
@@ -644,10 +656,11 @@ namespace ReeLib
             // handler.Seek(header.resourcePathsOffset);
             // int numPaths = handler.ReadInt();
             // List<string> mPathNamePool = ReadStringPool();
+            var inheritOffset = header.Version >= GameVersion.dd2;
 
             handler.Seek(header.variableOffset);
             Variable ??= new UVarFile(handler) { Embedded = true };
-            Variable.Read();
+            Variable.ReadNoSeek();
 
             handler.Seek(header.baseVariableOffset);
             int mReferenceTreeCount = handler.ReadInt();
@@ -656,9 +669,12 @@ namespace ReeLib
                 for (int i = 0; i < mReferenceTreeCount; i++)
                 {
                     long referenceTreeOffset = handler.ReadInt64();
-                    UVarFile uVarFile = new(handler.WithOffset(referenceTreeOffset));
-                    uVarFile.Read();
+                    var curOffset = handler.Tell();
+                    handler.Seek(referenceTreeOffset);
+                    UVarFile uVarFile = new(handler);
+                    uVarFile.ReadNoSeek();
                     ReferenceTrees.Add(uVarFile);
+                    handler.Seek(curOffset);
                 }
             }
 

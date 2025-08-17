@@ -44,6 +44,19 @@ namespace ReeLib
             return result;
         }
 
+        /// <summary>
+        /// Read data starting from the current offset.
+        /// </summary>
+        /// <returns></returns>
+        public bool ReadNoSeek()
+        {
+            var start = FileHandler.Tell();
+            bool result = DoRead();
+            Size = FileHandler.Tell() - start;
+            // Console.WriteLine($"{this} Start: {Start}, Read size: {Size}");
+            return result;
+        }
+
         public bool Write()
         {
             FileHandler.Seek(0);

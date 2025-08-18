@@ -69,17 +69,11 @@ namespace ReeLib.Common
                     }
                     inst.SetFieldValue(key, list);
                 } else if (field.type == RszFieldType.UserData) {
-                    var userClassName = val?.AsObject()["class"]?.GetValue<string>() ?? string.Empty;
-                    var userClass = env.RszParser.GetRSZClass(userClassName);
-                    if (userClass == null) {
-                        throw new Exception("Could not deserialize user data reference " + val);
-                    }
-                    var path = val?.AsObject()["path"]?.GetValue<string>() ?? string.Empty;
-
-                    if (env.IsEmbeddedInstanceInfoUserdata || env.IsEmbeddedUserdata) {
-                        inst.SetFieldValue(key, new RszInstance(userClass, -1, new RSZUserDataInfo_TDB_LE_67() { jsonPathHash = MurMur3HashUtils.GetHash(path) }));
+                    if (field.array) {
+                        var list = new List<object>(val?.AsArray().Select(DeserializeUserdata) ?? []);
+                        inst.SetFieldValue(key, list);
                     } else {
-                        inst.SetFieldValue(key, new RszInstance(userClass, -1, new RSZUserDataInfo() { Path = path }));
+                        inst.SetFieldValue(key, DeserializeUserdata(val));
                     }
                 } else {
                     var deserialized = val?.GetValueKind() switch {
@@ -113,28 +107,56 @@ namespace ReeLib.Common
                         { "items", fieldValue },
                     };
                 } else if (field.type == RszFieldType.UserData) {
-                    var userRef = (RszInstance)fieldValue;
-                    if (userRef.RSZUserData == null) {
-                        // leave null
-                    } else if (userRef.RSZUserData is RSZUserDataInfo curUser) {
-                        dict[field.name] = new Dictionary<string, string>() {
-                            { "class", curUser.ClassName ?? curUser.ReadClassName(env.RszParser) },
-                            { "path", curUser.Path ?? string.Empty }
-                        };
-                    } else if (userRef.RSZUserData is RSZUserDataInfo_TDB_LE_67 oldUser) {
-                        var path = oldUser.EmbeddedRSZ?.ObjectList[0].Values[0] as string;
-                        dict[field.name] = new Dictionary<string, string>() {
-                            { "class", oldUser.ClassName ?? oldUser.ReadClassName(env.RszParser) },
-                            { "path", path ?? string.Empty }
-                        };
+                    if (field.array) {
+                        var list = ((IList<object>)fieldValue).Cast<RszInstance>().Select(elem => SerializeUserdata(dict, field, elem));
+                        dict[field.name] = list.ToArray();
                     } else {
-                        throw new NotSupportedException("Unsupported rsz userdata type " + (userRef.RSZUserData?.GetType().Name ?? "NULL"));
+                        var data = SerializeUserdata(dict, field, (RszInstance)fieldValue);
+                        if (data != null) {
+                            dict[field.name] = data;
+                        }
                     }
                 } else {
                     dict[field.name] = fieldValue;
                 }
             }
             JsonSerializer.Serialize(writer, dict, options);
+        }
+
+        private RszInstance DeserializeUserdata(JsonNode? val)
+        {
+            var userClassName = val?.AsObject()["class"]?.GetValue<string>() ?? string.Empty;
+            var userClass = env.RszParser.GetRSZClass(userClassName);
+            if (userClass == null) {
+                throw new Exception("Could not deserialize user data reference " + val);
+            }
+            var path = val?.AsObject()["path"]?.GetValue<string>() ?? string.Empty;
+
+            if (env.IsEmbeddedInstanceInfoUserdata || env.IsEmbeddedUserdata) {
+                return new RszInstance(userClass, -1, new RSZUserDataInfo_TDB_LE_67() { jsonPathHash = MurMur3HashUtils.GetHash(path) });
+            } else {
+                return new RszInstance(userClass, -1, new RSZUserDataInfo() { Path = path });
+            }
+        }
+
+        private Dictionary<string, string>? SerializeUserdata(Dictionary<string, object> dict, RszField field, RszInstance userRef)
+        {
+            if (userRef.RSZUserData == null) {
+                return null;
+            } else if (userRef.RSZUserData is RSZUserDataInfo curUser) {
+                return new Dictionary<string, string>() {
+                        { "class", curUser.ClassName ?? curUser.ReadClassName(env.RszParser) },
+                        { "path", curUser.Path ?? string.Empty }
+                    };
+            } else if (userRef.RSZUserData is RSZUserDataInfo_TDB_LE_67 oldUser) {
+                var path = oldUser.EmbeddedRSZ?.ObjectList[0].Values[0] as string;
+                return new Dictionary<string, string>() {
+                        { "class", oldUser.ClassName ?? oldUser.ReadClassName(env.RszParser) },
+                        { "path", path ?? string.Empty }
+                    };
+            } else {
+                throw new NotSupportedException("Unsupported rsz userdata type " + (userRef.RSZUserData?.GetType().Name ?? "NULL"));
+            }
         }
     }
 

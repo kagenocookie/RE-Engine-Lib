@@ -80,7 +80,7 @@ public class ListFileWrapper
         var index = Array.BinarySearch(Files, path);
         if (index < 0) {
             index = ~index;
-            if (index > Files.Length || !Files[index].StartsWith(path)) yield break;
+            if (index >= Files.Length || !Files[index].StartsWith(path)) yield break;
         }
         while(index > 0) {
             yield return Files[index];

@@ -64,9 +64,13 @@ namespace ReeLib
                 if (instance.RSZUserData != null) continue;
                 var fields = instance.RszClass.fields;
                 // avoid reference unused resource
-                if (instance.RszClass.name == "via.Folder")
+                if (instance.RszClass.name == "via.Folder" && !Convert.ToBoolean(instance.Values[4]))
                 {
-                    if (instance.GetFieldValue("v4") is (byte)0) continue;
+                    continue;
+                }
+                else if (instance.RszClass.name == "via.Prefab" && !Convert.ToBoolean(instance.Values[0]))
+                {
+                    continue;
                 }
                 for (int j = 0; j < fields.Length; j++)
                 {

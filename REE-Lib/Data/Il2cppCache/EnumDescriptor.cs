@@ -61,6 +61,14 @@ public abstract class EnumDescriptor
 
     protected abstract bool GuessIsFlags();
     public abstract void AddValue(string name, JsonElement elem);
+    public void AddValue<T>(T value, string name, string? displayName = null) where T : IBinaryInteger<T>
+    {
+        var valueElement = JsonSerializer.SerializeToElement(Convert.ChangeType(value, BackingType));
+        AddValue(name, valueElement);
+        if (displayName != null) {
+            SetDisplayLabel(valueElement, displayName);
+        }
+    }
 
     public abstract void ClearDisplayLabels();
     public abstract void SetDisplayLabel(JsonElement value, string name);
@@ -171,13 +179,26 @@ public sealed class EnumDescriptor<T> : EnumDescriptor where T : struct, IBinary
             CreateConverter();
         }
         T val = converter!(elem);
-        if (!ValueToLabels.TryAdd(val, name)) {
-            return;
+        if (ValueToLabels.TryGetValue(val, out var prevName)) {
+            if (prevName == name) {
+                return;
+            }
+            LabelToValues.Remove(prevName);
+            var prevPair = new KeyValuePair<string, T>(prevName, val);
+            var index = OrderedValues.IndexOf(prevPair);
+            if (index == -1) {
+                OrderedValues.Add(new KeyValuePair<string, T>(name, val));
+            } else {
+                OrderedValues[index] = new KeyValuePair<string, T>(name, val);
+            }
+        } else {
+            OrderedValues.Add(new KeyValuePair<string, T>(name, val));
         }
-        OrderedValues.Add(new KeyValuePair<string, T>(name, val));
+        ValueToLabels[val] = name;
         LabelToValues[name] = val;
         _labelsArray = null;
         _valuesArray = null;
+        _displayLabelsArray = null;
     }
 
     private static void CreateConverter()

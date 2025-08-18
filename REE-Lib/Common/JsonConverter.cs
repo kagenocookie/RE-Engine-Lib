@@ -101,7 +101,7 @@ namespace ReeLib.Common
                 var fieldValue = value.Values[i];
                 if (field.type == RszFieldType.Object && field.array) {
                     // store as structure: {"$array": "base class type", "items": []}
-                    // we need it for diffs, because the instance types might not be equal to the base type
+                    // we need it for diffs, because we might have custom conditions on the base class and not subclasses
                     dict[field.name] = new Dictionary<string, object>() {
                         { "$array", field.original_type },
                         { "items", fieldValue },

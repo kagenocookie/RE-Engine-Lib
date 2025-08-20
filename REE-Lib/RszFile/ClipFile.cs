@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using ReeLib.Clip;
 using ReeLib.Common;
+using ReeLib.InternalAttributes;
 
 namespace ReeLib.Clip
 {
@@ -367,7 +368,7 @@ namespace ReeLib.Clip
         public float startFrame;  // Start
         public float endFrame;  // End
         public uint nameHashRe7;
-        public ulong nameCombineHash;
+        public ulong nameCombineHash; // UTF16 + ascii hash
 
         public long nameOffset;
         public long dataOffset;
@@ -450,7 +451,7 @@ namespace ReeLib.Clip
                     action.Skip(8);
                 }
                 action.Skip(8);
-                if (Version == ClipVersion.RE7)
+                if (Version > ClipVersion.RE7)
                 {
                     action.Skip(16);
                 }
@@ -461,7 +462,13 @@ namespace ReeLib.Clip
                     action.Skip(8);
                     action.Do(ref uknRE7_4);
                 }
+                else
+                {
+                    // dmc5
+                    action.Skip(30);
+                }
             }
+            // action.Handler.Seek(Start + 112);
             return true;
         }
 
@@ -711,15 +718,130 @@ namespace ReeLib.Clip
     }
 
 
-    public struct EndClipStruct
+    public class EndClipStruct : BaseModel
     {
-        public int ukn;
+        public int ukn = -1;
         public uint ukn1;
         public ulong ukn2;
 
+        public uint ukn3;
+        public uint ukn4;
+        public uint ukn5;
+
+        public ClipVersion Version;
+
         public override string ToString() => $"{ukn} {ukn1} {ukn2}";
+
+        protected override bool DoRead(FileHandler handler)
+        {
+            handler.Read(ref ukn);
+            handler.Read(ref ukn1);
+            handler.Read(ref ukn2);
+            if (Version >= ClipVersion.DD2)
+            {
+                handler.Read(ref ukn3);
+                handler.Read(ref ukn4);
+                handler.Read(ref ukn5);
+            }
+            return true;
+        }
+
+        protected override bool DoWrite(FileHandler handler)
+        {
+            handler.Write(ref ukn);
+            handler.Write(ref ukn1);
+            handler.Write(ref ukn2);
+            if (Version >= ClipVersion.DD2)
+            {
+                handler.Write(ref ukn3);
+                handler.Write(ref ukn4);
+                handler.Write(ref ukn5);
+            }
+            return true;
+        }
     }
 
+    [RszGenerate, RszAutoReadWrite]
+    public partial class ExtraPropertyInfo : BaseModel
+    {
+        public uint propertyUTF16Hash;
+        public short flags;
+        public short count;
+        public long valueOffset;
+
+        [RszIgnore] public readonly List<FrameValue> values = new();
+
+        public override string ToString() => $"[{propertyUTF16Hash}]: {values.FirstOrDefault()}";
+    }
+
+    public struct FrameValue
+    {
+        public float frame;
+        public int value;
+
+        public readonly override string ToString() => $"[{frame}] {value}";
+    }
+
+    public class ClipExtraPropertyData : BaseModel
+    {
+        public List<ExtraPropertyInfo> Props1 = new();
+        public List<ExtraPropertyInfo> Props2 = new();
+
+        public ClipVersion Version;
+
+        protected override bool DoRead(FileHandler handler)
+        {
+            // TODO figure out why there's two sets of property infos
+            // I'm thinking it might be a "start" values and "end" / "after" values
+            handler.Align(16);
+            var count1 = handler.ReadInt();
+            var count2 = handler.ReadInt(); // for versions with a single prop list, this is just padding
+            var offset1 = handler.Read<long>();
+            // TODO find correct version
+            var offset2 = Version > ClipVersion.RE4 ? handler.Read<long>() : 0;
+            handler.Seek(offset1);
+            Props1.Read(handler, count1);
+            if (offset2 > 0) {
+                handler.Seek(offset2);
+                Props2.Read(handler, count2);
+            }
+
+            foreach (var prop in Props1)
+            {
+                handler.Seek(prop.valueOffset);
+                for (int x = 0; x < prop.count; ++x) {
+                    var n = handler.Read<int>();
+                    var value = n == -1 ? -1f : BitConverter.Int32BitsToSingle(n);
+                    // value2 seems to only be either 1 or 2
+                    prop.values.Add(new FrameValue() {
+                        frame = value,
+                        value = handler.Read<int>(),
+                    });
+                }
+            }
+            foreach (var prop in Props2)
+            {
+                handler.Seek(prop.valueOffset);
+                for (int x = 0; x < prop.count; ++x) {
+                    var n = handler.Read<int>();
+                    var value = n == -1 ? -1f : BitConverter.Int32BitsToSingle(n);
+                    // value2 seems to be within frame counts as well
+                    prop.values.Add(new FrameValue() {
+                        frame = value,
+                        value = handler.Read<int>(),
+                    });
+                }
+            }
+            return true;
+        }
+
+        protected override bool DoWrite(FileHandler handler)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override string ToString() => $"[Props: {Props1.Count} + {Props2.Count}]";
+    }
 
     public class ClipEntry : BaseModel
     {
@@ -730,7 +852,9 @@ namespace ReeLib.Clip
         public List<Property> Properties { get; } = new();
         public List<Key> ClipKeys { get; } = new();
         public float[]? Unknown_Floats { get; set; }
-        public EndClipStruct[]? EndClipStructs { get; set; }
+
+        public ClipExtraPropertyData ExtraPropertyData = new();
+
 
         public const uint Magic = 0x50494C43;
         public const string Extension = ".clip";
@@ -840,11 +964,12 @@ namespace ReeLib.Clip
                 } */
             }
 
+            ExtraPropertyData.Version = Header.version;
             if (Version != ClipVersion.RE7 && clipHeader.numNodes > 1)
             {
-                // long endClipStructsRelocation = handler.ReadInt64(clipHeader.endClipStructsOffset1 + 8);
-                handler.Seek(clipHeader.endClipStructsOffset1 + 8);
-                EndClipStructs = handler.ReadArray<EndClipStruct>(clipHeader.numNodes - 1);
+                handler.Seek(clipHeader.endClipStructsOffset1);
+                // TODO figure out what and why this section exists
+                ExtraPropertyData.Read(handler);
             }
 
             return true;
@@ -905,12 +1030,9 @@ namespace ReeLib.Clip
             handler.Align(16);
             clipHeader.endClipStructsOffset1 = handler.Tell();
             clipHeader.endClipStructsOffset2 = clipHeader.endClipStructsOffset1;
-            if (Version != ClipVersion.RE7 && clipHeader.numNodes > 1 && EndClipStructs != null)
+            if (Version != ClipVersion.RE7 && clipHeader.numNodes > 1)
             {
-                handler.WriteInt64(0);
-                // endClipStructsRelocation
-                handler.WriteInt64(handler.Tell() + 8);
-                handler.WriteArray(EndClipStructs);
+                ExtraPropertyData.Write(handler);
             }
 
             clipHeader.Write(handler, start);

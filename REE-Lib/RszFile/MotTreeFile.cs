@@ -56,7 +56,7 @@ namespace ReeLib.MotTree
 namespace ReeLib
 {
     public class MotTreeFile(FileHandler fileHandler)
-        : BaseFile(fileHandler)
+        : MotFileBase(fileHandler)
     {
         public const uint Magic = 0x6572746D;
         public const string Extension = ".mottree";

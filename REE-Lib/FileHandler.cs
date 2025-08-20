@@ -101,7 +101,7 @@ namespace ReeLib
 
         public FileHandler WithOffset(long offset)
         {
-            return new FileHandler(Stream) { Offset = Offset + offset, FileVersion = FileVersion };
+            return new FileHandler(Stream) { Offset = Offset + offset, FileVersion = FileVersion, FilePath = FilePath };
         }
 
         public void Save(string? path = null)

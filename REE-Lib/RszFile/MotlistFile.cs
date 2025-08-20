@@ -1,3 +1,4 @@
+using ReeLib.Clip;
 using ReeLib.Mot;
 using ReeLib.Motlist;
 
@@ -16,6 +17,7 @@ namespace ReeLib.Motlist
         MHR = 528,
         SF6 = 653,
         RE4 = 663,
+        DD2 = 751,
     }
 
 
@@ -25,7 +27,7 @@ namespace ReeLib.Motlist
         public uint magic;
         public long padding;
         public long pointersOffset; // AssetsPointer in Tyrant
-        public long colOffset; // UnkPointer
+        public long motionIndicesOffset;
         public long motListNameOffset;
         public long UnkPadding;
         public int numMots;
@@ -39,10 +41,10 @@ namespace ReeLib.Motlist
             handler.Read(ref magic);
             handler.Read(ref padding);
             handler.Read(ref pointersOffset);
-            handler.Read(ref colOffset);
+            handler.Read(ref motionIndicesOffset);
             handler.Read(ref motListNameOffset);
             Version = (MotlistVersion)version;
-            if (Version >= MotlistVersion.RE8)
+            if (Version > MotlistVersion.RE7)
             {
                 handler.Read(ref UnkPadding);
             }
@@ -57,10 +59,10 @@ namespace ReeLib.Motlist
             handler.Write(ref magic);
             handler.Write(ref padding);
             handler.Write(ref pointersOffset);
-            handler.Write(ref colOffset);
+            handler.Write(ref motionIndicesOffset);
             handler.WriteOffsetWString(MotListName);
             Version = (MotlistVersion)version;
-            if (Version >= MotlistVersion.RE8)
+            if (Version > MotlistVersion.RE7)
             {
                 handler.Write(ref UnkPadding);
             }
@@ -76,16 +78,18 @@ namespace ReeLib.Motlist
         public ushort motNumber;
         public ushort Switch;
         uint[]? data;
+
+        public MotFileBase? MotFile { get; set; }
         public MotClip? MotClip { get; set; }
 
         public MotlistVersion Version { get; set; }
+
+        public int DataCount => Version >= MotlistVersion.RE8 ? 15 : Version == MotlistVersion.RE7 ? 0 : 3;
 
         public MotIndex(MotlistVersion version)
         {
             Version = version;
         }
-
-        public int DataCount => Version >= MotlistVersion.RE8 ? 15 : Version == MotlistVersion.RE7 ? 0 : 3;
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -110,7 +114,7 @@ namespace ReeLib.Motlist
             return true;
         }
 
-        public override string ToString() => $"Mot {motNumber} {MotClip}";
+        public override string ToString() => $"[MotID {motNumber}] [Motion: {MotFile?.ToString() ?? "-- "}] {(MotClip == null ? "" : "[ExtraClip]")}";
     }
 }
 
@@ -123,13 +127,13 @@ namespace ReeLib
         public const string Extension = ".motlist";
 
         public Header Header { get; } = new();
-        public List<MotFile> MotFiles { get; } = new();
-        public List<MotIndex> MotIndices { get; } = new();
+        public List<MotFileBase> MotFiles { get; } = new();
+        public List<MotIndex> Motions { get; } = new();
 
         protected override bool DoRead()
         {
             MotFiles.Clear();
-            MotIndices.Clear();
+            Motions.Clear();
             var handler = FileHandler;
             var header = Header;
             if (!header.Read(handler)) return false;
@@ -140,43 +144,51 @@ namespace ReeLib
             handler.Seek(header.pointersOffset);
             long[] motOffsets = handler.ReadArray<long>(header.numMots);
 
-            HashSet<long> uniqueOffsets = new();
-            BoneHeaders? boneHeaders = null;
+            Dictionary<long, MotFile> motions = new();
+            List<BoneHeader>? boneHeaders = null;
             for (int i = 0; i < motOffsets.Length; i++)
             {
                 if (motOffsets[i] == 0)
                 {
                     continue;
                 }
-                if (uniqueOffsets.Add(motOffsets[i])) {
-                    var fileHandler = handler.WithOffset(motOffsets[i]);
-                    var magic = fileHandler.ReadInt(4);
-                    if (magic == MotFile.Magic) {
-                        MotFile motFile = new(fileHandler, boneHeaders);
-                        motFile.Embedded = true;
-                        boneHeaders ??= motFile.BoneHeaders;
-                        motFile.Read();
-                        MotFiles.Add(motFile);
-                    } else if (magic == MotTreeFile.Magic) {
-                        // MotTreeFile mtre = new MotTreeFile(fileHandler);
-                        // mtre.Read();
-                        throw new NotSupportedException("MotTree motions are not supported");
-                    }
+                if (motions.ContainsKey(motOffsets[i])) continue;
+
+                var fileHandler = handler.WithOffset(motOffsets[i]);
+                var magic = fileHandler.ReadInt(4);
+                if (magic == MotFile.Magic) {
+                    MotFile motFile = new(fileHandler);
+                    motFile.Embedded = true;
+                    motFile.Read();
+                    boneHeaders = motFile.ReadBones(boneHeaders);
+                    MotFiles.Add(motFile);
+                    motions[motOffsets[i]] = motFile;
+                } else if (magic == MotTreeFile.Magic) {
+                    // MotTreeFile mtre = new MotTreeFile(fileHandler);
+                    // mtre.Read();
+                    throw new NotSupportedException("MotTree motions are not supported");
                 }
+                // NOTE: MotionFacial also exists, haven't seen it in motlists yet though
             }
 
-            handler.Seek(header.colOffset);
+            handler.Seek(header.motionIndicesOffset);
             for (int i = 0; i < motOffsets.Length; i++)
             {
                 MotIndex motIndex = new(header.Version);
                 motIndex.Read(handler);
-                MotIndices.Add(motIndex);
+                Motions.Add(motIndex);
+                var motOffset = motOffsets[i];
+                if (motOffset != 0)
+                {
+                    motIndex.MotFile = motions[motOffset];
+                }
             }
 
-            foreach (var motIndex in MotIndices)
+            foreach (var motIndex in Motions)
             {
                 if (motIndex.motClipOffset > 0)
                 {
+                    // TODO RE8 extra mot clips are broken
                     handler.Seek(motIndex.motClipOffset);
                     long motClipOffset = handler.Read<long>();
                     handler.Seek(motClipOffset);
@@ -190,7 +202,57 @@ namespace ReeLib
 
         protected override bool DoWrite()
         {
-            throw new NotImplementedException();
+            var handler = FileHandler;
+            var header = Header;
+            header.Write(handler);
+            header.pointersOffset = handler.Tell();
+            header.numMots = Motions.Count;
+            handler.Skip(header.numMots * sizeof(long));
+            handler.Align(16);
+
+            var motFileDict = new Dictionary<MotFileBase, long>();
+            foreach (var mot in MotFiles)
+            {
+                var motOffset = handler.Tell();
+                motFileDict[mot] = motOffset;
+                mot.FileHandler = handler.WithOffset(motOffset);
+                mot.Write();
+            }
+
+            for (int i = 0; i < Motions.Count; i++)
+            {
+                var motion = Motions[i];
+                if (motion.MotFile == null)
+                {
+                    handler.Write(header.pointersOffset + i * sizeof(long), 0L);
+                    continue;
+                }
+
+                if (motFileDict.TryGetValue(motion.MotFile, out var motOffset))
+                {
+                    handler.Write(header.pointersOffset + i * sizeof(long), motOffset);
+                }
+                else
+                {
+                    throw new Exception($"Mot file for motion ID {motion.motNumber} not found");
+                }
+
+                motion.Write(handler);
+            }
+
+            handler.Align(16);
+
+            foreach (var motIndex in Motions)
+            {
+                if (motIndex.MotClip != null)
+                {
+                    motIndex.motClipOffset = handler.Tell();
+                    motIndex.MotClip.Write(handler);
+                    handler.Write(motIndex.Start, motIndex.motClipOffset);
+                }
+            }
+
+            return false;
         }
     }
 }

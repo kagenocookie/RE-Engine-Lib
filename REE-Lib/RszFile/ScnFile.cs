@@ -185,6 +185,18 @@ namespace ReeLib.Scn
             }
         }
 
+        public string? GetHierarchyPath()
+        {
+            string? path = Name;
+            var nextChild = this;
+            while (nextChild.Parent != null && nextChild.Parent != this) {
+                path = $"{nextChild.Parent.Name}.{path}";
+                nextChild = nextChild.Parent;
+            }
+
+            return path;
+        }
+
         public override string ToString()
         {
             return Name ?? "";
@@ -243,6 +255,18 @@ namespace ReeLib.Scn
 
         // Guid of GameObject Cloned from
         public Guid OriginalGuid { get; set; }
+
+        public string? GetHierarchyPath()
+        {
+            string? path = Name;
+            var nextChild = this;
+            while (nextChild.Parent != null && nextChild.Parent != this) {
+                path = $"{nextChild.Parent.Name}.{path}";
+                nextChild = nextChild.Parent;
+            }
+
+            return path;
+        }
 
         public object Clone()
         {
@@ -891,6 +915,19 @@ namespace ReeLib
         {
             return IterGameObjectsInFolder(includeChildren: includeChildren).Concat(
                 IterGameObjects(includeChildren: includeChildren));
+        }
+
+        public IEnumerable<ScnFolderData> IterAllFolders(ScnFolderData? parent = null)
+        {
+            var folders = parent?.Children ?? FolderDatas;
+            if (folders == null) yield break;
+
+            foreach (var folder in folders) {
+                yield return folder;
+                foreach (var child in IterAllFolders(folder)) {
+                    yield return child;
+                }
+            }
         }
 
         public void RemoveFolder(ScnFolderData folder)

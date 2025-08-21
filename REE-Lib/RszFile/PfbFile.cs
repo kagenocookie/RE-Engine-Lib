@@ -109,6 +109,18 @@ namespace ReeLib.Pfb
 
         public int? ObjectId => Info.objectId;
 
+        public string? GetHierarchyPath()
+        {
+            string? path = Name;
+            var nextChild = this;
+            while (nextChild.Parent != null && nextChild.Parent != this) {
+                path = $"{nextChild.Parent.Name}.{path}";
+                nextChild = nextChild.Parent;
+            }
+
+            return path;
+        }
+
         public PfbGameObject Clone()
         {
             PfbGameObject gameObject = new()

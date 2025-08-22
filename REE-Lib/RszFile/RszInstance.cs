@@ -35,6 +35,8 @@ namespace ReeLib
         public bool HasValues => Values.Length > 0;
         public event Action<RszInstance>? ValuesChanged;
 
+        public IEnumerable<(RszField field, int index)> IndexedFields => RszClass.fields.Select((f, i) => (f, i));
+
         public RszInstance(RszClass rszClass, int index = -1, IRSZUserDataInfo? userData = null, object[]? values = null)
         {
             RszClass = rszClass;

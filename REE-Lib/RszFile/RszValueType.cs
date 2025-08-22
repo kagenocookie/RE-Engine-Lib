@@ -544,7 +544,7 @@ namespace ReeLib.via
     }
 
 
-    public struct Position
+    public struct Position : IEquatable<Position>
     {
         public double x;
         public double y;
@@ -570,7 +570,16 @@ namespace ReeLib.via
             }
         }
 
+        public Vector3 AsVector3 => new Vector3((float)x, (float)y, (float)z);
+
+        public bool Equals(Position other) => other == this;
+        public static bool operator==(Position p1, Position p2) => p1.x == p2.x && p1.y == p2.y && p1.z == p2.z;
+        public static bool operator!=(Position p1, Position p2) => p1.x == p2.x && p1.y == p2.y && p1.z == p2.z;
+
         public readonly override string ToString() => $"Position({x}, {y}, {z})";
+
+        public override bool Equals(object? obj) => obj is Position && (Position)obj == this;
+        public override int GetHashCode() => HashCode.Combine(x, y, z);
     }
 
 

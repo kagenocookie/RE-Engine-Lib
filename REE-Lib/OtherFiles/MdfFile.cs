@@ -377,14 +377,14 @@ namespace ReeLib
         }
 
         public StructModel<MdfHeaderStruct> Header = new();
-        public List<MatData> MatDatas = new();
+        public List<MatData> Materials = new();
 
         public const uint Magic = 0x46444d;
         public const string Extension = ".mdf2";
 
         protected override bool DoRead()
         {
-            MatDatas.Clear();
+            Materials.Clear();
 
             var handler = FileHandler;
             if (!Header.Read(handler)) return false;
@@ -398,10 +398,10 @@ namespace ReeLib
             {
                 MatData matData = new();
                 matData.Header.Read(handler);
-                MatDatas.Add(matData);
+                Materials.Add(matData);
             }
 
-            foreach (var matData in MatDatas)
+            foreach (var matData in Materials)
             {
                 handler.Seek(matData.Header.texHeaderOffset);
                 for (int i = 0; i < matData.Header.texCount; i++)
@@ -412,7 +412,7 @@ namespace ReeLib
                 }
             }
 
-            foreach (var matData in MatDatas)
+            foreach (var matData in Materials)
             {
                 handler.Seek(matData.Header.paramHeaderOffset);
                 for (int i = 0; i < matData.Header.paramCount; i++)
@@ -466,18 +466,18 @@ namespace ReeLib
             Header.Write(handler);
 
             handler.Align(16);
-            foreach (var matData in MatDatas)
+            foreach (var matData in Materials)
             {
                 matData.Header.Write(handler);
             }
 
-            foreach (var matData in MatDatas)
+            foreach (var matData in Materials)
             {
                 matData.Header.texHeaderOffset = handler.Tell();
                 matData.Textures.Write(handler);
             }
 
-            foreach (var matData in MatDatas)
+            foreach (var matData in Materials)
             {
                 matData.Header.paramHeaderOffset = handler.Tell();
                 matData.Parameters.Write(handler);
@@ -485,7 +485,7 @@ namespace ReeLib
 
             handler.Align(16);
 
-            foreach (var matData in MatDatas)
+            foreach (var matData in Materials)
             {
                 matData.Header.gpbfOffset = handler.Tell();
                 matData.Header.gpbfNameCount = matData.Header.gpbfDataCount = matData.GpuBuffers.Count;
@@ -498,7 +498,7 @@ namespace ReeLib
             handler.StringTableWriteStrings();
 
             handler.Align(16);
-            foreach (var matData in MatDatas)
+            foreach (var matData in Materials)
             {
                 int size = 0;
                 matData.Header.paramsOffset = handler.Tell();

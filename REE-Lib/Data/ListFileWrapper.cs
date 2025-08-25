@@ -202,7 +202,7 @@ public class ListFileWrapper
     {
         path = path.Replace('\\', '/');
         if (path.StartsWith('/')) path = path[1..];
-        return path;
+        return path.ToLowerInvariant();
     }
 
     public virtual string? GetPathInfo(string path, string field)

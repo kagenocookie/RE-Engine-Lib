@@ -490,6 +490,8 @@ namespace ReeLib.via
             return new AABB(minpos - mv, maxpos + mv);
         }
 
+        public static AABB Combine(IEnumerable<AABB> bounds) => bounds.Aggregate(MaxMin, (bound, item) => bound.Extend(item));
+
         public readonly override string ToString() => $"AABB({minpos} {maxpos})";
     }
 

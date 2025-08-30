@@ -289,7 +289,8 @@ public class PakReader
         where TContextType : ChunkContextBase
     {
         var chunkId = ctx.endOffset == ctx.startOffset + 1 ? ctx.startOffset : ctx.startOffset / (ctx.endOffset - ctx.startOffset - 1);
-        if (EnableConsoleLogging && (ctx.startOffset > 0 || ctx.endOffset < ctx.file.Entries.Count - 1)) {
+        var hasMultipleChunks = (ctx.startOffset > 0 || ctx.endOffset < ctx.file.Entries.Count - 1);
+        if (EnableConsoleLogging && hasMultipleChunks) {
             Log.Info($"Starting chunk {chunkId}: entries {ctx.startOffset} - {ctx.endOffset} for file {ctx.file.filepath}");
         }
         using var fs = File.OpenRead(ctx.file.filepath);
@@ -308,6 +309,6 @@ public class PakReader
             yield return (entry, outStream);
         }
 
-        if (EnableConsoleLogging) Log.Info("Finished chunk " + chunkId);
+        if (EnableConsoleLogging && hasMultipleChunks) Log.Info("Finished chunk " + chunkId);
     }
 }

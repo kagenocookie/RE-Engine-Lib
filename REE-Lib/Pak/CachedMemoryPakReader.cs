@@ -130,6 +130,7 @@ public class CachedMemoryPakReader : PakReader, IDisposable
         reader.PakFilePriority = PakFilePriority;
         reader.Filter = Filter;
         reader.MaxThreads = MaxThreads;
+        reader.EnableConsoleLogging = EnableConsoleLogging;
         return reader;
     }
 

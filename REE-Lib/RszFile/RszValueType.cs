@@ -365,6 +365,26 @@ namespace ReeLib.via
         public float m32;
         public float m33;
 
+        public mat4(float m00, float m01, float m02, float m03, float m10, float m11, float m12, float m13, float m20, float m21, float m22, float m23, float m30, float m31, float m32, float m33) : this()
+        {
+            this.m00 = m00;
+            this.m01 = m01;
+            this.m02 = m02;
+            this.m03 = m03;
+            this.m10 = m10;
+            this.m11 = m11;
+            this.m12 = m12;
+            this.m13 = m13;
+            this.m20 = m20;
+            this.m21 = m21;
+            this.m22 = m22;
+            this.m23 = m23;
+            this.m30 = m30;
+            this.m31 = m31;
+            this.m32 = m32;
+            this.m33 = m33;
+        }
+
         public float this[int index]
         {
             get
@@ -381,6 +401,11 @@ namespace ReeLib.via
             }
         }
 
+        public unsafe Vector4 Row0 { readonly get => new Vector4(m00, m01, m02, m03); set { fixed(void* x = &m00) Unsafe.Write<Vector4>(x, value); } }
+        public unsafe Vector4 Row1 { readonly get => new Vector4(m10, m11, m12, m13); set { fixed(void* x = &m10) Unsafe.Write<Vector4>(x, value); } }
+        public unsafe Vector4 Row2 { readonly get => new Vector4(m20, m21, m22, m23); set { fixed(void* x = &m20) Unsafe.Write<Vector4>(x, value); } }
+        public unsafe Vector4 Row3 { readonly get => new Vector4(m30, m31, m32, m33); set { fixed(void* x = &m30) Unsafe.Write<Vector4>(x, value); } }
+
         /* public float this[int row, int col]
         {
             get => this[row * 4 + col];
@@ -394,6 +419,25 @@ namespace ReeLib.via
                 m01 * vector.X + m11 * vector.Y + m21 * vector.Z + m31,
                 m02 * vector.X + m12 * vector.Y + m22 * vector.Z + m32) / (m03 * vector.X + m13 * vector.Y + m23 * vector.Z + m33);
         }
+
+        public readonly Matrix4x4 ToSystem()
+        {
+            return new Matrix4x4(
+                m00, m01, m02, m03,
+                m10, m11, m12, m13,
+                m20, m21, m22, m23,
+                m30, m31, m32, m33
+            );
+        }
+
+        public static implicit operator mat4(Matrix4x4 matrix) => new mat4(
+            matrix.M11, matrix.M12, matrix.M13, matrix.M14,
+            matrix.M21, matrix.M22, matrix.M23, matrix.M24,
+            matrix.M31, matrix.M32, matrix.M33, matrix.M34,
+            matrix.M41, matrix.M42, matrix.M43, matrix.M44
+        );
+
+        public override string ToString() => $"[Pos: {m30} {m31} {m32}]";
     }
 
 
@@ -426,6 +470,8 @@ namespace ReeLib.via
             aabb = aabb.Extend(coord.Multiply(new Vector3(-size.X, -size.Y, -size.Z)));
             return aabb;
         }
+
+        public override string ToString() => $"[Pos: {coord.m30} {coord.m31} {coord.m32}, Extent: {extent}]";
     }
 
 
@@ -437,6 +483,12 @@ namespace ReeLib.via
 
         public Vector3 Pos { readonly get => pos; set => pos = value; }
         public float R { readonly get => r; set => r = value; }
+
+        public Sphere(Vector3 pos, float r)
+        {
+            this.pos = pos;
+            this.r = r;
+        }
 
         public readonly override string ToString()
         {

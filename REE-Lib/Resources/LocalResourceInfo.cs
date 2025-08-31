@@ -286,6 +286,22 @@ public class LocalResources
                 }
             }
 
+            if (name == "via.physics.CylinderShape") {
+                // our tooling expects 1 shape == 1 object, otherwise things get complicated and messy
+                var fieldlist = item["fields"]!.AsArray();
+                var p0 = fieldlist.FirstOrDefault(f => f!["name"]!.GetValue<string>().Contains("p0")) ?? fieldlist.FirstOrDefault(f => f!["type"]!.GetValue<string>() == "Vec3");
+                var p1 = fieldlist.FirstOrDefault(f => f!["name"]!.GetValue<string>().Contains("p1")) ?? fieldlist.Where(f => f!["name"]!.GetValue<string>() == "Vec3").Skip(1).FirstOrDefault();
+                var r = fieldlist.FirstOrDefault(f => f!["name"]!.GetValue<string>().EndsWith("_r")) ?? fieldlist.FirstOrDefault(f => f!["type"]!.GetValue<string>() == "F32");
+                if (p0 != null && p1 != null && r != null) {
+                    fieldlist.Remove(p1);
+                    fieldlist.Remove(r);
+                    p0["name"] = "Cylinder";
+                    p0["type"] = "Cylinder";
+                    p0["size"] = 48;
+                    p0["original_type"] = "";
+                }
+            }
+
             // reasy defines some custom types that we don't care about, remap them to default types
             foreach (var field in item["fields"]!.AsArray()) {
                 var type = field!["type"]!.GetValue<string>();

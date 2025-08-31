@@ -402,6 +402,24 @@ namespace ReeLib
             handler.StringTableFlush();
         }
 
+        public void RegenerateNodeBoundaries()
+        {
+            tree ??= new();
+            tree.leaves.Clear();
+            tree.entries.Clear();
+            tree.bounds = AABB.MaxMin;
+            foreach (var obj in triangles) {
+                var bounds = new AABB(vertices[obj.posIndex1], vertices[obj.posIndex1])
+                    .Extend(vertices[obj.posIndex2])
+                    .Extend(vertices[obj.posIndex3])
+                    .Margin(BvhCollisionMargin);
+                tree.AddLeaf(bounds);
+            }
+            foreach (var obj in spheres) tree.AddLeaf(obj.sphere.GetBounds(BvhCollisionMargin));
+            foreach (var obj in capsules) tree.AddLeaf(obj.capsule.GetBounds(BvhCollisionMargin));
+            foreach (var obj in boxes) tree.AddLeaf(obj.box.GetBounds(BvhCollisionMargin));
+        }
+
         public void BuildTree()
         {
             if (tree == null) return;

@@ -402,6 +402,9 @@ namespace ReeLib.via
     {
         [FieldOffset(0)]
         private mat4 coord;
+        /// <summary>
+        /// The full size of the box (from one edge to the other)
+        /// </summary>
         [FieldOffset(64)]
         private Vector3 extent;
 
@@ -888,6 +891,15 @@ namespace ReeLib.via
         public Quaternion rot;
         [FieldOffset(32)]
         public Vector3 scale;
+
+        public Transform(Vector3 pos, Quaternion rot, Vector3 scale)
+        {
+            this.pos = pos;
+            this.rot = rot;
+            this.scale = scale;
+        }
+
+        public override string ToString() => $"[T: {pos}] [R: {rot}] [S: {scale}]";
     }
 
     public class GameObjectRef

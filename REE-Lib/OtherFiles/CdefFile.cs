@@ -124,8 +124,9 @@ namespace ReeLib.Cdef
         public via.Color color;
         public int ukn1;
         public int ukn2;
-        [RszPaddingAfter(8, "handler.FileVersion >= 4")]
         public uint ukn3;
+        [RszPaddingAfter(4, "handler.FileVersion >= 4")]
+        public int ukn4;
 
         public override string ToString() => (name ?? guid.ToString()) + (description == null ? "" : $" [{description}]");
     }

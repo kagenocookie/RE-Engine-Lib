@@ -64,10 +64,11 @@ namespace ReeLib
         // Skip(8);
         public long motlistsOffset;
         public long uvarOffset;
-        public long ukn;
+        public long jmapOffset;
         public int motlistCount;
 
         public string UvarPath { get; set; } = string.Empty;
+        public string JmapPath { get; set; } = string.Empty;
         public List<MotlistItem> MotlistItems { get; } = new();
 
         public const uint Magic = 0x6B6E626D;
@@ -87,11 +88,15 @@ namespace ReeLib
             handler.Read(ref uvarOffset);
             if (version == 3)
             {
-                handler.Read(ref ukn);
+                handler.Read(ref jmapOffset);
             }
             handler.Read(ref motlistCount);
 
             UvarPath = handler.ReadWString(uvarOffset);
+            if (version == 3)
+            {
+                JmapPath = handler.ReadWString(jmapOffset);
+            }
             handler.Seek(motlistsOffset);
             for (int i = 0; i < motlistCount; i++)
             {
@@ -119,7 +124,7 @@ namespace ReeLib
             handler.WriteOffsetWString(UvarPath);
             if (version == 3)
             {
-                handler.Write(ref ukn);
+                handler.WriteOffsetWString(JmapPath);
             }
             handler.Write(ref motlistCount);
             handler.StringTableFlush();

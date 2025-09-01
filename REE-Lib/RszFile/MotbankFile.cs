@@ -20,7 +20,7 @@ namespace ReeLib.Motbank
         protected override bool DoRead(FileHandler handler)
         {
             handler.Read(ref offset);
-            if (Version == 3)
+            if (Version >= 3)
             {
                 BankID = handler.ReadInt();
                 handler.Read(ref BankType);
@@ -37,7 +37,7 @@ namespace ReeLib.Motbank
         protected override bool DoWrite(FileHandler handler)
         {
             handler.WriteOffsetWString(Path);
-            if (Version == 3)
+            if (Version >= 3)
             {
                 handler.WriteInt((int)BankID);
                 handler.Write(ref BankType);
@@ -64,10 +64,11 @@ namespace ReeLib
         // Skip(8);
         public long motlistsOffset;
         public long uvarOffset;
-        public long ukn;
+        public long jmapOffset;
         public int motlistCount;
 
         public string UvarPath { get; set; } = string.Empty;
+        public string JmapPath { get; set; } = string.Empty;
         public List<MotlistItem> MotlistItems { get; } = new();
 
         public const uint Magic = 0x6B6E626D;
@@ -85,13 +86,17 @@ namespace ReeLib
             handler.Skip(8);
             handler.Read(ref motlistsOffset);
             handler.Read(ref uvarOffset);
-            if (version == 3)
+            if (version >= 3)
             {
-                handler.Read(ref ukn);
+                handler.Read(ref jmapOffset);
             }
             handler.Read(ref motlistCount);
 
             UvarPath = handler.ReadWString(uvarOffset);
+            if (version >= 3)
+            {
+                JmapPath = handler.ReadWString(jmapOffset);
+            }
             handler.Seek(motlistsOffset);
             for (int i = 0; i < motlistCount; i++)
             {
@@ -117,9 +122,9 @@ namespace ReeLib
             long motlistsOffsetStart = handler.Tell();
             handler.Write(ref motlistsOffset);
             handler.WriteOffsetWString(UvarPath);
-            if (version == 3)
+            if (version >= 3)
             {
-                handler.Write(ref ukn);
+                handler.WriteOffsetWString(JmapPath);
             }
             handler.Write(ref motlistCount);
             handler.StringTableFlush();

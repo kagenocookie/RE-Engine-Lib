@@ -20,7 +20,7 @@ namespace ReeLib.Motbank
         protected override bool DoRead(FileHandler handler)
         {
             handler.Read(ref offset);
-            if (Version == 3)
+            if (Version >= 3)
             {
                 BankID = handler.ReadInt();
                 handler.Read(ref BankType);
@@ -37,7 +37,7 @@ namespace ReeLib.Motbank
         protected override bool DoWrite(FileHandler handler)
         {
             handler.WriteOffsetWString(Path);
-            if (Version == 3)
+            if (Version >= 3)
             {
                 handler.WriteInt((int)BankID);
                 handler.Write(ref BankType);
@@ -86,14 +86,14 @@ namespace ReeLib
             handler.Skip(8);
             handler.Read(ref motlistsOffset);
             handler.Read(ref uvarOffset);
-            if (version == 3)
+            if (version >= 3)
             {
                 handler.Read(ref jmapOffset);
             }
             handler.Read(ref motlistCount);
 
             UvarPath = handler.ReadWString(uvarOffset);
-            if (version == 3)
+            if (version >= 3)
             {
                 JmapPath = handler.ReadWString(jmapOffset);
             }
@@ -122,7 +122,7 @@ namespace ReeLib
             long motlistsOffsetStart = handler.Tell();
             handler.Write(ref motlistsOffset);
             handler.WriteOffsetWString(UvarPath);
-            if (version == 3)
+            if (version >= 3)
             {
                 handler.WriteOffsetWString(JmapPath);
             }

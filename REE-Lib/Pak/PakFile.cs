@@ -1,6 +1,8 @@
 using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using ReeLib.Common;
+using Standart.Hash.xxHash;
 
 namespace ReeLib.Pak
 {
@@ -26,9 +28,17 @@ namespace ReeLib.Pak
         public uint magic;
         public byte majorVersion;
         public byte minorVersion;
-        public short featureFlags;
+        public PakFeatureFlags featureFlags;
         public int fileCount;
         public uint fingerprint;
+    }
+
+    [Flags]
+    public enum PakFeatureFlags : short
+    {
+        EncryptEntryList = 8,
+        ExtraInteger = 16,
+        All = EncryptEntryList|ExtraInteger,
     }
 
     public class PakEntry
@@ -43,6 +53,17 @@ namespace ReeLib.Pak
         public EncryptionType encryption;
 
         public string? path;
+
+        public PakEntry()
+        {
+        }
+
+        public PakEntry(string filepath)
+        {
+            path = filepath;
+            hashUppercase = MurMur3HashUtils.GetHash(filepath.ToUpperInvariant());
+            hashLowercase = MurMur3HashUtils.GetHash(filepath.ToLowerInvariant());
+        }
 
         public ulong CombinedHash => (ulong)hashUppercase << 32 | hashLowercase;
 
@@ -71,6 +92,18 @@ namespace ReeLib.Pak
             {
                 throw new NotImplementedException("Unsupported PAK entry compression type " + compression);
             }
+        }
+
+        public void WriteVer4(FileHandler handler)
+        {
+            handler.WriteUInt(hashLowercase);
+            handler.WriteUInt(hashUppercase);
+            handler.WriteInt64(offset);
+            handler.WriteInt64(compressedSize);
+            handler.WriteInt64(decompressedSize);
+            uint attributes = (uint)compression & 0xf | ((uint)encryption << 16);
+            handler.WriteInt64(attributes);
+            handler.WriteInt64(checksum);
         }
     }
 
@@ -179,6 +212,16 @@ namespace ReeLib.Pak
             stream.CopyTo(outputStream);
         }
     }
+
+    internal static class Hashing
+    {
+        public static long GetEntryDataHash(Stream data)
+        {
+            var hash64 = xxHash64.ComputeHash(data, 8192, 0xffffffff);
+            var hash32 = xxHash32.ComputeHash(BitConverter.GetBytes(hash64), 0xffffffff);
+            return (long)hash64 << 32 | (long)hash32;
+        }
+    }
 }
 
 namespace ReeLib
@@ -193,6 +236,11 @@ namespace ReeLib
         public readonly List<PakEntry> Entries = new();
         public string filepath = string.Empty;
         private Stream? pakStream;
+        private MemoryStream? entryTempStream;
+
+        public const uint Magic = 0x414B504B;
+
+        private const int FileHeaderSize = 16;
 
         private static readonly HashSet<(byte, byte)> supportedVersions = new()
         {
@@ -207,11 +255,19 @@ namespace ReeLib
             ReadContents(fs, expectedPaths);
             fs.Close();
         }
+
+        private int EntryHeaderSize => Header.majorVersion switch
+        {
+            4 => 48,
+            2 => 24,
+            _ => throw new Exception()
+        };
+
         public void ReadContents(Stream stream, Dictionary<ulong, string>? expectedPaths = null)
         {
             stream.Read(MemoryUtils.StructureAsBytes(ref Header));
 
-            if (Header.magic != 0x414B504B)
+            if (Header.magic != Magic)
             {
                 throw new InvalidDataException("File is not a valid PAK file");
             }
@@ -221,7 +277,7 @@ namespace ReeLib
                 throw new InvalidDataException($"Unsupported PAK version {Header.majorVersion}.{Header.minorVersion}");
             }
 
-            if (Header.featureFlags != 0 && Header.featureFlags != 8 && Header.featureFlags != 24)
+            if (Header.featureFlags != 0 && Header.featureFlags != PakFeatureFlags.EncryptEntryList && Header.featureFlags != PakFeatureFlags.All)
             {
                 throw new InvalidDataException($"Unsupported PAK encryption type {Header.featureFlags}");
             }
@@ -229,17 +285,12 @@ namespace ReeLib
             Entries.Clear();
             if (Header.fileCount == 0) return;
 
-            var entrySize = Header.majorVersion switch
-            {
-                4 => 48,
-                2 => 24,
-                _ => throw new Exception()
-            };
+            var entrySize = EntryHeaderSize;
             var entryListDataSize = Header.fileCount * entrySize;
             var entryTable = ArrayPool<byte>.Shared.Rent(entryListDataSize);
             stream.Read(entryTable, 0, entryListDataSize);
 
-            if ((Header.featureFlags & 16) != 0)
+            if ((Header.featureFlags & PakFeatureFlags.ExtraInteger) != 0)
             {
                 stream.Seek(4, SeekOrigin.Current);
             }
@@ -345,9 +396,92 @@ namespace ReeLib
             }
         }
 
+        /// <summary>
+        /// Opens a file stream for the current filepath and moves it to the offset of the first file. The file count and version in the header must be correct before calling this method.
+        /// </summary>
+        public void OpenWrite()
+        {
+            var dir = Path.GetDirectoryName(filepath);
+            if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+
+            pakStream = File.Create(filepath);
+            pakStream.Seek(FileHeaderSize + EntryHeaderSize * Header.fileCount, SeekOrigin.Begin);
+
+            if ((Header.featureFlags & PakFeatureFlags.ExtraInteger) != 0)
+            {
+                pakStream.Seek(4, SeekOrigin.Current);
+            }
+        }
+
+        public void WriteContents()
+        {
+            ArgumentNullException.ThrowIfNull(pakStream);
+            pakStream.Seek(0, SeekOrigin.Begin);
+
+            Header.magic = Magic;
+            Header.featureFlags = 0;
+            // the Header.fingerprint doesn't seem to matter
+            // hopefully we won't need to encrypt the entry list either
+            pakStream.Write(MemoryUtils.StructureAsBytes(ref Header));
+
+            var entrySize = EntryHeaderSize;
+            var entryListDataSize = Header.fileCount * entrySize;
+
+            var handler = new FileHandler(pakStream);
+            foreach (var entry in Entries.OrderBy(e => e.CombinedHash))
+            {
+                entry.WriteVer4(handler);
+            }
+        }
+
+        public Stream StartWriteFile(string nativePath)
+        {
+            return StartWriteFile(new PakEntry(nativePath));
+        }
+
+        public Stream StartWriteFile(PakEntry entry)
+        {
+            ArgumentNullException.ThrowIfNull(pakStream);
+            Entries.Add(entry);
+            entry.offset = pakStream.Position;
+            entryTempStream ??= new MemoryStream();
+            entryTempStream.Seek(0, SeekOrigin.Begin);
+            entryTempStream.SetLength(0);
+            return entryTempStream;
+        }
+
+        public void FinishWriteFile()
+        {
+            ArgumentNullException.ThrowIfNull(pakStream);
+            ArgumentNullException.ThrowIfNull(entryTempStream);
+            var entry = Entries.Last();
+            entry.decompressedSize = entryTempStream.Length;
+
+            if (entry.compression != CompressionType.None)
+            {
+                throw new NotImplementedException("Pak entry compression not supported");
+            }
+
+            entryTempStream.Seek(0, SeekOrigin.Begin);
+            entry.checksum = Hashing.GetEntryDataHash(entryTempStream);
+
+            entryTempStream.Seek(0, SeekOrigin.Begin);
+            // NOTE: this is where we'd apply compression/encryption if we wanted it
+            entryTempStream.CopyTo(pakStream);
+
+            entry.compressedSize = pakStream.Position - entry.offset;
+        }
+
+        public void Close()
+        {
+            pakStream?.Dispose();
+            pakStream = null;
+        }
+
         public void Dispose()
         {
             pakStream?.Dispose();
+            pakStream = null;
             GC.SuppressFinalize(this);
         }
     }

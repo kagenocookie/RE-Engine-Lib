@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="ZstdSharp.Port" Version="0.8.5" />
+    <PackageReference Include="Standart.Hash.xxHash" Version="4.0.5" />
   </ItemGroup>
 
   <ItemGroup>

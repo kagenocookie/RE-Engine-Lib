@@ -55,14 +55,12 @@ public class PakReader
         }
     }
 
-    private const string ManifestFilepath = "__MANIFEST/MANIFEST.TXT";
-
     public void AddFiles(params string[] files) => AddFiles((IEnumerable<string>)files);
 
     public bool TryReadManifestFileList(string pakFile)
     {
         PakFilePriority = [pakFile];
-        AddFiles(ManifestFilepath);
+        AddFiles(PakUtils.ManifestFilepath);
         var file = FindFiles().SingleOrDefault();
         if (file.stream == null) return false;
         AddFilesFromListFile(file.stream);

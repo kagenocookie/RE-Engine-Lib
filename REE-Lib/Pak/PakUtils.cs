@@ -4,6 +4,8 @@ using ReeLib.Common;
 
 public static class PakUtils
 {
+    public const string ManifestFilepath = "__MANIFEST/MANIFEST.TXT";
+
     public static ulong GetFilepathHash(string filepath)
     {
         filepath = filepath.Replace('\\', '/');
@@ -53,6 +55,26 @@ public static class PakUtils
         }
 
         return list;
+    }
+
+    public static string GetNextPakFilepath(string directory)
+    {
+        var paks = Directory.EnumerateFiles(directory, "*.pak", SearchOption.TopDirectoryOnly)
+            .Select(pak => Path.GetRelativePath(directory, pak))
+            .ToHashSet();
+
+        if (!paks.Contains("re_chunk_000.pak")) {
+            throw new NotImplementedException("Base pak file re_chunk_000.pak not found in directory " + directory);
+        }
+
+        var pakPatchTemplate = "re_chunk_000.pak.patch_{ID}.pak";
+        var nextPakId = 0;
+        string nextPak;
+        do {
+            nextPak = pakPatchTemplate.Replace("{ID}", (++nextPakId).ToString("000"));
+        } while (paks.Contains(nextPak) || File.Exists(nextPak));
+
+        return Path.Combine(directory, nextPak);
     }
 
     internal static string NormalizePath(string path)

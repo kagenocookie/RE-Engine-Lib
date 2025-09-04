@@ -286,6 +286,10 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
         }
 
         PakReader.CacheEntries();
+        if (PakReader.PakFilePriority.Count == 0) {
+            Log.Warn("No PAK files found for game " + config.Game);
+            return [];
+        }
         var reader = PakReader.Clone();
         reader.Filter = new System.Text.RegularExpressions.Regex($"\\.{extension}\\.{version}(?:\\.[^\\/]*)?$", System.Text.RegularExpressions.RegexOptions.Compiled);
         reader.AddFiles(list.Files);

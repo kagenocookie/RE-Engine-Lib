@@ -249,19 +249,19 @@ namespace ReeLib
             (2, 0)
         };
 
-        public void ReadContents(string filename, Dictionary<ulong, string>? expectedPaths = null)
-        {
-            using var fs = File.OpenRead(filename);
-            ReadContents(fs, expectedPaths);
-            fs.Close();
-        }
-
         private int EntryHeaderSize => Header.majorVersion switch
         {
             4 => 48,
             2 => 24,
             _ => throw new Exception()
         };
+
+        public void ReadContents(string filename, Dictionary<ulong, string>? expectedPaths = null)
+        {
+            using var fs = File.OpenRead(filename);
+            ReadContents(fs, expectedPaths);
+            fs.Close();
+        }
 
         public void ReadContents(Stream stream, Dictionary<ulong, string>? expectedPaths = null)
         {

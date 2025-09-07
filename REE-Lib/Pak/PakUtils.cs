@@ -32,6 +32,10 @@ public static class PakUtils
                 continue;
             }
 
+            if (ignoreModPaks && CheckContainsModIndicatorFiles(path)) {
+                continue;
+            }
+
             list.Add(NormalizePath(path));
         }
         // new dlc structure
@@ -75,6 +79,55 @@ public static class PakUtils
         } while (paks.Contains(nextPak) || File.Exists(nextPak));
 
         return Path.Combine(directory, nextPak);
+    }
+
+    private static readonly HashSet<ulong> ModFileHashes = [
+        GetFilepathHash(ManifestFilepath),
+        GetFilepathHash("modinfo.ini"),
+    ];
+
+    /// <summary>
+    /// Checks if a pak file contains any files that would indicate that it's a mod (__manifest/manifest.txt or modinfo.ini files).
+    /// </summary>
+    public static bool CheckContainsModIndicatorFiles(string pakFilepath)
+    {
+        return CheckContainsAnyFile(pakFilepath, ModFileHashes);
+    }
+
+    /// <summary>
+    /// Checks if the pak file contains the given file in its file entry table.
+    /// </summary>
+    public static bool CheckContainsFile(string pakFilepath, string filepath)
+    {
+        using var file = new PakFile() { filepath = pakFilepath };
+        file.ReadContents(pakFilepath);
+        var hash = GetFilepathHash(filepath);
+        foreach (var entry in file.Entries) {
+            if (entry.CombinedHash == hash) return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Checks if the pak file contains any of the given file paths in its file entry table.
+    /// </summary>
+    public static bool CheckContainsAnyFile(string pakFilepath, IEnumerable<string> filepaths)
+    {
+        var hashes = filepaths.Select(p => GetFilepathHash(p)).ToHashSet();
+        return CheckContainsAnyFile(pakFilepath, hashes);
+    }
+
+    /// <summary>
+    /// Checks if the pak file contains any of the given file hashes in its file entry table.
+    /// </summary>
+    public static bool CheckContainsAnyFile(string pakFilepath, HashSet<ulong> fileHashes)
+    {
+        using var file = new PakFile() { filepath = pakFilepath };
+        file.ReadContents(pakFilepath);
+        foreach (var entry in file.Entries) {
+            if (fileHashes.Contains(entry.CombinedHash)) return true;
+        }
+        return false;
     }
 
     internal static string NormalizePath(string path)

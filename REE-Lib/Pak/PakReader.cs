@@ -31,6 +31,8 @@ public class PakReader
 
     protected readonly Dictionary<ulong, string> searchedPaths = new();
 
+    public int unpackedFileCount;
+
     public void ResetFileList()
     {
         searchedPaths.Clear();
@@ -98,7 +100,7 @@ public class PakReader
             }
 
             int _ = 0;
-            UpdateSearchedPaths(searchedPaths, [ctx], ref _);
+            UpdateSearchedPaths(searchedPaths, [ctx]);
             if (EnableConsoleLogging) Log.Info("Finished searching " + pakfile);
             if (searchedPaths.Count == 0) break;
         }
@@ -112,7 +114,7 @@ public class PakReader
     /// <returns>The number of extracted files.</returns>
     public int UnpackFilesTo(string outputDirectory, List<string>? missingFiles = null)
     {
-        var unpackedCount = 0;
+        unpackedFileCount = 0;
 
         var pak = new PakFile();
         foreach (var pakfile in EnumerateTempPaksWithSearchedFiles(pak)) {
@@ -131,13 +133,13 @@ public class PakReader
                 while (chunks.Any(c => !c.finished)) Thread.Sleep(25);
             }
 
-            UpdateSearchedPaths(searchedPaths, chunks, ref unpackedCount);
+            UpdateSearchedPaths(searchedPaths, chunks);
             if (EnableConsoleLogging) Log.Info("Finished unpacking " + pakfile);
             if (searchedPaths.Count == 0) break;
         }
 
         missingFiles?.AddRange(searchedPaths.Values);
-        return unpackedCount;
+        return unpackedFileCount;
     }
 
     /// <summary>
@@ -148,7 +150,7 @@ public class PakReader
     /// <returns>The number of unpacked files.</returns>
     public async Task<int> UnpackFilesAsyncTo(string outputDirectory, List<string>? missingFiles = null)
     {
-        var unpackedCount = 0;
+        unpackedFileCount = 0;
 
         var pak = new PakFile();
         foreach (var pakfile in EnumerateTempPaksWithSearchedFiles(pak)) {
@@ -163,20 +165,19 @@ public class PakReader
 
             while (chunks.Any(c => !c.finished)) await Task.Delay(25);
 
-            UpdateSearchedPaths(searchedPaths, chunks, ref unpackedCount);
+            UpdateSearchedPaths(searchedPaths, chunks);
             if (EnableConsoleLogging) Log.Info("Finished unpacking " + pakfile);
             if (searchedPaths.Count == 0) break;
         }
 
         missingFiles?.AddRange(searchedPaths.Values);
-        return unpackedCount;
+        return unpackedFileCount;
     }
 
-    protected static void UpdateSearchedPaths<TContext>(Dictionary<ulong, string> paths, List<TContext> chunks, ref int fileCount)
+    protected static void UpdateSearchedPaths<TContext>(Dictionary<ulong, string> paths, List<TContext> chunks)
         where TContext : ChunkContextBase
     {
         foreach (var chunk in chunks) {
-            fileCount += chunk.fileCount;
             foreach (var item in chunk.foundHashes) paths.Remove(item);
         }
     }
@@ -296,14 +297,12 @@ public class PakReader
             var entry = ctx.file.Entries[i];
             var hash = entry.CombinedHash;
             if (!searchedPaths.TryGetValue(hash, out var path)) continue;
-            if (entry.compressedSize > int.MaxValue || entry.decompressedSize > int.MaxValue) {
-                throw new Exception("PAK entry size exceeds int.MaxValue - likely read error");
-            }
 
             var outStream = writeStreamProvider.Invoke(ctx, path);
             PakFile.ReadEntry(entry, fs, outStream);
             ctx.foundHashes.Add(entry.CombinedHash);
             ctx.fileCount++;
+            Interlocked.Increment(ref unpackedFileCount);
             yield return (entry, outStream);
         }
 

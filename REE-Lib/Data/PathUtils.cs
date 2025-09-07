@@ -136,7 +136,7 @@ public static class PathUtils
     }
 
     /// <summary>
-    /// Converts a native path into an internal path (e.g. natives/stm/subpath/file.scn.20 => subpath/file.scn).
+    /// Converts a native path into an internal path (e.g. natives/stm/subpath/file.scn.20 => subpath/file.scn). Returns the same path if it's already an internal path.
     /// </summary>
     public static string GetInternalFromNativePath(string nativePath)
     {

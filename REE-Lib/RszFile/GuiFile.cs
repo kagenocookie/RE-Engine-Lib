@@ -13,7 +13,7 @@ namespace ReeLib
     }
 
 
-    public class GuiFile : BaseRszFile
+    public class GuiFile : BaseFile
     {
         // 内存结构顺序：
         // 1. Header
@@ -24,7 +24,7 @@ namespace ReeLib
         public HeaderStruct Header { get; } = new();
         public List<Element> Elements { get; } = new();
 
-        public GuiFile(RszFileOption option, FileHandler fileHandler) : base(option, fileHandler)
+        public GuiFile(FileHandler fileHandler) : base(fileHandler)
         {
         }
 

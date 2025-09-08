@@ -254,9 +254,10 @@ namespace ReeLib.Mesh
             for (int i = 0; i < BufferHeaders.Length; i++)
 			{
                 var buffer = BufferHeaders[i];
-				var bufferEnd = vertexBufferOffset + (i == elementCount - 1 ? buffer.size * Positions.Length : BufferHeaders[i + 1].offset);
-                handler.Seek(vertexBufferOffset + buffer.offset);
-				var count = (int)(bufferEnd - vertexBufferOffset) / buffer.size;
+				var bufferStart = vertexBufferOffset + buffer.offset;
+				var bufferEnd = (i == elementCount - 1 ? bufferStart + buffer.size * Positions.Length : vertexBufferOffset + BufferHeaders[i + 1].offset);
+                handler.Seek(bufferStart);
+				var count = (int)(bufferEnd - bufferStart) / buffer.size;
 				switch (buffer.type) {
 					case VertexBufferType.Position:
 						Positions = handler.ReadArray<Vector3>(count);

@@ -1,6 +1,7 @@
 using ReeLib.Common;
 using System.Buffers;
 using System.Collections;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -705,6 +706,7 @@ namespace ReeLib
         public T Read<T>() where T : unmanaged
         {
             T value = default;
+            Debug.Assert(Stream.Position < Stream.Length);
             Stream.Read(MemoryUtils.StructureAsBytes(ref value));
             return value;
         }

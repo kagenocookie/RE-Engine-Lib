@@ -345,6 +345,16 @@ namespace ReeLib
             return type;
         }
 
+        public static Type RszFieldTypeToRuntimeCSharpType(RszFieldType fieldType)
+        {
+            return fieldType switch {
+                RszFieldType.Object or RszFieldType.Struct => typeof(RszInstance),
+                RszFieldType.UserData => typeof(RszInstance),
+                RszFieldType.String or RszFieldType.RuntimeType or RszFieldType.Resource => typeof(string),
+                _ => RszInstance.RszFieldTypeToCSharpType(fieldType),
+            };
+        }
+
         private static readonly Dictionary<Type, RszFieldType> CSharpTypeToRszFieldTypeDict = new()
         {
         };

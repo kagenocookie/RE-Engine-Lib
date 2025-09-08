@@ -43,12 +43,7 @@ namespace ReeLib.Common
                     continue;
                 }
                 var field = cls.fields[fieldIdx];
-                var type = field.type switch {
-                    RszFieldType.Object or RszFieldType.Struct => typeof(RszInstance),
-                    RszFieldType.UserData => typeof(RszInstance),
-                    RszFieldType.String or RszFieldType.RuntimeType or RszFieldType.Resource => typeof(string),
-                    _ => RszInstance.RszFieldTypeToCSharpType(field.type),
-                };
+                var type = RszInstance.RszFieldTypeToRuntimeCSharpType(field.type);
                 if (field.array) {
                     var list = inst.Values[fieldIdx] as List<object> ?? new List<object>();
                     list.Clear();

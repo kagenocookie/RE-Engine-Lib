@@ -365,6 +365,8 @@ namespace ReeLib.via
         public float m32;
         public float m33;
 
+        public static readonly mat4 Identity = new mat4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+
         public mat4(float m00, float m01, float m02, float m03, float m10, float m11, float m12, float m13, float m20, float m21, float m22, float m23, float m30, float m31, float m32, float m33) : this()
         {
             this.m00 = m00;
@@ -452,6 +454,12 @@ namespace ReeLib.via
         [FieldOffset(64)]
         private Vector3 extent;
 
+        public OBB()
+        {
+            coord = mat4.Identity;
+            extent = Vector3.One;
+        }
+
         public mat4 Coord { readonly get => coord; set => coord = value; }
         public Vector3 Extent { readonly get => extent; set => extent = value; }
 
@@ -488,6 +496,11 @@ namespace ReeLib.via
         {
             this.pos = pos;
             this.r = r;
+        }
+
+        public Sphere()
+        {
+            r = 1;
         }
 
         public readonly override string ToString()
@@ -564,6 +577,11 @@ namespace ReeLib.via
         public Vector3 P0 { readonly get => p0; set => p0 = value; }
         public Vector3 P1 { readonly get => p1; set => p1 = value; }
         public float R { readonly get => r; set => r = value; }
+
+        public Capsule()
+        {
+            r = 1;
+        }
 
         public readonly AABB GetBounds(float margin = 0)
         {
@@ -800,6 +818,11 @@ namespace ReeLib.via
         public Vector3 p1;
         [FieldOffset(32)]
         public float r;
+
+        public Cylinder()
+        {
+            r = 1;
+        }
 
         public readonly override string ToString() => $"Cylinder(P1={p0}, P2={p1}, R={r})";
     }

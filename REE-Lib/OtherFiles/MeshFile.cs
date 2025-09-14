@@ -199,6 +199,33 @@ namespace ReeLib.Mesh
 		public int offset;
 	}
 
+	public class VertexBoneWeights
+	{
+		public int[] boneIndices = [];
+		public float[] boneWeights = [];
+		private static readonly byte[] byteArray8 = new byte[8];
+
+		internal void Read(FileHandler handler, MeshMainVersion version)
+		{
+			if (version == MeshMainVersion.SF6) {
+				var b1 = handler.Read<uint>();
+				var b2 = handler.Read<uint>();
+				boneIndices = new int[6];
+				boneIndices[0] = (int)((b1) & 0x3ff);
+				boneIndices[1] = (int)((b1 >> 10) & 0x3ff);
+				boneIndices[2] = (int)((b1 >> 20) & 0x3ff);
+				boneIndices[3] = (int)((b2) & 0x3ff);
+				boneIndices[4] = (int)((b2 >> 10) & 0x3ff);
+				boneIndices[5] = (int)((b2 >> 20) & 0x3ff);
+			} else {
+				handler.ReadArray(byteArray8);
+				boneIndices = byteArray8.Select(b => (int)b).ToArray();
+			}
+			handler.ReadArray(byteArray8);
+			boneWeights = byteArray8.Select(b => ((float)b) / 255f).ToArray();
+		}
+	}
+
     public class MeshBuffer : BaseModel
     {
 		public long elementHeadersOffset;
@@ -220,6 +247,7 @@ namespace ReeLib.Mesh
 		public Vector2[] UV0 = [];
 		public Vector2[] UV1 = [];
 		public Color[] Colors = [];
+		public VertexBoneWeights[] Weights = [];
 		public ushort[] Faces = [];
 
 		private const float ByteDenorm = 1f / 127f;
@@ -303,6 +331,14 @@ namespace ReeLib.Mesh
 					case VertexBufferType.Colors:
 						Colors = handler.ReadArray<Color>(count);
 						break;
+					case VertexBufferType.BoneWeights:
+						Weights = new VertexBoneWeights[count];
+						for (int k = 0; k < count; ++k)
+						{
+							Weights[k] = new();
+							Weights[k].Read(handler, Version);
+						}
+						break;
 				}
 			}
 
@@ -336,6 +372,7 @@ namespace ReeLib.Mesh
 		public Span<Vector2> UV0 => MemoryMarshal.CreateSpan(ref Buffer.UV0[0], Buffer.UV0.Length).Slice(vertsIndexOffset, vertCount);
 		public Span<Vector2> UV1 => MemoryMarshal.CreateSpan(ref Buffer.UV1[0], Buffer.UV1.Length).Slice(vertsIndexOffset, vertCount);
 		public Span<Color> Colors => MemoryMarshal.CreateSpan(ref Buffer.Colors[0], Buffer.Colors.Length).Slice(vertsIndexOffset, vertCount);
+		public Span<VertexBoneWeights> Weights => MemoryMarshal.CreateSpan(ref Buffer.Weights[0], Buffer.Weights.Length).Slice(vertsIndexOffset, vertCount);
 
 		internal MeshMainVersion Version;
 
@@ -507,6 +544,52 @@ namespace ReeLib.Mesh
             throw new NotImplementedException();
         }
     }
+
+    public class MeshBone : BaseModel
+    {
+		public int index;
+		public int parentIndex;
+		public int nextSibling;
+		public int childIndex;
+		public int symmetryIndex;
+
+		public int remapIndex;
+
+		public mat4 localTransform;
+		public mat4 globalTransform;
+		public mat4 inverseGlobalTransform;
+
+		public string? name;
+
+		public readonly List<MeshBone> Children = new();
+
+		public MeshBone? Parent;
+		public MeshBone? Symmetry;
+
+        protected override bool DoRead(FileHandler handler)
+        {
+            index = handler.Read<short>();
+            parentIndex = handler.Read<short>();
+            nextSibling = handler.Read<short>();
+            childIndex = handler.Read<short>();
+            symmetryIndex = handler.Read<short>();
+			handler.Skip(6);
+			return true;
+        }
+
+        protected override bool DoWrite(FileHandler handler)
+        {
+            handler.Write((short)index);
+            handler.Write((short)parentIndex);
+            handler.Write((short)nextSibling);
+            handler.Write((short)childIndex);
+            handler.Write((short)symmetryIndex);
+			handler.Skip(6);
+			return true;
+        }
+
+        public override string ToString() => name ?? "MeshBone";
+    }
 }
 
 namespace ReeLib
@@ -522,6 +605,9 @@ namespace ReeLib
 		public MeshStreamingInfo? StreamingInfo { get; set; }
 		public MeshBuffer? MeshBuffer { get; set; }
 		public List<MeshData> Meshes { get; } = new();
+		public List<MeshBone> Bones { get; } = new();
+		public List<MeshBone> DeformBones { get; } = new();
+		public List<MeshBone> RootBones { get; } = new();
 
 		public List<string> MaterialNames { get; } = new();
 
@@ -565,6 +651,9 @@ namespace ReeLib
 			}
 			MaterialNames.Clear();
 			Meshes.Clear();
+			Bones.Clear();
+			RootBones.Clear();
+			DeformBones.Clear();
 			MeshBuffer = null;
 			StreamingInfo = null;
 
@@ -597,6 +686,34 @@ namespace ReeLib
 				handler.Seek(header.nameOffsetsOffset);
 				for (int i = 0; i < header.nameCount; ++i) strings[i] = handler.ReadOffsetAsciiString();
 			}
+			if (header.bonesOffset > 0) {
+				handler.Seek(header.bonesOffset);
+				var boneCount = handler.Read<int>();
+				var boneMapCount = handler.Read<int>();
+				handler.Skip(sizeof(long));
+				var hierarchyOff = handler.Read<long>();
+				var localTransformsOff = handler.Read<long>();
+				var globallTransformsOff = handler.Read<long>();
+				var invGloballTransformsOff = handler.Read<long>();
+				var remapIndices = handler.ReadArray<short>(boneMapCount);
+
+				handler.Seek(hierarchyOff);
+				Bones.Read(handler, boneCount);
+				handler.Seek(localTransformsOff);
+				for (int i = 0; i < boneCount; ++i) handler.Read(ref Bones[i].localTransform);
+				handler.Seek(globallTransformsOff);
+				for (int i = 0; i < boneCount; ++i) handler.Read(ref Bones[i].globalTransform);
+				handler.Seek(invGloballTransformsOff);
+				for (int i = 0; i < boneCount; ++i) handler.Read(ref Bones[i].inverseGlobalTransform);
+
+				for (int i = 0; i < boneMapCount; ++i) {
+					var bone = Bones[remapIndices[i]];
+					bone.remapIndex = i;
+					DeformBones.Add(bone);
+				}
+
+				SetupBoneHierarchy();
+			}
 
 			if (header.materialIndicesOffset > 0 && Meshes.Count > 0)
 			{
@@ -609,6 +726,16 @@ namespace ReeLib
 				}
 			}
 
+			if (header.boneIndicesOffset > 0 && Bones.Count > 0)
+			{
+				handler.Seek(header.boneIndicesOffset);
+				for (int i = 0; i < Bones.Count; ++i)
+				{
+					var idx = handler.Read<short>();
+					Bones[i].name = strings[idx];
+				}
+			}
+
 			if (header.boundsOffset > 0)
 			{
 				handler.Seek(header.boundsOffset);
@@ -617,6 +744,26 @@ namespace ReeLib
 
             return true;
         }
+
+		private void SetupBoneHierarchy()
+		{
+			RootBones.Clear();
+			foreach (var bone in Bones)
+			{
+				if (bone.symmetryIndex != bone.index)
+				{
+					bone.Symmetry = Bones[bone.symmetryIndex];
+				}
+				if (bone.parentIndex == -1)
+				{
+					RootBones.Add(bone);
+					continue;
+				}
+				var parent = Bones[bone.parentIndex];
+				bone.Parent = parent;
+				parent.Children.Add(bone);
+			}
+		}
 
         protected override bool DoWrite()
         {

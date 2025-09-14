@@ -920,9 +920,13 @@ namespace ReeLib.via
     public struct KeyFrame
     {
         public float value;
-        public uint time_type;
-        public uint inNormal;
-        public uint outNormal;
+        public short curveType;
+        public Half time;
+        public Half inNormalY;
+        public Half inNormalX;
+        public Half outNormalY;
+
+        public override string ToString() => $"{time}: {value}";
     }
 
 

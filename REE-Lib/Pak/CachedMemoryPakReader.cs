@@ -28,6 +28,14 @@ public class CachedMemoryPakReader : PakReader, IDisposable
         return GetFile(hash);
     }
 
+    public int GetSize(string filepath)
+    {
+        if (cachedEntries?.TryGetValue(PakUtils.GetFilepathHash(filepath), out var entry) == true) {
+            return (int)entry.entry.decompressedSize;
+        }
+        return 0;
+    }
+
     /// <summary>
     /// Reads a file into a MemoryStream.
     /// </summary>

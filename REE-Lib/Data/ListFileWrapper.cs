@@ -93,34 +93,34 @@ public class ListFileWrapper
     }
 
 
-    public string[] GetFiles(string filter, int limit, bool bypassCache = false)
+    public string[] GetFiles(string filter)
     {
         if (filter.Contains('*')) {
-            return FilterAllFiles(filter, limit, bypassCache);
+            return FilterAllFiles(filter);
         } else {
-            return GetFilesInFolder(filter, bypassCache);
+            return GetFilesInFolder(filter);
         }
     }
 
     /// <summary>
     /// Filter paths by a regex pattern. The matcher converts ** into .* to allow for "standard" glob patterns.
     /// </summary>
-    public string[] FilterAllFiles(string pattern, int limit, bool bypassCache = false)
+    public string[] FilterAllFiles(string pattern)
     {
         pattern = NormalizePath(pattern);
         var cacheKey = pattern.ToLowerInvariant();
-        if (!bypassCache && folderListCache.TryGetValue(cacheKey, out var names)) {
+        if (folderListCache.TryGetValue(cacheKey, out var names)) {
             return names;
         }
 
         try {
             var regex = new Regex("^" + pattern.Replace("/.", "\\.").Replace("**", ".*") + "$");
-            var results = FilterAllFiles(regex, limit).ToArray();
-            if (!bypassCache) folderListCache[cacheKey] = results;
+            var results = FilterAllFiles(regex, int.MaxValue).ToArray();
+            folderListCache[cacheKey] = results;
             return results;
         } catch (Exception) {
             Log.Error("Failed to parse regex pattern: " + pattern);
-            if (!bypassCache) folderListCache[cacheKey] = [];
+            folderListCache[cacheKey] = [];
             return [];
         }
     }
@@ -143,17 +143,17 @@ public class ListFileWrapper
         return list;
     }
 
-    public string[] GetFilesInFolder(string folder, bool bypassCache = false)
+    public string[] GetFilesInFolder(string folder)
     {
         folder = NormalizePath(folder);
         var lower = folder.ToLowerInvariant();
         if (string.IsNullOrEmpty(lower)) {
-            return GetFolderFileNames(string.Empty, bypassCache);
+            return GetFolderFileNames(string.Empty);
         }
-        return GetFolderFileNames(lower, bypassCache);
+        return GetFolderFileNames(lower);
     }
 
-    private string[] GetFolderFileNames(string folderNormalized, bool bypassCache = false)
+    private string[] GetFolderFileNames(string folderNormalized)
     {
         if (folderNormalized.EndsWith('/')) {
             folderNormalized = folderNormalized[..^1];

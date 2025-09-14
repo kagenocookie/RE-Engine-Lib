@@ -48,7 +48,7 @@ namespace ReeLib.Common
                     var list = inst.Values[fieldIdx] as List<object> ?? new List<object>();
                     list.Clear();
                     if (field.type == RszFieldType.Object || field.type == RszFieldType.Struct) {
-                        if (val!.AsObject().TryGetPropertyValue("items", out var items)) {
+                        if (val?.GetValueKind() == JsonValueKind.Object && val.AsObject().TryGetPropertyValue("items", out var items)) {
                             foreach (var sub in items!.AsArray()) {
                                 list.Add(sub.Deserialize<RszInstance>(options)!);
                             }

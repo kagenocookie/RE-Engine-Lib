@@ -12,6 +12,7 @@ namespace ReeLib.Mesh
 		RE_RT,
 		RE8,
 		SF6,
+		DD2_Old,
 		DD2,
 		MHWILDS,
 	}
@@ -110,7 +111,7 @@ namespace ReeLib.Mesh
 				handler.Read(ref materialIndicesOffset);
 				handler.Read(ref boneIndicesOffset);
 				handler.Read(ref blendShapeIndicesOffset);
-				if (Version < MeshMainVersion.DD2)
+				if (Version < MeshMainVersion.DD2_Old)
 				{
 					handler.Read(ref streamingInfoOffset);
 					handler.Read(ref nameOffsetsOffset);
@@ -403,7 +404,7 @@ namespace ReeLib.Mesh
 					sub.vertCount = vertexCount - (int)(sub.vertsIndexOffset - meshVertexOffset);
 				}
 			}
-			return false;
+			return true;
         }
 
         protected override bool DoWrite(FileHandler handler)
@@ -433,6 +434,7 @@ namespace ReeLib.Mesh
 
 			var vertOffset = 0;
 			var totalIndices = 0;
+			var indicesPadding = 0;
 			for (int i = 0; i < meshCount; ++i)
 			{
 				handler.Seek(meshOffsets[i]);
@@ -441,10 +443,13 @@ namespace ReeLib.Mesh
 				MeshGroups.Add(mesh);
 				vertOffset += mesh.vertexCount;
 				totalIndices += mesh.faceCount;
+				if (mesh.faceCount % 2 != 0) {
+					indicesPadding++;
+				}
 			}
 
 			handler.Seek(Buffer.faceBufferOffset);
-			Buffer.Faces = handler.ReadArray<ushort>(totalIndices);
+			Buffer.Faces = handler.ReadArray<ushort>(totalIndices + indicesPadding);
 			return true;
         }
 
@@ -526,11 +531,12 @@ namespace ReeLib
 			386270720 => MeshMainVersion.DMC5,
 			21041600 => MeshMainVersion.RE_RT,
 			2020091500 => MeshMainVersion.RE8,
+			220705151 => MeshMainVersion.SF6,
 			220822879 => MeshMainVersion.SF6,
-			230517984 => fileVersion == 231011879 ? MeshMainVersion.SF6 : MeshMainVersion.DD2,
+			230517984 => fileVersion == 231011879 ? MeshMainVersion.DD2_Old : MeshMainVersion.DD2,
 			240704828 => MeshMainVersion.MHWILDS,
 
-			// file versions
+			// file extension versions
 			1808282334 => MeshMainVersion.DMC5, // dmc5
 			1808312334 => MeshMainVersion.DMC5, // re2
 			1902042334 => MeshMainVersion.DMC5, // re3

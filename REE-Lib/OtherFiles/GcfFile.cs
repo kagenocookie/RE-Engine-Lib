@@ -16,7 +16,7 @@ namespace ReeLib.Gcf
         public long offset4;
         [RszVersion(19)]
         public long gcpOffset;
-        [RszVersion(26)]
+        [RszVersion(24)]
         public long uknOffset;
     }
 }
@@ -63,7 +63,7 @@ namespace ReeLib
                 var ukn1 = handler.Read<int>();
             } else if (version == 19) {
                 var flt = handler.Read<float>();
-            } else if (version >= 26) {
+            } else if (version >= 24) {
                 // ver 27
                 // dd2: 33 base + 528 extra (528 = 33 * 16)
                 // re4: 33 base + 528 extra

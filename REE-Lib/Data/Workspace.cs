@@ -329,7 +329,7 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
 
     private RszParser LoadRszParser()
     {
-        if (config.RszPatchFiles.Length == 0 && !config.Resources.TryGetRszFiles(out _)) {
+        if ((config.RszPatchFiles.Length == 0 || config.RszPatchFiles.Any(x => string.IsNullOrWhiteSpace(x))) && !config.Resources.TryGetRszFiles(out _)) {
             throw new Exception("RSZ json file setting is not configured");
         }
         var pfbRefs = PfbRefProps;

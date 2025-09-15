@@ -90,7 +90,7 @@ public class LocalResources
 
     public bool TryGetRszFiles(out string[] paths)
     {
-        if (LocalPaths.RszPatchFiles != null && LocalPaths.RszPatchFiles.Length > 0) {
+        if (LocalPaths.RszPatchFiles != null && LocalPaths.RszPatchFiles.Length > 0 && !LocalPaths.RszPatchFiles.Any(x => string.IsNullOrWhiteSpace(x) || !File.Exists(x))) {
             paths = LocalPaths.RszPatchFiles;
             return true;
         }

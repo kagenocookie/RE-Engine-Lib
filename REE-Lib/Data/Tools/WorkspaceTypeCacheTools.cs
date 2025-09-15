@@ -36,7 +36,7 @@ public sealed partial class Workspace : IDisposable
         if (success) {
             Log.Info("Loaded cached il2cpp data in " + time.Elapsed);
         } else {
-            Console.Error.WriteLine("Failed to load il2cpp cache data from " + baseCacheFile);
+            Log.Error("Failed to load il2cpp cache data from " + baseCacheFile);
         }
         // TryApplyTypePatches(_il2cpp, paths.TypePatchFilepath);
         return _typeCache;
@@ -45,7 +45,7 @@ public sealed partial class Workspace : IDisposable
     private void RegenerateTypeCache(string? il2cppPath, string cachePath)
     {
         if (!File.Exists(il2cppPath)) {
-            Console.Error.WriteLine($"Il2cpp file does not exist, nor do we have a valid cache file for {Config.Game}. Enums and class names won't resolve properly.");
+            Log.Error($"Il2cpp file does not exist, nor do we have a valid cache file for {Config.Game}. Enums and class names won't resolve properly.");
             return;
         }
 
@@ -78,7 +78,7 @@ public sealed partial class Workspace : IDisposable
     {
         if (TryDeserialize<TypeCacheData>(cacheFilename, out var data)) {
             if (data.CacheVersion < TypeCacheData.CurrentCacheVersion) {
-                Console.Error.WriteLine("Il2cpp cache data is out of date, needs a rebuild.");
+                Log.Error("Il2cpp cache data is out of date, needs a rebuild.");
                 return false;
             }
             target.ApplyCacheData(data);

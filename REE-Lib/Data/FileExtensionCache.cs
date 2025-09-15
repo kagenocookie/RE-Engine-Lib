@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using ReeLib.Common;
 
 namespace ReeLib;
 
@@ -101,7 +102,7 @@ public sealed partial class FileExtensionCache
             }
             if (int.TryParse(versionStr, out var version)) {
                 if (info.Version != 0 && info.Version != version) {
-                    Console.Error.WriteLine($"Warning: updating .{ext} file version from {info.Version} to {version}");
+                    Log.Error($"Warning: updating .{ext} file version from {info.Version} to {version}");
                 }
                 info.Version = version;
             }

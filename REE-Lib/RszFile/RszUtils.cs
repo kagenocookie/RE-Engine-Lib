@@ -1,3 +1,5 @@
+using ReeLib.Common;
+
 namespace ReeLib
 {
     public static class RszUtils
@@ -121,11 +123,11 @@ namespace ReeLib
             var realVersion = PathUtils.ParseFileFormat(path).version;
             if (!realExtension.SequenceEqual(extension))
             {
-                Console.Error.WriteLine($"extension should be {extension}, got {realExtension}");
+                Log.Error($"extension should be {extension}, got {realExtension}");
             }
             if (version != 0 && realVersion != version)
             {
-                Console.Error.WriteLine($"extension should be {version}, got {realVersion}");
+                Log.Error($"extension should be {version}, got {realVersion}");
             }
         }
     }

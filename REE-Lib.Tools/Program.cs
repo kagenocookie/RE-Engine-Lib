@@ -81,11 +81,11 @@ internal sealed class Program
         if (validation != null) {
             var err = validation.Invoke(args[index]);
             if (err != null) {
-                Console.Error.WriteLineAsync("ERROR: " + err.Replace("{0}", index.ToString()));
+                Console.Error.WriteLine("ERROR: " + err.Replace("{0}", index.ToString()));
                 Console.WriteLine();
                 PrintHelp();
                 Console.WriteLine();
-                Console.Error.WriteLineAsync("ERROR: " + err.Replace("{0}", index.ToString()));
+                Console.Error.WriteLine("ERROR: " + err.Replace("{0}", index.ToString()));
                 Environment.Exit(1);
             }
         }

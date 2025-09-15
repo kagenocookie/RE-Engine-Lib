@@ -2,6 +2,7 @@ namespace ReeLib.Il2cpp;
 
 using System;
 using System.Text.Json;
+using ReeLib.Common;
 
 internal sealed class TypeCacheData
 {
@@ -46,7 +47,7 @@ public class TypeCache
             if (enumData.parent == "System.Enum") {
                 var backing = GetEnumBackingType(enumData);
                 if (backing == null) {
-                    Console.Error.WriteLine("Couldn't determine enum backing type: " + name);
+                    Log.Error("Couldn't determine enum backing type: " + name);
                     enums[name] = EnumDescriptor<int>.Default;
                     continue;
                 }
@@ -162,7 +163,7 @@ public class TypeCache
         if (!descriptorFactory.TryGetValue(backing, out var factory)) {
             var t = Type.GetType(backing);
             if (t == null) {
-                Console.Error.WriteLine("Invalid cached enum backing type: " + backing);
+                Log.Error("Invalid cached enum backing type: " + backing);
                 return null;
             }
 

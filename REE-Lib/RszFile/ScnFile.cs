@@ -798,7 +798,7 @@ namespace ReeLib
             var children = parent?.Children ?? GameObjects;
             if (children == null)
             {
-                Console.Error.WriteLine("GameObjects and parent is null");
+                Log.Error("GameObjects and parent is null");
                 return null;
             }
             foreach (var child in children)
@@ -813,7 +813,7 @@ namespace ReeLib
                     if (result != null) return result;
                 }
             }
-            Console.Error.WriteLine($"GameObject {name} not found");
+            Log.Error($"GameObject {name} not found");
             return null;
         }
 
@@ -831,7 +831,7 @@ namespace ReeLib
             var folders = parent?.Children ?? FolderDatas;
             if (folders == null)
             {
-                Console.Error.WriteLine("FolderDatas and parent is null");
+                Log.Error("FolderDatas and parent is null");
                 return null;
             }
             foreach (var folder in folders!)
@@ -850,7 +850,7 @@ namespace ReeLib
                     if (result != null) return result;
                 }
             }
-            Console.Error.WriteLine($"GameObject {name} not found");
+            Log.Error($"GameObject {name} not found");
             return null;
         }
 
@@ -865,7 +865,7 @@ namespace ReeLib
             var folders = parent?.Children ?? FolderDatas;
             if (folders == null)
             {
-                Console.Error.WriteLine("FolderDatas and parent is null");
+                Log.Error("FolderDatas and parent is null");
                 yield break;
             }
             foreach (var folder in folders)

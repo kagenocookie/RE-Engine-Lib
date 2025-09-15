@@ -1,3 +1,5 @@
+using ReeLib.Common;
+
 namespace ReeLib
 {
     public abstract class BaseFile : IDisposable
@@ -90,7 +92,7 @@ namespace ReeLib
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                Log.Error(e);
                 result = false;
             }
             FileHandler = originHandler;

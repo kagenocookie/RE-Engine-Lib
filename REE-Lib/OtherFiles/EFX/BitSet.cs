@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
+using ReeLib.Common;
 
 namespace ReeLib.Efx;
 
@@ -45,7 +46,7 @@ public class BitSet : BaseModel
     {
         handler.ReadArray(Bits);
         if (HighestBit > BitCount) {
-            Console.Error.WriteLine($"Read bitset exceeds expected max bit count: {HighestBit} > {BitCount}");
+            Log.Error($"Read bitset exceeds expected max bit count: {HighestBit} > {BitCount}");
         }
         return true;
     }

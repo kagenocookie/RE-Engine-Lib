@@ -102,6 +102,7 @@ public class LocalResources
         }
 
         paths = LocalPaths.RszPatchFiles ??= [];
+        Log.Info("Could not fetch RSZ resources");
         return false;
     }
 
@@ -214,7 +215,10 @@ public class LocalResources
 
     private bool DownloadRSZResources(GameIdentifier game, ResourceMetadata? remote)
     {
-        if (remote == null) return false;
+        if (remote == null) {
+            Log.Info($"No remote resources available for {Game.name}.");
+            return false;
+        }
 
         Directory.CreateDirectory(DataPath);
         LocalPaths.LastUpdatedAtUtc = DateTime.UtcNow;
@@ -225,7 +229,7 @@ public class LocalResources
             Log.Info($"Fetching {game} RSZ patch file from {url}...");
             var data = ResourceRepository.FetchContentFromUrlOrFile(url);
             if (data == null) {
-                Console.Error.WriteLine("Failed to download RSZ patch file from URL " + url);
+                Log.Error("Failed to download RSZ patch file from URL " + url);
                 return false;
             }
             var localFilename = i switch {
@@ -235,7 +239,7 @@ public class LocalResources
             };
             var localFile = Path.Combine(DataPath, localFilename);
             if (!SaveRSZTemplateFile(data, url, localFile)) {
-                Console.Error.WriteLine("Failed to save RSZ patch file from URL " + url);
+                Log.Error("Failed to save RSZ patch file from URL " + url);
                 return false;
             }
             LocalPaths.RszPatchFiles[i++] = localFile;
@@ -248,7 +252,7 @@ public class LocalResources
     {
         var jsondoc = JsonSerializer.Deserialize<JsonObject>(file);
         if (jsondoc == null) {
-            Console.Error.WriteLine("Failed to deserialize RSZ JSON file");
+            Log.Error("Failed to deserialize RSZ JSON file");
             return false;
         }
 

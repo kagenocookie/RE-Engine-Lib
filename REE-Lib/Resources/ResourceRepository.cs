@@ -92,7 +92,7 @@ public class ResourceRepository
             if (updateSuccess) {
                 Log.Info("Updated resource repository from remote data");
             } else {
-                Console.Error.WriteLine("Failed to update resource repository from remote data");
+                Log.Error("Failed to update resource repository from remote data");
             }
         }
         _cache ??= new();
@@ -121,7 +121,7 @@ public class ResourceRepository
             _cache.LastUpdateCheckAtUtc = DateTime.UtcNow;
             return true;
         } catch (Exception e) {
-            Console.Error.WriteLine("Failed to update resource info: " + e.Message);
+            Log.Error("Failed to update resource info: " + e.Message);
             return false;
         }
     }
@@ -143,7 +143,7 @@ public class ResourceRepository
                 }
                 return response.Content.ReadAsStream();
             } catch (Exception) {
-                Console.Error.WriteLine("Failed to get remote REE-Lib resource status");
+                Log.Error("Failed to get remote REE-Lib resource status");
             }
         }
         if (File.Exists(path)) {
@@ -185,7 +185,7 @@ public class ResourceRepository
                 return true;
             }
         } catch (Exception e) {
-            Console.Error.WriteLine("Failed to load resource info: " + e.Message);
+            Log.Error("Failed to load resource info: " + e.Message);
         }
         return false;
     }

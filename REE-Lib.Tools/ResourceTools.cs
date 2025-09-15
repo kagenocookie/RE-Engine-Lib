@@ -98,7 +98,7 @@ public class ResourceTools(Workspace workspace)
                     }
                 } catch (Exception e) {
                     fails++;
-                    Console.Error.WriteLine($"Failed to handle file {path}: {e.Message}");
+                    Log.Error($"Failed to handle file {path}: {e.Message}");
                 }
             }
             Log.Info($"Finished {success} {extension} files with {fails} failures");
@@ -178,7 +178,7 @@ public class ResourceTools(Workspace workspace)
                 using var fs = File.Create(fn);
                 JsonSerializer.Serialize<Dictionary<string, Dictionary<string, PrefabGameObjectRefProperty>>>(fs, workspace.PfbRefProps, jsonOptions);
             } else {
-                Console.Error.WriteLine($"Failed to resolve all GameObjectRef properties in class {src.RszClass.name}, file: {pfb.FileHandler.FilePath}.");
+                Log.Error($"Failed to resolve all GameObjectRef properties in class {src.RszClass.name}, file: {pfb.FileHandler.FilePath}.");
             }
         }
     }
@@ -300,7 +300,7 @@ internal sealed class ResourceFieldFinder(Workspace env, ResourceTools resourceT
             var rszField = typeinfo?.fields.FirstOrDefault(f => f.name == field);
             if (rszField != null) {
                 if (rszField.type is not RszFieldType.String and not RszFieldType.Resource) {
-                    Console.Error.WriteLine($"Attempted to change non-string field into resource: {cls} field {field} of type {rszField.type}");
+                    Log.Error($"Attempted to change non-string field into resource: {cls} field {field} of type {rszField.type}");
                     continue;
                 }
                 var fileFormat = PathUtils.GetFileFormatFromExtension(ext);
@@ -340,7 +340,7 @@ internal sealed class ResourceFieldFinder(Workspace env, ResourceTools resourceT
                         } else if (IsBehaviorTreeSubtype(fileFormat) && IsBehaviorTreeSubtype(fieldPatch.FileFormat)) {
                             fileFormat = KnownFileFormats.BehaviorTreeBase;
                         } else {
-                            Console.Error.WriteLine($"Warning: Resource type conflict on field {cls} {field}: {fieldPatch.FileFormat} and {fileFormat}. Manually verify please.");
+                            Log.Error($"Warning: Resource type conflict on field {cls} {field}: {fieldPatch.FileFormat} and {fileFormat}. Manually verify please.");
                         }
                     }
                     fieldPatch.FileFormat = fileFormat;
@@ -353,7 +353,7 @@ internal sealed class ResourceFieldFinder(Workspace env, ResourceTools resourceT
                             if (resourceHolders.TryGetValue(fileFormat, out var holderClassname)) {
                                 fieldPatch.OriginalType = holderClassname;
                             } else {
-                                Console.Error.WriteLine($"Failed to map resource file format {fileFormat} to classname");
+                                Log.Error($"Failed to map resource file format {fileFormat} to classname");
                             }
                         }
                     }
@@ -459,9 +459,9 @@ internal sealed class DuplicateInstanceRefHandler(Workspace env)
                     for (var i = 0; i < values.Length; i++) {
                         var val = values[i];
                         if (components.Contains(val.RszClass.name)) {
-                            Console.Error.WriteLine($"Found direct reference to component - this is almost definitely wrong! Object {instance} field {fieldIndex} {field.name} referenced {val}");
-                            Console.Error.WriteLine($"Filepath: {filepath}");
-                            Console.Error.WriteLine($"Adding to the {instance.RszClass.name} patch list: {{ \"Name\": \"{field.name}\", \"Type\": \"S32\" }}");
+                            Log.Error($"Found direct reference to component - this is almost definitely wrong! Object {instance} field {fieldIndex} {field.name} referenced {val}");
+                            Log.Error($"Filepath: {filepath}");
+                            Log.Error($"Adding to the {instance.RszClass.name} patch list: {{ \"Name\": \"{field.name}\", \"Type\": \"S32\" }}");
                             field.type = RszFieldType.S32;
                             field.IsTypeInferred = true;
                             continue;
@@ -470,11 +470,11 @@ internal sealed class DuplicateInstanceRefHandler(Workspace env)
                             var isWhitelisted = whitelistedDuplicates.GetValueOrDefault(game)?.GetValueOrDefault(instance.RszClass.name)?.Contains(field.name);
                             if (isWhitelisted != true) {
                                 var valueIndex = field.array ? $"[{i}]" : "";
-                                Console.Error.WriteLine($"Found duplicate rsz instance reference - likely read error, verify correctness please.\nObject {instance} field {fieldIndex} {field.name}{valueIndex}: value {val} previously referenced from {instances[val]}.");
-                                Console.Error.WriteLine($"Filepath: {filepath}");
-                                Console.Error.WriteLine("If the reference is correct, add it to the whitelist");
-                                Console.Error.WriteLine("If the reference is not correct, add or modify the field patch list of the class in the rsz patch JSON:");
-                                Console.Error.WriteLine($"{{\n  \"Name\": \"{field.name}\",\n  \"Type\": \"S32\"\n}}");
+                                Log.Error($"Found duplicate rsz instance reference - likely read error, verify correctness please.\nObject {instance} field {fieldIndex} {field.name}{valueIndex}: value {val} previously referenced from {instances[val]}.");
+                                Log.Error($"Filepath: {filepath}");
+                                Log.Error("If the reference is correct, add it to the whitelist");
+                                Log.Error("If the reference is not correct, add or modify the field patch list of the class in the rsz patch JSON:");
+                                Log.Error($"{{\n  \"Name\": \"{field.name}\",\n  \"Type\": \"S32\"\n}}");
                             }
                         }
                     }

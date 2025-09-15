@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Reflection;
 using System.Text.Json;
 using ReeLib.Common;
 
@@ -153,14 +155,16 @@ public class ResourceRepository
 
     private static HttpResponseMessage Fetch(string url)
     {
+        var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Add("User-Agent", $"{AppDomain.CurrentDomain.FriendlyName}/{FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).ProductVersion ?? "x"}");
         if (!AllowThreadedFetch) {
             var http = new HttpClient();
-            return http.Send(new HttpRequestMessage(HttpMethod.Get, url));
+            return http.Send(request);
         }
 
         var task = Task.Run(() => {
             var http = new HttpClient();
-            return http.SendAsync(new HttpRequestMessage(HttpMethod.Get, url));
+            return http.SendAsync(request);
         });
 
         task.Wait();

@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text.Json.Serialization;
 using ReeLib.Pfb;
 using ReeLib.Scn;
 
@@ -216,22 +217,22 @@ namespace ReeLib.via
     // Size=8
     public struct Range
     {
-        public float r;
         public float s;
+        public float r;
 
         public readonly override string ToString()
         {
-            return $"Range({r}, {s})";
+            return $"Range({s}, {r})";
         }
 
         public static explicit operator Range(Vector2 vector)
         {
-            return new Range { r = vector.X, s = vector.Y };
+            return new Range { s = vector.X, r = vector.Y };
         }
 
         public static explicit operator Vector2(Range range)
         {
-            return new Vector2(range.r, range.s);
+            return new Vector2(range.s, range.r);
         }
 
         public float this[int index]
@@ -239,13 +240,13 @@ namespace ReeLib.via
             readonly get
             {
                 ValueTypeUtils.CheckIndex(index, 2);
-                return index == 0 ? r : s;
+                return index == 0 ? s : r;
             }
             set
             {
                 ValueTypeUtils.CheckIndex(index, 2);
-                if (index == 0) r = value;
-                else s = value;
+                if (index == 0) s = value;
+                else r = value;
             }
         }
     }
@@ -294,13 +295,20 @@ namespace ReeLib.via
             rgba = r + ((uint)(g) << 8) + ((uint)(b) << 16) + ((uint)(a) << 24);
         }
 
+        [JsonIgnore]
         public readonly int R => (int)(rgba >> 0) & 0xff;
+        [JsonIgnore]
         public readonly int G => (int)(rgba >> 8) & 0xff;
+        [JsonIgnore]
         public readonly int B => (int)(rgba >> 16) & 0xff;
+        [JsonIgnore]
         public readonly int A => (int)(rgba >> 24) & 0xff;
 
+        [JsonIgnore]
         public readonly int ARGB => A + (R << 8) + (G << 16) + (B << 24);
+        [JsonIgnore]
         public readonly int ABGR => A + (B << 8) + (G << 16) + (R << 24);
+        [JsonIgnore]
         public readonly int BGRA => B + (G << 8) + (R << 16) + (A << 24);
 
         public readonly string Hex()
@@ -403,9 +411,13 @@ namespace ReeLib.via
             }
         }
 
+        [JsonIgnore]
         public unsafe Vector4 Row0 { readonly get => new Vector4(m00, m01, m02, m03); set { fixed(void* x = &m00) Unsafe.Write<Vector4>(x, value); } }
+        [JsonIgnore]
         public unsafe Vector4 Row1 { readonly get => new Vector4(m10, m11, m12, m13); set { fixed(void* x = &m10) Unsafe.Write<Vector4>(x, value); } }
+        [JsonIgnore]
         public unsafe Vector4 Row2 { readonly get => new Vector4(m20, m21, m22, m23); set { fixed(void* x = &m20) Unsafe.Write<Vector4>(x, value); } }
+        [JsonIgnore]
         public unsafe Vector4 Row3 { readonly get => new Vector4(m30, m31, m32, m33); set { fixed(void* x = &m30) Unsafe.Write<Vector4>(x, value); } }
 
         /* public float this[int row, int col]
@@ -446,12 +458,12 @@ namespace ReeLib.via
     [StructLayout(LayoutKind.Explicit, Size = 80)]
     public struct OBB
     {
-        [FieldOffset(0)]
+        [FieldOffset(0), JsonIgnore]
         private mat4 coord;
         /// <summary>
         /// The full size of the box (from one edge to the other)
         /// </summary>
-        [FieldOffset(64)]
+        [FieldOffset(64), JsonIgnore]
         private Vector3 extent;
 
         public OBB()
@@ -486,7 +498,9 @@ namespace ReeLib.via
     // Size=16
     public struct Sphere
     {
+        [JsonIgnore]
         public Vector3 pos;
+        [JsonIgnore]
         public float r;
 
         public Vector3 Pos { readonly get => pos; set => pos = value; }
@@ -519,9 +533,9 @@ namespace ReeLib.via
     [StructLayout(LayoutKind.Explicit, Size = 32)]
     public struct AABB
     {
-        [FieldOffset(0)]
+        [FieldOffset(0), JsonIgnore]
         public Vector3 minpos;
-        [FieldOffset(16)]
+        [FieldOffset(16), JsonIgnore]
         public Vector3 maxpos;
 
         public AABB()
@@ -567,11 +581,11 @@ namespace ReeLib.via
     [StructLayout(LayoutKind.Explicit, Size = 48)]
     public struct Capsule
     {
-        [FieldOffset(0)]
+        [FieldOffset(0), JsonIgnore]
         public Vector3 p0;
-        [FieldOffset(16)]
+        [FieldOffset(16), JsonIgnore]
         public Vector3 p1;
-        [FieldOffset(32)]
+        [FieldOffset(32), JsonIgnore]
         public float r;
 
         public Vector3 P0 { readonly get => p0; set => p0 = value; }

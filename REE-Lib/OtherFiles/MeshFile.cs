@@ -599,7 +599,7 @@ namespace ReeLib
     public class MeshFile : BaseFile
     {
         public const uint Magic = 0x4853454D;
-        public const uint MagicMply = 0x4D504C59;
+        public const uint MagicMply = 0x594C504D;
 
 		public Header Header { get; } = new();
 		public MeshStreamingInfo? StreamingInfo { get; set; }
@@ -750,7 +750,7 @@ namespace ReeLib
 			RootBones.Clear();
 			foreach (var bone in Bones)
 			{
-				if (bone.symmetryIndex != bone.index)
+				if (bone.symmetryIndex != bone.index && bone.symmetryIndex != -1)
 				{
 					bone.Symmetry = Bones[bone.symmetryIndex];
 				}

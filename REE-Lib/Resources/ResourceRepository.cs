@@ -142,8 +142,8 @@ public class ResourceRepository
                     return null;
                 }
                 return response.Content.ReadAsStream();
-            } catch (Exception) {
-                Log.Error("Failed to get remote REE-Lib resource status");
+            } catch (Exception e) {
+                Log.Error("Failed to get remote REE-Lib resource status: " + e.Message);
             }
         }
         if (File.Exists(path)) {

@@ -11,6 +11,7 @@ namespace ReeLib.Mesh
 		DMC5,
 		RE_RT,
 		RE8,
+		RE4,
 		SF6,
 		DD2_Old,
 		DD2,
@@ -70,7 +71,7 @@ namespace ReeLib.Mesh
             handler.Read(ref lodHash);
 			var Version = FormatVersion = MeshFile.GetConsistentMeshVersion(version, handler.FileVersion);
 
-			if (Version < MeshMainVersion.SF6)
+			if (Version < MeshMainVersion.RE4)
 			{
 				handler.Read(ref flags);
 				handler.Read(ref nameCount);
@@ -89,7 +90,7 @@ namespace ReeLib.Mesh
 				handler.Read(ref blendShapeIndicesOffset);
 				handler.Read(ref nameOffsetsOffset);
 			}
-			else if (Version >= MeshMainVersion.SF6 && Version < MeshMainVersion.MHWILDS)
+			else if (Version >= MeshMainVersion.RE4 && Version < MeshMainVersion.MHWILDS)
 			{
 				handler.Read(ref flags);
 				handler.Read(ref uknCount);
@@ -258,7 +259,7 @@ namespace ReeLib.Mesh
         {
 			handler.Read(ref elementHeadersOffset);
 			handler.Read(ref vertexBufferOffset);
-			if (Version >= MeshMainVersion.SF6)
+			if (Version >= MeshMainVersion.RE4)
 			{
 				handler.Read(ref uknOffset);
 				handler.Read(ref vertexBufferSize);
@@ -588,7 +589,7 @@ namespace ReeLib.Mesh
 			return true;
         }
 
-        public override string ToString() => name ?? "MeshBone";
+        public override string ToString() => name ?? $"Bone {index}";
     }
 }
 
@@ -617,8 +618,8 @@ namespace ReeLib
 			386270720 => MeshMainVersion.DMC5,
 			21041600 => MeshMainVersion.RE_RT,
 			2020091500 => MeshMainVersion.RE8,
+			220822879 => MeshMainVersion.RE4,
 			220705151 => MeshMainVersion.SF6,
-			220822879 => MeshMainVersion.SF6,
 			230517984 => fileVersion == 231011879 ? MeshMainVersion.DD2_Old : MeshMainVersion.DD2,
 			240704828 => MeshMainVersion.MHWILDS,
 

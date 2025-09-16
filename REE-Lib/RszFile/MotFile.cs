@@ -39,8 +39,8 @@ namespace ReeLib.Mot
         // public long namesOffset;
         public float frameCount;
         public float blending; // Set to 0 to enable repeating
-        public float uknFloat1;
-        public float uknFloat2;
+        public float startFrame;
+        public float endFrame;
         public ushort boneCount;
         public ushort boneClipCount;
         public byte clipCount;
@@ -81,8 +81,8 @@ namespace ReeLib.Mot
             action.HandleOffsetWString(ref motName)
                  ?.Then(ref frameCount)
                  ?.Then(ref blending)
-                 ?.Then(ref uknFloat1)
-                 ?.Then(ref uknFloat2)
+                 ?.Then(ref startFrame)
+                 ?.Then(ref endFrame)
                  ?.Then(ref boneCount)
                  ?.Then(ref boneClipCount)
                  ?.Then(ref clipCount)
@@ -95,12 +95,17 @@ namespace ReeLib.Mot
     }
 
 
-    public class Bone(BoneHeader header)
+    public class MotBone(BoneHeader header)
     {
         public BoneHeader Header { get; set; } = header;
 
-        public Bone? Parent { get; set; }
-        public List<Bone> Children { get; } = new();
+        public string Name { get => Header.boneName; set => Header.boneName = value; }
+        public int Index { get => Header.Index; set => Header.Index = value; }
+        public Vector4 Translation { get => Header.translation; set => Header.translation = value; }
+        public Quaternion Quaternion { get => Header.quaternion; set => Header.quaternion = value; }
+
+        public MotBone? Parent { get; set; }
+        public List<MotBone> Children { get; } = new();
 
         public override string ToString() => Header.boneName;
     }
@@ -110,14 +115,16 @@ namespace ReeLib.Mot
     {
         [RszOffsetWString]
         public string boneName = string.Empty;
-        public ulong parentOffs;
-        public ulong childOffs;
-        public ulong nextSiblingOffs;
+        public long parentOffs;
+        public long childOffs;
+        public long nextSiblingOffs;
         public Vector4 translation;
         public Quaternion quaternion;
-        public uint Index;
+        public int Index;
         public uint boneHash;
-        public ulong padding;
+        public long padding;
+
+        public const int StructSize = 80;
 
         public override string ToString() => $"[{Index}] {boneName}";
     }
@@ -582,24 +589,6 @@ namespace ReeLib.Mot
                 }
             }
         }
-
-        // public Vector3Decompression ScaleDecompression => Compression switch
-        // {
-        //     0x00000 => Vector3Decompression.LoadVector3sFull,
-        //     0x20000 => Vector3Decompression.LoadVector3s5BitA,
-        //     0x30000 => Vector3Decompression.LoadVector3s10BitA,
-        //     0x34000 => Vector3Decompression.LoadScalesXYZ,
-        //     0x40000 => Vector3Decompression.LoadVector3s10BitA,
-        //     0x70000 => Vector3Decompression.LoadVector3s21BitA,
-        //     0x31000 => Vector3Decompression.LoadVector3sXAxis,
-        //     0x32000 => Vector3Decompression.LoadVector3sYAxis,
-        //     0x33000 => Vector3Decompression.LoadVector3sZAxis,
-        //     0x21000 => Vector3Decompression.LoadVector3sXAxis16Bit,
-        //     0x22000 => Vector3Decompression.LoadVector3sYAxis16Bit,
-        //     0x23000 => Vector3Decompression.LoadVector3sZAxis16Bit,
-        //     0x24000 => Vector3Decompression.LoadVector3sXYZAxis16Bit, // dmc5 m06_200_pl0200_ev01.motlist.85
-        //     _ => Vector3Decompression.UnknownType
-        // };
 
         public void ReadFrameDataTranslation(FileHandler handler)
         {
@@ -1145,6 +1134,7 @@ namespace ReeLib.Mot
 
         protected override bool DoWrite(FileHandler handler)
         {
+            ClipHeader.trackHeaderOffset = handler.Tell();
             Translation?.Write(handler);
             Rotation?.Write(handler);
             Scale?.Write(handler);
@@ -1271,10 +1261,11 @@ namespace ReeLib.Mot
                 // 1 2 1 count => 3 (ch51_000_com_catch.motlist.751 mot 1)
                 // 2 2 0 1 => 5 (re3rt base_cmn_move.motlist.524 mot 170)
                 // 2 2 1 1 => 5 (re3rt em9400_attack.motlist.524 mot 1)
+                // 3 4 2 0 => 13 (re8 ch01_6000_handsrose.motlist.486 mot 2)
 
-                // note: this may not be fully correct, but the values are consistently correct with this logic, for DD2
-                if (type1 == 2) {
-                    frameValues1 = handler.ReadArray<float>(count1 * 2);
+                // note: this may not be fully correct, but the values are consistently correct with this logic, for DD2, and at least not failing for the other games
+                if (type1 == 2 || type1 == 4) {
+                    frameValues1 = handler.ReadArray<float>(count1 * type1);
                 } else {
                     frameValues1 = handler.ReadArray<float>(count1 + type1);
                 }
@@ -1371,11 +1362,16 @@ namespace ReeLib
         public List<MotClip> Clips { get; } = new();
         public List<MotEndClip> EndClips { get; } = new();
 
+        public List<MotBone> Bones { get; } = new();
+        public List<MotBone> RootBones { get; } = new();
+
+        public MotBone? GetBoneByHash(uint hash) => Bones.FirstOrDefault(b => b.Header.boneHash == hash);
+
         private bool IsMotlist => PathUtils.GetFilenameExtensionWithoutSuffixes(FileHandler.FilePath ?? string.Empty).SequenceEqual("motlist") == true;
 
         protected override bool DoRead()
         {
-            // Bones.Clear();
+            Bones.Clear();
             Clips.Clear();
             var handler = FileHandler;
             var header = Header;
@@ -1476,23 +1472,25 @@ namespace ReeLib
             }
         }
 
-        public List<BoneHeader> ReadBones(List<BoneHeader>? boneHeaders)
+        public void ReadBones(MotFile? mainSourceMot)
         {
             var header = Header;
             var handler = FileHandler;
             var hasOwnBoneList = header.motSize == 0 || header.boneHeaderOffsetStart > 0 && header.boneHeaderOffsetStart < header.motSize;
             if (!hasOwnBoneList)
             {
-                if (boneHeaders == null)
+                if (mainSourceMot?.BoneHeaders == null)
                 {
                     throw new InvalidDataException("Mot file bones not found");
                 }
 
-                BoneHeaders = boneHeaders;
+                BoneHeaders = mainSourceMot.BoneHeaders;
+                Bones.AddRange(mainSourceMot.Bones);
+                RootBones.AddRange(mainSourceMot.RootBones);
             }
             else
             {
-                BoneHeaders = boneHeaders = new(header.boneCount);
+                BoneHeaders = new(header.boneCount);
                 handler.Seek(header.boneHeaderOffsetStart);
                 var boneHeaderOffset = handler.Read<long>();
                 var boneHeaderCount = handler.Read<long>();
@@ -1500,11 +1498,39 @@ namespace ReeLib
                 {
                     BoneHeader boneHeader = new();
                     boneHeader.Read(handler);
-                    boneHeaders.Add(boneHeader);
+                    BoneHeaders.Add(boneHeader);
+                    Bones.Add(new MotBone(boneHeader));
+                }
+                foreach (var boneHeader in BoneHeaders)
+                {
+                    // TODO how does this behave with motlists with varying bone lists?
+                    var bone = GetBoneByHash(boneHeader.boneHash);
+                    if (bone == null)
+                    {
+                        // there's no matches sometimes, for motlists with varying bone header lists.
+                        // unsure if these are actually valid and functional (and ignored), or just obsolete unused mots
+                        // or if there's some setting that makes it use the original mesh bones instead of motlist provided ones
+                        continue;
+                    }
+
+                    if (boneHeader.parentOffs == 0) {
+                        RootBones.Add(bone);
+                    } else {
+                        var parentBoneIndex = (int)((boneHeader.parentOffs - boneHeaderOffset) / BoneHeader.StructSize);
+                        var parentBone = GetBoneByHash(BoneHeaders[parentBoneIndex].boneHash);
+                        if (parentBone == null)
+                        {
+                            Log.Warn("Parent bone not found");
+                            continue;
+                        }
+
+                        bone.Parent = parentBone;
+                        parentBone.Children.Add(bone);
+                    }
                 }
             }
 
-            foreach (var bone in boneHeaders)
+            foreach (var bone in BoneHeaders)
             {
                 // could be sped up with a dictionary - but then we need to maintain both the list and dict, maybe later
                 var clip = BoneClips.FirstOrDefault(c => c.ClipHeader.boneHash == bone.boneHash);
@@ -1513,8 +1539,6 @@ namespace ReeLib
                     clip.ClipHeader.boneName = bone.boneName;
                 }
             }
-
-            return boneHeaders;
         }
 
         protected override bool DoWrite()

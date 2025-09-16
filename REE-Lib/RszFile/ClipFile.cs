@@ -7,15 +7,15 @@ namespace ReeLib.Clip
 {
     public enum ClipVersion
     {
-        RE7 = 10,
-        RE7_RT = 11,
+        RE7 = 18,
         RE2_DMC5 = 27,
         RE3 = 34,
         MHR_DEMO = 40,
         RE8 = MHR_DEMO,
-        RE2_RT = 43,
-        RE3_RT = RE2_RT,
-        MHR = RE2_RT,
+        RE7_RT = 43,
+        RE2_RT = RE7_RT,
+        RE3_RT = RE7_RT,
+        MHR = RE7_RT,
         SF6 = 53,
         RE4 = 54,
         DD2 = 62,

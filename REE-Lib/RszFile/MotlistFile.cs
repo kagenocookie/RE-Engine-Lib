@@ -77,14 +77,14 @@ namespace ReeLib.Motlist
         public long motClipOffset;  // may point to MotClip
         public ushort motNumber;
         public ushort Switch;
-        uint[]? data;
+        public uint[]? data;
 
         public MotFileBase? MotFile { get; set; }
         public MotClip? MotClip { get; set; }
 
         public MotlistVersion Version { get; set; }
 
-        public int DataCount => Version >= MotlistVersion.RE8 ? 15 : Version == MotlistVersion.RE7 ? 0 : 3;
+        public int DataCount => Version > MotlistVersion.RE8 ? 15 : Version == MotlistVersion.RE7 ? 0 : 3;
 
         public MotIndex(MotlistVersion version)
         {
@@ -93,7 +93,7 @@ namespace ReeLib.Motlist
 
         protected override bool DoRead(FileHandler handler)
         {
-            handler.Read(ref motClipOffset);
+            if (Version > MotlistVersion.RE7) handler.Read(ref motClipOffset);
             handler.Read(ref motNumber);
             handler.Read(ref Switch);
             int dataCount = DataCount;
@@ -145,7 +145,7 @@ namespace ReeLib
             long[] motOffsets = handler.ReadArray<long>(header.numMots);
 
             Dictionary<long, MotFile> motions = new();
-            List<BoneHeader>? boneHeaders = null;
+            MotFile? headerMot = null;
             for (int i = 0; i < motOffsets.Length; i++)
             {
                 if (motOffsets[i] == 0)
@@ -160,7 +160,8 @@ namespace ReeLib
                     MotFile motFile = new(fileHandler);
                     motFile.Embedded = true;
                     motFile.Read();
-                    boneHeaders = motFile.ReadBones(boneHeaders);
+                    motFile.ReadBones(headerMot);
+                    headerMot ??= motFile;
                     MotFiles.Add(motFile);
                     motions[motOffsets[i]] = motFile;
                 } else if (magic == MotTreeFile.Magic) {
@@ -188,7 +189,6 @@ namespace ReeLib
             {
                 if (motIndex.motClipOffset > 0)
                 {
-                    // TODO RE8 extra mot clips are broken
                     handler.Seek(motIndex.motClipOffset);
                     long motClipOffset = handler.Read<long>();
                     handler.Seek(motClipOffset);

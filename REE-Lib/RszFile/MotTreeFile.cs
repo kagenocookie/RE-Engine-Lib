@@ -62,7 +62,7 @@ namespace ReeLib
         public const string Extension = ".mottree";
 
         public MotTreeHeader Header { get; } = new();
-        public List<Bone> Bones { get; } = new();
+        public List<MotBone> Bones { get; } = new();
         public List<MotClip> MotClips { get; } = new();
 
         protected override bool DoRead()

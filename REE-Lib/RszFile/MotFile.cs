@@ -473,121 +473,99 @@ namespace ReeLib.Mot
             }
         }
 
-        public Vector3Decompression TranslationDecompression
+        private static Dictionary<uint, Vector3Decompression> TranslationDictDmc5 = new() {
+            { 0x00000, Vector3Decompression.LoadVector3sFull },
+            { 0x20000, Vector3Decompression.LoadVector3s5BitA },
+            { 0x30000, Vector3Decompression.LoadVector3s10BitA },
+            { 0x40000, Vector3Decompression.LoadVector3s10BitA },
+            { 0x70000, Vector3Decompression.LoadVector3s21BitA },
+            { 0x31000, Vector3Decompression.LoadVector3sXAxis },
+            { 0x32000, Vector3Decompression.LoadVector3sYAxis },
+            { 0x33000, Vector3Decompression.LoadVector3sZAxis },
+            { 0x21000, Vector3Decompression.LoadVector3sXAxis16Bit },
+            { 0x22000, Vector3Decompression.LoadVector3sYAxis16Bit },
+            { 0x23000, Vector3Decompression.LoadVector3sZAxis16Bit },
+            { 0x34000, Vector3Decompression.LoadScalesXYZ },
+            { 0x24000, Vector3Decompression.LoadVector3sXYZAxis16Bit },
+        };
+
+        private static Dictionary<uint, Vector3Decompression> TranslationDict = new() {
+            { 0x00000, Vector3Decompression.LoadVector3sFull },
+            { 0x20000, Vector3Decompression.LoadVector3s5BitB },
+            { 0x30000, Vector3Decompression.LoadVector3s5BitB },
+            { 0x40000, Vector3Decompression.LoadVector3s10BitB },
+            { 0x80000, Vector3Decompression.LoadVector3s21BitB },
+            { 0x21000, Vector3Decompression.LoadVector3sXAxis16Bit },
+            { 0x22000, Vector3Decompression.LoadVector3sYAxis16Bit },
+            { 0x23000, Vector3Decompression.LoadVector3sZAxis16Bit },
+            { 0x24000, Vector3Decompression.LoadVector3sXYZAxis16Bit },
+            { 0x41000, Vector3Decompression.LoadVector3sXAxis },
+            { 0x42000, Vector3Decompression.LoadVector3sYAxis },
+            { 0x43000, Vector3Decompression.LoadVector3sZAxis },
+            { 0x44000, Vector3Decompression.LoadVector3sXYZAxis },
+        };
+
+        private static Dictionary<uint, QuaternionDecompression> RotationDictDmc5 = new() {
+            { 0x00000, QuaternionDecompression.LoadQuaternionsFull },
+            { 0xB0000, QuaternionDecompression.LoadQuaternions3Component },
+            { 0xC0000, QuaternionDecompression.LoadQuaternions3Component },
+            { 0x30000, QuaternionDecompression.LoadQuaternions10Bit },
+            { 0x40000, QuaternionDecompression.LoadQuaternions10Bit },
+            { 0x50000, QuaternionDecompression.LoadQuaternions16Bit },
+            { 0x70000, QuaternionDecompression.LoadQuaternions21Bit },
+            { 0x21000, QuaternionDecompression.LoadQuaternionsXAxis16Bit },
+            { 0x22000, QuaternionDecompression.LoadQuaternionsYAxis16Bit },
+            { 0x23000, QuaternionDecompression.LoadQuaternionsZAxis16Bit },
+            { 0x31000, QuaternionDecompression.LoadQuaternionsXAxis },
+            { 0x41000, QuaternionDecompression.LoadQuaternionsXAxis },
+            { 0x32000, QuaternionDecompression.LoadQuaternionsYAxis },
+            { 0x42000, QuaternionDecompression.LoadQuaternionsYAxis },
+            { 0x33000, QuaternionDecompression.LoadQuaternionsZAxis },
+            { 0x43000, QuaternionDecompression.LoadQuaternionsZAxis },
+        };
+
+        private static Dictionary<uint, QuaternionDecompression> RotationDict = new() {
+            { 0x00000, QuaternionDecompression.LoadQuaternionsFull },
+            { 0xB0000, QuaternionDecompression.LoadQuaternions3Component },
+            { 0xC0000, QuaternionDecompression.LoadQuaternions3Component },
+            { 0x20000, QuaternionDecompression.LoadQuaternions5Bit },
+            { 0x30000, QuaternionDecompression.LoadQuaternions8Bit },
+            { 0x40000, QuaternionDecompression.LoadQuaternions10Bit },
+            { 0x50000, QuaternionDecompression.LoadQuaternions13Bit },
+            { 0x60000, QuaternionDecompression.LoadQuaternions16Bit },
+            { 0x70000, QuaternionDecompression.LoadQuaternions18Bit },
+            { 0x80000, QuaternionDecompression.LoadQuaternions21Bit },
+            { 0x21000, QuaternionDecompression.LoadQuaternionsXAxis16Bit },
+            { 0x22000, QuaternionDecompression.LoadQuaternionsYAxis16Bit },
+            { 0x23000, QuaternionDecompression.LoadQuaternionsZAxis16Bit },
+            { 0x31000, QuaternionDecompression.LoadQuaternionsXAxis },
+            { 0x41000, QuaternionDecompression.LoadQuaternionsXAxis },
+            { 0x32000, QuaternionDecompression.LoadQuaternionsYAxis },
+            { 0x42000, QuaternionDecompression.LoadQuaternionsYAxis },
+            { 0x33000, QuaternionDecompression.LoadQuaternionsZAxis },
+            { 0x43000, QuaternionDecompression.LoadQuaternionsZAxis },
+        };
+
+        public Vector3Decompression TranslationCompressionType
         {
-            get
-            {
-                if (MotVersion <= MotVersion.RE2_DMC5)
-                {
-                    // RE2 and RE7
-                    return Compression switch
-                    {
-                        0x00000 => Vector3Decompression.LoadVector3sFull,
-                        0x20000 => Vector3Decompression.LoadVector3s5BitA,
-                        0x30000 => Vector3Decompression.LoadVector3s10BitA,
-                        0x40000 => Vector3Decompression.LoadVector3s10BitA,
-                        0x70000 => Vector3Decompression.LoadVector3s21BitA,
-                        0x31000 => Vector3Decompression.LoadVector3sXAxis,
-                        0x32000 => Vector3Decompression.LoadVector3sYAxis,
-                        0x33000 => Vector3Decompression.LoadVector3sZAxis,
-                        0x21000 => Vector3Decompression.LoadVector3sXAxis16Bit,
-                        0x22000 => Vector3Decompression.LoadVector3sYAxis16Bit,
-                        0x23000 => Vector3Decompression.LoadVector3sZAxis16Bit,
-                        0x34000 => Vector3Decompression.LoadScalesXYZ,
-                        0x24000 => Vector3Decompression.LoadVector3sXYZAxis16Bit, // dmc5 m06_200_pl0200_ev01.motlist.85
-                        _ => Vector3Decompression.UnknownType
-                    };
-                }
-                else
-                {
-                    // RE3+
-                    return Compression switch
-                    {
-                        0x00000 => Vector3Decompression.LoadVector3sFull,
-                        0x20000 => Vector3Decompression.LoadVector3s5BitB,
-                        0x30000 => Vector3Decompression.LoadVector3s5BitB,
-                        0x40000 => Vector3Decompression.LoadVector3s10BitB,
-                        0x80000 => Vector3Decompression.LoadVector3s21BitB,
-                        0x21000 => Vector3Decompression.LoadVector3sXAxis16Bit,
-                        0x22000 => Vector3Decompression.LoadVector3sYAxis16Bit,
-                        0x23000 => Vector3Decompression.LoadVector3sZAxis16Bit,
-                        0x24000 => Vector3Decompression.LoadVector3sXYZAxis16Bit,
-                        0x41000 => Vector3Decompression.LoadVector3sXAxis,
-                        0x42000 => Vector3Decompression.LoadVector3sYAxis,
-                        0x43000 => Vector3Decompression.LoadVector3sZAxis,
-                        0x44000 => Vector3Decompression.LoadVector3sXYZAxis,
-                        _ => Vector3Decompression.UnknownType
-                    };
-                }
-            }
+            get => MotVersion <= MotVersion.RE2_DMC5 ? TranslationDictDmc5.GetValueOrDefault(Compression) : TranslationDict.GetValueOrDefault(Compression);
+            set => Compression = (MotVersion <= MotVersion.RE2_DMC5 ? TranslationDictDmc5 : TranslationDict).FirstOrDefault(kv => kv.Value == value).Key;
         }
 
-        public QuaternionDecompression RotationDecompression
+        public QuaternionDecompression RotationCompressionType
         {
-            get
-            {
-                if (MotVersion == MotVersion.RE2_DMC5 || MotVersion == MotVersion.RE7)
-                {
-                    // RE2 and RE7
-                    return Compression switch
-                    {
-                        0x00000 => QuaternionDecompression.LoadQuaternionsFull,
-                        0xB0000 => QuaternionDecompression.LoadQuaternions3Component,
-                        0xC0000 => QuaternionDecompression.LoadQuaternions3Component,
-                        0x30000 => QuaternionDecompression.LoadQuaternions10Bit,
-                        0x40000 => QuaternionDecompression.LoadQuaternions10Bit,
-                        0x50000 => QuaternionDecompression.LoadQuaternions16Bit,
-                        0x70000 => QuaternionDecompression.LoadQuaternions21Bit,
-                        0x21000 => QuaternionDecompression.LoadQuaternionsXAxis16Bit,
-                        0x22000 => QuaternionDecompression.LoadQuaternionsYAxis16Bit,
-                        0x23000 => QuaternionDecompression.LoadQuaternionsZAxis16Bit,
-                        0x31000 => QuaternionDecompression.LoadQuaternionsXAxis,
-                        0x41000 => QuaternionDecompression.LoadQuaternionsXAxis,
-                        0x32000 => QuaternionDecompression.LoadQuaternionsYAxis,
-                        0x42000 => QuaternionDecompression.LoadQuaternionsYAxis,
-                        0x33000 => QuaternionDecompression.LoadQuaternionsZAxis,
-                        0x43000 => QuaternionDecompression.LoadQuaternionsZAxis,
-                        _ => QuaternionDecompression.UnknownType
-                    };
-                }
-                else
-                {
-                    // RE3+
-                    return Compression switch
-                    {
-                        0x00000 => QuaternionDecompression.LoadQuaternionsFull,
-                        0xB0000 => QuaternionDecompression.LoadQuaternions3Component,
-                        0xC0000 => QuaternionDecompression.LoadQuaternions3Component,
-                        0x20000 => QuaternionDecompression.LoadQuaternions5Bit,
-                        0x30000 => QuaternionDecompression.LoadQuaternions8Bit,
-                        0x40000 => QuaternionDecompression.LoadQuaternions10Bit,
-                        0x50000 => QuaternionDecompression.LoadQuaternions13Bit,
-                        0x60000 => QuaternionDecompression.LoadQuaternions16Bit,
-                        0x70000 => QuaternionDecompression.LoadQuaternions18Bit,
-                        0x80000 => QuaternionDecompression.LoadQuaternions21Bit,
-                        0x21000 => QuaternionDecompression.LoadQuaternionsXAxis16Bit,
-                        0x22000 => QuaternionDecompression.LoadQuaternionsYAxis16Bit,
-                        0x23000 => QuaternionDecompression.LoadQuaternionsZAxis16Bit,
-                        0x31000 => QuaternionDecompression.LoadQuaternionsXAxis,
-                        0x41000 => QuaternionDecompression.LoadQuaternionsXAxis,
-                        0x32000 => QuaternionDecompression.LoadQuaternionsYAxis,
-                        0x42000 => QuaternionDecompression.LoadQuaternionsYAxis,
-                        0x33000 => QuaternionDecompression.LoadQuaternionsZAxis,
-                        0x43000 => QuaternionDecompression.LoadQuaternionsZAxis,
-                        _ => QuaternionDecompression.UnknownType
-                    };
-                }
-            }
+            get => MotVersion <= MotVersion.RE2_DMC5 ? RotationDictDmc5.GetValueOrDefault(Compression) : RotationDict.GetValueOrDefault(Compression);
+            set => Compression = (MotVersion <= MotVersion.RE2_DMC5 ? RotationDictDmc5 : RotationDict).FirstOrDefault(kv => kv.Value == value).Key;
         }
 
         public bool RequiresUnpackData => TrackType == TrackFlag.Rotation
-            ? !(RotationDecompression is QuaternionDecompression.LoadQuaternionsFull or QuaternionDecompression.LoadQuaternions3Component or QuaternionDecompression.LoadQuaternionsXAxis or QuaternionDecompression.LoadQuaternionsYAxis or QuaternionDecompression.LoadQuaternionsZAxis)
-            : !(TranslationDecompression is Vector3Decompression.LoadVector3sFull or Vector3Decompression.LoadScalesXYZ or Vector3Decompression.LoadVector3sXYZAxis);
+            ? !(RotationCompressionType is QuaternionDecompression.LoadQuaternionsFull or QuaternionDecompression.LoadQuaternions3Component or QuaternionDecompression.LoadQuaternionsXAxis or QuaternionDecompression.LoadQuaternionsYAxis or QuaternionDecompression.LoadQuaternionsZAxis)
+            : !(TranslationCompressionType is Vector3Decompression.LoadVector3sFull or Vector3Decompression.LoadScalesXYZ or Vector3Decompression.LoadVector3sXYZAxis);
 
         public void ReadFrameDataTranslation(FileHandler handler)
         {
             using var defer = handler.SeekJumpBack(frameDataOffset);
-            Vector3Decompression type = TranslationDecompression;
+            Vector3Decompression type = TranslationCompressionType;
             translations = new Vector3[keyCount];
             for (int i = 0; i < keyCount; i++)
             {
@@ -712,7 +690,7 @@ namespace ReeLib.Mot
         public void WriteFrameDataTranslation(FileHandler handler)
         {
             if (translations == null) throw new NullReferenceException($"{nameof(translations)} is null");
-            Vector3Decompression type = TranslationDecompression;
+            Vector3Decompression type = TranslationCompressionType;
             for (int i = 0; i < keyCount; i++)
             {
                 Vector3 translation = translations[i];
@@ -832,7 +810,7 @@ namespace ReeLib.Mot
         public void ReadFrameDataRotation(FileHandler handler)
         {
             using var defer = handler.SeekJumpBack(frameDataOffset);
-            QuaternionDecompression type = RotationDecompression;
+            QuaternionDecompression type = RotationCompressionType;
             rotations = new Quaternion[keyCount];
             for (int i = 0; i < keyCount; i++)
             {
@@ -957,7 +935,7 @@ namespace ReeLib.Mot
         public void WriteFrameDataRotation(FileHandler handler)
         {
             if (rotations == null) throw new NullReferenceException($"{nameof(rotations)} is null");
-            QuaternionDecompression type = RotationDecompression;
+            QuaternionDecompression type = RotationCompressionType;
             for (int i = 0; i < keyCount; i++)
             {
                 Quaternion quaternion = rotations[i];

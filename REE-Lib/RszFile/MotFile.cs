@@ -36,7 +36,6 @@ namespace ReeLib.Mot
         public long boneClipHeaderOffset; // BoneDataPointer
 
         public long clipFileOffset;
-        public long jmapOffset;
         public long motEndClipDataOffset;
 
         // public long namesOffset;
@@ -66,17 +65,19 @@ namespace ReeLib.Mot
                  ?.Then(ref boneHeaderOffsetStart)
                  ?.Then(ref boneClipHeaderOffset)
                  ?.Skip(8);
+            jointMapPath ??= "";
             if (version >= MotVersion.MHR_DEMO)
             {
                 action.Skip(8)
                      ?.Then(ref clipFileOffset)
-                     ?.Then(ref jmapOffset)
+                     ?.HandleOffsetWString(ref jointMapPath)
                      ?.Then(ref motEndClipDataOffset)
                      ?.Skip(16);
             }
             else
             {
-                action.Then(ref jmapOffset)
+                // NOTE: we're not writing the jmap path back at the same relative offset as the engine does, hopefully not an issue
+                action.HandleOffsetWString(ref jointMapPath)
                      ?.Then(ref clipFileOffset)
                      ?.Skip(16)
                      ?.Then(ref motEndClipDataOffset);
@@ -1405,16 +1406,6 @@ namespace ReeLib
                 }
             }
 
-            if (!IsMotlist)
-            {
-                ReadBones(null);
-            }
-
-            if (header.jmapOffset > 0)
-            {
-                header.jointMapPath = handler.ReadWString(header.jmapOffset);
-            }
-
             if (header.clipFileOffset > 0 && header.clipCount > 0)
             {
                 handler.Seek(header.clipFileOffset);
@@ -1440,13 +1431,18 @@ namespace ReeLib
                     }
                 }
             }
+
+            if (!IsMotlist)
+            {
+                ReadBones(null);
+            }
+
             return true;
         }
 
         protected override bool DoWrite()
         {
             FileHandler handler = FileHandler;
-            var isFirstEntry = handler.Stream.Position < 200;
             var header = Header;
             header.Write(handler);
             // we'll be re-writing the header's string table at the end again, remove it for now
@@ -1504,9 +1500,7 @@ namespace ReeLib
             header.boneHeaderOffsetStart = handler.Tell();
             handler.Write(header.BoneHeaderOffsetStartOffset, header.boneHeaderOffsetStart);
 
-            // "we only need one bone list header per motlist even if some mots use different bones" - capcom dev, apparently
-            var skipBoneList = IsMotlist && !isFirstEntry && header.version >= MotVersion.RE3;
-            if (!skipBoneList)
+            if (!IsMotlist)
             {
                 if (BoneHeaders == null) throw new Exception("Missing bone headers for MOT");
 

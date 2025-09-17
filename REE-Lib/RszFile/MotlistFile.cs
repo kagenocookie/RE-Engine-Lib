@@ -233,10 +233,25 @@ namespace ReeLib
             var motFileDict = new Dictionary<MotFileBase, long>();
             foreach (var mot in MotFiles)
             {
+                var isFirst = motFileDict.Count == 0;
                 var motOffset = handler.Tell();
                 motFileDict[mot] = motOffset;
                 mot.FileHandler = handler.WithOffset(motOffset);
                 mot.Write();
+                // "we only need one bone list header per motlist even if some mots use different bones" - capcom dev, apparently
+                var skipBoneList = !isFirst && header.Version >= MotlistVersion.RE3;
+                if (mot is MotFile motFile)
+                {
+                    if (!skipBoneList)
+                    {
+                        motFile.WriteBones();
+                    }
+                    else
+                    {
+                        motFile.Header.motSize = (uint)mot.Size;
+                        motFile.FileHandler.Write(12, motFile.Header.motSize);
+                    }
+                }
             }
 
             handler.Write(24, header.motionIndicesOffset = handler.Tell());
@@ -269,6 +284,8 @@ namespace ReeLib
                 if (motIndex.MotClip != null)
                 {
                     motIndex.motClipOffset = handler.Tell();
+                    handler.Write(handler.Tell() + 16);
+                    handler.Skip(8);
                     motIndex.MotClip.Write(handler);
                     handler.Write(motIndex.Start, motIndex.motClipOffset);
                 }

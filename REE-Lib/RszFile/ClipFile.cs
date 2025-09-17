@@ -294,7 +294,10 @@ namespace ReeLib.Clip
             handler.Seek(Start + 16);
             if (PropertyType == PropertyType.Unknown)
             {
-                handler.Write((long)Value);
+                if (Value != null)
+                {
+                    handler.Write((long)Value);
+                }
             }
             else switch (PropertyType)
             {
@@ -355,7 +358,7 @@ namespace ReeLib.Clip
             }
         }
 
-        public override string ToString() => $"[{frame}]: {Value}";
+        public override string ToString() => $"[{frame}]: {PropertyType} {Value}";
     }
 
 
@@ -498,7 +501,7 @@ namespace ReeLib.Clip
             Info = new(version);
         }
 
-        public bool IsProertyContainer
+        public bool IsPropertyContainer
         {
             get
             {
@@ -530,7 +533,7 @@ namespace ReeLib.Clip
             }
         }
 
-        public override string ToString() => $"{Info.FunctionName} [{Info.startFrame}-{Info.endFrame}]";
+        public override string ToString() => $"{Info.FunctionName} {Info.DataType} [{Info.startFrame}-{Info.endFrame}]";
     }
 
 
@@ -789,6 +792,8 @@ namespace ReeLib.Clip
 
         public ClipVersion Version;
 
+        public bool HasTwoLists => Version > ClipVersion.RE4;
+
         protected override bool DoRead(FileHandler handler)
         {
             // TODO figure out why there's two sets of property infos
@@ -797,8 +802,7 @@ namespace ReeLib.Clip
             var count1 = handler.ReadInt();
             var count2 = handler.ReadInt(); // for versions with a single prop list, this is just padding
             var offset1 = handler.Read<long>();
-            // TODO find correct version
-            var offset2 = Version > ClipVersion.RE4 ? handler.Read<long>() : 0;
+            var offset2 = HasTwoLists ? handler.Read<long>() : 0;
             handler.Seek(offset1);
             Props1.Read(handler, count1);
             if (offset2 > 0) {
@@ -837,7 +841,65 @@ namespace ReeLib.Clip
 
         protected override bool DoWrite(FileHandler handler)
         {
-            throw new NotImplementedException();
+            handler.Align(16);
+            handler.Write(Props1.Count);
+            handler.Write(Props2.Count);
+            long offset1;
+            if (HasTwoLists)
+            {
+                handler.Write(offset1 = handler.Tell() + 16);
+                handler.Write(handler.Tell() + 8 + Props1.Count * 16);
+            }
+            else
+            {
+                handler.Write(offset1 = handler.Tell() + 8);
+            }
+            handler.Skip((Props1.Count + Props2.Count) * 16);
+
+            foreach (var prop in Props1)
+            {
+                prop.valueOffset = handler.Tell();
+                prop.count = (short)prop.values.Count;
+                foreach (var frame in prop.values)
+                {
+                    if (frame.frame == -1)
+                    {
+                        handler.Write(-1);
+                    }
+                    else
+                    {
+                        handler.Write(frame.frame);
+                    }
+                    handler.Write(frame.value);
+                }
+            }
+
+            foreach (var prop in Props2)
+            {
+                prop.valueOffset = handler.Tell();
+                prop.count = (short)prop.values.Count;
+                foreach (var frame in prop.values)
+                {
+                    if (frame.frame == -1)
+                    {
+                        handler.Write(-1);
+                    }
+                    else
+                    {
+                        handler.Write(frame.frame);
+                    }
+                    handler.Write(frame.value);
+                }
+            }
+
+            var endOffset = handler.Tell();
+
+            handler.Seek(offset1);
+            Props1.Write(handler);
+            Props2.Write(handler);
+
+            handler.Seek(endOffset);
+            return true;
         }
 
         public override string ToString() => $"[Props: {Props1.Count} + {Props2.Count}]";
@@ -929,7 +991,7 @@ namespace ReeLib.Clip
             foreach (var property in Properties)
             {
                 if (property.Info.ChildMembershipCount == 0) continue;
-                if (property.IsProertyContainer)
+                if (property.IsPropertyContainer)
                 {
                     property.ChildProperties ??= new();
                     for (long i = property.Info.ChildStartIndex; i < property.Info.ChildMembershipCount; i++)

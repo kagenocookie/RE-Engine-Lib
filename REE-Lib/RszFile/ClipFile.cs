@@ -630,7 +630,7 @@ namespace ReeLib.Clip
     /// </summary>
     public class ClipHeader : BaseModel
     {
-        public uint magic;
+        public uint magic = ClipEntry.Magic;
         public ClipVersion version;
         public float numFrames;
         public int numNodes;

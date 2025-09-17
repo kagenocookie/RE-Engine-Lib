@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using System.Numerics;
+using System.Reflection.Metadata;
 using ReeLib.Clip;
 using ReeLib.Common;
 using ReeLib.InternalAttributes;
@@ -20,6 +22,7 @@ namespace ReeLib.Mot
         SF6 = 603,
         RE4 = 613,
         DD2 = 698,
+        MHWILDS = 932,
     }
 
 
@@ -38,7 +41,7 @@ namespace ReeLib.Mot
 
         // public long namesOffset;
         public float frameCount;
-        public float blending; // Set to 0 to enable repeating
+        public float blending = -1; // Set to 0 to enable repeating
         public float startFrame;
         public float endFrame;
         public ushort boneCount;
@@ -129,45 +132,6 @@ namespace ReeLib.Mot
         public override string ToString() => $"[{Index}] {boneName}";
     }
 
-
-    // public class BoneHeaders : BaseModel
-    // {
-    //     public long boneHeaderOffset;
-    //     public long boneHeaderCount;
-
-    //     public List<BoneHeader> Headers { get; } = new();
-
-    //     protected override bool DoRead(FileHandler handler)
-    //     {
-    //         handler.Read(ref boneHeaderOffset);
-    //         handler.Read(ref boneHeaderCount);
-
-    //         if (boneHeaderCount > 1000) throw new InvalidDataException($"boneHeaderCount {boneHeaderCount} > 1000");
-    //         Headers.Clear();
-    //         for (int i = 0; i < boneHeaderCount; i++)
-    //         {
-    //             BoneHeader boneHeader = new();
-    //             boneHeader.Read(handler);
-    //             Headers.Add(boneHeader);
-    //         }
-    //         return true;
-    //     }
-
-    //     protected override bool DoWrite(FileHandler handler)
-    //     {
-    //         boneHeaderCount = Headers.Count;
-    //         handler.Write(ref boneHeaderOffset);
-    //         handler.Write(ref boneHeaderCount);
-    //         foreach (var header in Headers)
-    //         {
-    //             header.Write(handler);
-    //         }
-    //         handler.StringTableFlush();
-    //         return true;
-    //     }
-    // }
-
-
     [Flags]
     public enum TrackFlag : ushort
     {
@@ -183,7 +147,6 @@ namespace ReeLib.Mot
         public TrackFlag trackFlags;
         public uint boneHash;  // MurMur3
         public float uknFloat;  // always 1.0?
-        public uint padding;
         public long trackHeaderOffset; // keysPointer
         public string? boneName;
 
@@ -194,6 +157,8 @@ namespace ReeLib.Mot
             MotVersion = motVersion;
         }
 
+        public override BoneClipHeader Clone() => (BoneClipHeader)base.Clone();
+
         protected override bool DoRead(FileHandler handler)
         {
             handler.Read(ref boneIndex);
@@ -202,36 +167,42 @@ namespace ReeLib.Mot
             if (MotVersion == MotVersion.RE2_DMC5)
             {
                 handler.Read(ref uknFloat);
-                handler.Read(ref padding);
+                DataInterpretationException.ThrowIfNotZero(handler.Read<int>()); // padding
+            }
+
+            if (MotVersion <= MotVersion.RE2_DMC5)
+            {
                 handler.Read(ref trackHeaderOffset);
             }
             else
             {
-                if (MotVersion == MotVersion.RE7)
-                    handler.Read(ref trackHeaderOffset);
-                else
-                    trackHeaderOffset = handler.ReadUInt();
+                trackHeaderOffset = handler.ReadUInt();
             }
+
             return true;
         }
 
         protected override bool DoWrite(FileHandler handler)
         {
             if (!string.IsNullOrEmpty(boneName)) boneHash = MurMur3HashUtils.GetHash(boneName);
+            handler.Write(ref boneIndex);
+            handler.Write(ref trackFlags);
+            handler.Write(ref boneHash);
             if (MotVersion == MotVersion.RE2_DMC5)
             {
-                handler.WriteRange(ref boneIndex, ref trackHeaderOffset);
+                handler.Write(ref uknFloat);
+                handler.Skip(4);
+            }
+
+            if (MotVersion <= MotVersion.RE2_DMC5)
+            {
+                handler.Write(ref trackHeaderOffset);
             }
             else
             {
-                handler.Write(ref boneIndex);
-                handler.Write(ref trackFlags);
-                handler.Write(ref boneHash);
-                if (MotVersion == MotVersion.RE7)
-                    handler.Write(ref trackHeaderOffset);
-                else
-                    handler.WriteUInt((uint)trackHeaderOffset);
+                handler.Write((uint)trackHeaderOffset);
             }
+
             return true;
         }
 
@@ -311,7 +282,7 @@ namespace ReeLib.Mot
         public long frameDataOffset;
         public long unpackDataOffset;
 
-        public int[]? frameIndexs;
+        public int[]? frameIndexes;
         private readonly float[] unpackData = new float[8];
 
         /// <summary>
@@ -323,12 +294,17 @@ namespace ReeLib.Mot
         private long offsetStart;
 
         public MotVersion MotVersion { get; set; }
-        public TrackFlag TrackFlag { get; set; }
+        public TrackFlag TrackType { get; }
 
         public Track(MotVersion motVersion, TrackFlag trackFlag)
         {
             MotVersion = motVersion;
-            TrackFlag = trackFlag;
+            TrackType = trackFlag;
+            if (trackFlag == TrackFlag.Rotation) {
+                rotations = [];
+            } else {
+                translations = [];
+            }
         }
 
         public byte FrameIndexType
@@ -371,21 +347,21 @@ namespace ReeLib.Mot
             if (frameIndexOffset > 0)
             {
                 using var frameIndexSeek = handler.SeekJumpBack(frameIndexOffset);
-                frameIndexs = new int[keyCount];
+                frameIndexes = new int[keyCount];
                 handler.Seek(frameIndexOffset);
                 switch (FrameIndexType)
                 {
                     case 2:
-                        for (int i = 0; i < keyCount; i++) frameIndexs[i] = handler.ReadByte();
+                        for (int i = 0; i < keyCount; i++) frameIndexes[i] = handler.ReadByte();
                         break;
                     case 4:
-                        for (int i = 0; i < keyCount; i++) frameIndexs[i] = handler.ReadShort();
+                        for (int i = 0; i < keyCount; i++) frameIndexes[i] = handler.ReadShort();
                         break;
                     case 5:
-                        for (int i = 0; i < keyCount; i++) frameIndexs[i] = handler.ReadInt();
+                        for (int i = 0; i < keyCount; i++) frameIndexes[i] = handler.ReadInt();
                         break;
                     default:
-                        throw new InvalidDataException($"Unknown track compression type {FrameIndexType}");
+                        throw new InvalidDataException($"Unknown frame index type {FrameIndexType}");
                 }
             }
             if (unpackDataOffset > 0)
@@ -419,21 +395,21 @@ namespace ReeLib.Mot
             if (frameIndexOffset > 0)
             {
                 using var frameIndexSeek = handler.SeekJumpBack(frameIndexOffset);
-                frameIndexs = new int[keyCount];
+                frameIndexes = new int[keyCount];
                 handler.Seek(frameIndexOffset);
                 switch (FrameIndexType)
                 {
                     case 2:
-                        for (int i = 0; i < keyCount; i++) frameIndexs[i] = handler.ReadByte();
+                        for (int i = 0; i < keyCount; i++) frameIndexes[i] = handler.ReadByte();
                         break;
                     case 4:
-                        for (int i = 0; i < keyCount; i++) frameIndexs[i] = handler.ReadShort();
+                        for (int i = 0; i < keyCount; i++) frameIndexes[i] = handler.ReadShort();
                         break;
                     case 5:
-                        for (int i = 0; i < keyCount; i++) frameIndexs[i] = handler.ReadInt();
+                        for (int i = 0; i < keyCount; i++) frameIndexes[i] = handler.ReadInt();
                         break;
                     default:
-                        throw new InvalidDataException($"Unknown track compression type {FrameIndexType}");
+                        throw new InvalidDataException($"Unknown frame index type {FrameIndexType}");
                 }
             }
             if (unpackDataOffset > 0)
@@ -447,39 +423,52 @@ namespace ReeLib.Mot
         public void WriteOffsetContents(FileHandler handler)
         {
             // FrameIndex
-            if (frameIndexs == null) return;
-            handler.WriteInt64(offsetStart, handler.Tell());
-            switch (FrameIndexType)
+            if (frameIndexes == null)
             {
-                case 2:
-                    for (int i = 0; i < keyCount; i++) handler.WriteByte((byte)frameIndexs[i]);
-                    break;
-                case 4:
-                    for (int i = 0; i < keyCount; i++) handler.WriteShort((short)frameIndexs[i]);
-                    break;
-                case 5:
-                    for (int i = 0; i < keyCount; i++) handler.WriteInt(frameIndexs[i]);
-                    break;
-                default:
-                    throw new InvalidDataException($"Unknown track compression type {FrameIndexType}");
+                handler.WriteInt64(offsetStart, frameIndexOffset = 0);
+            }
+            else
+            {
+                handler.WriteInt64(offsetStart, frameIndexOffset = handler.Tell());
+                switch (FrameIndexType)
+                {
+                    case 2:
+                        for (int i = 0; i < keyCount; i++) handler.WriteByte((byte)frameIndexes[i]);
+                        break;
+                    case 4:
+                        for (int i = 0; i < keyCount; i++) handler.WriteShort((short)frameIndexes[i]);
+                        break;
+                    case 5:
+                        for (int i = 0; i < keyCount; i++) handler.WriteInt(frameIndexes[i]);
+                        break;
+                    default:
+                        throw new InvalidDataException($"Unknown frame index type {FrameIndexType}");
+                }
             }
 
-            // FrameData
-            handler.WriteInt64(offsetStart + 8, handler.Tell());
-            if (TrackFlag == TrackFlag.Translation || TrackFlag == TrackFlag.Scale)
+            // handle frame data
+            // NOTE: even "empty" tracks always have at least one frame data item, but if there's multiple such tracks, they all reuse the same block of zeroes
+            // we aren't doing that, so our output isn't 100% identical to native files, but I think it shouldn't be an issue
+            handler.Align(4);
+            handler.WriteInt64(offsetStart + 8, frameDataOffset = handler.Tell());
+            if (TrackType == TrackFlag.Translation || TrackType == TrackFlag.Scale)
             {
                 WriteFrameDataTranslation(handler);
             }
-            else if (TrackFlag == TrackFlag.Rotation)
+            else if (TrackType == TrackFlag.Rotation)
             {
                 WriteFrameDataRotation(handler);
             }
 
-            // UnpackData
-            if (unpackData != null)
+            if (RequiresUnpackData)
             {
-                handler.WriteInt64(offsetStart + 16, handler.Tell());
+                handler.Align(4);
+                handler.WriteInt64(offsetStart + 16, unpackDataOffset = handler.Tell());
                 handler.WriteArray(unpackData);
+            }
+            else
+            {
+                handler.WriteInt64(offsetStart + 16, unpackDataOffset = 0);
             }
         }
 
@@ -487,7 +476,7 @@ namespace ReeLib.Mot
         {
             get
             {
-                if (MotVersion == MotVersion.RE2_DMC5 || MotVersion == MotVersion.RE7)
+                if (MotVersion <= MotVersion.RE2_DMC5)
                 {
                     // RE2 and RE7
                     return Compression switch
@@ -590,10 +579,13 @@ namespace ReeLib.Mot
             }
         }
 
+        public bool RequiresUnpackData => TrackType == TrackFlag.Rotation
+            ? !(RotationDecompression is QuaternionDecompression.LoadQuaternionsFull or QuaternionDecompression.LoadQuaternions3Component or QuaternionDecompression.LoadQuaternionsXAxis or QuaternionDecompression.LoadQuaternionsYAxis or QuaternionDecompression.LoadQuaternionsZAxis)
+            : !(TranslationDecompression is Vector3Decompression.LoadVector3sFull or Vector3Decompression.LoadScalesXYZ or Vector3Decompression.LoadVector3sXYZAxis);
+
         public void ReadFrameDataTranslation(FileHandler handler)
         {
             using var defer = handler.SeekJumpBack(frameDataOffset);
-            // Vector3Decompression type = TrackFlag == TrackFlag.Translation ? TranslationDecompression : ScaleDecompression;
             Vector3Decompression type = TranslationDecompression;
             translations = new Vector3[keyCount];
             for (int i = 0; i < keyCount; i++)
@@ -1091,6 +1083,8 @@ namespace ReeLib.Mot
             float w = 1.0f - (quaternion.X * quaternion.X + quaternion.Y * quaternion.Y + quaternion.Z * quaternion.Z);
             quaternion.W = w > 0.0f ? (float)Math.Sqrt(w) : 0.0f;
         }
+
+        public override string ToString() => $"{TrackType} Track ({translations?.Length ?? rotations?.Length ?? -1})";
     }
 
 
@@ -1098,14 +1092,14 @@ namespace ReeLib.Mot
     {
         public BoneClipHeader ClipHeader { get; }
 
+        public Track? Translation { get; set; }
+        public Track? Rotation { get; set; }
+        public Track? Scale { get; set; }
+
         public BoneMotionClip(BoneClipHeader clipHeader)
         {
             ClipHeader = clipHeader;
         }
-
-        public Track? Translation { get; set; }
-        public Track? Rotation { get; set; }
-        public Track? Scale { get; set; }
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -1251,8 +1245,8 @@ namespace ReeLib.Mot
             {
                 handler.Read(ref count1);
                 handler.Read(ref type1);
-                endFlags1 = handler.Read<byte>();
-                endFlags2 = handler.Read<byte>();
+                handler.Read(ref endFlags1);
+                handler.Read(ref endFlags2);
 
                 // 4 2 0 count => 8 or 9 (ch20_000_comem.motlist.751 mot 300)
                 // 1 5 0 count => 6 (ch53_000_low_com.motlist.751)
@@ -1310,6 +1304,13 @@ namespace ReeLib.Mot
             handler.Write(ref unknown);
             if (Version > MotVersion.MHR_DEMO)
             {
+                handler.Write(ref count1);
+                handler.Write(ref type1);
+                handler.Write(ref endFlags1);
+                handler.Write(ref endFlags2);
+
+                if (frameValues1 != null) handler.WriteArray<float>(frameValues1);
+                if (frameValues2 != null) handler.WriteArray<float>(frameValues2);
             }
             else
             {
@@ -1442,10 +1443,122 @@ namespace ReeLib
             return true;
         }
 
+        protected override bool DoWrite()
+        {
+            FileHandler handler = FileHandler;
+            var isFirstEntry = handler.Stream.Position < 200;
+            var header = Header;
+            header.Write(handler);
+            // we'll be re-writing the header's string table at the end again, remove it for now
+            handler.StringTable?.Clear();
+            handler.Align(16);
+
+            foreach (var clip in BoneClips)
+            {
+                clip.ClipHeader.Write(handler);
+            }
+
+            foreach (var clip in BoneClips)
+            {
+                clip.ClipHeader.trackHeaderOffset = handler.Tell();
+                clip.Write(handler);
+            }
+
+            foreach (var clip in BoneClips)
+            {
+                clip.WriteOffsetContents(handler);
+            }
+
+            header.clipCount = (byte)Clips.Count;
+            if (Clips.Count > 0)
+            {
+                header.clipFileOffset = handler.Tell();
+                handler.Skip(header.clipCount * sizeof(long));
+                for (int i = 0; i < Clips.Count; i++)
+                {
+                    var clip = Clips[i];
+                    handler.Write(header.clipFileOffset + i * sizeof(long), handler.Tell());
+                    clip.Write(handler);
+                }
+
+                // end clips nested within clip count check to mirror read procedure
+                if (EndClips.Count > 0)
+                {
+                    header.motEndClipDataOffset = handler.Tell();
+                    header.motEndClipCount = (byte)EndClips.Count;
+
+                    if (header.version > MotVersion.MHR_DEMO)
+                    {
+                        WriteMotEndClipsModern();
+                    }
+                    else
+                    {
+                        throw new NotImplementedException("Legacy mot endclips not supported for writing");
+                    }
+                }
+            }
+
+            header.Write(handler, 0);
+            handler.StringTableFlush();
+            handler.Align(16);
+            header.boneHeaderOffsetStart = handler.Tell();
+            handler.Write(header.BoneHeaderOffsetStartOffset, header.boneHeaderOffsetStart);
+
+            // "we only need one bone list header per motlist even if some mots use different bones" - capcom dev, apparently
+            var skipBoneList = IsMotlist && !isFirstEntry && header.version >= MotVersion.RE3;
+            if (!skipBoneList)
+            {
+                if (BoneHeaders == null) throw new Exception("Missing bone headers for MOT");
+
+                WriteBones();
+            }
+
+            return true;
+        }
+
+        public void AddBone(MotBone bone)
+        {
+            Bones.Add(bone);
+            if (bone.Parent == null) {
+                RootBones.Add(bone);
+            } else {
+                bone.Parent.Children.Add(bone);
+            }
+            BoneHeaders ??= new();
+            BoneHeaders.Add(bone.Header);
+        }
+
+        public void RemoveBone(MotBone bone)
+        {
+            Bones.Remove(bone);
+            if (bone.Parent == null) {
+                RootBones.Remove(bone);
+            } else {
+                bone.Parent.Children.Remove(bone);
+            }
+            BoneHeaders?.Remove(bone.Header);
+        }
+
+        public void CopyBones(MotFile source)
+        {
+            if (source.Bones.Count > 0) {
+                Bones.AddRange(source.Bones);
+                RootBones.AddRange(source.RootBones);
+            }
+            if (source.BoneClips.Count > 0) {
+                foreach (var src in source.BoneClips) {
+                    var clip = new BoneMotionClip(src.ClipHeader.Clone());
+                    clip.ClipHeader.trackFlags = TrackFlag.None;
+                    BoneClips.Add(clip);
+                }
+            }
+        }
+
+#region Read helpers
         private void ReadMotEndClipsLegacy()
         {
-
         }
+
         private void ReadMotEndClipsModern()
         {
             var handler = FileHandler;
@@ -1469,6 +1582,29 @@ namespace ReeLib
                 var endClip = new MotEndClip(endClipHeaders[i]);
                 endClip.Read(handler);
                 EndClips.Add(endClip);
+            }
+        }
+
+        private void WriteMotEndClipsModern()
+        {
+            var handler = FileHandler;
+            var offsetsStart = handler.Tell();
+            handler.Skip(EndClips.Count * sizeof(long));
+            for (int i = 0; i < EndClips.Count; ++i)
+            {
+                handler.Write(offsetsStart, handler.Tell());
+                offsetsStart += sizeof(long);
+                EndClips[i].Header.Write(handler);
+            }
+            handler.Align(8);
+
+            offsetsStart = handler.Tell();
+            handler.Skip(EndClips.Count * sizeof(long));
+            for (int i = 0; i < EndClips.Count; ++i)
+            {
+                handler.Write(offsetsStart, handler.Tell());
+                offsetsStart += sizeof(long);
+                EndClips[i].Write(handler);
             }
         }
 
@@ -1541,67 +1677,50 @@ namespace ReeLib
             }
         }
 
-        protected override bool DoWrite()
+        public void WriteBones()
         {
-            FileHandler handler = FileHandler;
-            handler.Clear();
+            if (BoneHeaders == null)
+            {
+                throw new Exception("Bone headers missing");
+            }
+
             var header = Header;
-            header.Write(handler);
-            handler.StringTable?.Clear(); // we'll be re-writing the header's string table at the end
+            var handler = FileHandler;
             handler.Align(16);
+            header.boneHeaderOffsetStart = handler.Tell();
+            handler.Write(header.boneHeaderOffsetStart + sizeof(long) * 2);
+            handler.Write((long)BoneHeaders.Count);
 
-            var isFirstEntry = handler.Stream.Position < 200;
-            // "we only need one bone list header per motlist even if some mots use different bones" - capcom dev, apparently
-            var skipBoneList = IsMotlist && !isFirstEntry && header.version >= MotVersion.RE3;
-            if (!skipBoneList)
+            // rebuild Bone headers in case anything changed and to ensure correct offsets
+            var sortedBones = Bones.OrderBy(b => b.Index).ToList();
+            DataInterpretationException.ThrowIf(sortedBones.Last().Index != sortedBones.Count - 1, "Detected skips in bone indices, this probably shouldn't happen!");
+            Debug.Assert(sortedBones.Count == Bones.Count);
+
+            BoneHeaders.Sort(new FuncComparer<BoneHeader>((a, b) => a.Index.CompareTo(b.Index)));
+            var firstBoneOffset = handler.Tell();
+            foreach (var bone in Bones)
             {
-                if (BoneHeaders == null) throw new Exception("Missing bone headers for MOT");
-
-                header.boneHeaderOffsetStart = handler.Tell();
-                handler.Write(header.boneHeaderOffsetStart + 16);
-                handler.Write((long)BoneHeaders.Count);
-                foreach (var bone in BoneHeaders)
-                {
-                    bone.Write(handler);
-                }
-                handler.StringTableFlush();
-            }
-
-            foreach (var clip in BoneClips)
-            {
-                clip.ClipHeader.Write(handler);
-            }
-
-            foreach (var clip in BoneClips)
-            {
-                clip.ClipHeader.trackHeaderOffset = handler.Tell();
-                clip.Write(handler);
-            }
-
-            header.clipCount = (byte)Clips.Count;
-            if (Clips.Count > 0)
-            {
-                header.clipFileOffset = handler.Tell();
-                handler.Skip(header.clipCount * sizeof(long));
-                for (int i = 0; i < Clips.Count; i++)
-                {
-                    var clip = Clips[i];
-                    handler.Write(header.clipFileOffset + i * sizeof(long), handler.Tell());
-                    clip.Write(handler);
+                bone.Header.parentOffs = bone.Parent == null ? 0 : firstBoneOffset + bone.Parent.Index * BoneHeader.StructSize;
+                var sibling = GetNextSiblingIndex(bone.Parent?.Children ?? RootBones, bone);
+                bone.Header.nextSiblingOffs = sibling == -1 ? 0 : firstBoneOffset + Bones[sibling].Index * BoneHeader.StructSize;
+                bone.Header.childOffs = bone.Children.Count == 0 ? 0 : firstBoneOffset + bone.Children[0].Index * BoneHeader.StructSize;
+                if (!string.IsNullOrEmpty(bone.Header.boneName)) {
+                    bone.Header.boneHash = MurMur3HashUtils.GetHash(bone.Header.boneName);
                 }
             }
 
-            Header.Write(handler, 0);
+            BoneHeaders.Write(handler);
             handler.StringTableFlush();
             handler.Align(16);
-            if (skipBoneList)
-            {
-                Header.boneHeaderOffsetStart = handler.Tell();
-                handler.Write(header.BoneHeaderOffsetStartOffset, Header.boneHeaderOffsetStart);
-            }
-
-            return true;
         }
+
+        private static int GetNextSiblingIndex<T>(List<T> list, T value, int defaultValue = -1)
+        {
+            var index = list.IndexOf(value);
+            if (index == -1 || index == list.Count - 1) return defaultValue;
+            return index + 1;
+        }
+#endregion
 
         public override string ToString() => $"{Header.motName}";
     }

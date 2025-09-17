@@ -18,8 +18,26 @@ namespace ReeLib.Motlist
         SF6 = 653,
         RE4 = 663,
         DD2 = 751,
+        MHWILDS = 992,
     }
 
+    public static class MotlistExtensions
+    {
+        public static MotVersion GetMotVersion(this MotlistVersion motlist) => motlist switch {
+            MotlistVersion.RE7 => MotVersion.RE7,
+            MotlistVersion.RE2_DMC5 => MotVersion.RE2_DMC5,
+            MotlistVersion.RE3 => MotVersion.RE3,
+            MotlistVersion.MHR_DEMO => MotVersion.MHR_DEMO,
+            MotlistVersion.RE8 => MotVersion.RE8,
+            MotlistVersion.RE2_RT => MotVersion.RE2_RT,
+            MotlistVersion.MHR => MotVersion.MHR,
+            MotlistVersion.SF6 => MotVersion.SF6,
+            MotlistVersion.RE4 => MotVersion.RE4,
+            MotlistVersion.DD2 => MotVersion.DD2,
+            MotlistVersion.MHWILDS => MotVersion.MHWILDS,
+            _ => MotVersion.MHWILDS,
+        };
+    }
 
     public class Header : BaseModel
     {
@@ -67,6 +85,7 @@ namespace ReeLib.Motlist
                 handler.Write(ref UnkPadding);
             }
             handler.Write(ref numMots);
+            handler.StringTableFlush();
             return true;
         }
     }
@@ -105,7 +124,7 @@ namespace ReeLib.Motlist
 
         protected override bool DoWrite(FileHandler handler)
         {
-            handler.Write(ref motClipOffset);
+            if (Version > MotlistVersion.RE7) handler.Write(ref motClipOffset);
             handler.Write(ref motNumber);
             handler.Write(ref Switch);
             if (data != null) {
@@ -205,6 +224,7 @@ namespace ReeLib
             var handler = FileHandler;
             var header = Header;
             header.Write(handler);
+            handler.Align(16);
             header.pointersOffset = handler.Tell();
             header.numMots = Motions.Count;
             handler.Skip(header.numMots * sizeof(long));
@@ -219,12 +239,14 @@ namespace ReeLib
                 mot.Write();
             }
 
+            handler.Write(24, header.motionIndicesOffset = handler.Tell());
             for (int i = 0; i < Motions.Count; i++)
             {
                 var motion = Motions[i];
                 if (motion.MotFile == null)
                 {
                     handler.Write(header.pointersOffset + i * sizeof(long), 0L);
+                    motion.Write(handler);
                     continue;
                 }
 
@@ -252,7 +274,7 @@ namespace ReeLib
                 }
             }
 
-            return false;
+            return true;
         }
     }
 }

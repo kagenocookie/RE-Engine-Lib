@@ -199,4 +199,16 @@ namespace ReeLib.Common
             return clone;
         }
     }
+
+    public class FuncComparer<T>(Func<T, T, int> func) : IComparer<T>
+    {
+        public int Compare(T? x, T? y)
+        {
+            if (x == null)
+            {
+                return y == null ? 0 : -1;
+            }
+            return y == null ? 1 : func(x, y);
+        }
+    }
 }

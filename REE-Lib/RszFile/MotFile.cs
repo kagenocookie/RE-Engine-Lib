@@ -239,6 +239,20 @@ namespace ReeLib.Mot
         Int = 5,
     }
 
+    // not sure if it's a flag or just a random arbitrary value, but the value is consistent per track value type across all games.
+    public enum TrackValueType
+    {
+        /// <summary>
+        /// Translation/scale tracks (0000 11110010)
+        /// </summary>
+        Vector3 = 242,
+
+        /// <summary>
+        /// Rotation tracks (0001 00010010)
+        /// </summary>
+        Quaternion = 274,
+    }
+
     public enum QuaternionDecompression
     {
         UnknownType,
@@ -295,13 +309,13 @@ namespace ReeLib.Mot
         private long _offsetStart;
 
         public MotVersion MotVersion { get; set; }
-        public TrackFlag TrackType { get; }
 
-        public Track(MotVersion motVersion, TrackFlag trackFlag)
+        public Track(MotVersion motVersion, TrackValueType type)
         {
             MotVersion = motVersion;
-            TrackType = trackFlag;
-            if (trackFlag == TrackFlag.Rotation) {
+            TrackType = type;
+            FrameIndexType = FrameIndexSize.Byte;
+            if (type == TrackValueType.Quaternion) {
                 rotations = [];
             } else {
                 translations = [];
@@ -320,10 +334,10 @@ namespace ReeLib.Mot
             set => flags = (flags & 0xFFF00FFF) | (value & 0xFF000);
         }
 
-        public uint UnkFlag
+        public TrackValueType TrackType
         {
-            get => flags & 0xFFF;
-            set => flags = (flags & 0xFFFFF000) | (value & 0xFFF);
+            get => (TrackValueType)(flags & 0xFFF);
+            set => flags = (flags & 0xFFFFF000) | ((uint)value & 0xFFF);
         }
 
         protected override bool DoRead(FileHandler handler)
@@ -443,11 +457,11 @@ namespace ReeLib.Mot
             // we aren't doing that, so our output isn't 100% identical to native files, but I think it shouldn't be an issue
             handler.Align(4);
             handler.WriteInt64(_offsetStart + 8, frameDataOffset = handler.Tell());
-            if (TrackType == TrackFlag.Translation || TrackType == TrackFlag.Scale)
+            if (TrackType == TrackValueType.Vector3)
             {
                 WriteFrameDataTranslation(handler);
             }
-            else if (TrackType == TrackFlag.Rotation)
+            else if (TrackType == TrackValueType.Quaternion)
             {
                 WriteFrameDataRotation(handler);
             }
@@ -549,7 +563,7 @@ namespace ReeLib.Mot
             set => Compression = (MotVersion <= MotVersion.RE2_DMC5 ? RotationDictDmc5 : RotationDict).FirstOrDefault(kv => kv.Value == value).Key;
         }
 
-        public bool RequiresUnpackData => TrackType == TrackFlag.Rotation
+        public bool RequiresUnpackData => TrackType == TrackValueType.Quaternion
             ? !(RotationCompressionType is QuaternionDecompression.LoadQuaternionsFull or QuaternionDecompression.LoadQuaternions3Component or QuaternionDecompression.LoadQuaternionsXAxis or QuaternionDecompression.LoadQuaternionsYAxis or QuaternionDecompression.LoadQuaternionsZAxis)
             : !(TranslationCompressionType is Vector3Decompression.LoadVector3sFull or Vector3Decompression.LoadScalesXYZ or Vector3Decompression.LoadVector3sXYZAxis);
 
@@ -1074,7 +1088,7 @@ namespace ReeLib.Mot
             // probably just a side effect of their serializer and not actually meaningful?
             Vector3 max = new Vector3(float.MinValue);
             Vector3 min = new Vector3(float.MaxValue);
-            if (TrackType == TrackFlag.Rotation)
+            if (TrackType == TrackValueType.Quaternion)
             {
                 foreach (Quaternion q in rotations!) {
                     max = Vector3.Max(max, new Vector3(q.X, q.Y, q.Z));
@@ -1185,17 +1199,17 @@ namespace ReeLib.Mot
             handler.Seek(header.trackHeaderOffset);
             if (header.trackFlags.HasFlag(TrackFlag.Translation))
             {
-                Translation = new(header.MotVersion, TrackFlag.Translation);
+                Translation = new(header.MotVersion, TrackValueType.Vector3);
                 Translation.Read(handler);
             }
             if (header.trackFlags.HasFlag(TrackFlag.Rotation))
             {
-                Rotation = new(header.MotVersion, TrackFlag.Rotation);
+                Rotation = new(header.MotVersion, TrackValueType.Quaternion);
                 Rotation.Read(handler);
             }
             if (header.trackFlags.HasFlag(TrackFlag.Scale))
             {
-                Scale = new(header.MotVersion, TrackFlag.Scale);
+                Scale = new(header.MotVersion, TrackValueType.Vector3);
                 Scale.Read(handler);
             }
             Translation?.ReadFrameDataTranslation(handler);

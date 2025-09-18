@@ -11,6 +11,8 @@ Support reading of all the RE ENGINE resource file that are relevant for develop
 
 This project does not provide any actual tooling by itself, it is intended to be used as an independent library.
 
+A full list of supported files can be seen by the file list [here](https://github.com/kagenocookie/RE-Engine-Lib/tree/master/REE-Lib/RszFile) and [here](https://github.com/kagenocookie/RE-Engine-Lib/tree/master/REE-Lib/OtherFiles), though some may not yet be fully implemented.
+
 ## How to build this project
 
 1. Install [.NET 8 SDK](https://dotnet.microsoft.com/en-us/download)

@@ -287,12 +287,20 @@ namespace ReeLib.Mot
         private readonly float[] unpackData = new float[8];
 
         /// <summary>
-        /// NOTE: can be either translations or scales.
+        /// Vector3 value list for this track. Can be either translation or scale depending on track type.
         /// </summary>
         public Vector3[]? translations;
+
+        /// <summary>
+        /// Quaternion rotations list for this track.
+        /// </summary>
+        /// <remarks>
+        /// NOTE: all quaternions must be normalized and have a positive W component in order to decompress correctly.
+        /// If W &lt; 0, multiply all components by -1 before assigning the values.
+        /// </remarks>
         public Quaternion[]? rotations;
 
-        private long offsetStart;
+        private long _offsetStart;
 
         public MotVersion MotVersion { get; set; }
         public TrackFlag TrackType { get; }
@@ -387,7 +395,7 @@ namespace ReeLib.Mot
             {
                 handler.Write(ref frameRate);
                 handler.Write(ref maxFrame);
-                offsetStart = handler.Tell();
+                _offsetStart = handler.Tell();
                 handler.Write(ref frameIndexOffset);
                 handler.Write(ref frameDataOffset);
                 handler.Write(ref unpackDataOffset);
@@ -426,11 +434,11 @@ namespace ReeLib.Mot
             // FrameIndex
             if (frameIndexes == null)
             {
-                handler.WriteInt64(offsetStart, frameIndexOffset = 0);
+                handler.WriteInt64(_offsetStart, frameIndexOffset = 0);
             }
             else
             {
-                handler.WriteInt64(offsetStart, frameIndexOffset = handler.Tell());
+                handler.WriteInt64(_offsetStart, frameIndexOffset = handler.Tell());
                 switch (FrameIndexType)
                 {
                     case 2:
@@ -451,7 +459,7 @@ namespace ReeLib.Mot
             // NOTE: even "empty" tracks always have at least one frame data item, but if there's multiple such tracks, they all reuse the same block of zeroes
             // we aren't doing that, so our output isn't 100% identical to native files, but I think it shouldn't be an issue
             handler.Align(4);
-            handler.WriteInt64(offsetStart + 8, frameDataOffset = handler.Tell());
+            handler.WriteInt64(_offsetStart + 8, frameDataOffset = handler.Tell());
             if (TrackType == TrackFlag.Translation || TrackType == TrackFlag.Scale)
             {
                 WriteFrameDataTranslation(handler);
@@ -464,12 +472,12 @@ namespace ReeLib.Mot
             if (RequiresUnpackData)
             {
                 handler.Align(4);
-                handler.WriteInt64(offsetStart + 16, unpackDataOffset = handler.Tell());
+                handler.WriteInt64(_offsetStart + 16, unpackDataOffset = handler.Tell());
                 handler.WriteArray(unpackData);
             }
             else
             {
-                handler.WriteInt64(offsetStart + 16, unpackDataOffset = 0);
+                handler.WriteInt64(_offsetStart + 16, unpackDataOffset = 0);
             }
         }
 
@@ -548,13 +556,13 @@ namespace ReeLib.Mot
 
         public Vector3Decompression TranslationCompressionType
         {
-            get => MotVersion <= MotVersion.RE2_DMC5 ? TranslationDictDmc5.GetValueOrDefault(Compression) : TranslationDict.GetValueOrDefault(Compression);
+            get => (MotVersion <= MotVersion.RE2_DMC5 ? TranslationDictDmc5 : TranslationDict).GetValueOrDefault(Compression);
             set => Compression = (MotVersion <= MotVersion.RE2_DMC5 ? TranslationDictDmc5 : TranslationDict).FirstOrDefault(kv => kv.Value == value).Key;
         }
 
         public QuaternionDecompression RotationCompressionType
         {
-            get => MotVersion <= MotVersion.RE2_DMC5 ? RotationDictDmc5.GetValueOrDefault(Compression) : RotationDict.GetValueOrDefault(Compression);
+            get => (MotVersion <= MotVersion.RE2_DMC5 ? RotationDictDmc5 : RotationDict).GetValueOrDefault(Compression);
             set => Compression = (MotVersion <= MotVersion.RE2_DMC5 ? RotationDictDmc5 : RotationDict).FirstOrDefault(kv => kv.Value == value).Key;
         }
 
@@ -691,6 +699,7 @@ namespace ReeLib.Mot
         {
             if (translations == null) throw new NullReferenceException($"{nameof(translations)} is null");
             Vector3Decompression type = TranslationCompressionType;
+            RecomputeDenormalizationParams();
             for (int i = 0; i < keyCount; i++)
             {
                 Vector3 translation = translations[i];
@@ -807,6 +816,9 @@ namespace ReeLib.Mot
             }
         }
 
+        private static float ComputeQuaternionW(Vector3 v) => MathF.Sqrt(1 - v.LengthSquared());
+        private static float ComputeQuaternionW(Quaternion v) => MathF.Sqrt(1 - v.X * v.X - v.Y * v.Y - v.Z * v.Z);
+
         public void ReadFrameDataRotation(FileHandler handler)
         {
             using var defer = handler.SeekJumpBack(frameDataOffset);
@@ -823,7 +835,7 @@ namespace ReeLib.Mot
                     case QuaternionDecompression.LoadQuaternions3Component:
                         {
                             Vector3 vector = handler.Read<Vector3>();
-                            quaternion = new(vector, 0.0f);
+                            quaternion = new(vector, ComputeQuaternionW(vector));
                             break;
                         }
                     case QuaternionDecompression.LoadQuaternions5Bit:
@@ -832,6 +844,7 @@ namespace ReeLib.Mot
                             quaternion.X = (unpackData[0] * ((data >> 00) & 0x1F) * (1.0f / 0x1F)) + unpackData[4];
                             quaternion.Y = (unpackData[1] * ((data >> 05) & 0x1F) * (1.0f / 0x1F)) + unpackData[5];
                             quaternion.Z = (unpackData[2] * ((data >> 10) & 0x1F) * (1.0f / 0x1F)) + unpackData[6];
+                            quaternion.W = ComputeQuaternionW(quaternion);
                             break;
                         }
                     case QuaternionDecompression.LoadQuaternions8Bit:
@@ -839,6 +852,7 @@ namespace ReeLib.Mot
                             quaternion.X = (unpackData[0] * (handler.ReadByte() * 0.000015259022f)) + unpackData[4];
                             quaternion.Y = (unpackData[1] * (handler.ReadByte() * 0.000015259022f)) + unpackData[5];
                             quaternion.Z = (unpackData[2] * (handler.ReadByte() * 0.000015259022f)) + unpackData[6];
+                            quaternion.W = ComputeQuaternionW(quaternion);
                             break;
                         }
                     case QuaternionDecompression.LoadQuaternions10Bit:
@@ -847,6 +861,7 @@ namespace ReeLib.Mot
                             quaternion.X = (unpackData[0] * ((data >> 00) & 0x3FF) / 1023.0f) + unpackData[4];
                             quaternion.Y = (unpackData[1] * ((data >> 10) & 0x3FF) / 1023.0f) + unpackData[5];
                             quaternion.Z = (unpackData[2] * ((data >> 20) & 0x3FF) / 1023.0f) + unpackData[6];
+                            quaternion.W = ComputeQuaternionW(quaternion);
                             break;
                         }
                     case QuaternionDecompression.LoadQuaternions13Bit:
@@ -860,6 +875,7 @@ namespace ReeLib.Mot
                             quaternion.X = (unpackData[0] * ((val >> 00) & 0x1FFF) * 0.00012208521f) + unpackData[4];
                             quaternion.Y = (unpackData[1] * ((val >> 13) & 0x1FFF) * 0.00012208521f) + unpackData[5];
                             quaternion.Z = (unpackData[2] * ((val >> 26) & 0x1FFF) * 0.00012208521f) + unpackData[6];
+                            quaternion.W = ComputeQuaternionW(quaternion);
                             break;
                         }
                     case QuaternionDecompression.LoadQuaternions16Bit:
@@ -868,6 +884,7 @@ namespace ReeLib.Mot
                             quaternion.X = (unpackData[0] * (data.X / 65535.0f)) + unpackData[4];
                             quaternion.Y = (unpackData[1] * (data.Y / 65535.0f)) + unpackData[5];
                             quaternion.Z = (unpackData[2] * (data.Z / 65535.0f)) + unpackData[6];
+                            quaternion.W = ComputeQuaternionW(quaternion);
                             break;
                         }
                     case QuaternionDecompression.LoadQuaternions18Bit:
@@ -881,6 +898,7 @@ namespace ReeLib.Mot
                             quaternion.X = (unpackData[0] * ((val >> 00) & 0x1FFF) * 0.00012208521f) + unpackData[4];
                             quaternion.Y = (unpackData[1] * ((val >> 13) & 0x1FFF) * 0.00012208521f) + unpackData[5];
                             quaternion.Z = (unpackData[2] * ((val >> 26) & 0x1FFF) * 0.00012208521f) + unpackData[6];
+                            quaternion.W = ComputeQuaternionW(quaternion);
                             break;
                         }
                     case QuaternionDecompression.LoadQuaternions21Bit:
@@ -889,37 +907,44 @@ namespace ReeLib.Mot
                             quaternion.X = (unpackData[0] * ((data >> 00) & 0x1FFFFF) / 2097151.0f) + unpackData[4];
                             quaternion.Y = (unpackData[1] * ((data >> 21) & 0x1FFFFF) / 2097151.0f) + unpackData[5];
                             quaternion.Z = (unpackData[2] * ((data >> 42) & 0x1FFFFF) / 2097151.0f) + unpackData[6];
+                            quaternion.W = ComputeQuaternionW(quaternion);
                             break;
                         }
                     case QuaternionDecompression.LoadQuaternionsXAxis16Bit:
                         quaternion.X = unpackData[0] * (handler.Read<float>() / 65535.0f) + unpackData[1];
                         quaternion.Y = 0.0f;
                         quaternion.Z = 0.0f;
+                        quaternion.W = ComputeQuaternionW(quaternion);
                         break;
                     case QuaternionDecompression.LoadQuaternionsYAxis16Bit:
                         quaternion.X = 0.0f;
                         quaternion.Y = unpackData[0] * (handler.Read<float>() / 65535.0f) + unpackData[1];
                         quaternion.Z = 0.0f;
+                        quaternion.W = ComputeQuaternionW(quaternion);
                         break;
                     case QuaternionDecompression.LoadQuaternionsZAxis16Bit:
                         quaternion.X = 0.0f;
                         quaternion.Y = 0.0f;
                         quaternion.Z = unpackData[0] * (handler.Read<float>() / 65535.0f) + unpackData[1];
+                        quaternion.W = ComputeQuaternionW(quaternion);
                         break;
                     case QuaternionDecompression.LoadQuaternionsXAxis:
                         quaternion.X = handler.Read<float>();
                         quaternion.Y = 0.0f;
                         quaternion.Z = 0.0f;
+                        quaternion.W = ComputeQuaternionW(quaternion);
                         break;
                     case QuaternionDecompression.LoadQuaternionsYAxis:
                         quaternion.X = 0.0f;
                         quaternion.Y = handler.Read<float>();
                         quaternion.Z = 0.0f;
+                        quaternion.W = ComputeQuaternionW(quaternion);
                         break;
                     case QuaternionDecompression.LoadQuaternionsZAxis:
                         quaternion.X = 0.0f;
                         quaternion.Y = 0.0f;
                         quaternion.Z = handler.Read<float>();
+                        quaternion.W = ComputeQuaternionW(quaternion);
                         break;
                     default:
                         throw new InvalidOperationException($"Invalid type {type}");
@@ -935,6 +960,7 @@ namespace ReeLib.Mot
         public void WriteFrameDataRotation(FileHandler handler)
         {
             if (rotations == null) throw new NullReferenceException($"{nameof(rotations)} is null");
+            RecomputeDenormalizationParams();
             QuaternionDecompression type = RotationCompressionType;
             for (int i = 0; i < keyCount; i++)
             {
@@ -1053,6 +1079,96 @@ namespace ReeLib.Mot
                         break;
                     default:
                         throw new InvalidOperationException($"Invalid type {type}");
+                }
+            }
+        }
+
+        private void RecomputeDenormalizationParams()
+        {
+            if (!RequiresUnpackData) return;
+
+            // NOTE: basegame includes data in all 8 fields, not just the ones used for decompression
+            // probably just a side effect of their serializer and not actually meaningful?
+            Vector3 max = new Vector3(float.MinValue);
+            Vector3 min = new Vector3(float.MaxValue);
+            if (TrackType == TrackFlag.Rotation)
+            {
+                foreach (Quaternion q in rotations!) {
+                    max = Vector3.Max(max, new Vector3(q.X, q.Y, q.Z));
+                    min = Vector3.Min(min, new Vector3(q.X, q.Y, q.Z));
+                }
+                var scale = max - min;
+                switch (RotationCompressionType)
+                {
+                    case QuaternionDecompression.LoadQuaternions5Bit:
+                    case QuaternionDecompression.LoadQuaternions8Bit:
+                    case QuaternionDecompression.LoadQuaternions10Bit:
+                    case QuaternionDecompression.LoadQuaternions13Bit:
+                    case QuaternionDecompression.LoadQuaternions16Bit:
+                    case QuaternionDecompression.LoadQuaternions18Bit:
+                    case QuaternionDecompression.LoadQuaternions21Bit:
+                        unpackData[0] = scale.X;
+                        unpackData[1] = scale.Y;
+                        unpackData[2] = scale.Z;
+                        unpackData[4] = min.X;
+                        unpackData[5] = min.Y;
+                        unpackData[6] = min.Z;
+                        break;
+                    case QuaternionDecompression.LoadQuaternionsXAxis16Bit:
+                    case QuaternionDecompression.LoadQuaternionsYAxis16Bit:
+                    case QuaternionDecompression.LoadQuaternionsZAxis16Bit:
+                        unpackData[0] = RotationCompressionType switch {
+                            QuaternionDecompression.LoadQuaternionsYAxis16Bit => scale.Y,
+                            QuaternionDecompression.LoadQuaternionsZAxis16Bit => scale.Z,
+                            _ => scale.X,
+                        };
+                        unpackData[1] = min.X;
+                        unpackData[2] = min.Y;
+                        unpackData[3] = min.Z;
+                        break;
+                }
+            }
+            else
+            {
+                foreach (Vector3 vec in translations!) {
+                    max = Vector3.Max(max, vec);
+                    min = Vector3.Min(min, vec);
+                }
+                var scale = max - min;
+                switch (TranslationCompressionType)
+                {
+                    case Vector3Decompression.LoadVector3s5BitA:
+                    case Vector3Decompression.LoadVector3s10BitA:
+                    case Vector3Decompression.LoadVector3s21BitA:
+                        unpackData[0] = scale.X;
+                        unpackData[1] = scale.Y;
+                        unpackData[2] = scale.Z;
+                        unpackData[4] = min.X;
+                        unpackData[5] = min.Y;
+                        unpackData[6] = min.Z;
+                        break;
+                    case Vector3Decompression.LoadVector3s5BitB:
+                    case Vector3Decompression.LoadVector3s10BitB:
+                    case Vector3Decompression.LoadVector3s21BitB:
+                        unpackData[0] = scale.X;
+                        unpackData[1] = scale.Y;
+                        unpackData[2] = scale.Z;
+                        unpackData[3] = min.X;
+                        unpackData[4] = min.Y;
+                        unpackData[5] = min.Z;
+                        break;
+                    case Vector3Decompression.LoadVector3sXAxis16Bit:
+                    case Vector3Decompression.LoadVector3sYAxis16Bit:
+                    case Vector3Decompression.LoadVector3sZAxis16Bit:
+                        unpackData[0] = TranslationCompressionType switch {
+                            Vector3Decompression.LoadVector3sYAxis16Bit => scale.Y,
+                            Vector3Decompression.LoadVector3sZAxis16Bit => scale.Z,
+                            _ => scale.X,
+                        };
+                        unpackData[1] = min.X;
+                        unpackData[2] = min.Y;
+                        unpackData[3] = min.Z;
+                        break;
                 }
             }
         }

@@ -232,6 +232,12 @@ namespace ReeLib.Mot
         LoadVector3sXYZAxis,
     }
 
+    public enum FrameIndexSize
+    {
+        Byte = 2,
+        Short = 4,
+        Int = 5,
+    }
 
     public enum QuaternionDecompression
     {
@@ -256,21 +262,7 @@ namespace ReeLib.Mot
     /// <summary>
     /// Packed 16-Bit Vector 3
     /// </summary>
-    public struct PackedVector3
-    {
-        public ushort X;
-        public ushort Y;
-        public ushort Z;
-
-        public PackedVector3() {}
-
-        public PackedVector3(ushort x, ushort y, ushort z)
-        {
-            X = x;
-            Y = y;
-            Z = z;
-        }
-    }
+    public record struct PackedVector3(ushort X, ushort Y, ushort Z);
 
 
     public class Track : BaseModel
@@ -316,10 +308,10 @@ namespace ReeLib.Mot
             }
         }
 
-        public byte FrameIndexType
+        public FrameIndexSize FrameIndexType
         {
-            get => (byte)(flags >> 20);
-            set => flags = (flags & 0xFFFFF) | (uint)(value << 20);
+            get => (FrameIndexSize)(flags >> 20);
+            set => flags = (flags & 0xFFFFF) | (uint)((byte)value << 20);
         }
 
         public uint Compression
@@ -360,13 +352,13 @@ namespace ReeLib.Mot
                 handler.Seek(frameIndexOffset);
                 switch (FrameIndexType)
                 {
-                    case 2:
+                    case FrameIndexSize.Byte:
                         for (int i = 0; i < keyCount; i++) frameIndexes[i] = handler.ReadByte();
                         break;
-                    case 4:
+                    case FrameIndexSize.Short:
                         for (int i = 0; i < keyCount; i++) frameIndexes[i] = handler.ReadShort();
                         break;
-                    case 5:
+                    case FrameIndexSize.Int:
                         for (int i = 0; i < keyCount; i++) frameIndexes[i] = handler.ReadInt();
                         break;
                     default:
@@ -383,6 +375,7 @@ namespace ReeLib.Mot
 
         protected override bool DoWrite(FileHandler handler)
         {
+            EnsureViableFrameIndexSize();
             handler.Write(ref flags);
             handler.Write(ref keyCount);
             if (MotVersion >= MotVersion.RE3)
@@ -401,32 +394,22 @@ namespace ReeLib.Mot
                 handler.Write(ref unpackDataOffset);
             }
 
-            if (frameIndexOffset > 0)
-            {
-                using var frameIndexSeek = handler.SeekJumpBack(frameIndexOffset);
-                frameIndexes = new int[keyCount];
-                handler.Seek(frameIndexOffset);
-                switch (FrameIndexType)
-                {
-                    case 2:
-                        for (int i = 0; i < keyCount; i++) frameIndexes[i] = handler.ReadByte();
-                        break;
-                    case 4:
-                        for (int i = 0; i < keyCount; i++) frameIndexes[i] = handler.ReadShort();
-                        break;
-                    case 5:
-                        for (int i = 0; i < keyCount; i++) frameIndexes[i] = handler.ReadInt();
-                        break;
-                    default:
-                        throw new InvalidDataException($"Unknown frame index type {FrameIndexType}");
-                }
-            }
-            if (unpackDataOffset > 0)
-            {
-                using var unpackDataSeek = handler.SeekJumpBack(unpackDataOffset);
-                handler.ReadArray(unpackData);
-            }
             return true;
+        }
+
+        private void EnsureViableFrameIndexSize()
+        {
+            if (frameIndexes == null) return;
+
+            var max = frameIndexes.Last();
+            if (max > short.MaxValue)
+            {
+                FrameIndexType = FrameIndexSize.Int;
+            }
+            else if (max >= byte.MaxValue && FrameIndexType == FrameIndexSize.Byte)
+            {
+                FrameIndexType = FrameIndexSize.Short;
+            }
         }
 
         public void WriteOffsetContents(FileHandler handler)
@@ -441,13 +424,13 @@ namespace ReeLib.Mot
                 handler.WriteInt64(_offsetStart, frameIndexOffset = handler.Tell());
                 switch (FrameIndexType)
                 {
-                    case 2:
+                    case FrameIndexSize.Byte:
                         for (int i = 0; i < keyCount; i++) handler.WriteByte((byte)frameIndexes[i]);
                         break;
-                    case 4:
+                    case FrameIndexSize.Short:
                         for (int i = 0; i < keyCount; i++) handler.WriteShort((short)frameIndexes[i]);
                         break;
-                    case 5:
+                    case FrameIndexSize.Int:
                         for (int i = 0; i < keyCount; i++) handler.WriteInt(frameIndexes[i]);
                         break;
                     default:

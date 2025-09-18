@@ -554,7 +554,8 @@ namespace ReeLib.Mesh
 		public int childIndex;
 		public int symmetryIndex;
 
-		public int remapIndex;
+		public int remapIndex = -1;
+		public bool IsDeformBone => remapIndex != -1;
 
 		public mat4 localTransform;
 		public mat4 globalTransform;
@@ -606,6 +607,7 @@ namespace ReeLib
 		public MeshStreamingInfo? StreamingInfo { get; set; }
 		public MeshBuffer? MeshBuffer { get; set; }
 		public List<MeshData> Meshes { get; } = new();
+
 		public List<MeshBone> Bones { get; } = new();
 		public List<MeshBone> DeformBones { get; } = new();
 		public List<MeshBone> RootBones { get; } = new();

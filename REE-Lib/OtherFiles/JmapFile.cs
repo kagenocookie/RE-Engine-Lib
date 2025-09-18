@@ -306,7 +306,7 @@ namespace ReeLib
         public SymmetryMirrorData SymmetryData { get; } = new();
         public ExtraHashData ExtraHashes { get; } = new();
 
-        public const int Magic = 0x706166A;
+        public const int Magic = 0x70616D6A;
 
         protected override bool DoRead()
         {

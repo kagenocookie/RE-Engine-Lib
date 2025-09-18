@@ -134,7 +134,7 @@ namespace ReeLib.Mot
     }
 
     [Flags]
-    public enum TrackFlag : ushort
+    public enum TrackFlag : byte
     {
         None,
         Translation = 1,
@@ -146,6 +146,7 @@ namespace ReeLib.Mot
     {
         public ushort boneIndex;
         public TrackFlag trackFlags;
+        public byte uknIndex = byte.MaxValue; // <= re2: always 0, dd2: always 255
         public uint boneHash;  // MurMur3
         public float uknFloat;  // always 1.0?
         public long trackHeaderOffset; // keysPointer
@@ -164,6 +165,7 @@ namespace ReeLib.Mot
         {
             handler.Read(ref boneIndex);
             handler.Read(ref trackFlags);
+            handler.Read(ref uknIndex);
             handler.Read(ref boneHash);
             if (MotVersion == MotVersion.RE2_DMC5)
             {
@@ -188,6 +190,7 @@ namespace ReeLib.Mot
             if (!string.IsNullOrEmpty(boneName)) boneHash = MurMur3HashUtils.GetHash(boneName);
             handler.Write(ref boneIndex);
             handler.Write(ref trackFlags);
+            handler.Write(ref uknIndex);
             handler.Write(ref boneHash);
             if (MotVersion == MotVersion.RE2_DMC5)
             {

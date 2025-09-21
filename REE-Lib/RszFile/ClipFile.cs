@@ -43,6 +43,9 @@ namespace ReeLib.Clip
     }
 
 
+    /// <summary>
+    /// source: via.timeline.PropertyType
+    /// </summary>
     public enum PropertyType : byte
     {
         Unknown = 0x0,
@@ -255,7 +258,8 @@ namespace ReeLib.Clip
                     Value = handler.Read<ulong>();
                     break;
                 case PropertyType.F32:
-                    Value = handler.Read<float>();
+                    // yes, it's stored as a double, go figure
+                    Value = (float)handler.Read<double>();
                     break;
                 case PropertyType.F64:
                     Value = handler.Read<double>();
@@ -281,7 +285,7 @@ namespace ReeLib.Clip
                             throw new Exception("namesOffsetExtra is null");
                         }
                         // clipHeader.unicodeNamesOffs + start + offset*2
-                        Value = handler.ReadWString(clipFile.Header.unicodeNamesOffset + offset);
+                        Value = handler.ReadWString(clipFile.Header.unicodeNamesOffset + offset * 2);
                     }
                     break;
                 default:
@@ -329,7 +333,7 @@ namespace ReeLib.Clip
                     handler.Write((ulong)Value);
                     break;
                 case PropertyType.F32:
-                    handler.Write((float)Value);
+                    handler.Write((double)(float)Value);
                     break;
                 case PropertyType.F64:
                     handler.Write((double)Value);
@@ -994,7 +998,7 @@ namespace ReeLib.Clip
                 if (property.IsPropertyContainer)
                 {
                     property.ChildProperties ??= new();
-                    for (long i = property.Info.ChildStartIndex; i < property.Info.ChildMembershipCount; i++)
+                    for (long i = property.Info.ChildStartIndex; i < property.Info.ChildMembershipCount + property.Info.ChildStartIndex; i++)
                     {
                         property.ChildProperties.Add(Properties[(int)i]);
                     }
@@ -1002,7 +1006,7 @@ namespace ReeLib.Clip
                 else
                 {
                     property.Keys ??= new();
-                    for (long i = property.Info.ChildStartIndex; i < property.Info.ChildMembershipCount; i++)
+                    for (long i = property.Info.ChildStartIndex; i < property.Info.ChildMembershipCount + property.Info.ChildStartIndex; i++)
                     {
                         Key key = ClipKeys[(int)i];
                         property.Keys.Add(key);

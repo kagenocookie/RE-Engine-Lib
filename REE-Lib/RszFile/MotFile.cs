@@ -37,6 +37,7 @@ namespace ReeLib.Mot
 
         public long clipFileOffset;
         public long motEndClipDataOffset;
+        public long motEndClipFrameValuesOffset;
 
         // public long namesOffset;
         public float frameCount;
@@ -73,7 +74,8 @@ namespace ReeLib.Mot
                      ?.Then(ref clipFileOffset)
                      ?.HandleOffsetWString(ref jointMapPath)
                      ?.Then(ref motEndClipDataOffset)
-                     ?.Skip(16);
+                     ?.Then(ref motEndClipFrameValuesOffset)
+                     ?.Skip(8);
             }
             else
             {
@@ -334,6 +336,7 @@ namespace ReeLib.Mot
         public Quaternion[]? rotations;
 
         private long _offsetStart;
+        private int DataOffsetSize => MotVersion >= MotVersion.RE3 ? 4 : 8;
 
         public MotVersion MotVersion { get; set; }
 
@@ -421,6 +424,7 @@ namespace ReeLib.Mot
             handler.Write(ref keyCount);
             if (MotVersion >= MotVersion.RE3)
             {
+                _offsetStart = handler.Tell();
                 handler.WriteUInt((uint)frameIndexOffset);
                 handler.WriteUInt((uint)frameDataOffset);
                 handler.WriteUInt((uint)unpackDataOffset);
@@ -458,11 +462,11 @@ namespace ReeLib.Mot
             // FrameIndex
             if (frameIndexes == null)
             {
-                handler.WriteInt64(_offsetStart, frameIndexOffset = 0);
+                handler.WriteInt(_offsetStart, (int)(frameIndexOffset = 0));
             }
             else
             {
-                handler.WriteInt64(_offsetStart, frameIndexOffset = handler.Tell());
+                handler.WriteInt(_offsetStart, (int)(frameIndexOffset = handler.Tell()));
                 switch (FrameIndexType)
                 {
                     case FrameIndexSize.Byte:
@@ -483,7 +487,7 @@ namespace ReeLib.Mot
             // NOTE: even "empty" tracks always have at least one frame data item, but if there's multiple such tracks, they all reuse the same block of zeroes
             // we aren't doing that, so our output isn't 100% identical to native files, but I think it shouldn't be an issue
             handler.Align(4);
-            handler.WriteInt64(_offsetStart + 8, frameDataOffset = handler.Tell());
+            handler.WriteInt(_offsetStart + DataOffsetSize, (int)(frameDataOffset = handler.Tell()));
             if (TrackType == TrackValueType.Vector3)
             {
                 WriteFrameDataTranslation(handler);
@@ -496,12 +500,12 @@ namespace ReeLib.Mot
             if (RequiresUnpackData)
             {
                 handler.Align(4);
-                handler.WriteInt64(_offsetStart + 16, unpackDataOffset = handler.Tell());
+                handler.WriteInt(_offsetStart + DataOffsetSize * 2, (int)(unpackDataOffset = handler.Tell()));
                 handler.WriteArray(unpackData);
             }
             else
             {
-                handler.WriteInt64(_offsetStart + 16, unpackDataOffset = 0);
+                handler.WriteInt(_offsetStart + DataOffsetSize * 2, (int)(unpackDataOffset = 0));
             }
         }
 
@@ -610,17 +614,17 @@ namespace ReeLib.Mot
                     case Vector3Decompression.LoadVector3s5BitA:
                         {
                             var data = handler.Read<ushort>();
-                            translation.X = (unpackData[0] * ((data >> 00) & 0x1F) / 31.0f) + unpackData[4];
-                            translation.Y = (unpackData[1] * ((data >> 05) & 0x1F) / 31.0f) + unpackData[5];
-                            translation.Z = (unpackData[2] * ((data >> 10) & 0x1F) / 31.0f) + unpackData[6];
+                            translation.X = (unpackData[0] * ((data >> 00) & 0b11111) / 0b11111) + unpackData[4];
+                            translation.Y = (unpackData[1] * ((data >> 05) & 0b11111) / 0b11111) + unpackData[5];
+                            translation.Z = (unpackData[2] * ((data >> 10) & 0b11111) / 0b11111) + unpackData[6];
                             break;
                         }
                     case Vector3Decompression.LoadVector3s5BitB:
                         {
                             var data = handler.Read<ushort>();
-                            translation.X = (unpackData[0] * ((data >> 00) & 0x1F) / 31.0f) + unpackData[3];
-                            translation.Y = (unpackData[1] * ((data >> 05) & 0x1F) / 31.0f) + unpackData[4];
-                            translation.Z = (unpackData[2] * ((data >> 10) & 0x1F) / 31.0f) + unpackData[5];
+                            translation.X = (unpackData[0] * ((data >> 00) & 0b11111) / 0b11111) + unpackData[3];
+                            translation.Y = (unpackData[1] * ((data >> 05) & 0b11111) / 0b11111) + unpackData[4];
+                            translation.Z = (unpackData[2] * ((data >> 10) & 0b11111) / 0b11111) + unpackData[5];
                             break;
                         }
                     case Vector3Decompression.LoadScalesXYZ:
@@ -629,33 +633,33 @@ namespace ReeLib.Mot
                     case Vector3Decompression.LoadVector3s10BitA:
                         {
                             var data = handler.Read<uint>();
-                            translation.X = unpackData[0] * (((data >> 00) & 0x3FF) * (1.0f / 0x3FF)) + unpackData[4];
-                            translation.Y = unpackData[1] * (((data >> 10) & 0x3FF) * (1.0f / 0x3FF)) + unpackData[5];
-                            translation.Z = unpackData[2] * (((data >> 20) & 0x3FF) * (1.0f / 0x3FF)) + unpackData[6];
+                            translation.X = unpackData[0] * (((data >> 00) & 0b1111111111) * (1f / 0b1111111111)) + unpackData[4];
+                            translation.Y = unpackData[1] * (((data >> 10) & 0b1111111111) * (1f / 0b1111111111)) + unpackData[5];
+                            translation.Z = unpackData[2] * (((data >> 20) & 0b1111111111) * (1f / 0b1111111111)) + unpackData[6];
                             break;
                         }
                     case Vector3Decompression.LoadVector3s10BitB:
                         {
                             var data = handler.Read<uint>();
-                            translation.X = unpackData[0] * (((data >> 00) & 0x3FF) * (1.0f / 0x3FF)) + unpackData[3];
-                            translation.Y = unpackData[1] * (((data >> 10) & 0x3FF) * (1.0f / 0x3FF)) + unpackData[4];
-                            translation.Z = unpackData[2] * (((data >> 20) & 0x3FF) * (1.0f / 0x3FF)) + unpackData[5];
+                            translation.X = unpackData[0] * (((data >> 00) & 0b1111111111) * (1f / 0b1111111111)) + unpackData[3];
+                            translation.Y = unpackData[1] * (((data >> 10) & 0b1111111111) * (1f / 0b1111111111)) + unpackData[4];
+                            translation.Z = unpackData[2] * (((data >> 20) & 0b1111111111) * (1f / 0b1111111111)) + unpackData[5];
                             break;
                         }
                     case Vector3Decompression.LoadVector3s21BitA:
                         {
                             var data = handler.Read<ulong>();
-                            translation.X = (unpackData[0] * ((data >> 00) & 0x1FFFFF) / 2097151.0f) + unpackData[4];
-                            translation.Y = (unpackData[1] * ((data >> 21) & 0x1FFFFF) / 2097151.0f) + unpackData[5];
-                            translation.Z = (unpackData[2] * ((data >> 42) & 0x1FFFFF) / 2097151.0f) + unpackData[6];
+                            translation.X = (unpackData[0] * ((data >> 00) & 0x1F_FFFF) * (1f / 0x1F_FFFF)) + unpackData[4];
+                            translation.Y = (unpackData[1] * ((data >> 21) & 0x1F_FFFF) * (1f / 0x1F_FFFF)) + unpackData[5];
+                            translation.Z = (unpackData[2] * ((data >> 42) & 0x1F_FFFF) * (1f / 0x1F_FFFF)) + unpackData[6];
                             break;
                         }
                     case Vector3Decompression.LoadVector3s21BitB:
                         {
                             var data = handler.Read<ulong>();
-                            translation.X = (unpackData[0] * ((data >> 00) & 0x1FFFFF) / 2097151.0f) + unpackData[3];
-                            translation.Y = (unpackData[1] * ((data >> 21) & 0x1FFFFF) / 2097151.0f) + unpackData[4];
-                            translation.Z = (unpackData[2] * ((data >> 42) & 0x1FFFFF) / 2097151.0f) + unpackData[5];
+                            translation.X = (unpackData[0] * ((data >> 00) & 0x1F_FFFF) * (1f / 0x1F_FFFF)) + unpackData[3];
+                            translation.Y = (unpackData[1] * ((data >> 21) & 0x1F_FFFF) * (1f / 0x1F_FFFF)) + unpackData[4];
+                            translation.Z = (unpackData[2] * ((data >> 42) & 0x1F_FFFF) * (1f / 0x1F_FFFF)) + unpackData[5];
                             break;
                         }
                     case Vector3Decompression.LoadVector3sXAxis:
@@ -682,7 +686,7 @@ namespace ReeLib.Mot
                     case Vector3Decompression.LoadVector3sXAxis16Bit:
                         {
                             var data = handler.Read<ushort>();
-                            translation.X = unpackData[0] * (data / 65535.0f) + unpackData[1];
+                            translation.X = unpackData[0] * (data * (1f / 0xFFFF)) + unpackData[1];
                             translation.Y = unpackData[2];
                             translation.Z = unpackData[3];
                             break;
@@ -691,7 +695,7 @@ namespace ReeLib.Mot
                         {
                             var data = handler.Read<ushort>();
                             translation.X = unpackData[1];
-                            translation.Y = unpackData[0] * (data / 65535.0f) + unpackData[2];
+                            translation.Y = unpackData[0] * (data * (1f / 0xFFFF)) + unpackData[2];
                             translation.Z = unpackData[3];
                             break;
                         }
@@ -700,13 +704,13 @@ namespace ReeLib.Mot
                             var data = handler.Read<ushort>();
                             translation.X = unpackData[1];
                             translation.Y = unpackData[2];
-                            translation.Z = unpackData[0] * (data / 65535.0f) + unpackData[3];
+                            translation.Z = unpackData[0] * (data * (1f / 0xFFFF)) + unpackData[3];
                             break;
                         }
                     case Vector3Decompression.LoadVector3sXYZAxis16Bit:
                         {
                             var data = handler.Read<ushort>();
-                            translation.X = translation.Y = translation.Z = unpackData[0] * (data / 65535.0f) + unpackData[3];
+                            translation.X = translation.Y = translation.Z = unpackData[0] * (data * (1f / 0xFFFF)) + unpackData[3];
                             break;
                         }
                     case Vector3Decompression.LoadVector3sXYZAxis:
@@ -735,18 +739,18 @@ namespace ReeLib.Mot
                     case Vector3Decompression.LoadVector3s5BitA:
                         {
                             ushort data = (ushort)(
-                                ((ushort)((translation.X - unpackData[4]) / unpackData[0] * 31.0f) << 00) |
-                                ((ushort)((translation.Y - unpackData[5]) / unpackData[1] * 31.0f) << 05) |
-                                ((ushort)((translation.Z - unpackData[6]) / unpackData[2] * 31.0f) << 10));
+                                ((ushort)((translation.X - unpackData[4]) / unpackData[0] * 0b11111) << 00) |
+                                ((ushort)((translation.Y - unpackData[5]) / unpackData[1] * 0b11111) << 05) |
+                                ((ushort)((translation.Z - unpackData[6]) / unpackData[2] * 0b11111) << 10));
                             handler.Write(data);
                             break;
                         }
                     case Vector3Decompression.LoadVector3s5BitB:
                         {
                             ushort data = (ushort)(
-                                ((ushort)((translation.X - unpackData[3]) / unpackData[0] * 31.0f) << 00) |
-                                ((ushort)((translation.Y - unpackData[4]) / unpackData[1] * 31.0f) << 05) |
-                                ((ushort)((translation.Z - unpackData[5]) / unpackData[2] * 31.0f) << 10));
+                                ((ushort)((translation.X - unpackData[3]) / unpackData[0] * 0b11111) << 00) |
+                                ((ushort)((translation.Y - unpackData[4]) / unpackData[1] * 0b11111) << 05) |
+                                ((ushort)((translation.Z - unpackData[5]) / unpackData[2] * 0b11111) << 10));
                             handler.Write(data);
                             break;
                         }
@@ -775,18 +779,18 @@ namespace ReeLib.Mot
                     case Vector3Decompression.LoadVector3s21BitA:
                         {
                             ulong data =
-                                ((ulong)((translation.X - unpackData[4]) / unpackData[0] * 2097151.0f) << 00) |
-                                ((ulong)((translation.Y - unpackData[5]) / unpackData[1] * 2097151.0f) << 21) |
-                                ((ulong)((translation.Z - unpackData[6]) / unpackData[2] * 2097151.0f) << 42);
+                                ((ulong)((translation.X - unpackData[4]) / unpackData[0] * 0x1F_FFFF) << 00) |
+                                ((ulong)((translation.Y - unpackData[5]) / unpackData[1] * 0x1F_FFFF) << 21) |
+                                ((ulong)((translation.Z - unpackData[6]) / unpackData[2] * 0x1F_FFFF) << 42);
                             handler.Write(data);
                             break;
                         }
                     case Vector3Decompression.LoadVector3s21BitB:
                         {
                             var data =
-                                ((int)((translation.X - unpackData[3]) / unpackData[0]) & 0x1FFFFF) << 00 |
-                                ((int)((translation.Y - unpackData[4]) / unpackData[1]) & 0x1FFFFF) << 21 |
-                                ((int)((translation.Z - unpackData[5]) / unpackData[2]) & 0x1FFFFF) << 42;
+                                ((int)((translation.X - unpackData[3]) / unpackData[0]) & 0x1F_FFFF) << 00 |
+                                ((int)((translation.Y - unpackData[4]) / unpackData[1]) & 0x1F_FFFF) << 21 |
+                                ((int)((translation.Z - unpackData[5]) / unpackData[2]) & 0x1F_FFFF) << 42;
                             handler.Write((ulong)data);
                             break;
                         }
@@ -807,25 +811,25 @@ namespace ReeLib.Mot
                         }
                     case Vector3Decompression.LoadVector3sXAxis16Bit:
                         {
-                            var data = (ushort)((translation.X - unpackData[1]) / unpackData[0] * 65535);
+                            var data = (ushort)((translation.X - unpackData[1]) / unpackData[0] * 0xFFFF);
                             handler.Write(data);
                             break;
                         }
                     case Vector3Decompression.LoadVector3sYAxis16Bit:
                         {
-                            var data = (ushort)((translation.Y - unpackData[2]) / unpackData[0] * 65535);
+                            var data = (ushort)((translation.Y - unpackData[2]) / unpackData[0] * 0xFFFF);
                             handler.Write(data);
                             break;
                         }
                     case Vector3Decompression.LoadVector3sZAxis16Bit:
                         {
-                            var data = (ushort)((translation.Z - unpackData[3]) / unpackData[0] * 65535);
+                            var data = (ushort)((translation.Z - unpackData[3]) / unpackData[0] * 0xFFFF);
                             handler.Write(data);
                             break;
                         }
                     case Vector3Decompression.LoadVector3sXYZAxis16Bit:
                         {
-                            var data = (ushort)((translation.X - unpackData[3]) / unpackData[0] * 65535);
+                            var data = (ushort)((translation.X - unpackData[3]) / unpackData[0] * 0xFFFF);
                             handler.Write(data);
                             break;
                         }
@@ -865,26 +869,26 @@ namespace ReeLib.Mot
                     case QuaternionDecompression.LoadQuaternions5Bit:
                         {
                             var data = handler.Read<ushort>();
-                            quaternion.X = (unpackData[0] * ((data >> 00) & 0x1F) * (1.0f / 0x1F)) + unpackData[4];
-                            quaternion.Y = (unpackData[1] * ((data >> 05) & 0x1F) * (1.0f / 0x1F)) + unpackData[5];
-                            quaternion.Z = (unpackData[2] * ((data >> 10) & 0x1F) * (1.0f / 0x1F)) + unpackData[6];
+                            quaternion.X = (unpackData[0] * ((data >> 00) & 0x1F) * (1f / 0x1F)) + unpackData[4];
+                            quaternion.Y = (unpackData[1] * ((data >> 05) & 0x1F) * (1f / 0x1F)) + unpackData[5];
+                            quaternion.Z = (unpackData[2] * ((data >> 10) & 0x1F) * (1f / 0x1F)) + unpackData[6];
                             quaternion.W = ComputeQuaternionW(quaternion);
                             break;
                         }
                     case QuaternionDecompression.LoadQuaternions8Bit:
                         {
-                            quaternion.X = (unpackData[0] * (handler.ReadByte() * 0.000015259022f)) + unpackData[4];
-                            quaternion.Y = (unpackData[1] * (handler.ReadByte() * 0.000015259022f)) + unpackData[5];
-                            quaternion.Z = (unpackData[2] * (handler.ReadByte() * 0.000015259022f)) + unpackData[6];
+                            quaternion.X = (unpackData[0] * (handler.ReadByte() * (1f / 0xFF))) + unpackData[4];
+                            quaternion.Y = (unpackData[1] * (handler.ReadByte() * (1f / 0xFF))) + unpackData[5];
+                            quaternion.Z = (unpackData[2] * (handler.ReadByte() * (1f / 0xFF))) + unpackData[6];
                             quaternion.W = ComputeQuaternionW(quaternion);
                             break;
                         }
                     case QuaternionDecompression.LoadQuaternions10Bit:
                         {
                             var data = handler.Read<uint>();
-                            quaternion.X = (unpackData[0] * ((data >> 00) & 0x3FF) / 1023.0f) + unpackData[4];
-                            quaternion.Y = (unpackData[1] * ((data >> 10) & 0x3FF) / 1023.0f) + unpackData[5];
-                            quaternion.Z = (unpackData[2] * ((data >> 20) & 0x3FF) / 1023.0f) + unpackData[6];
+                            quaternion.X = (unpackData[0] * ((data >> 00) & 0x3FF) * (1f / 0x3FF)) + unpackData[4];
+                            quaternion.Y = (unpackData[1] * ((data >> 10) & 0x3FF) * (1f / 0x3FF)) + unpackData[5];
+                            quaternion.Z = (unpackData[2] * ((data >> 20) & 0x3FF) * (1f / 0x3FF)) + unpackData[6];
                             quaternion.W = ComputeQuaternionW(quaternion);
                             break;
                         }
@@ -896,18 +900,18 @@ namespace ReeLib.Mot
                             {
                                 val = data[j] | (val << 8);
                             }
-                            quaternion.X = (unpackData[0] * ((val >> 00) & 0x1FFF) * 0.00012208521f) + unpackData[4];
-                            quaternion.Y = (unpackData[1] * ((val >> 13) & 0x1FFF) * 0.00012208521f) + unpackData[5];
-                            quaternion.Z = (unpackData[2] * ((val >> 26) & 0x1FFF) * 0.00012208521f) + unpackData[6];
+                            quaternion.X = (unpackData[0] * ((val >> 00) & 0x1FFF) / (float)0x1FFF) + unpackData[4];
+                            quaternion.Y = (unpackData[1] * ((val >> 13) & 0x1FFF) / (float)0x1FFF) + unpackData[5];
+                            quaternion.Z = (unpackData[2] * ((val >> 26) & 0x1FFF) / (float)0x1FFF) + unpackData[6];
                             quaternion.W = ComputeQuaternionW(quaternion);
                             break;
                         }
                     case QuaternionDecompression.LoadQuaternions16Bit:
                         {
                             var data = handler.Read<PackedVector3>();
-                            quaternion.X = (unpackData[0] * (data.X / 65535.0f)) + unpackData[4];
-                            quaternion.Y = (unpackData[1] * (data.Y / 65535.0f)) + unpackData[5];
-                            quaternion.Z = (unpackData[2] * (data.Z / 65535.0f)) + unpackData[6];
+                            quaternion.X = (unpackData[0] * (data.X / (float)0xFFFF)) + unpackData[4];
+                            quaternion.Y = (unpackData[1] * (data.Y / (float)0xFFFF)) + unpackData[5];
+                            quaternion.Z = (unpackData[2] * (data.Z / (float)0xFFFF)) + unpackData[6];
                             quaternion.W = ComputeQuaternionW(quaternion);
                             break;
                         }
@@ -919,37 +923,37 @@ namespace ReeLib.Mot
                             {
                                 val = data[j] | (val << 8);
                             }
-                            quaternion.X = (unpackData[0] * ((val >> 00) & 0x3FFFF) / 262143f) + unpackData[4];
-                            quaternion.Y = (unpackData[1] * ((val >> 18) & 0x3FFFF) / 262143f) + unpackData[5];
-                            quaternion.Z = (unpackData[2] * ((val >> 36) & 0x3FFFF) / 262143f) + unpackData[6];
+                            quaternion.X = (unpackData[0] * ((val >> 00) & 0x3FFFF) / (float)0x3FFFF) + unpackData[4];
+                            quaternion.Y = (unpackData[1] * ((val >> 18) & 0x3FFFF) / (float)0x3FFFF) + unpackData[5];
+                            quaternion.Z = (unpackData[2] * ((val >> 36) & 0x3FFFF) / (float)0x3FFFF) + unpackData[6];
                             quaternion.W = ComputeQuaternionW(quaternion);
                             break;
                         }
                     case QuaternionDecompression.LoadQuaternions21Bit:
                         {
                             var data = handler.Read<ulong>();
-                            quaternion.X = (unpackData[0] * ((data >> 00) & 0x1FFFFF) / 2097151.0f) + unpackData[4];
-                            quaternion.Y = (unpackData[1] * ((data >> 21) & 0x1FFFFF) / 2097151.0f) + unpackData[5];
-                            quaternion.Z = (unpackData[2] * ((data >> 42) & 0x1FFFFF) / 2097151.0f) + unpackData[6];
+                            quaternion.X = (unpackData[0] * ((data >> 00) & 0x1F_FFFF) / (float)0x1F_FFFF) + unpackData[4];
+                            quaternion.Y = (unpackData[1] * ((data >> 21) & 0x1F_FFFF) / (float)0x1F_FFFF) + unpackData[5];
+                            quaternion.Z = (unpackData[2] * ((data >> 42) & 0x1F_FFFF) / (float)0x1F_FFFF) + unpackData[6];
                             quaternion.W = ComputeQuaternionW(quaternion);
                             break;
                         }
                     case QuaternionDecompression.LoadQuaternionsXAxis16Bit:
-                        quaternion.X = unpackData[0] * ((float)handler.Read<ushort>() / 65535.0f) + unpackData[1];
+                        quaternion.X = unpackData[0] * ((float)handler.Read<ushort>() * (1f / 0xFFFF)) + unpackData[1];
                         quaternion.Y = 0.0f;
                         quaternion.Z = 0.0f;
                         quaternion.W = ComputeQuaternionW(quaternion);
                         break;
                     case QuaternionDecompression.LoadQuaternionsYAxis16Bit:
                         quaternion.X = 0.0f;
-                        quaternion.Y = unpackData[0] * ((float)handler.Read<ushort>() / 65535.0f) + unpackData[1];
+                        quaternion.Y = unpackData[0] * ((float)handler.Read<ushort>() * (1f / 0xFFFF)) + unpackData[1];
                         quaternion.Z = 0.0f;
                         quaternion.W = ComputeQuaternionW(quaternion);
                         break;
                     case QuaternionDecompression.LoadQuaternionsZAxis16Bit:
                         quaternion.X = 0.0f;
                         quaternion.Y = 0.0f;
-                        quaternion.Z = unpackData[0] * ((float)handler.Read<ushort>() / 65535.0f) + unpackData[1];
+                        quaternion.Z = unpackData[0] * ((float)handler.Read<ushort>() * (1f / 0xFFFF)) + unpackData[1];
                         quaternion.W = ComputeQuaternionW(quaternion);
                         break;
                     case QuaternionDecompression.LoadQuaternionsXAxis:
@@ -1003,17 +1007,17 @@ namespace ReeLib.Mot
                     case QuaternionDecompression.LoadQuaternions5Bit:
                         {
                             ushort data = (ushort)(
-                                (ushort)((quaternion.X - unpackData[4]) / unpackData[0] * 0x1F) << 00 |
-                                (ushort)((quaternion.Y - unpackData[5]) / unpackData[1] * 0x1F) << 05 |
-                                (ushort)((quaternion.Z - unpackData[6]) / unpackData[2] * 0x1F) << 10);
+                                (ushort)((quaternion.X - unpackData[4]) / unpackData[0] * 0b11111) << 00 |
+                                (ushort)((quaternion.Y - unpackData[5]) / unpackData[1] * 0b11111) << 05 |
+                                (ushort)((quaternion.Z - unpackData[6]) / unpackData[2] * 0b11111) << 10);
                             handler.Write(data);
                             break;
                         }
                     case QuaternionDecompression.LoadQuaternions8Bit:
                         {
-                            byte x = (byte)((quaternion.X - unpackData[4]) / unpackData[0] * (1 / 0.000015259022f));
-                            byte y = (byte)((quaternion.Y - unpackData[5]) / unpackData[1] * (1 / 0.000015259022f));
-                            byte z = (byte)((quaternion.Z - unpackData[6]) / unpackData[2] * (1 / 0.000015259022f));
+                            byte x = (byte)((quaternion.X - unpackData[4]) / unpackData[0] * 0b11111111);
+                            byte y = (byte)((quaternion.Y - unpackData[5]) / unpackData[1] * 0b11111111);
+                            byte z = (byte)((quaternion.Z - unpackData[6]) / unpackData[2] * 0b11111111);
                             handler.Write(x);
                             handler.Write(y);
                             handler.Write(z);
@@ -1022,18 +1026,18 @@ namespace ReeLib.Mot
                     case QuaternionDecompression.LoadQuaternions10Bit:
                         {
                             uint data =
-                                (uint)((quaternion.X - unpackData[4]) / unpackData[0] * 1023.0f) << 00 |
-                                (uint)((quaternion.Y - unpackData[5]) / unpackData[1] * 1023.0f) << 10 |
-                                (uint)((quaternion.Z - unpackData[6]) / unpackData[2] * 1023.0f) << 20;
+                                (uint)((quaternion.X - unpackData[4]) / unpackData[0] * 0b1111111111) << 00 |
+                                (uint)((quaternion.Y - unpackData[5]) / unpackData[1] * 0b1111111111) << 10 |
+                                (uint)((quaternion.Z - unpackData[6]) / unpackData[2] * 0b1111111111) << 20;
                             handler.Write(data);
                             break;
                         }
                     case QuaternionDecompression.LoadQuaternions13Bit:
                         {
                             ulong val =
-                                (ulong)((quaternion.X - unpackData[4]) / unpackData[0] * (1 / 0.00012208521f)) << 00 |
-                                (ulong)((quaternion.Y - unpackData[5]) / unpackData[1] * (1 / 0.00012208521f)) << 13 |
-                                (ulong)((quaternion.Z - unpackData[6]) / unpackData[2] * (1 / 0.00012208521f)) << 26;
+                                (ulong)((quaternion.X - unpackData[4]) / unpackData[0] * 0b111111111) << 00 |
+                                (ulong)((quaternion.Y - unpackData[5]) / unpackData[1] * 0b111111111) << 13 |
+                                (ulong)((quaternion.Z - unpackData[6]) / unpackData[2] * 0b111111111) << 26;
                             byte[] data = new byte[5];
                             for (int j = 0; j < 5; j++)
                             {
@@ -1046,18 +1050,18 @@ namespace ReeLib.Mot
                     case QuaternionDecompression.LoadQuaternions16Bit:
                         {
                             var data = new PackedVector3(
-                                (ushort)((quaternion.X - unpackData[4]) / unpackData[0] * 65535.0f),
-                                (ushort)((quaternion.Y - unpackData[5]) / unpackData[1] * 65535.0f),
-                                (ushort)((quaternion.Z - unpackData[6]) / unpackData[2] * 65535.0f)
+                                (ushort)((quaternion.X - unpackData[4]) / unpackData[0] * 0xFFFF),
+                                (ushort)((quaternion.Y - unpackData[5]) / unpackData[1] * 0xFFFF),
+                                (ushort)((quaternion.Z - unpackData[6]) / unpackData[2] * 0xFFFF)
                             );
                             handler.Write(data);
                             break;
                         }
                     case QuaternionDecompression.LoadQuaternions18Bit:
                         {
-                            ulong val = (((ulong)((quaternion.X - unpackData[4]) / unpackData[0] * 262143f) & 0x3FFFF) << 00) |
-                                        (((ulong)((quaternion.Y - unpackData[5]) / unpackData[1] * 262143f) & 0x3FFFF) << 18) |
-                                        (((ulong)((quaternion.Z - unpackData[6]) / unpackData[2] * 262143f) & 0x3FFFF) << 36);
+                            ulong val = (((ulong)((quaternion.X - unpackData[4]) / unpackData[0] * 0x3FFFF) & 0x3FFFF) << 00) |
+                                        (((ulong)((quaternion.Y - unpackData[5]) / unpackData[1] * 0x3FFFF) & 0x3FFFF) << 18) |
+                                        (((ulong)((quaternion.Z - unpackData[6]) / unpackData[2] * 0x3FFFF) & 0x3FFFF) << 36);
                             byte[] data = new byte[7];
                             for (int j = 0; j < 7; j++)
                             {
@@ -1068,27 +1072,27 @@ namespace ReeLib.Mot
                         }
                     case QuaternionDecompression.LoadQuaternions21Bit:
                         {
-                            ulong val = (((ulong)((quaternion.X - unpackData[4]) / unpackData[0] * 1048575.0f) & 0x1FFFFF) << 00) |
-                                        (((ulong)((quaternion.Y - unpackData[5]) / unpackData[1] * 1048575.0f) & 0x1FFFFF) << 21) |
-                                        (((ulong)((quaternion.Z - unpackData[6]) / unpackData[2] * 1048575.0f) & 0x1FFFFF) << 42);
+                            ulong val = (((ulong)((quaternion.X - unpackData[4]) / unpackData[0] * 0x1F_FFFF) & 0x1F_FFFF) << 00) |
+                                        (((ulong)((quaternion.Y - unpackData[5]) / unpackData[1] * 0x1F_FFFF) & 0x1F_FFFF) << 21) |
+                                        (((ulong)((quaternion.Z - unpackData[6]) / unpackData[2] * 0x1F_FFFF) & 0x1F_FFFF) << 42);
                             handler.Write(val);
                             break;
                         }
                     case QuaternionDecompression.LoadQuaternionsXAxis16Bit:
                         {
-                            ushort data = (ushort)((quaternion.X - unpackData[1]) / unpackData[0] * 65535.0f);
+                            ushort data = (ushort)((quaternion.X - unpackData[1]) / unpackData[0] * 0xFFFF);
                             handler.Write(data);
                             break;
                         }
                     case QuaternionDecompression.LoadQuaternionsYAxis16Bit:
                         {
-                            ushort data = (ushort)((quaternion.Y - unpackData[1]) / unpackData[0] * 65535.0f);
+                            ushort data = (ushort)((quaternion.Y - unpackData[1]) / unpackData[0] * 0xFFFF);
                             handler.Write(data);
                             break;
                         }
                     case QuaternionDecompression.LoadQuaternionsZAxis16Bit:
                         {
-                            ushort data = (ushort)((quaternion.Z - unpackData[1]) / unpackData[0] * 65535.0f);
+                            ushort data = (ushort)((quaternion.Z - unpackData[1]) / unpackData[0] * 0xFFFF);
                             handler.Write(data);
                             break;
                         }
@@ -1107,7 +1111,7 @@ namespace ReeLib.Mot
             }
         }
 
-        private void RecomputeDenormalizationParams()
+        internal void RecomputeDenormalizationParams()
         {
             if (!RequiresUnpackData) return;
 
@@ -1131,6 +1135,9 @@ namespace ReeLib.Mot
                     case QuaternionDecompression.LoadQuaternions16Bit:
                     case QuaternionDecompression.LoadQuaternions18Bit:
                     case QuaternionDecompression.LoadQuaternions21Bit:
+                        // Debug.Assert(MathF.Abs(unpackData[0] - scale.X) < 0.001f);
+                        // Debug.Assert(MathF.Abs(unpackData[1] - scale.Y) < 0.001f);
+                        // Debug.Assert(MathF.Abs(unpackData[2] - scale.Z) < 0.001f);
                         unpackData[0] = scale.X;
                         unpackData[1] = scale.Y;
                         unpackData[2] = scale.Z;
@@ -1166,6 +1173,9 @@ namespace ReeLib.Mot
                     case Vector3Decompression.LoadVector3s5BitA:
                     case Vector3Decompression.LoadVector3s10BitA:
                     case Vector3Decompression.LoadVector3s21BitA:
+                        // Debug.Assert(MathF.Abs(unpackData[0] - scale.X) < 0.001f);
+                        // Debug.Assert(MathF.Abs(unpackData[1] - scale.Y) < 0.001f);
+                        // Debug.Assert(MathF.Abs(unpackData[2] - scale.Z) < 0.001f);
                         unpackData[0] = scale.X;
                         unpackData[1] = scale.Y;
                         unpackData[2] = scale.Z;
@@ -1176,6 +1186,9 @@ namespace ReeLib.Mot
                     case Vector3Decompression.LoadVector3s5BitB:
                     case Vector3Decompression.LoadVector3s10BitB:
                     case Vector3Decompression.LoadVector3s21BitB:
+                        // Debug.Assert(MathF.Abs(unpackData[0] - scale.X) < 0.001f);
+                        // Debug.Assert(MathF.Abs(unpackData[1] - scale.Y) < 0.001f);
+                        // Debug.Assert(MathF.Abs(unpackData[2] - scale.Z) < 0.001f);
                         unpackData[0] = scale.X;
                         unpackData[1] = scale.Y;
                         unpackData[2] = scale.Z;
@@ -1191,6 +1204,9 @@ namespace ReeLib.Mot
                             Vector3Decompression.LoadVector3sZAxis16Bit => scale.Z,
                             _ => scale.X,
                         };
+                        // Debug.Assert(MathF.Abs(unpackData[1] - min.X) < 0.001f);
+                        // Debug.Assert(MathF.Abs(unpackData[2] - min.Y) < 0.001f);
+                        // Debug.Assert(MathF.Abs(unpackData[3] - min.Z) < 0.001f);
                         unpackData[1] = min.X;
                         unpackData[2] = min.Y;
                         unpackData[3] = min.Z;
@@ -1248,6 +1264,9 @@ namespace ReeLib.Mot
             Translation?.ReadFrameDataTranslation(handler);
             Rotation?.ReadFrameDataRotation(handler);
             Scale?.ReadFrameDataTranslation(handler);
+            // Translation?.RecomputeDenormalizationParams();
+            // Rotation?.RecomputeDenormalizationParams();
+            // Scale?.RecomputeDenormalizationParams();
             return true;
         }
 
@@ -1696,8 +1715,8 @@ namespace ReeLib
                 motClipHeader.Read(handler);
                 endClipHeaders[i] = motClipHeader;
             }
-            handler.Align(8);
 
+            handler.Seek(Header.motEndClipFrameValuesOffset);
             var frameDataOffsets = handler.ReadArray<long>(Header.motEndClipCount);
             for (int i = 0; i < Header.motEndClipCount; ++i)
             {
@@ -1720,6 +1739,7 @@ namespace ReeLib
                 EndClips[i].Header.Write(handler);
             }
             handler.Align(8);
+            Header.motEndClipFrameValuesOffset = handler.Tell();
 
             offsetsStart = handler.Tell();
             handler.Skip(EndClips.Count * sizeof(long));

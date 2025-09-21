@@ -96,7 +96,7 @@ namespace ReeLib.Motlist
         public long motClipOffset;  // may point to MotClip
         public ushort motNumber;
         public ushort Switch;
-        public uint[]? data;
+        public uint[] data;
 
         public MotFileBase? MotFile { get; set; }
         public MotClip? MotClip { get; set; }
@@ -108,6 +108,7 @@ namespace ReeLib.Motlist
         public MotIndex(MotlistVersion version)
         {
             Version = version;
+            data = new uint[DataCount];
         }
 
         protected override bool DoRead(FileHandler handler)
@@ -127,7 +128,7 @@ namespace ReeLib.Motlist
             if (Version > MotlistVersion.RE7) handler.Write(ref motClipOffset);
             handler.Write(ref motNumber);
             handler.Write(ref Switch);
-            if (data != null) {
+            if (data.Length > 0) {
                 handler.WriteArray(data);
             }
             return true;

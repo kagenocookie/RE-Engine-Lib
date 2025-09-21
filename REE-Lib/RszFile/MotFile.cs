@@ -47,6 +47,7 @@ namespace ReeLib.Mot
         public ushort boneClipCount;
         public byte clipCount;
         public byte motEndClipCount;
+        public ushort uknExtraCount; // seems to always be either 0 or 1
         public ushort FrameRate;
         public ushort uknPointerCount;
         public ushort uknShort;
@@ -91,6 +92,7 @@ namespace ReeLib.Mot
                  ?.Then(ref boneClipCount)
                  ?.Then(ref clipCount)
                  ?.Then(ref motEndClipCount)
+                 ?.Then(version >= MotVersion.RE8, ref uknExtraCount)
                  ?.Then(ref FrameRate)
                  ?.Then(ref uknPointerCount)
                  ?.Then(ref uknShort);

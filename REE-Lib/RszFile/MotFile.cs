@@ -895,9 +895,9 @@ namespace ReeLib.Mot
                             {
                                 val = data[j] | (val << 8);
                             }
-                            quaternion.X = (unpackData[0] * ((val >> 00) & 0x1FFF) * 0.00012208521f) + unpackData[4];
-                            quaternion.Y = (unpackData[1] * ((val >> 13) & 0x1FFF) * 0.00012208521f) + unpackData[5];
-                            quaternion.Z = (unpackData[2] * ((val >> 26) & 0x1FFF) * 0.00012208521f) + unpackData[6];
+                            quaternion.X = (unpackData[0] * ((val >> 00) & 0x3FFFF) / 262143f) + unpackData[4];
+                            quaternion.Y = (unpackData[1] * ((val >> 18) & 0x3FFFF) / 262143f) + unpackData[5];
+                            quaternion.Z = (unpackData[2] * ((val >> 36) & 0x3FFFF) / 262143f) + unpackData[6];
                             quaternion.W = ComputeQuaternionW(quaternion);
                             break;
                         }
@@ -911,21 +911,21 @@ namespace ReeLib.Mot
                             break;
                         }
                     case QuaternionDecompression.LoadQuaternionsXAxis16Bit:
-                        quaternion.X = unpackData[0] * (handler.Read<float>() / 65535.0f) + unpackData[1];
+                        quaternion.X = unpackData[0] * ((float)handler.Read<ushort>() / 65535.0f) + unpackData[1];
                         quaternion.Y = 0.0f;
                         quaternion.Z = 0.0f;
                         quaternion.W = ComputeQuaternionW(quaternion);
                         break;
                     case QuaternionDecompression.LoadQuaternionsYAxis16Bit:
                         quaternion.X = 0.0f;
-                        quaternion.Y = unpackData[0] * (handler.Read<float>() / 65535.0f) + unpackData[1];
+                        quaternion.Y = unpackData[0] * ((float)handler.Read<ushort>() / 65535.0f) + unpackData[1];
                         quaternion.Z = 0.0f;
                         quaternion.W = ComputeQuaternionW(quaternion);
                         break;
                     case QuaternionDecompression.LoadQuaternionsZAxis16Bit:
                         quaternion.X = 0.0f;
                         quaternion.Y = 0.0f;
-                        quaternion.Z = unpackData[0] * (handler.Read<float>() / 65535.0f) + unpackData[1];
+                        quaternion.Z = unpackData[0] * ((float)handler.Read<ushort>() / 65535.0f) + unpackData[1];
                         quaternion.W = ComputeQuaternionW(quaternion);
                         break;
                     case QuaternionDecompression.LoadQuaternionsXAxis:
@@ -1031,9 +1031,9 @@ namespace ReeLib.Mot
                         }
                     case QuaternionDecompression.LoadQuaternions18Bit:
                         {
-                            ulong val = (((ulong)((quaternion.X - unpackData[4]) / unpackData[0] * 8191.0f) & 0x1FFF) << 00) |
-                                        (((ulong)((quaternion.Y - unpackData[5]) / unpackData[1] * 8191.0f) & 0x1FFF) << 13) |
-                                        (((ulong)((quaternion.Z - unpackData[6]) / unpackData[2] * 8191.0f) & 0x1FFF) << 26);
+                            ulong val = (((ulong)((quaternion.X - unpackData[4]) / unpackData[0] * 262143f) & 0x3FFFF) << 00) |
+                                        (((ulong)((quaternion.Y - unpackData[5]) / unpackData[1] * 262143f) & 0x3FFFF) << 18) |
+                                        (((ulong)((quaternion.Z - unpackData[6]) / unpackData[2] * 262143f) & 0x3FFFF) << 36);
                             byte[] data = new byte[7];
                             for (int j = 0; j < 7; j++)
                             {
@@ -1052,19 +1052,19 @@ namespace ReeLib.Mot
                         }
                     case QuaternionDecompression.LoadQuaternionsXAxis16Bit:
                         {
-                            float data = (quaternion.X - unpackData[1]) / unpackData[0] * 65535.0f;
+                            ushort data = (ushort)((quaternion.X - unpackData[1]) / unpackData[0] * 65535.0f);
                             handler.Write(data);
                             break;
                         }
                     case QuaternionDecompression.LoadQuaternionsYAxis16Bit:
                         {
-                            float data = (quaternion.Y - unpackData[1]) / unpackData[0] * 65535.0f;
+                            ushort data = (ushort)((quaternion.Y - unpackData[1]) / unpackData[0] * 65535.0f);
                             handler.Write(data);
                             break;
                         }
                     case QuaternionDecompression.LoadQuaternionsZAxis16Bit:
                         {
-                            float data = (quaternion.Z - unpackData[1]) / unpackData[0] * 65535.0f;
+                            ushort data = (ushort)((quaternion.Z - unpackData[1]) / unpackData[0] * 65535.0f);
                             handler.Write(data);
                             break;
                         }
@@ -1122,9 +1122,11 @@ namespace ReeLib.Mot
                             QuaternionDecompression.LoadQuaternionsZAxis16Bit => scale.Z,
                             _ => scale.X,
                         };
-                        unpackData[1] = min.X;
-                        unpackData[2] = min.Y;
-                        unpackData[3] = min.Z;
+                        unpackData[1] = RotationCompressionType switch {
+                            QuaternionDecompression.LoadQuaternionsYAxis16Bit => min.Y,
+                            QuaternionDecompression.LoadQuaternionsZAxis16Bit => min.Z,
+                            _ => min.X,
+                        };
                         break;
                 }
             }
@@ -1190,6 +1192,10 @@ namespace ReeLib.Mot
         public Track? Translation { get; set; }
         public Track? Rotation { get; set; }
         public Track? Scale { get; set; }
+
+        public bool HasTranslation => Translation != null && (ClipHeader.trackFlags & TrackFlag.Translation) != 0;
+        public bool HasRotation => Rotation != null && (ClipHeader.trackFlags & TrackFlag.Rotation) != 0;
+        public bool HasScale => Scale != null && (ClipHeader.trackFlags & TrackFlag.Scale) != 0;
 
         public BoneMotionClip(BoneClipHeader clipHeader)
         {

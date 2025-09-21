@@ -98,6 +98,28 @@ namespace ReeLib.Mot
                  ?.Then(ref uknShort);
             return true;
         }
+
+        public void CopyValuesFrom(MotHeader source)
+        {
+            version = source.version;
+            ukn00 = source.ukn00;
+            motSize = source.motSize;
+            FrameRate = source.FrameRate;
+            frameCount = source.frameCount;
+            endFrame = source.endFrame;
+            startFrame = source.startFrame;
+            blending = source.blending;
+            boneCount = source.boneCount;
+            boneClipCount = source.boneClipCount;
+            motEndClipCount = source.motEndClipCount;
+            uknExtraCount = source.uknExtraCount;
+            uknPointerCount = source.uknPointerCount;
+            uknShort = source.uknShort;
+            jointMapPath = source.jointMapPath;
+            if (string.IsNullOrEmpty(motName)) {
+                motName = source.motName;
+            }
+        }
     }
 
 
@@ -1404,7 +1426,6 @@ namespace ReeLib.Mot
 
         protected override bool DoWrite(FileHandler handler)
         {
-            handler.Write(ref unknown);
             if (Version > MotVersion.MHR_DEMO)
             {
                 handler.Write(ref count1);
@@ -1417,6 +1438,7 @@ namespace ReeLib.Mot
             }
             else
             {
+                handler.Write(ref unknown);
                 throw new NotImplementedException();
             }
             return true;
@@ -1452,6 +1474,7 @@ namespace ReeLib
     public abstract class MotFileBase(FileHandler fileHandler)
         : BaseFile(fileHandler)
     {
+        public abstract KnownFileFormats MotType { get; }
     }
 
     public class MotFile(FileHandler fileHandler)
@@ -1472,6 +1495,8 @@ namespace ReeLib
         public MotBone? GetBoneByHash(uint hash) => Bones.FirstOrDefault(b => b.Header.boneHash == hash);
 
         private bool IsMotlist => PathUtils.GetFilenameExtensionWithoutSuffixes(FileHandler.FilePath ?? string.Empty).SequenceEqual("motlist") == true;
+
+        public override KnownFileFormats MotType => KnownFileFormats.Motion;
 
         protected override bool DoRead()
         {
@@ -1609,6 +1634,8 @@ namespace ReeLib
                 WriteBones();
             }
 
+            header.motSize = (uint)handler.Tell();
+            handler.Write(12, header.motSize);
             return true;
         }
 
@@ -1819,5 +1846,22 @@ namespace ReeLib
 #endregion
 
         public override string ToString() => $"{Header.motName}";
+
+        public void CopyValuesFrom(MotFile source)
+        {
+            Clips.Clear();
+            Clips.AddRange(source.Clips);
+            EndClips.Clear();
+            EndClips.AddRange(source.EndClips);
+            BoneClips.Clear();
+            BoneClips.AddRange(source.BoneClips);
+            if (source.BoneHeaders != null) {
+                BoneHeaders?.Clear();
+                BoneHeaders ??= new();
+                BoneHeaders.AddRange(source.BoneHeaders);
+                // TODO fix bone references?
+            }
+            Header.CopyValuesFrom(source.Header);
+        }
     }
 }

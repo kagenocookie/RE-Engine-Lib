@@ -240,17 +240,9 @@ namespace ReeLib
                 mot.Write();
                 // "we only need one bone list header per motlist even if some mots use different bones" - capcom dev, apparently
                 var skipBoneList = !isFirst && header.Version >= MotlistVersion.RE3;
-                if (mot is MotFile motFile)
+                if (mot is MotFile motFile && skipBoneList)
                 {
-                    if (!skipBoneList)
-                    {
-                        motFile.WriteBones();
-                    }
-                    else
-                    {
-                        motFile.Header.motSize = (uint)mot.Size;
-                        motFile.FileHandler.Write(12, motFile.Header.motSize);
-                    }
+                    motFile.WriteBones();
                 }
             }
 

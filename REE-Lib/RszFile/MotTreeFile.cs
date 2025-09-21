@@ -61,6 +61,8 @@ namespace ReeLib
         public const uint Magic = 0x6572746D;
         public const string Extension = ".mottree";
 
+        public override KnownFileFormats MotType => KnownFileFormats.MotionTree;
+
         public MotTreeHeader Header { get; } = new();
         public List<MotBone> Bones { get; } = new();
         public List<MotClip> MotClips { get; } = new();

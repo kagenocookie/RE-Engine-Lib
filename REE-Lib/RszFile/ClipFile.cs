@@ -1027,7 +1027,7 @@ namespace ReeLib.Clip
             }
 
             ExtraPropertyData.Version = Header.version;
-            if (Version != ClipVersion.RE7 && clipHeader.numNodes > 1)
+            if (Version != ClipVersion.RE7 && clipHeader.endClipStructsOffset1 > 0)
             {
                 handler.Seek(clipHeader.endClipStructsOffset1);
                 // TODO figure out what and why this section exists
@@ -1087,12 +1087,9 @@ namespace ReeLib.Clip
             handler.StringTableFlush();
 
             handler.Align(16);
-
-
-            handler.Align(16);
             clipHeader.endClipStructsOffset1 = handler.Tell();
             clipHeader.endClipStructsOffset2 = clipHeader.endClipStructsOffset1;
-            if (Version != ClipVersion.RE7 && clipHeader.numNodes > 1)
+            if (Version != ClipVersion.RE7)
             {
                 ExtraPropertyData.Write(handler);
             }

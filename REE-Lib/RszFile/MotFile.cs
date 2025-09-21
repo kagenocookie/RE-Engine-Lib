@@ -1792,11 +1792,10 @@ namespace ReeLib
                         continue;
                     }
 
-                    if (boneHeader.parentOffs == 0) {
-                        RootBones.Add(bone);
-                    } else {
-                        var parentBoneIndex = (int)((boneHeader.parentOffs - boneHeaderOffset) / BoneHeader.StructSize);
-                        var parentBone = GetBoneByHash(BoneHeaders[parentBoneIndex].boneHash);
+                    int refBoneIndex;
+                    if (boneHeader.parentOffs != 0) {
+                        refBoneIndex = (int)((boneHeader.parentOffs - boneHeaderOffset) / BoneHeader.StructSize);
+                        var parentBone = GetBoneByHash(BoneHeaders[refBoneIndex].boneHash);
                         if (parentBone == null)
                         {
                             Log.Warn("Parent bone not found");
@@ -1804,7 +1803,29 @@ namespace ReeLib
                         }
 
                         bone.Parent = parentBone;
-                        parentBone.Children.Add(bone);
+                    }
+                    else
+                    {
+                        RootBones.Add(bone);
+                    }
+
+                    if (boneHeader.childOffs != 0)
+                    {
+                        refBoneIndex = (int)((boneHeader.childOffs - boneHeaderOffset) / BoneHeader.StructSize);
+                        if (refBoneIndex != bone.Index)
+                        {
+                            var next = GetBoneByHash(BoneHeaders[refBoneIndex].boneHash);
+                            while (next != null)
+                            {
+                                bone.Children.Add(next);
+                                if (BoneHeaders[refBoneIndex].nextSiblingOffs == 0) break;
+
+                                refBoneIndex = (int)((BoneHeaders[refBoneIndex].nextSiblingOffs - boneHeaderOffset) / BoneHeader.StructSize);
+                                if (refBoneIndex == next.Index) break;
+
+                                next = GetBoneByHash(BoneHeaders[refBoneIndex].boneHash);
+                            }
+                        }
                     }
                 }
             }
@@ -1845,7 +1866,7 @@ namespace ReeLib
             {
                 bone.Header.parentOffs = bone.Parent == null ? 0 : firstBoneOffset + bone.Parent.Index * BoneHeader.StructSize;
                 var sibling = GetNextSiblingIndex(bone.Parent?.Children ?? RootBones, bone);
-                bone.Header.nextSiblingOffs = sibling == -1 ? 0 : firstBoneOffset + Bones[sibling].Index * BoneHeader.StructSize;
+                bone.Header.nextSiblingOffs = sibling == -1 ? 0 : firstBoneOffset + sibling * BoneHeader.StructSize;
                 bone.Header.childOffs = bone.Children.Count == 0 ? 0 : firstBoneOffset + bone.Children[0].Index * BoneHeader.StructSize;
                 if (!string.IsNullOrEmpty(bone.Header.boneName)) {
                     bone.Header.boneHash = MurMur3HashUtils.GetHash(bone.Header.boneName);
@@ -1857,11 +1878,11 @@ namespace ReeLib
             handler.Align(16);
         }
 
-        private static int GetNextSiblingIndex<T>(List<T> list, T value, int defaultValue = -1)
+        private static int GetNextSiblingIndex(List<MotBone> list, MotBone value, int defaultValue = -1)
         {
             var index = list.IndexOf(value);
             if (index == -1 || index == list.Count - 1) return defaultValue;
-            return index + 1;
+            return list[index + 1].Index;
         }
 #endregion
 

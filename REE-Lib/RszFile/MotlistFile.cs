@@ -1,4 +1,5 @@
 using ReeLib.Clip;
+using ReeLib.Common;
 using ReeLib.Mot;
 using ReeLib.Motlist;
 
@@ -286,6 +287,24 @@ namespace ReeLib
                 }
             }
 
+            return true;
+        }
+
+        public bool ReplaceMotFile(MotFileBase replacedFile, MotFileBase newFile)
+        {
+            var motIndex = MotFiles.IndexOf(replacedFile);
+            if (motIndex == -1)
+            {
+                Log.Error($"Mot {replacedFile} not found in motlist");
+                return false;
+            }
+
+            MotFiles[motIndex] = newFile;
+            foreach (var mots in Motions) {
+                if (mots.MotFile == replacedFile) {
+                    mots.MotFile = newFile;
+                }
+            }
             return true;
         }
     }

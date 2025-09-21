@@ -318,7 +318,7 @@ namespace ReeLib.Mesh
 						{
 							var u = handler.Read<Half>();
 							var v = handler.Read<Half>();
-							UV0[k] = new Vector2(1f - (float)u, 1f - (float)v);
+							UV0[k] = new Vector2((float)u, (float)v);
 						}
 						break;
 					case VertexBufferType.UV1:
@@ -327,7 +327,7 @@ namespace ReeLib.Mesh
 						{
 							var u = handler.Read<Half>();
 							var v = handler.Read<Half>();
-							UV1[k] = new Vector2(1f - (float)u, 1f - (float)v);
+							UV1[k] = new Vector2((float)u, (float)v);
 						}
 						break;
 					case VertexBufferType.Colors:

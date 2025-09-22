@@ -86,6 +86,7 @@ namespace ReeLib.Motlist
                 handler.Write(ref UnkPadding);
             }
             handler.Write(ref numMots);
+            handler.Skip(2);
             handler.StringTableFlush();
             return true;
         }
@@ -248,6 +249,7 @@ namespace ReeLib
                     motFile.Header.motSize = 0;
                     motFile.FileHandler.Write(12, 0);
                 }
+                handler.Align(16);
             }
 
             handler.Write(24, header.motionIndicesOffset = handler.Tell());

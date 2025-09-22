@@ -58,8 +58,9 @@ namespace ReeLib.Clip
         U32 = 0x7,
         S64 = 0x8,
         U64 = 0x9,
-        F32 = 0xA,
-        F64 = 0xB,
+        // yes, it's actually a double even though the ingame enum says F32 for this value, maybe it's not the right enum, or the devs are dumb; haven't found a F64 instance in the wild yet
+        F64 = 0xA,
+        F64_invalid = 0xB,
         Str8 = 0xC,
         Str16 = 0xD,
         Enum = 0xE,
@@ -122,8 +123,8 @@ namespace ReeLib.Clip
                 PropertyType.U32 => RszFieldType.U32,
                 PropertyType.S64 => RszFieldType.S64,
                 PropertyType.U64 => RszFieldType.U64,
-                PropertyType.F32 => RszFieldType.F32,
                 PropertyType.F64 => RszFieldType.F64,
+                // PropertyType.F64_invalid => RszFieldType.F32,
                 PropertyType.Str8 => RszFieldType.String,
                 PropertyType.Str16 => RszFieldType.String,
                 PropertyType.Enum => RszFieldType.Enum,
@@ -257,13 +258,13 @@ namespace ReeLib.Clip
                 case PropertyType.U64:
                     Value = handler.Read<ulong>();
                     break;
-                case PropertyType.F32:
-                    // yes, it's stored as a double, go figure
-                    Value = (float)handler.Read<double>();
-                    break;
                 case PropertyType.F64:
                     Value = handler.Read<double>();
                     break;
+                case PropertyType.F64_invalid:
+                    throw new DataInterpretationException("F64_invalid, formerly known as non-existent F64, has been found.");
+                    // Value = handler.Read<double>();
+                    // break;
                 case PropertyType.Str8:
                 case PropertyType.Enum:
                     {
@@ -332,10 +333,10 @@ namespace ReeLib.Clip
                 case PropertyType.U64:
                     handler.Write((ulong)Value);
                     break;
-                case PropertyType.F32:
-                    handler.Write((double)(float)Value);
-                    break;
                 case PropertyType.F64:
+                    handler.Write((double)Value);
+                    break;
+                case PropertyType.F64_invalid:
                     handler.Write((double)Value);
                     break;
                 case PropertyType.Str8:
@@ -686,10 +687,8 @@ namespace ReeLib.Clip
             };
             handler.Read(ref unicodeNamesOffset);
             handler.Read(ref endClipStructsOffset1);
-            if (version <= ClipVersion.RE4)
-            {
-                handler.Read(ref endClipStructsOffset2);
-            }
+            // if (version <= ClipVersion.RE4)
+            handler.Read(ref endClipStructsOffset2);
             return true;
         }
 
@@ -716,10 +715,8 @@ namespace ReeLib.Clip
             handler.WriteArray(namesOffsetExtra!);
             handler.Write(ref unicodeNamesOffset);
             handler.Write(ref endClipStructsOffset1);
-            if (version <= ClipVersion.RE4)
-            {
-                handler.Write(ref endClipStructsOffset2);
-            }
+            // if (version <= ClipVersion.RE4)
+            handler.Write(ref endClipStructsOffset2);
             return true;
         }
     }
@@ -1056,7 +1053,7 @@ namespace ReeLib.Clip
                 cTrack.Write(handler);
             }
 
-            handler.Align(16);
+            handler.Align(8);
             clipHeader.numProperties = Properties.Count;
             clipHeader.propertiesOffset = handler.Tell();
             foreach (var property in Properties)
@@ -1066,7 +1063,6 @@ namespace ReeLib.Clip
                 property.Info.Write(handler);
             }
 
-            handler.Align(16);
             clipHeader.numKeys = ClipKeys.Count;
             clipHeader.keysOffset = handler.Tell();
             foreach (var key in ClipKeys)
@@ -1091,8 +1087,8 @@ namespace ReeLib.Clip
             handler.StringTableFlush();
 
             handler.Align(16);
-            clipHeader.endClipStructsOffset1 = handler.Tell();
-            clipHeader.endClipStructsOffset2 = clipHeader.endClipStructsOffset1;
+            clipHeader.endClipStructsOffset1 = handler.Tell() - 8;
+            clipHeader.endClipStructsOffset2 = clipHeader.endClipStructsOffset1 + 8;
             if (Version != ClipVersion.RE7)
             {
                 ExtraPropertyData.Write(handler);

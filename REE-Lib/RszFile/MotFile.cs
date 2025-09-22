@@ -178,6 +178,11 @@ namespace ReeLib.Mot
         public long trackHeaderOffset; // keysPointer
         public string? boneName;
 
+        /// <summary>
+        /// Original deserialized name, for easier overview when attempting bone retargeting. Will not be serialized back to the binary format.
+        /// </summary>
+        public string? OriginalName;
+
         public MotVersion MotVersion { get; set; }
 
         public BoneClipHeader(MotVersion motVersion)
@@ -236,7 +241,9 @@ namespace ReeLib.Mot
             return true;
         }
 
-        public override string ToString() => boneName ?? $"Hash: [{boneHash}]";
+        public override string ToString() => OriginalName == null || OriginalName == boneName
+            ? boneName ?? $"Hash: [{boneHash}]"
+            : (boneName ?? $"Hash: [{boneHash}]") + $" (previously: {OriginalName})";
     }
 
 
@@ -1874,7 +1881,7 @@ namespace ReeLib
                 var clip = BoneClips.FirstOrDefault(c => c.ClipHeader.boneHash == bone.boneHash);
                 if (clip != null)
                 {
-                    clip.ClipHeader.boneName = bone.boneName;
+                    clip.ClipHeader.OriginalName = clip.ClipHeader.boneName = bone.boneName;
                 }
             }
         }

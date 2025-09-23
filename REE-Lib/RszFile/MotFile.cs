@@ -5,6 +5,7 @@ using ReeLib.Clip;
 using ReeLib.Common;
 using ReeLib.InternalAttributes;
 using ReeLib.Mot;
+using ReeLib.Motlist;
 
 namespace ReeLib.Mot
 {
@@ -399,6 +400,23 @@ namespace ReeLib.Mot
         {
             get => (TrackValueType)(flags & 0xFFF);
             set => flags = (flags & 0xFFFFF000) | ((uint)value & 0xFFF);
+        }
+
+        public void ChangeVersion(MotVersion version)
+        {
+            // the compression enum is different between games, make sure we keep the same end value
+            if (TrackType == TrackValueType.Quaternion)
+            {
+                var c = RotationCompressionType;
+                MotVersion = version;
+                RotationCompressionType = c;
+            }
+            else
+            {
+                var c = TranslationCompressionType;
+                MotVersion = version;
+                TranslationCompressionType = c;
+            }
         }
 
         protected override bool DoRead(FileHandler handler)
@@ -1322,6 +1340,14 @@ namespace ReeLib.Mot
             Scale?.WriteOffsetContents(handler);
         }
 
+        public void ChangeVersion(MotVersion version)
+        {
+            ClipHeader.MotVersion = version;
+            Translation?.ChangeVersion(version);
+            Rotation?.ChangeVersion(version);
+            Scale?.ChangeVersion(version);
+        }
+
         public override string ToString() => $"{ClipHeader} [{(Translation == null ? "": "T")}{(Rotation == null ? "": "R")}{(Scale == null ? "": "S")}]";
     }
 
@@ -1385,6 +1411,14 @@ namespace ReeLib.Mot
             handler.Write(Start + 8, clipOffset);
             handler.Write(Start + 16, endClipStructsRelocation);
             return true;
+        }
+
+        public void ChangeVersion(ClipVersion clipVer)
+        {
+            ClipEntry.Version = clipVer;
+            foreach (var track in ClipEntry.CTrackList) track.Version = clipVer;
+            foreach (var track in ClipEntry.Properties) track.Info.Version = clipVer;
+            ClipEntry.ExtraPropertyData.Version = clipVer;
         }
 
         public override string ToString() => $"MotClip: {ClipEntry}";
@@ -1933,6 +1967,23 @@ namespace ReeLib
 
         public override string ToString() => $"{Header.motName}";
 
+        public void ChangeVersion(MotVersion version)
+        {
+            foreach (var clip in BoneClips)
+            {
+                clip.ChangeVersion(version);
+            }
+            foreach (var clip in EndClips)
+            {
+                clip.Header.Version = Header.version;
+            }
+            var clipVer = Header.version.GetClipVersion();
+            foreach (var clip in Clips)
+            {
+                clip.ChangeVersion(clipVer);
+            }
+        }
+
         public void CopyValuesFrom(MotFile source)
         {
             Clips.Clear();
@@ -1963,6 +2014,12 @@ namespace ReeLib
                     clip.ClipHeader.boneName ??= bone.Name;
                 }
             }
+
+            if (source.Header.version != Header.version)
+            {
+                ChangeVersion(Header.version);
+            }
+
             Header.CopyValuesFrom(source.Header);
         }
     }

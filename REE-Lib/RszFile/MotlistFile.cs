@@ -38,6 +38,21 @@ namespace ReeLib.Motlist
             MotlistVersion.MHWILDS => MotVersion.MHWILDS,
             _ => MotVersion.MHWILDS,
         };
+
+        public static ClipVersion GetClipVersion(this MotVersion ver) => ver switch {
+            MotVersion.RE7 => ClipVersion.RE7,
+            MotVersion.RE2_DMC5 => ClipVersion.RE2_DMC5,
+            MotVersion.RE3 => ClipVersion.RE3,
+            MotVersion.MHR_DEMO => ClipVersion.MHR_DEMO,
+            MotVersion.RE8 => ClipVersion.RE8,
+            MotVersion.RE2_RT => ClipVersion.RE2_RT,
+            MotVersion.MHR => ClipVersion.MHR,
+            MotVersion.SF6 => ClipVersion.SF6,
+            MotVersion.RE4 => ClipVersion.RE4,
+            MotVersion.DD2 => ClipVersion.DD2,
+            MotVersion.MHWILDS => ClipVersion.MHWilds,
+            _ => ClipVersion.MHWilds,
+        };
     }
 
     public class Header : BaseModel

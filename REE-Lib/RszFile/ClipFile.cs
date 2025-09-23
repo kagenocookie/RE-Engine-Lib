@@ -854,6 +854,7 @@ namespace ReeLib.Clip
             else
             {
                 handler.Write(offset1 = handler.Tell() + 8);
+                Props2.Clear();
             }
             handler.Skip((Props1.Count + Props2.Count) * 16);
 
@@ -922,7 +923,7 @@ namespace ReeLib.Clip
         public const uint Magic = 0x50494C43;
         public const string Extension = ".clip";
 
-        public ClipVersion Version => Header.version;
+        public ClipVersion Version { get => Header.version; set => Header.version = value; }
 
         public int PropertySize => Version switch
         {

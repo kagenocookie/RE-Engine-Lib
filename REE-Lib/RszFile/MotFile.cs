@@ -1687,6 +1687,8 @@ namespace ReeLib
             handler.Align(16);
 
             header.clipCount = (byte)Clips.Count;
+            header.clipFileOffset = 0;
+            header.motEndClipDataOffset = 0;
             if (Clips.Count > 0)
             {
                 handler.Align(16);

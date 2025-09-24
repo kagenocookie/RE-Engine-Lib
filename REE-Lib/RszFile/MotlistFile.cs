@@ -298,7 +298,7 @@ namespace ReeLib
                 {
                     motIndex.motClipOffset = handler.Tell();
                     handler.Write(handler.Tell() + 16);
-                    handler.Skip(8);
+                    handler.Write(0L);
                     motIndex.MotClip.Write(handler);
                     handler.Write(motIndex.Start, motIndex.motClipOffset);
                 }

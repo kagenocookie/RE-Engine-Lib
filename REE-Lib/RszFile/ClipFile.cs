@@ -644,6 +644,10 @@ namespace ReeLib.Clip
         public int numNodes;
         public int numProperties;
         public int numKeys;
+        public int numUnknownWilds1;
+        public int numUnknownWilds2;
+        public int numUnknownWilds3;
+        public int numUnknownWilds4;
 
         public Guid guid;
         public long clipDataOffset;
@@ -671,6 +675,13 @@ namespace ReeLib.Clip
             {
                 handler.Read(ref guid);
             }
+            if (version >= ClipVersion.MHWilds)
+            {
+                handler.Read(ref numUnknownWilds1);
+                handler.Read(ref numUnknownWilds2);
+                handler.Read(ref numUnknownWilds3);
+                handler.Read(ref numUnknownWilds4);
+            }
             handler.Read(ref clipDataOffset);
             handler.Read(ref propertiesOffset);
             handler.Read(ref keysOffset);
@@ -683,6 +694,7 @@ namespace ReeLib.Clip
             {
                 ClipVersion.RE7 => handler.ReadArray<long>(5),
                 ClipVersion.RE4 or ClipVersion.SF6 => handler.ReadArray<long>(3),
+                >= ClipVersion.MHWilds => handler.ReadArray<long>(7),
                 _ => handler.ReadArray<long>(4),
             };
             handler.Read(ref unicodeNamesOffset);
@@ -703,6 +715,13 @@ namespace ReeLib.Clip
             if (version != ClipVersion.RE3 && version < ClipVersion.RE8)
             {
                 handler.Write(ref guid);
+            }
+            if (version >= ClipVersion.MHWilds)
+            {
+                handler.Write(ref numUnknownWilds1);
+                handler.Write(ref numUnknownWilds2);
+                handler.Write(ref numUnknownWilds3);
+                handler.Write(ref numUnknownWilds4);
             }
             handler.Write(ref clipDataOffset);
             handler.Write(ref propertiesOffset);

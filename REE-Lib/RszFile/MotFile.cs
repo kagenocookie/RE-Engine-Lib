@@ -67,23 +67,23 @@ namespace ReeLib.Mot
                  ?.Then(ref motSize)
                  ?.Then(ref boneHeaderOffsetStart)
                  ?.Then(ref boneClipHeaderOffset)
-                 ?.Skip(8);
+                 ?.Null(8);
             jointMapPath ??= "";
             if (version >= MotVersion.MHR_DEMO)
             {
-                action.Skip(8)
+                action.Null(8)
                      ?.Then(ref clipFileOffset)
                      ?.HandleOffsetWString(ref jointMapPath)
                      ?.Then(ref motEndClipDataOffset)
                      ?.Then(ref motEndClipFrameValuesOffset)
-                     ?.Skip(8);
+                     ?.Null(8);
             }
             else
             {
-                // NOTE: we're not writing the jmap path back at the same relative offset as the engine does, hopefully not an issue
+                // NOTE: we're not writing the jmap path back at the same relative offset as the engine does, but it doesn't make a difference
                 action.HandleOffsetWString(ref jointMapPath)
                      ?.Then(ref clipFileOffset)
-                     ?.Skip(16)
+                     ?.Null(16)
                      ?.Then(ref motEndClipDataOffset);
             }
             action.HandleOffsetWString(ref motName)
@@ -227,7 +227,7 @@ namespace ReeLib.Mot
             if (MotVersion == MotVersion.RE2_DMC5)
             {
                 handler.Write(ref uknFloat);
-                handler.Skip(4);
+                handler.WriteNull(4);
             }
 
             if (MotVersion <= MotVersion.RE2_DMC5)
@@ -1388,10 +1388,10 @@ namespace ReeLib.Mot
 
         protected override bool DoWrite(FileHandler handler)
         {
-            handler.Skip(8);
+            handler.Write(0L);
             handler.Write(ref clipOffset);
             handler.Write(ref endClipStructsRelocation);
-            handler.Skip(4);
+            handler.Write(0);
             handler.Write(ref uknIntA);
             handler.Write(ref uknIntB);
             handler.WriteBytes(uknBytes1C);

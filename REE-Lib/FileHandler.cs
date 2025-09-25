@@ -31,6 +31,8 @@ namespace ReeLib
 
         public long Position => Stream.Position;
 
+        private static readonly byte[] zeroes = new byte[256];
+
         public FileHandler() : this(new MemoryStream())
         {
         }
@@ -495,6 +497,12 @@ namespace ReeLib
             WriteBytes(buffer, length);
         }
 
+        public void WriteNull(int count)
+        {
+            Debug.Assert(count <= zeroes.Length);
+            Stream.Write(zeroes, 0, count);
+        }
+
         public void FillBytes(byte value, int length)
         {
             if (length < 0)
@@ -599,7 +607,7 @@ namespace ReeLib
             long originPos = Tell();
             if (pos != -1) Seek(pos);
             string? result = null;
-            if (charCount > 1024)
+            if (charCount > 1024 || charCount < -1)
             {
                 throw new Exception($"{nameof(charCount)} {charCount} too large");
             }
@@ -1087,7 +1095,7 @@ namespace ReeLib
         public void ReadOffsetWString(out string text)
         {
             long offset = ReadInt64();
-            text = ReadWString(offset);
+            text = offset == 0 ? string.Empty : ReadWString(offset);
         }
 
         public void WriteOffsetAsciiString(string text)
@@ -1423,6 +1431,7 @@ namespace ReeLib
         FileHandler Handler { get; }
         bool Success { get; }
         bool Handle<T>(ref T value) where T : unmanaged;
+        IFileHandlerAction Null(int count);
         IFileHandlerAction HandleOffsetWString(ref string value);
     }
 
@@ -1479,6 +1488,12 @@ namespace ReeLib
             Handler.ReadOffsetWString(out value);
             return this;
         }
+
+        public IFileHandlerAction Null(int count)
+        {
+            Handler.Skip(count);
+            return this;
+        }
     }
 
 
@@ -1496,6 +1511,12 @@ namespace ReeLib
         public readonly IFileHandlerAction HandleOffsetWString(ref string value)
         {
             Handler.WriteOffsetWString(value);
+            return this;
+        }
+
+        public IFileHandlerAction Null(int count)
+        {
+            Handler.WriteNull(count);
             return this;
         }
     }

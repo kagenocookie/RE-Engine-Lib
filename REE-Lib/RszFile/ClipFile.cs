@@ -445,7 +445,7 @@ namespace ReeLib.Clip
                 if (Version == ClipVersion.RE3)
                     action.Do(ref RE3hash);
                 else
-                    action.Skip(8);
+                    action.Null(8); // TODO RE7 not null
                 if (Version == ClipVersion.RE7)
                 {
                     action.Skip(8);

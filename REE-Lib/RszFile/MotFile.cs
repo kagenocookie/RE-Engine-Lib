@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Numerics;
-using System.Reflection.Metadata;
 using ReeLib.Clip;
 using ReeLib.Common;
 using ReeLib.InternalAttributes;
@@ -35,6 +34,7 @@ namespace ReeLib.Mot
         public uint motSize;
         public long boneHeaderOffsetStart; // BoneBaseDataPointer
         public long boneClipHeaderOffset; // BoneDataPointer
+        public long motPropertyTracksOffset;
 
         public long clipFileOffset;
         public long motEndClipDataOffset;
@@ -51,7 +51,7 @@ namespace ReeLib.Mot
         public byte motEndClipCount;
         public ushort uknExtraCount; // seems to always be either 0 or 1
         public ushort FrameRate;
-        public ushort uknPointerCount;
+        public ushort motPropertyCount;
         public ushort uknShort;
 
         public string motName = string.Empty;
@@ -67,7 +67,7 @@ namespace ReeLib.Mot
                  ?.Then(ref motSize)
                  ?.Then(ref boneHeaderOffsetStart)
                  ?.Then(ref boneClipHeaderOffset)
-                 ?.Null(8);
+                 ?.Then(ref motPropertyTracksOffset); // TODO at least in re4, dmc5
             jointMapPath ??= "";
             if (version >= MotVersion.MHR_DEMO)
             {
@@ -76,14 +76,15 @@ namespace ReeLib.Mot
                      ?.HandleOffsetWString(ref jointMapPath)
                      ?.Then(ref motEndClipDataOffset)
                      ?.Then(ref motEndClipFrameValuesOffset)
-                     ?.Null(8);
+                     ?.Skip(8); // dd2: natives/stm/animation/ch/ch00/motlist/ch00_000_comrd.motlist.751
             }
             else
             {
                 // NOTE: we're not writing the jmap path back at the same relative offset as the engine does, but it doesn't make a difference
                 action.HandleOffsetWString(ref jointMapPath)
                      ?.Then(ref clipFileOffset)
-                     ?.Null(16)
+                     ?.Skip(8) // TODO not null, verify what it is (re2)
+                     ?.Skip(8) // TODO not null, verify what it is
                      ?.Then(ref motEndClipDataOffset);
             }
             action.HandleOffsetWString(ref motName)
@@ -97,7 +98,7 @@ namespace ReeLib.Mot
                  ?.Then(ref motEndClipCount)
                  ?.Then(version >= MotVersion.RE8, ref uknExtraCount)
                  ?.Then(ref FrameRate)
-                 ?.Then(ref uknPointerCount)
+                 ?.Then(ref motPropertyCount)
                  ?.Then(ref uknShort);
             return true;
         }
@@ -116,7 +117,7 @@ namespace ReeLib.Mot
             boneClipCount = source.boneClipCount;
             motEndClipCount = source.motEndClipCount;
             uknExtraCount = source.uknExtraCount;
-            uknPointerCount = source.uknPointerCount;
+            motPropertyCount = source.motPropertyCount;
             uknShort = source.uknShort;
             jointMapPath = source.jointMapPath;
             if (string.IsNullOrEmpty(motName)) {
@@ -249,6 +250,13 @@ namespace ReeLib.Mot
     }
 
 
+    public enum FloatDecompression
+    {
+        UnknownType,
+        LoadFloatsFull,
+        LoadFloats8Bit,
+    }
+
     public enum Vector3Decompression
     {
         UnknownType,
@@ -280,6 +288,11 @@ namespace ReeLib.Mot
     // not sure if it's a flag or just a random arbitrary value, but the value is consistent per track value type across all games.
     public enum TrackValueType
     {
+        /// <summary>
+        /// Float property tracks (10100010)
+        /// </summary>
+        Float = 162,
+
         /// <summary>
         /// Translation/scale tracks (0000 11110010)
         /// </summary>
@@ -344,6 +357,11 @@ namespace ReeLib.Mot
         /// </remarks>
         public Quaternion[]? rotations;
 
+        /// <summary>
+        /// Float value list for this track. Used by mot properties.
+        /// </summary>
+        public float[]? floats;
+
         private long _offsetStart;
         private int DataOffsetSize => MotVersion >= MotVersion.RE3 ? 4 : 8;
 
@@ -368,6 +386,11 @@ namespace ReeLib.Mot
                     if (TranslationCompressionType is Vector3Decompression.LoadVector3sXAxis16Bit or Vector3Decompression.LoadVector3sYAxis16Bit or Vector3Decompression.LoadVector3sZAxis16Bit)
                         return 4;
                 }
+                if (TrackType == TrackValueType.Float)
+                {
+                    if (FloatCompressionType is FloatDecompression.LoadFloats8Bit)
+                        return 2;
+                }
 
                 return 8;
             }
@@ -380,8 +403,10 @@ namespace ReeLib.Mot
             FrameIndexType = FrameIndexSize.Byte;
             if (type == TrackValueType.Quaternion) {
                 rotations = [];
-            } else {
+            } else if (type == TrackValueType.Vector3) {
                 translations = [];
+            } else {
+                floats = [];
             }
         }
 
@@ -412,8 +437,15 @@ namespace ReeLib.Mot
                 MotVersion = version;
                 RotationCompressionType = c;
             }
-            else
+            else if (TrackType == TrackValueType.Vector3)
             {
+                var c = TranslationCompressionType;
+                MotVersion = version;
+                TranslationCompressionType = c;
+            }
+            else if (TrackType == TrackValueType.Float)
+            {
+                // TODO
                 var c = TranslationCompressionType;
                 MotVersion = version;
                 TranslationCompressionType = c;
@@ -548,6 +580,14 @@ namespace ReeLib.Mot
             {
                 WriteFrameDataRotation(handler);
             }
+            else if (TrackType == TrackValueType.Float)
+            {
+                WriteFrameDataFloats(handler);
+            }
+            else
+            {
+                throw new NotImplementedException("Unsupported track type " + TrackType);
+            }
 
             if (RequiresUnpackData)
             {
@@ -634,6 +674,11 @@ namespace ReeLib.Mot
             { 0x43000, QuaternionDecompression.LoadQuaternionsZAxis },
         };
 
+        private static Dictionary<uint, FloatDecompression> FloatDict = new() {
+            { 0x00000, FloatDecompression.LoadFloatsFull },
+            { 0x10000, FloatDecompression.LoadFloats8Bit }, // RE4
+        };
+
         public Vector3Decompression TranslationCompressionType
         {
             get => (MotVersion <= MotVersion.RE2_DMC5 ? TranslationDictDmc5 : TranslationDict).GetValueOrDefault(Compression);
@@ -646,9 +691,19 @@ namespace ReeLib.Mot
             set => Compression = (MotVersion <= MotVersion.RE2_DMC5 ? RotationDictDmc5 : RotationDict).FirstOrDefault(kv => kv.Value == value).Key;
         }
 
-        public bool RequiresUnpackData => TrackType == TrackValueType.Quaternion
-            ? !(RotationCompressionType is QuaternionDecompression.LoadQuaternionsFull or QuaternionDecompression.LoadQuaternions3Component or QuaternionDecompression.LoadQuaternionsXAxis or QuaternionDecompression.LoadQuaternionsYAxis or QuaternionDecompression.LoadQuaternionsZAxis)
-            : !(TranslationCompressionType is Vector3Decompression.LoadVector3sFull or Vector3Decompression.LoadScalesXYZ or Vector3Decompression.LoadVector3sXYZAxis);
+        public FloatDecompression FloatCompressionType
+        {
+            // get => FloatDict.GetValueOrDefault(Compression);
+            get => FloatDict[Compression];
+            set => Compression = FloatDict.FirstOrDefault(kv => kv.Value == value).Key;
+        }
+
+        public bool RequiresUnpackData => TrackType switch {
+            TrackValueType.Quaternion => !(RotationCompressionType is QuaternionDecompression.LoadQuaternionsFull or QuaternionDecompression.LoadQuaternions3Component or QuaternionDecompression.LoadQuaternionsXAxis or QuaternionDecompression.LoadQuaternionsYAxis or QuaternionDecompression.LoadQuaternionsZAxis),
+            TrackValueType.Vector3 => !(TranslationCompressionType is Vector3Decompression.LoadVector3sFull or Vector3Decompression.LoadScalesXYZ or Vector3Decompression.LoadVector3sXYZAxis),
+            TrackValueType.Float => !(FloatCompressionType is FloatDecompression.LoadFloatsFull),
+            _ => false,
+        };
 
         public void ReadFrameDataTranslation(FileHandler handler)
         {
@@ -791,18 +846,18 @@ namespace ReeLib.Mot
                     case Vector3Decompression.LoadVector3s5BitA:
                         {
                             ushort data = (ushort)(
-                                ((ushort)((translation.X - unpackData[4]) / unpackData[0] * 0b11111) << 00) |
-                                ((ushort)((translation.Y - unpackData[5]) / unpackData[1] * 0b11111) << 05) |
-                                ((ushort)((translation.Z - unpackData[6]) / unpackData[2] * 0b11111) << 10));
+                                ((ushort)MathF.Round((translation.X - unpackData[4]) / unpackData[0] * 0b11111) << 00) |
+                                ((ushort)MathF.Round((translation.Y - unpackData[5]) / unpackData[1] * 0b11111) << 05) |
+                                ((ushort)MathF.Round((translation.Z - unpackData[6]) / unpackData[2] * 0b11111) << 10));
                             handler.Write(data);
                             break;
                         }
                     case Vector3Decompression.LoadVector3s5BitB:
                         {
                             ushort data = (ushort)(
-                                ((ushort)((translation.X - unpackData[3]) / unpackData[0] * 0b11111) << 00) |
-                                ((ushort)((translation.Y - unpackData[4]) / unpackData[1] * 0b11111) << 05) |
-                                ((ushort)((translation.Z - unpackData[5]) / unpackData[2] * 0b11111) << 10));
+                                ((ushort)MathF.Round((translation.X - unpackData[3]) / unpackData[0] * 0b11111) << 00) |
+                                ((ushort)MathF.Round((translation.Y - unpackData[4]) / unpackData[1] * 0b11111) << 05) |
+                                ((ushort)MathF.Round((translation.Z - unpackData[5]) / unpackData[2] * 0b11111) << 10));
                             handler.Write(data);
                             break;
                         }
@@ -812,18 +867,18 @@ namespace ReeLib.Mot
                     case Vector3Decompression.LoadVector3s10BitA:
                         {
                             uint data =
-                                ((uint)((translation.X - unpackData[4]) / unpackData[0] * 0x3FF) << 00) |
-                                ((uint)((translation.Y - unpackData[5]) / unpackData[1] * 0x3FF) << 10) |
-                                ((uint)((translation.Z - unpackData[6]) / unpackData[2] * 0x3FF) << 20);
+                                ((uint)MathF.Round((translation.X - unpackData[4]) / unpackData[0] * 0x3FF) << 00) |
+                                ((uint)MathF.Round((translation.Y - unpackData[5]) / unpackData[1] * 0x3FF) << 10) |
+                                ((uint)MathF.Round((translation.Z - unpackData[6]) / unpackData[2] * 0x3FF) << 20);
                             handler.Write(data);
                             break;
                         }
                     case Vector3Decompression.LoadVector3s10BitB:
                         {
                             uint data = (
-                                ((uint)((translation.X - unpackData[3]) / unpackData[0] * 0x3FF) << 00) |
-                                ((uint)((translation.Y - unpackData[4]) / unpackData[1] * 0x3FF) << 10) |
-                                ((uint)((translation.Z - unpackData[5]) / unpackData[2] * 0x3FF) << 20)
+                                ((uint)MathF.Round((translation.X - unpackData[3]) / unpackData[0] * 0x3FF) << 00) |
+                                ((uint)MathF.Round((translation.Y - unpackData[4]) / unpackData[1] * 0x3FF) << 10) |
+                                ((uint)MathF.Round((translation.Z - unpackData[5]) / unpackData[2] * 0x3FF) << 20)
                             );
                             handler.Write(data);
                             break;
@@ -831,18 +886,18 @@ namespace ReeLib.Mot
                     case Vector3Decompression.LoadVector3s21BitA:
                         {
                             ulong data =
-                                ((ulong)((translation.X - unpackData[4]) / unpackData[0] * 0x1F_FFFF) << 00) |
-                                ((ulong)((translation.Y - unpackData[5]) / unpackData[1] * 0x1F_FFFF) << 21) |
-                                ((ulong)((translation.Z - unpackData[6]) / unpackData[2] * 0x1F_FFFF) << 42);
+                                ((ulong)MathF.Round((translation.X - unpackData[4]) / unpackData[0] * 0x1F_FFFF) << 00) |
+                                ((ulong)MathF.Round((translation.Y - unpackData[5]) / unpackData[1] * 0x1F_FFFF) << 21) |
+                                ((ulong)MathF.Round((translation.Z - unpackData[6]) / unpackData[2] * 0x1F_FFFF) << 42);
                             handler.Write(data);
                             break;
                         }
                     case Vector3Decompression.LoadVector3s21BitB:
                         {
                             var data =
-                                ((int)((translation.X - unpackData[3]) / unpackData[0]) & 0x1F_FFFF) << 00 |
-                                ((int)((translation.Y - unpackData[4]) / unpackData[1]) & 0x1F_FFFF) << 21 |
-                                ((int)((translation.Z - unpackData[5]) / unpackData[2]) & 0x1F_FFFF) << 42;
+                                ((int)MathF.Round((translation.X - unpackData[3]) / unpackData[0]) & 0x1F_FFFF) << 00 |
+                                ((int)MathF.Round((translation.Y - unpackData[4]) / unpackData[1]) & 0x1F_FFFF) << 21 |
+                                ((int)MathF.Round((translation.Z - unpackData[5]) / unpackData[2]) & 0x1F_FFFF) << 42;
                             handler.Write((ulong)data);
                             break;
                         }
@@ -863,25 +918,25 @@ namespace ReeLib.Mot
                         }
                     case Vector3Decompression.LoadVector3sXAxis16Bit:
                         {
-                            var data = (ushort)((translation.X - unpackData[1]) / unpackData[0] * 0xFFFF);
+                            var data = (ushort)MathF.Round((translation.X - unpackData[1]) / unpackData[0] * 0xFFFF);
                             handler.Write(data);
                             break;
                         }
                     case Vector3Decompression.LoadVector3sYAxis16Bit:
                         {
-                            var data = (ushort)((translation.Y - unpackData[2]) / unpackData[0] * 0xFFFF);
+                            var data = (ushort)MathF.Round((translation.Y - unpackData[2]) / unpackData[0] * 0xFFFF);
                             handler.Write(data);
                             break;
                         }
                     case Vector3Decompression.LoadVector3sZAxis16Bit:
                         {
-                            var data = (ushort)((translation.Z - unpackData[3]) / unpackData[0] * 0xFFFF);
+                            var data = (ushort)MathF.Round((translation.Z - unpackData[3]) / unpackData[0] * 0xFFFF);
                             handler.Write(data);
                             break;
                         }
                     case Vector3Decompression.LoadVector3sXYZAxis16Bit:
                         {
-                            var data = (ushort)((translation.X - unpackData[3]) / unpackData[0] * 0xFFFF);
+                            var data = (ushort)MathF.Round((translation.X - unpackData[3]) / unpackData[0] * 0xFFFF);
                             handler.Write(data);
                             break;
                         }
@@ -1166,6 +1221,53 @@ namespace ReeLib.Mot
             }
         }
 
+        public void ReadFrameDataFloats(FileHandler handler)
+        {
+            using var defer = handler.SeekJumpBack(frameDataOffset);
+            FloatDecompression type = FloatCompressionType;
+            floats = new float[keyCount];
+
+            for (int i = 0; i < keyCount; i++)
+            {
+                float value = 0;
+                switch (type)
+                {
+                    case FloatDecompression.LoadFloatsFull:
+                        handler.Read(ref value);
+                        break;
+                    case FloatDecompression.LoadFloats8Bit:
+                        value = unpackData[0] * ((float)handler.Read<byte>() * (1f / 0xFF)) + unpackData[1]; // TODO untested
+                        break;
+
+                    default:
+                        throw new NotSupportedException("Unsupported float compression type " + type);
+                }
+                floats[i] = value;
+            }
+        }
+
+        public void WriteFrameDataFloats(FileHandler handler)
+        {
+            if (floats == null) throw new NullReferenceException($"{nameof(floats)} is null");
+            var type = FloatCompressionType;
+            RecomputeDenormalizationParams();
+            for (int i = 0; i < keyCount; i++)
+            {
+                var value = floats[i];
+                switch (type)
+                {
+                    case FloatDecompression.LoadFloatsFull:
+                        handler.Write(value);
+                        break;
+                    case FloatDecompression.LoadFloats8Bit:
+                        handler.Write((byte)MathF.Round((value - unpackData[1]) / unpackData[0] * 0xFFFF));
+                        break;
+                    default:
+                        throw new InvalidOperationException($"Invalid type {type}");
+                }
+            }
+        }
+
         internal void RecomputeDenormalizationParams()
         {
             if (!RequiresUnpackData) return;
@@ -1216,7 +1318,7 @@ namespace ReeLib.Mot
                         break;
                 }
             }
-            else
+            else if (TrackType == TrackValueType.Vector3)
             {
                 foreach (Vector3 vec in translations!) {
                     max = Vector3.Max(max, vec);
@@ -1265,6 +1367,23 @@ namespace ReeLib.Mot
                         unpackData[1] = min.X;
                         unpackData[2] = min.Y;
                         unpackData[3] = min.Z;
+                        break;
+                }
+            }
+            else if (TrackType == TrackValueType.Float)
+            {
+                float maxN = float.MinValue;
+                float minN = float.MaxValue;
+                foreach (float val in floats!) {
+                    maxN = float.Max(val, maxN);
+                    minN = float.Min(val, minN);
+                }
+                var scale = maxN - minN;
+                switch (FloatCompressionType)
+                {
+                    case FloatDecompression.LoadFloats8Bit:
+                        unpackData[0] = scale;
+                        unpackData[1] = minN;
                         break;
                 }
             }
@@ -1553,6 +1672,54 @@ namespace ReeLib.Mot
             return true;
         }
     }
+
+    public class MotPropertyTrack
+    {
+        public uint propertyHash;
+        public Track? Track;
+
+        public MotVersion Version;
+
+        internal const int HeaderStructSize = 16;
+
+        public bool Read(FileHandler handler)
+        {
+            var dataOffset = handler.Read<long>();
+            handler.Read(ref propertyHash);
+            handler.ReadNull(4);
+
+            var pos = handler.Tell();
+            var trackType = (TrackValueType)handler.Read<short>(dataOffset);
+            DataInterpretationException.ThrowIf(trackType != TrackValueType.Float);
+
+            Track = new Track(Version, trackType);
+            handler.Seek(dataOffset);
+            Track.Read(handler);
+            Track.ReadFrameDataFloats(handler);
+
+            handler.Seek(pos);
+            return true;
+        }
+
+        public void Write(FileHandler handler, ref long dataOffset)
+        {
+            handler.Write(dataOffset);
+            handler.Write(ref propertyHash);
+            handler.WriteNull(4);
+
+            var headerEnd = handler.Tell();
+
+            if (Track == null) throw new NullReferenceException();
+            handler.Seek(dataOffset);
+            Track.Write(handler);
+            Track.WriteOffsetContents(handler);
+
+            dataOffset = handler.Tell();
+            handler.Seek(headerEnd);
+        }
+
+        public override string ToString() => $"Property {propertyHash} {Track?.TrackType} ({Track?.floats?.Length})";
+    }
 }
 
 
@@ -1575,6 +1742,7 @@ namespace ReeLib
         public List<BoneMotionClip> BoneClips { get; } = new();
         public List<MotClip> Clips { get; } = new();
         public List<MotEndClip> EndClips { get; } = new();
+        public List<MotPropertyTrack> MotPropertyTracks { get; } = new();
 
         public List<MotBone> Bones { get; } = new();
         public List<MotBone> RootBones { get; } = new();
@@ -1648,6 +1816,16 @@ namespace ReeLib
                 }
             }
 
+            if (header.motPropertyCount > 0)
+            {
+                handler.Seek(header.motPropertyTracksOffset);
+                for (int i = 0; i < header.motPropertyCount; ++i) {
+                    var p = new MotPropertyTrack() { Version = Header.version };
+                    p.Read(handler);
+                    MotPropertyTracks.Add(p);
+                }
+            }
+
             if (!IsMotlist)
             {
                 ReadBones(null);
@@ -1715,6 +1893,22 @@ namespace ReeLib
                         throw new NotImplementedException("Legacy mot endclips not supported for writing");
                     }
                 }
+            }
+
+            if (MotPropertyTracks.Count > 0)
+            {
+                header.motPropertyTracksOffset = handler.Tell();
+                var dataOffset = header.motPropertyTracksOffset + MotPropertyTracks.Count * MotPropertyTrack.HeaderStructSize;
+                foreach (var prop in MotPropertyTracks)
+                {
+                    prop.Write(handler, ref dataOffset);
+                }
+
+                handler.Seek(dataOffset);
+            }
+            else
+            {
+                header.motPropertyTracksOffset = 0;
             }
 
             header.Write(handler, 0);

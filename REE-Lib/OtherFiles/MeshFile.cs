@@ -565,7 +565,7 @@ namespace ReeLib.Mesh
 		public mat4 globalTransform;
 		public mat4 inverseGlobalTransform;
 
-		public string? name;
+		public string name = "";
 
 		public readonly List<MeshBone> Children = new();
 

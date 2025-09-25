@@ -456,12 +456,12 @@ namespace ReeLib.Clip
                 if (Version == ClipVersion.RE7)
                 {
                     action.Do(ref uknRE7_3);
-                    action.Skip(8);
+                    action.Null(8);
                 }
-                action.Skip(8);
+                action.Null(8);
                 if (Version > ClipVersion.RE7)
                 {
-                    action.Skip(16);
+                    action.Null(16);
                 }
                 action.Do(ref ChildStartIndex);
                 action.Do(ref ChildMembershipCount);
@@ -472,8 +472,8 @@ namespace ReeLib.Clip
                 }
                 else
                 {
-                    // dmc5
-                    action.Skip(30);
+                    // dmc5+
+                    action.Null(30);
                 }
             }
             // action.Handler.Seek(Start + 112);
@@ -697,6 +697,7 @@ namespace ReeLib.Clip
                 >= ClipVersion.MHWilds => handler.ReadArray<long>(7),
                 _ => handler.ReadArray<long>(4),
             };
+            // DataInterpretationException.ThrowIfNotEqualValues<long>(namesOffsetExtra);
             handler.Read(ref unicodeNamesOffset);
             handler.Read(ref endClipStructsOffset1);
             // if (version <= ClipVersion.RE4)

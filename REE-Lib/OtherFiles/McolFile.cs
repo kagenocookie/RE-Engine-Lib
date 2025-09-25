@@ -35,6 +35,8 @@ namespace ReeLib
             var handler = FileHandler;
             Header.Read(handler);
             bvh = new BvhData(handler.WithOffset(handler.Tell())) { Embedded = true };
+            if (handler.Position == handler.FileSize()) return true;
+
             bvh?.Read();
 
             handler.Seek(Header.stringTableOffset);

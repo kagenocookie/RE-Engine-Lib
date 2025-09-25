@@ -59,7 +59,7 @@ namespace ReeLib.Motlist
     {
         public uint version;
         public uint magic;
-        public long padding;
+        public int uknValue; // dmc5
         public long pointersOffset; // AssetsPointer in Tyrant
         public long motionIndicesOffset;
         public int numMots;
@@ -72,7 +72,8 @@ namespace ReeLib.Motlist
         {
             handler.Read(ref version);
             handler.Read(ref magic);
-            handler.Read(ref padding);
+            handler.Read(ref uknValue);
+            handler.ReadNull(4);
             handler.Read(ref pointersOffset);
             handler.Read(ref motionIndicesOffset);
             MotListName = handler.ReadOffsetWString();
@@ -90,7 +91,7 @@ namespace ReeLib.Motlist
         {
             handler.Write(ref version);
             handler.Write(ref magic);
-            handler.Write(ref padding);
+            handler.WriteNull(8);
             handler.Write(ref pointersOffset);
             handler.Write(ref motionIndicesOffset);
             handler.WriteOffsetWString(MotListName);

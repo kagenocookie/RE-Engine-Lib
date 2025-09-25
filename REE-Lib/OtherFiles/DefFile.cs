@@ -64,8 +64,7 @@ namespace ReeLib.Def
     {
         public Guid guid;
         [RszOffsetWString] public string? name;
-        public uint nameHash;
-        public int padding;
+        [RszPaddingAfter(4)] public uint nameHash;
         public float gravity;
         public UndeterminedFieldType ukn2;
         public UndeterminedFieldType ukn3;

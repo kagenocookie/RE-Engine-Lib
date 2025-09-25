@@ -20,5 +20,15 @@ namespace ReeLib
         {
             if (!value.Equals(TValue.Zero)) throw new DataInterpretationException(message);
         }
+
+        [Conditional("DEBUG"), MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ThrowIfNotEqualValues<TValue>(ReadOnlySpan<TValue> values, string message = "Array values were expected to be identical, but weren't") where TValue : IBinaryInteger<TValue>
+        {
+            if (values.Length == 0) return;
+            var value = values[0];
+            foreach (var val in values) {
+                if (val != value) throw new DataInterpretationException($"{message} (index {values.IndexOf(val)})");
+            }
+        }
     }
 }

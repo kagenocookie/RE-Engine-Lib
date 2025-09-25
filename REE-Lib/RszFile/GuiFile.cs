@@ -166,7 +166,6 @@ namespace ReeLib.Gui
     public class AttributeInfo : BaseModel
     {
         public uint type;
-        private uint padding;
         public long nameOffset;
         public string? Name { get; set; }
 
@@ -178,7 +177,7 @@ namespace ReeLib.Gui
         protected override bool DoRead(FileHandler handler)
         {
             handler.Read(ref type);
-            handler.Read(ref padding);
+            handler.ReadNull(4);
             handler.Read(ref nameOffset);
             Name = handler.ReadWString(nameOffset);
             return true;
@@ -188,7 +187,7 @@ namespace ReeLib.Gui
         protected override bool DoWrite(FileHandler handler)
         {
             handler.Write(ref type);
-            handler.Write(ref padding);
+            handler.WriteNull(4);
             handler.StringTableAdd(Name);
             handler.Write(ref nameOffset);
             return true;
@@ -486,7 +485,6 @@ namespace ReeLib.Gui
         public string ClassName { get; set; } = "";
         public long subStructOffs;
         public long subStructEndOffs;
-        private ulong padding;
 
         public SubElementInfo(uint version)
         {
@@ -506,7 +504,7 @@ namespace ReeLib.Gui
             ClassName = handler.ReadAsciiString(handler.ReadInt64());
             handler.Read(ref subStructOffs);
             handler.Read(ref subStructEndOffs);
-            handler.Read(ref padding);
+            handler.ReadNull(8);
             return true;
         }
 
@@ -523,7 +521,7 @@ namespace ReeLib.Gui
             handler.WriteAsciiString(ClassName);
             handler.Write(ref subStructOffs);
             handler.Write(ref subStructEndOffs);
-            handler.Write(ref padding);
+            handler.WriteNull(8);
             return true;
         }
     }

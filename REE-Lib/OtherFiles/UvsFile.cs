@@ -11,8 +11,8 @@ namespace ReeLib.Uvs
         public int textureCount;
         public int sequenceCount;
         public int patternCount;
+        [RszConditional("handler.FileVersion >= 7"), RszPaddingAfter(4)]
         public int attributes;
-        public int unused;
         public long texOffset;
         public long sequenceOffset;
         public long patternOffset;

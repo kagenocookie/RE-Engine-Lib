@@ -580,9 +580,9 @@ public class ReeLibGenerator : IIncrementalGenerator
                 var conditions = positional.Skip(1);
                 if (conditions.Any()) {
                     var paddingCondition = EvaluateAttributeExpressionList(ctx, conditions);
-                    ctx.Indent().AppendLine($"if ({paddingCondition}) handler.Skip({padding});");
+                    ctx.Indent().AppendLine($"if ({paddingCondition}) handler.{handle}Null({padding});");
                 } else {
-                    ctx.Indent().AppendLine($"handler.Skip({padding});");
+                    ctx.Indent().AppendLine($"handler.{handle}Null({padding});");
                 }
             }
         }

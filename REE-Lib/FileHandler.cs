@@ -183,6 +183,25 @@ namespace ReeLib
             Stream.Seek(skip, SeekOrigin.Current);
         }
 
+        public void ReadNull(int count)
+        {
+            #if DEBUG
+            switch (count) {
+                case 1: DataInterpretationException.ThrowIfNotZero(Read<byte>()); break;
+                case 2: DataInterpretationException.ThrowIfNotZero(Read<short>()); break;
+                case 4: DataInterpretationException.ThrowIfNotZero(Read<int>()); break;
+                case 8: DataInterpretationException.ThrowIfNotZero(Read<long>()); break;
+                default:
+                    Span<byte> bytes = stackalloc byte[count];
+                    Stream.Read(bytes);
+                    for (int i = 0; i < bytes.Length; ++i) DataInterpretationException.ThrowIfNotZero(bytes[i]);
+                    break;
+            }
+            #else
+            Stream.Seek((long)count, SeekOrigin.Current);
+            #endif
+        }
+
         public void CheckRange()
         {
             if (Stream.Position > Stream.Length)
@@ -1491,7 +1510,7 @@ namespace ReeLib
 
         public IFileHandlerAction Null(int count)
         {
-            Handler.Skip(count);
+            Handler.ReadNull(count);
             return this;
         }
     }

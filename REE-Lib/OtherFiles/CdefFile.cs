@@ -10,7 +10,6 @@ namespace ReeLib.Cdef
         public int attributeCount;
         public int materialCount;
         public int presetCount;
-        public ulong padding;
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -22,14 +21,14 @@ namespace ReeLib.Cdef
                 handler.Read(ref attributeCount);
                 handler.Read(ref materialCount);
                 handler.Read(ref presetCount);
-                handler.Skip(8);
+                handler.ReadNull(8);
             }
             else
             {
                 maskCount = handler.Read<short>();
                 attributeCount = handler.Read<short>();
                 materialCount = handler.Read<short>();
-                handler.Skip(2);
+                handler.ReadNull(2);
             }
             return true;
         }
@@ -44,14 +43,14 @@ namespace ReeLib.Cdef
                 handler.Write(ref attributeCount);
                 handler.Write(ref materialCount);
                 handler.Write(ref presetCount);
-                handler.Skip(8);
+                handler.WriteNull(8);
             }
             else
             {
                 handler.Write((short)maskCount);
                 handler.Write((short)attributeCount);
                 handler.Write((short)materialCount);
-                handler.Skip(2);
+                handler.WriteNull(2);
             }
             return true;
         }
@@ -80,9 +79,8 @@ namespace ReeLib.Cdef
         public uint nameHash;
         public int ukn1;
         public int layerId;
+        [RszPaddingAfter(8)]
         public int maskId;
-        public uint padding1;
-        public uint padding2;
 
         public override string ToString() => name ?? guid.ToString();
     }
@@ -105,8 +103,7 @@ namespace ReeLib.Cdef
     {
         public Guid guid;
         [RszOffsetWString] public string? name;
-        [RszStringHash(nameof(name))] public uint nameHash;
-        public uint padding;
+        [RszStringHash(nameof(name)), RszPaddingAfter(4)] public uint nameHash;
 
         public override string ToString() => name ?? guid.ToString();
     }
@@ -125,7 +122,7 @@ namespace ReeLib.Cdef
         public int ukn1;
         public int ukn2;
         public uint ukn3;
-        [RszPaddingAfter(4, "handler.FileVersion >= 4")]
+        [RszConditional("handler.FileVersion >= 4"), RszPaddingAfter(4, "handler.FileVersion >= 4")]
         public int ukn4;
 
         public override string ToString() => (name ?? guid.ToString()) + (description == null ? "" : $" [{description}]");

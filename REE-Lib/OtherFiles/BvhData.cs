@@ -9,27 +9,27 @@ namespace ReeLib.Bvh
     {
         public uint magic = BvhData.Magic;
         public int verticesCount;
+        [RszPaddingAfter(4)]
         public int indicesCount;
-        public int uknCountMaybePadding;
         public int stringCount;
-        [RszVersion(3017, EndAt = nameof(ukn3))]
+        [RszVersion(3017, EndAt = nameof(boxesCount))]
         public int spheresCount;
         public int capsulesCount;
+        [RszPaddingAfter(4)]
         public int boxesCount;
-        public int ukn3;
 
         public int treeDataSize;
         public long treeDataOffset;
         public long verticesOffset;
+        [RszPaddingAfter(8)]
         public long indicesOffset;
-        public long uknOffset;
 
         public long stringTableOffset;
-        [RszVersion(3017, EndAt = nameof(uknOffsetOrPadding))]
+        [RszVersion(3017, EndAt = nameof(boxesOffset))]
         public long spheresOffset;
         public long capsulesOffset;
+        [RszPaddingAfter(8)]
         public long boxesOffset;
-        public long uknOffsetOrPadding;
     }
 
     [RszGenerate, RszAutoReadWrite, RszAssignVersion, RszVersionedObject(typeof(int))]
@@ -273,9 +273,6 @@ namespace ReeLib
             for (int i = 0; i < Header.verticesCount; ++i) {
                 vertices.Add(handler.Read<Vector3>());
                 handler.Skip(4);
-            }
-            if (Header.uknOffsetOrPadding != 0 || Header.ukn3 != 0 || Header.uknOffset != 0) {
-                throw new Exception("IT WASN'T UNUSED!");
             }
 
             handler.Seek(Header.indicesOffset);

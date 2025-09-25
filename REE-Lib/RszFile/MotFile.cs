@@ -153,7 +153,8 @@ namespace ReeLib.Mot
         public Quaternion quaternion;
         public int Index;
         public uint boneHash;
-        public long padding;
+        public int uknValue1;
+        public int uknValue2;
 
         public const int StructSize = 80;
 
@@ -1364,10 +1365,10 @@ namespace ReeLib.Mot
 
         protected override bool DoRead(FileHandler handler)
         {
-            handler.Skip(8);
+            handler.ReadNull(8);
             handler.Read(ref clipOffset);
             handler.Read(ref endClipStructsRelocation);
-            handler.Skip(4);
+            handler.ReadNull(4);
             handler.Read(ref uknIntA);
             handler.Read(ref uknIntB);
             handler.ReadBytes(uknBytes1C);
@@ -1488,11 +1489,7 @@ namespace ReeLib.Mot
                 handler.Read(ref dataSize);
                 handler.Read(ref objectCount);
                 handler.Read(ref endHashCount);
-                var skip = handler.Read<long>();
-                if (skip != 0)
-                {
-                    throw new DataInterpretationException("Not padding!");
-                }
+                handler.ReadNull(8);
                 var dataSize1 = handler.Read<long>(); // size from startof(dataSize) to startof(hashStruct[6] thing); in other words, sizeof(structs1) + 32
                 var dataSize2 = handler.Read<long>(); // above + 32 (== unknown?)
                 // TODO

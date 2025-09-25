@@ -62,12 +62,11 @@ namespace ReeLib.Motlist
         public long padding;
         public long pointersOffset; // AssetsPointer in Tyrant
         public long motionIndicesOffset;
-        public long motListNameOffset;
-        public long UnkPadding;
         public int numMots;
 
         public MotlistVersion Version { get; set; }
         public string MotListName { get; set; } = string.Empty;
+        public string? BaseMotListPath { get; set; }
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -76,14 +75,14 @@ namespace ReeLib.Motlist
             handler.Read(ref padding);
             handler.Read(ref pointersOffset);
             handler.Read(ref motionIndicesOffset);
-            handler.Read(ref motListNameOffset);
+            MotListName = handler.ReadOffsetWString();
             Version = (MotlistVersion)version;
             if (Version > MotlistVersion.RE7)
             {
-                handler.Read(ref UnkPadding);
+                var offset = handler.Read<long>();
+                BaseMotListPath = offset > 0 ? handler.ReadWString(offset) : null;
             }
             handler.Read(ref numMots);
-            MotListName = handler.ReadWString(motListNameOffset);
             return true;
         }
 
@@ -96,9 +95,9 @@ namespace ReeLib.Motlist
             handler.Write(ref motionIndicesOffset);
             handler.WriteOffsetWString(MotListName);
             Version = (MotlistVersion)version;
-            if (Version > MotlistVersion.RE7)
+            if (Version > MotlistVersion.RE7 && !string.IsNullOrEmpty(BaseMotListPath))
             {
-                handler.Write(ref UnkPadding);
+                handler.WriteOffsetWString(BaseMotListPath);
             }
             handler.Write(ref numMots);
             handler.Skip(2);

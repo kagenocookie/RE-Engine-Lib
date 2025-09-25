@@ -39,6 +39,7 @@ namespace ReeLib.Mot
         public long clipFileOffset;
         public long motEndClipDataOffset;
         public long motEndClipFrameValuesOffset;
+        public long propertyTreeOffset;
 
         // public long namesOffset;
         public float frameCount;
@@ -49,7 +50,7 @@ namespace ReeLib.Mot
         public ushort boneClipCount;
         public byte clipCount;
         public byte motEndClipCount;
-        public ushort uknExtraCount; // seems to always be either 0 or 1
+        public ushort uknExtraCount; // seems to always be either 0 or 1; natives/stm/animation/ch/ch00/motlist/ch00_001_comnm.motlist.751 - count 1, extra offset 0
         public ushort FrameRate;
         public ushort motPropertyCount;
         public ushort uknShort;
@@ -67,7 +68,7 @@ namespace ReeLib.Mot
                  ?.Then(ref motSize)
                  ?.Then(ref boneHeaderOffsetStart)
                  ?.Then(ref boneClipHeaderOffset)
-                 ?.Then(ref motPropertyTracksOffset); // TODO at least in re4, dmc5
+                 ?.Then(ref motPropertyTracksOffset);
             jointMapPath ??= "";
             if (version >= MotVersion.MHR_DEMO)
             {
@@ -76,7 +77,7 @@ namespace ReeLib.Mot
                      ?.HandleOffsetWString(ref jointMapPath)
                      ?.Then(ref motEndClipDataOffset)
                      ?.Then(ref motEndClipFrameValuesOffset)
-                     ?.Skip(8); // dd2: natives/stm/animation/ch/ch00/motlist/ch00_000_comrd.motlist.751
+                     ?.Then(ref propertyTreeOffset);
             }
             else
             {
@@ -445,10 +446,9 @@ namespace ReeLib.Mot
             }
             else if (TrackType == TrackValueType.Float)
             {
-                // TODO
-                var c = TranslationCompressionType;
+                var c = FloatCompressionType;
                 MotVersion = version;
-                TranslationCompressionType = c;
+                FloatCompressionType = c;
             }
         }
 
@@ -1236,7 +1236,7 @@ namespace ReeLib.Mot
                         handler.Read(ref value);
                         break;
                     case FloatDecompression.LoadFloats8Bit:
-                        value = unpackData[0] * ((float)handler.Read<byte>() * (1f / 0xFF)) + unpackData[1]; // TODO untested
+                        value = unpackData[0] * ((float)handler.Read<byte>() * (1f / 0xFF)) + unpackData[1];
                         break;
 
                     default:
@@ -1720,6 +1720,148 @@ namespace ReeLib.Mot
 
         public override string ToString() => $"Property {propertyHash} {Track?.TrackType} ({Track?.floats?.Length})";
     }
+
+    public class MotPropertyTree : BaseModel
+    {
+        public List<InnerNode> Nodes { get; } = new();
+        public List<LeafNodeRemap> HashMapping { get; } = new();
+
+        public class InnerNode
+        {
+            public long unknown;
+            public uint nameHash;
+
+            // NOTE: so far I've only seen single inner node cases, may need to rework if there's ever more
+            public LeafNode left = new();
+            public LeafNode right = new();
+
+            public override string ToString() => $"{nameHash}";
+        }
+
+        public class LeafNode
+        {
+            public uint propertyHash;
+            public uint valueType;
+            public object? value;
+
+            public override string ToString() => $"{propertyHash} => {value}";
+        }
+
+        public struct LeafNodeRemap
+        {
+            public uint keyHash;
+            public uint nodePropertyHash;
+
+            public override string ToString() => $"{keyHash} => {nodePropertyHash}";
+        }
+
+        protected override bool DoRead(FileHandler handler)
+        {
+            var treeStart = handler.Tell();
+            var innerNodeOffset = handler.Read<long>();
+            var remapsOffset = handler.Read<long>();
+            var innerCount = handler.Read<int>();
+            var leafCount = handler.Read<int>();
+            handler.ReadNull(8);
+            DataInterpretationException.ThrowIf(leafCount > 2);
+            handler.Seek(treeStart + innerNodeOffset);
+            for (int i = 0; i < innerCount; ++i)
+            {
+                var node = new InnerNode();
+                var leftOffset = handler.Read<long>();
+                var nextOffset = handler.Read<long>();
+
+                handler.Read(ref node.unknown);
+                handler.Read(ref node.nameHash);
+                handler.ReadNull(4);
+                DataInterpretationException.ThrowIf(node.unknown != 2);
+
+                handler.Seek(treeStart + leftOffset);
+
+                var value1Offs = handler.Read<long>();
+                handler.Read(ref node.left.propertyHash);
+                handler.Read(ref node.left.valueType);
+
+                var value2Offs = handler.Read<long>();
+                handler.Read(ref node.right.propertyHash);
+                handler.Read(ref node.right.valueType);
+
+                handler.Seek(treeStart + value1Offs);
+                ReadValue(handler, node.left);
+
+                handler.Seek(treeStart + value2Offs);
+                ReadValue(handler, node.right);
+
+                Nodes.Add(node);
+                handler.Seek(treeStart + nextOffset);
+            }
+
+            handler.Seek(treeStart + remapsOffset);
+            HashMapping.ReadStructList(handler, leafCount);
+            return true;
+        }
+
+        protected override bool DoWrite(FileHandler handler)
+        {
+            var treeStart = handler.Tell();
+            var innerNodeOffset = 32;
+            handler.Write(32L);
+            handler.Skip(8);
+            handler.Write(Nodes.Count);
+            handler.Write(HashMapping.Count);
+            handler.WriteNull(8);
+
+            if (Nodes.Count > 1) throw new NotImplementedException();
+            var dataOffset = innerNodeOffset + Nodes.Count * 32 + 2 * 16;
+            foreach (var inner in Nodes)
+            {
+                handler.Write(64L);
+                handler.Write(96L);
+                handler.Write(ref inner.unknown);
+                handler.Write(ref inner.nameHash);
+                handler.WriteNull(4);
+
+                handler.Write(96L);
+                handler.Write(inner.left.propertyHash);
+                handler.Write(inner.left.valueType);
+
+                handler.Write(112L);
+                handler.Write(inner.right.propertyHash);
+                handler.Write(inner.right.valueType);
+
+                WriteValue(handler, inner.left);
+                WriteValue(handler, inner.right);
+            }
+
+            handler.Write(treeStart + 8, handler.Tell() - treeStart);
+            HashMapping.Write(handler);
+            return true;
+        }
+
+        private static void ReadValue(FileHandler handler, LeafNode node)
+        {
+            switch (node.valueType)
+            {
+                case 1041:
+                    node.value = handler.Read<Quaternion>();
+                    break;
+                default:
+                    throw new NotImplementedException("Unsupported mot property tree value type " + node.valueType);
+            }
+        }
+
+        private static void WriteValue(FileHandler handler, LeafNode node)
+        {
+            switch (node.valueType)
+            {
+                case 1041:
+                    handler.Write((Quaternion)node.value!);
+                    break;
+                default:
+                    throw new NotImplementedException("Unsupported mot property tree value type " + node.valueType);
+            }
+        }
+    }
 }
 
 
@@ -1743,6 +1885,7 @@ namespace ReeLib
         public List<MotClip> Clips { get; } = new();
         public List<MotEndClip> EndClips { get; } = new();
         public List<MotPropertyTrack> MotPropertyTracks { get; } = new();
+        public MotPropertyTree? PropertyTree { get; set; }
 
         public List<MotBone> Bones { get; } = new();
         public List<MotBone> RootBones { get; } = new();
@@ -1824,6 +1967,13 @@ namespace ReeLib
                     p.Read(handler);
                     MotPropertyTracks.Add(p);
                 }
+            }
+
+            if (header.propertyTreeOffset > 0)
+            {
+                handler.Seek(header.propertyTreeOffset);
+                PropertyTree = new();
+                PropertyTree.Read(handler);
             }
 
             if (!IsMotlist)
@@ -1909,6 +2059,13 @@ namespace ReeLib
             else
             {
                 header.motPropertyTracksOffset = 0;
+            }
+
+            if (PropertyTree != null)
+            {
+                handler.Align(16);
+                header.propertyTreeOffset = handler.Tell();
+                PropertyTree.Write(handler);
             }
 
             header.Write(handler, 0);
@@ -2177,10 +2334,13 @@ namespace ReeLib
             }
         }
 
-        public void CopyValuesFrom(MotFile source)
+        public void CopyValuesFrom(MotFile source, bool replaceBehaviorClips)
         {
-            Clips.Clear();
-            Clips.AddRange(source.Clips);
+            if (replaceBehaviorClips)
+            {
+                Clips.Clear();
+                Clips.AddRange(source.Clips);
+            }
             EndClips.Clear();
             EndClips.AddRange(source.EndClips);
             BoneClips.Clear();

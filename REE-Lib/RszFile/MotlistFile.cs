@@ -60,7 +60,7 @@ namespace ReeLib.Motlist
         public uint version;
         public uint magic;
         public int uknValue; // dmc5
-        public long pointersOffset; // AssetsPointer in Tyrant
+        public long pointersOffset;
         public long motionIndicesOffset;
         public int numMots;
 
@@ -91,14 +91,22 @@ namespace ReeLib.Motlist
         {
             handler.Write(ref version);
             handler.Write(ref magic);
-            handler.WriteNull(8);
+            handler.Write(ref uknValue);
+            handler.WriteNull(4);
             handler.Write(ref pointersOffset);
             handler.Write(ref motionIndicesOffset);
             handler.WriteOffsetWString(MotListName);
             Version = (MotlistVersion)version;
-            if (Version > MotlistVersion.RE7 && !string.IsNullOrEmpty(BaseMotListPath))
+            if (Version > MotlistVersion.RE7)
             {
-                handler.WriteOffsetWString(BaseMotListPath);
+                if (!string.IsNullOrEmpty(BaseMotListPath))
+                {
+                    handler.WriteOffsetWString(BaseMotListPath);
+                }
+                else
+                {
+                    handler.WriteNull(8);
+                }
             }
             handler.Write(ref numMots);
             handler.Skip(2);

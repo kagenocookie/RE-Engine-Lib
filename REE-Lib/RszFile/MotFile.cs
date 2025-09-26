@@ -32,14 +32,14 @@ namespace ReeLib.Mot
         public uint magic;
         public uint ukn00;
         public uint motSize;
-        public long boneHeaderOffsetStart; // BoneBaseDataPointer
-        public long boneClipHeaderOffset; // BoneDataPointer
-        public long motPropertyTracksOffset;
+        internal long boneHeaderOffsetStart; // BoneBaseDataPointer
+        internal long boneClipHeaderOffset; // BoneDataPointer
+        internal long motPropertyTracksOffset;
 
-        public long clipFileOffset;
-        public long motEndClipDataOffset;
-        public long motEndClipFrameValuesOffset;
-        public long propertyTreeOffset;
+        internal long clipFileOffset;
+        internal long motEndClipDataOffset;
+        internal long motEndClipFrameValuesOffset;
+        internal long propertyTreeOffset;
 
         // public long namesOffset;
         public float frameCount;
@@ -52,8 +52,7 @@ namespace ReeLib.Mot
         public byte motEndClipCount;
         public ushort uknExtraCount; // seems to always be either 0 or 1; natives/stm/animation/ch/ch00/motlist/ch00_001_comnm.motlist.751 - count 1, extra offset 0
         public ushort FrameRate;
-        public ushort motPropertyCount;
-        public ushort uknShort;
+        public ushort animatedPropertyCount;
 
         public string motName = string.Empty;
         public string? jointMapPath = string.Empty;
@@ -99,8 +98,9 @@ namespace ReeLib.Mot
                  ?.Then(ref motEndClipCount)
                  ?.Then(version >= MotVersion.RE8, ref uknExtraCount)
                  ?.Then(ref FrameRate)
-                 ?.Then(ref motPropertyCount)
-                 ?.Then(ref uknShort);
+                 ?.Then(ref animatedPropertyCount)
+                 ?.Null(2);
+
             return true;
         }
 
@@ -118,8 +118,7 @@ namespace ReeLib.Mot
             boneClipCount = source.boneClipCount;
             motEndClipCount = source.motEndClipCount;
             uknExtraCount = source.uknExtraCount;
-            motPropertyCount = source.motPropertyCount;
-            uknShort = source.uknShort;
+            animatedPropertyCount = source.animatedPropertyCount;
             jointMapPath = source.jointMapPath;
             if (string.IsNullOrEmpty(motName)) {
                 motName = source.motName;
@@ -148,9 +147,9 @@ namespace ReeLib.Mot
     {
         [RszOffsetWString]
         public string boneName = string.Empty;
-        public long parentOffs;
-        public long childOffs;
-        public long nextSiblingOffs;
+        internal long parentOffs;
+        internal long childOffs;
+        internal long nextSiblingOffs;
         public Vector4 translation;
         public Quaternion quaternion;
         public int Index;
@@ -1478,7 +1477,7 @@ namespace ReeLib.Mot
         public long endClipStructsRelocation;
         public uint uknIntA;
         public uint uknIntB;
-        public byte[] uknBytes1C = new byte[0x1C];
+        public byte[] uknBytes28 = new byte[28];
         public ClipEntry ClipEntry { get; set; } = new();
         public EndClipStruct[]? EndClipStructs { get; set; }
 
@@ -1490,7 +1489,7 @@ namespace ReeLib.Mot
             handler.ReadNull(4);
             handler.Read(ref uknIntA);
             handler.Read(ref uknIntB);
-            handler.ReadBytes(uknBytes1C);
+            handler.ReadBytes(uknBytes28);
             ClipEntry.Read(handler);
             if (ClipEntry.Header.version > ClipVersion.RE7 && ClipEntry.Header.numNodes > 1)
             {
@@ -1514,7 +1513,7 @@ namespace ReeLib.Mot
             handler.Write(0);
             handler.Write(ref uknIntA);
             handler.Write(ref uknIntB);
-            handler.WriteBytes(uknBytes1C);
+            handler.WriteBytes(uknBytes28);
 
             clipOffset = handler.Tell();
             ClipEntry.Write(handler);
@@ -1728,23 +1727,36 @@ namespace ReeLib.Mot
 
         public class InnerNode
         {
-            public long unknown;
+            public int count1;
+            public int count2;
             public uint nameHash;
+            public uint nameHash2;
 
-            // NOTE: so far I've only seen single inner node cases, may need to rework if there's ever more
-            public LeafNode left = new();
-            public LeafNode right = new();
+            public List<SingleValueNode> SimpleValues { get; } = new();
+            public List<MultiValueNode> MultiValues { get; } = new();
 
-            public override string ToString() => $"{nameHash}";
+            public override string ToString() => $"{nameHash}/{nameHash2}";
         }
 
-        public class LeafNode
+        public class SingleValueNode
         {
             public uint propertyHash;
-            public uint valueType;
+            public byte valueType;
+            public byte valueCount;
             public object? value;
 
             public override string ToString() => $"{propertyHash} => {value}";
+        }
+
+        public class MultiValueNode
+        {
+            public uint propertyHash;
+            public int valueCount;
+            public int zero;
+            public int valueType;
+            public object? value;
+
+            public override string ToString() => $"{propertyHash} ({valueCount})";
         }
 
         public struct LeafNodeRemap
@@ -1757,109 +1769,219 @@ namespace ReeLib.Mot
 
         protected override bool DoRead(FileHandler handler)
         {
-            var treeStart = handler.Tell();
             var innerNodeOffset = handler.Read<long>();
             var remapsOffset = handler.Read<long>();
             var innerCount = handler.Read<int>();
             var leafCount = handler.Read<int>();
             handler.ReadNull(8);
-            DataInterpretationException.ThrowIf(leafCount > 2);
-            handler.Seek(treeStart + innerNodeOffset);
+            handler.Seek(innerNodeOffset);
             for (int i = 0; i < innerCount; ++i)
             {
                 var node = new InnerNode();
                 var leftOffset = handler.Read<long>();
-                var nextOffset = handler.Read<long>();
+                var rightOffset = handler.Read<long>();
 
-                handler.Read(ref node.unknown);
+                handler.Read(ref node.count1);
+                handler.Read(ref node.count2);
                 handler.Read(ref node.nameHash);
-                handler.ReadNull(4);
-                DataInterpretationException.ThrowIf(node.unknown != 2);
+                handler.Read(ref node.nameHash2);
+                var end = handler.Tell();
 
-                handler.Seek(treeStart + leftOffset);
+                handler.Seek(leftOffset);
+                for (int n = 0; n < node.count1; n++)
+                {
+                    var child = new SingleValueNode();
+                    var valueOffs = handler.Read<long>();
+                    handler.Read(ref child.propertyHash);
+                    handler.Read(ref child.valueType);
+                    handler.Read(ref child.valueCount);
+                    handler.ReadNull(2);
+                    var pos = handler.Tell();
+                    child.value = ReadValue(handler, valueOffs, child.valueType, child.valueCount);
+                    node.SimpleValues.Add(child);
+                    handler.Seek(pos);
+                }
 
-                var value1Offs = handler.Read<long>();
-                handler.Read(ref node.left.propertyHash);
-                handler.Read(ref node.left.valueType);
-
-                var value2Offs = handler.Read<long>();
-                handler.Read(ref node.right.propertyHash);
-                handler.Read(ref node.right.valueType);
-
-                handler.Seek(treeStart + value1Offs);
-                ReadValue(handler, node.left);
-
-                handler.Seek(treeStart + value2Offs);
-                ReadValue(handler, node.right);
+                handler.Seek(rightOffset);
+                for (int n = 0; n < node.count2; n++)
+                {
+                    var child = new MultiValueNode();
+                    var valueOffs = handler.Read<long>();
+                    handler.Read(ref child.propertyHash);
+                    handler.Read(ref child.valueCount);
+                    handler.Read(ref child.zero);
+                    handler.Read(ref child.valueType);
+                    if (child.valueCount > 0)
+                    {
+                        var pos = handler.Tell();
+                        child.value = ReadValue(handler, valueOffs, (byte)child.valueType, (byte)child.valueCount);
+                        handler.Seek(pos);
+                    }
+                    node.MultiValues.Add(child);
+                }
 
                 Nodes.Add(node);
-                handler.Seek(treeStart + nextOffset);
+                handler.Seek(end);
             }
 
-            handler.Seek(treeStart + remapsOffset);
+            handler.Seek(remapsOffset);
             HashMapping.ReadStructList(handler, leafCount);
             return true;
         }
 
         protected override bool DoWrite(FileHandler handler)
         {
-            var treeStart = handler.Tell();
-            var innerNodeOffset = 32;
             handler.Write(32L);
             handler.Skip(8);
             handler.Write(Nodes.Count);
             handler.Write(HashMapping.Count);
             handler.WriteNull(8);
 
-            if (Nodes.Count > 1) throw new NotImplementedException();
-            var dataOffset = innerNodeOffset + Nodes.Count * 32 + 2 * 16;
+            var nodesOffset = handler.Tell() + Nodes.Count * 32;
+            var dataOffset = nodesOffset + Nodes.Sum(n => n.SimpleValues.Count * 16 + n.MultiValues.Count * 24);
             foreach (var inner in Nodes)
             {
-                handler.Write(64L);
-                handler.Write(96L);
-                handler.Write(ref inner.unknown);
+                var start = handler.Tell();
+                handler.Write(nodesOffset);
+                handler.Skip(8);
+                handler.Write(ref inner.count1);
+                handler.Write(ref inner.count2);
                 handler.Write(ref inner.nameHash);
-                handler.WriteNull(4);
+                handler.Write(ref inner.nameHash2);
+                var nodeEnd = handler.Tell();
+                handler.Seek(nodesOffset);
+                foreach (var left in inner.SimpleValues)
+                {
+                    WriteValue(handler, ref dataOffset, left.valueType, left.valueCount, left.value);
+                    handler.Write(left.propertyHash);
+                    handler.Write(left.valueType);
+                    handler.Write(left.valueCount);
+                    handler.WriteNull(2);
+                    nodesOffset += 16;
+                }
 
-                handler.Write(96L);
-                handler.Write(inner.left.propertyHash);
-                handler.Write(inner.left.valueType);
-
-                handler.Write(112L);
-                handler.Write(inner.right.propertyHash);
-                handler.Write(inner.right.valueType);
-
-                WriteValue(handler, inner.left);
-                WriteValue(handler, inner.right);
+                handler.Write(start + 8, nodesOffset);
+                foreach (var multi in inner.MultiValues)
+                {
+                    if (multi.valueCount > 0)
+                    {
+                        WriteValue(handler, ref dataOffset, (byte)multi.valueType, (byte)multi.valueCount, multi.value);
+                    }
+                    else
+                    {
+                        handler.Write(dataOffset);
+                    }
+                    handler.Write(ref multi.propertyHash);
+                    handler.Write(ref multi.valueCount);
+                    handler.Write(ref multi.zero);
+                    handler.Write(ref multi.valueType);
+                    nodesOffset += 24;
+                }
+                handler.Seek(nodeEnd);
             }
 
-            handler.Write(treeStart + 8, handler.Tell() - treeStart);
+            handler.Seek(dataOffset);
+            handler.Align(16);
+            handler.Write(8, handler.Tell());
             HashMapping.Write(handler);
             return true;
         }
 
-        private static void ReadValue(FileHandler handler, LeafNode node)
+        private static object ReadValue(FileHandler handler, long offsetOrConstant, byte valueType, byte valueCount)
         {
-            switch (node.valueType)
+            if (valueCount == 0)
             {
-                case 1041:
-                    node.value = handler.Read<Quaternion>();
-                    break;
+                // NOTE: types look similar to via.timeline.PropertyType but not quite identical here either
+                return valueType switch {
+                    1 => (object)(offsetOrConstant > 1 || offsetOrConstant < 0 ? throw new DataInterpretationException("Assumed bool was not a bool") : offsetOrConstant != 0),
+                    2 => (object)(byte)offsetOrConstant,
+                    7 => (object)(int)offsetOrConstant,
+                    8 => (uint)offsetOrConstant,
+                    11 => (float)offsetOrConstant,
+                    _ => throw new NotImplementedException(),
+                };
+            }
+
+            handler.Seek(offsetOrConstant);
+            switch (valueType)
+            {
+                case 7:
+                    return valueCount switch {
+                        1 => handler.Read<int>(),
+                        _ => handler.ReadArray<int>(valueCount),
+                    };
+                case 8:
+                    return valueCount switch {
+                        1 => handler.Read<uint>(),
+                        _ => handler.ReadArray<uint>(valueCount),
+                    };
+                case 10:
+                    return valueCount switch {
+                        1 => handler.Read<FrameValue>(),
+                        _ => handler.ReadArray<FrameValue>(valueCount),
+                    };
+                case 17:
+                    return valueCount switch {
+                        1 => handler.ReadFloat(),
+                        4 => handler.Read<Quaternion>(),
+                        _ => handler.ReadArray<float>(valueCount),
+                    };
                 default:
-                    throw new NotImplementedException("Unsupported mot property tree value type " + node.valueType);
+                    throw new NotImplementedException("Unsupported mot property tree value type " + valueType);
             }
         }
 
-        private static void WriteValue(FileHandler handler, LeafNode node)
+        private static void WriteValue(FileHandler handler, ref long dataOffset, byte valueType, byte valueCount, object? value)
         {
-            switch (node.valueType)
+            if (valueCount == 0)
             {
-                case 1041:
-                    handler.Write((Quaternion)node.value!);
+                if (value == null) throw new NotImplementedException();
+                switch (valueType) {
+                    case 1: handler.Write((bool)value); handler.WriteNull(7); break;
+                    case 2: handler.Write((byte)value); handler.WriteNull(7); break;
+                    case 7: handler.Write((int)value); handler.WriteNull(4); break;
+                    case 8: handler.Write((uint)value); handler.WriteNull(4); break;
+                    case 11: handler.Write((float)value); handler.WriteNull(4); break;
+                    default: throw new NotImplementedException();
+                }
+                return;
+            }
+
+            handler.Write(dataOffset);
+            using var _ = handler.SeekJumpBack(dataOffset);
+            switch (valueType)
+            {
+                case 7:
+                    switch (valueCount) {
+                        case 1: handler.Write((int)value!); break;
+                        default: handler.WriteArray((int[])value!); break;
+                    }
+                    break;
+                case 8:
+                    switch (valueCount) {
+                        case 1: handler.Write((uint)value!); break;
+                        default: handler.WriteArray((uint[])value!); break;
+                    }
+                    break;
+                case 10:
+                    // TODO not fully sure about the type here but it looks vaguely correct
+                    switch (valueCount) {
+                        case 1: handler.Write((FrameValue)value!); break;
+                        default: handler.WriteArray((FrameValue[])value!); break;
+                    }
+                    break;
+                case 17:
+                    switch (valueCount) {
+                        case 1: handler.Write((float)value!); break;
+                        case 4: handler.Write((Quaternion)value!); break;
+                        default: handler.WriteArray((float[])value!); break;
+                    }
                     break;
                 default:
-                    throw new NotImplementedException("Unsupported mot property tree value type " + node.valueType);
+                    throw new NotImplementedException("Unsupported mot property tree value type " + valueType);
             }
+            handler.Align(16);
+            dataOffset = handler.Tell();
         }
     }
 }
@@ -1959,10 +2081,10 @@ namespace ReeLib
                 }
             }
 
-            if (header.motPropertyCount > 0)
+            if (header.animatedPropertyCount > 0)
             {
                 handler.Seek(header.motPropertyTracksOffset);
-                for (int i = 0; i < header.motPropertyCount; ++i) {
+                for (int i = 0; i < header.animatedPropertyCount; ++i) {
                     var p = new MotPropertyTrack() { Version = Header.version };
                     p.Read(handler);
                     MotPropertyTracks.Add(p);
@@ -1973,7 +2095,7 @@ namespace ReeLib
             {
                 handler.Seek(header.propertyTreeOffset);
                 PropertyTree = new();
-                PropertyTree.Read(handler);
+                PropertyTree.Read(handler.WithOffset(header.propertyTreeOffset));
             }
 
             if (!IsMotlist)
@@ -2065,7 +2187,7 @@ namespace ReeLib
             {
                 handler.Align(16);
                 header.propertyTreeOffset = handler.Tell();
-                PropertyTree.Write(handler);
+                PropertyTree.Write(handler.WithOffset(header.propertyTreeOffset));
             }
 
             header.Write(handler, 0);

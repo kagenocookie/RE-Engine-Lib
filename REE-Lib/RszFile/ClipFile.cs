@@ -441,7 +441,7 @@ namespace ReeLib.Clip
             {
                 action.Do(ref DataType);
                 action.Do(ref uknCount);
-                action.Skip(2);
+                action.Null(2);
                 if (Version == ClipVersion.RE3)
                     action.Do(ref RE3hash);
                 else

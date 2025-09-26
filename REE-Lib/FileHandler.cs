@@ -1529,7 +1529,14 @@ namespace ReeLib
 
         public readonly IFileHandlerAction HandleOffsetWString(ref string value)
         {
-            Handler.WriteOffsetWString(value);
+            if (!string.IsNullOrEmpty(value))
+            {
+                Handler.WriteOffsetWString(value);
+            }
+            else
+            {
+                Handler.Write(0L);
+            }
             return this;
         }
 

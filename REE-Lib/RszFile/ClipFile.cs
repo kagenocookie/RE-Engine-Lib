@@ -269,11 +269,7 @@ namespace ReeLib.Clip
                 case PropertyType.Enum:
                     {
                         long offset = handler.Read<long>();
-                        if (clipFile.Header.namesOffsetExtra == null)
-                        {
-                            throw new Exception("namesOffsetExtra is null");
-                        }
-                        Value = handler.ReadAsciiString(clipFile.Header.namesOffsetExtra[1] + offset);
+                        Value = handler.ReadAsciiString(clipFile.Header.namesOffset + offset);
                     }
                     break;
                 case PropertyType.Str16:
@@ -281,10 +277,6 @@ namespace ReeLib.Clip
                 case PropertyType.Guid:
                     {
                         long offset = handler.Read<long>();
-                        if (clipFile.Header.namesOffsetExtra == null)
-                        {
-                            throw new Exception("namesOffsetExtra is null");
-                        }
                         // clipHeader.unicodeNamesOffs + start + offset*2
                         Value = handler.ReadWString(clipFile.Header.unicodeNamesOffset + offset * 2);
                     }
@@ -344,8 +336,7 @@ namespace ReeLib.Clip
                     {
                         string text = (string)Value;
                         var stringItem = handler.AsciiStringTableAdd(text, false);
-                        long offset = stringItem!.TableOffset;
-                        handler.Write(offset);
+                        handler.Write(stringItem.TableOffset);
                     }
                     break;
                 case PropertyType.Str16:
@@ -354,8 +345,7 @@ namespace ReeLib.Clip
                     {
                         string text = (string)Value;
                         var stringItem = handler.StringTableAdd(text, false);
-                        long offset = stringItem!.TableOffset;
-                        handler.Write(offset);
+                        handler.Write(stringItem.TableOffset);
                     }
                     break;
                 default:
@@ -448,7 +438,7 @@ namespace ReeLib.Clip
                     action.Null(8); // TODO RE7 not null
                 if (Version == ClipVersion.RE7)
                 {
-                    action.Skip(8);
+                    action.Skip(8); // TODO RE7 not null natives/x64/animation/weapon/wp1230/motlist/wp1230.motlist.60
                     action.Do(ref uknRE7_2);
                 }
                 action.Do(ref nameOffset);
@@ -467,7 +457,7 @@ namespace ReeLib.Clip
                 action.Do(ref ChildMembershipCount);
                 if (Version == ClipVersion.RE7)
                 {
-                    action.Skip(8);
+                    action.Skip(8); // TODO RE7 not null natives/x64/animation/enemy/em3000/motlist/upperblend/em3000upperblend.motlist.60
                     action.Do(ref uknRE7_4);
                 }
                 else
@@ -608,9 +598,9 @@ namespace ReeLib.Clip
             {
                 Name = handler.ReadWString(header.unicodeNamesOffset + nameOffset * 2);
             }
-            else if (header.namesOffsetExtra != null)
+            else if (header.unknownOffsets != null)
             {
-                Name = handler.ReadAsciiString(header.namesOffsetExtra[1] + nameOffset);
+                Name = handler.ReadAsciiString(header.namesOffset + nameOffset);
             }
         }
 
@@ -619,12 +609,12 @@ namespace ReeLib.Clip
             if (Version >= ClipVersion.RE3)
             {
                 var stringItem = handler.StringTableAdd(Name, false);
-                nameOffset = stringItem!.TableOffset;
+                nameOffset = stringItem.TableOffset;
             }
-            else if (header.namesOffsetExtra != null)
+            else if (header.unknownOffsets != null)
             {
                 var stringItem = handler.AsciiStringTableAdd(Name, false);
-                nameOffset = stringItem!.TableOffset;
+                nameOffset = stringItem.TableOffset;
             }
         }
 
@@ -650,18 +640,27 @@ namespace ReeLib.Clip
         public int numUnknownWilds4;
 
         public Guid guid;
-        public long clipDataOffset;
-        public long propertiesOffset;
-        public long keysOffset;
-        public long namesOffset;
+        internal long clipDataOffset;
+        internal long propertiesOffset;
+        internal long keysOffset;
+        internal long uknOffset1;
+        internal long hermiteDataOffset;
 
-        public long namesOffset2;
+        internal long[]? unknownOffsets;
 
-        public long[]? namesOffsetExtra;
+        internal long namesOffset;
+        internal long unicodeNamesOffset;
+        internal long endClipStructsOffset1;
+        internal long endClipStructsOffset2;
 
-        public long unicodeNamesOffset;
-        public long endClipStructsOffset1;
-        public long endClipStructsOffset2;
+        internal int UnknownOffsetsCount => version switch
+        {
+            ClipVersion.RE7 => 3,
+            ClipVersion.RE4 or ClipVersion.SF6 => 1,
+            >= ClipVersion.MHWilds => 5,
+            ClipVersion.RE2_DMC5 => 3,
+            _ => 2,
+        };
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -685,19 +684,12 @@ namespace ReeLib.Clip
             handler.Read(ref clipDataOffset);
             handler.Read(ref propertiesOffset);
             handler.Read(ref keysOffset);
+            handler.Read(ref uknOffset1);
+            handler.Read(ref hermiteDataOffset);
+            DataInterpretationException.ThrowIf(uknOffset1 != hermiteDataOffset);
+            unknownOffsets = handler.ReadArray<long>(UnknownOffsetsCount);
+            DataInterpretationException.ThrowIfNotEqualValues<long>(unknownOffsets);
             handler.Read(ref namesOffset);
-            if (version == ClipVersion.RE2_DMC5)
-            {
-                handler.Read(ref namesOffset2);
-            }
-            namesOffsetExtra = version switch
-            {
-                ClipVersion.RE7 => handler.ReadArray<long>(5),
-                ClipVersion.RE4 or ClipVersion.SF6 => handler.ReadArray<long>(3),
-                >= ClipVersion.MHWilds => handler.ReadArray<long>(7),
-                _ => handler.ReadArray<long>(4),
-            };
-            // DataInterpretationException.ThrowIfNotEqualValues<long>(namesOffsetExtra);
             handler.Read(ref unicodeNamesOffset);
             handler.Read(ref endClipStructsOffset1);
             // if (version <= ClipVersion.RE4)
@@ -727,12 +719,10 @@ namespace ReeLib.Clip
             handler.Write(ref clipDataOffset);
             handler.Write(ref propertiesOffset);
             handler.Write(ref keysOffset);
+            handler.Write(ref uknOffset1);
+            handler.Write(ref hermiteDataOffset);
+            handler.WriteArray(unknownOffsets!);
             handler.Write(ref namesOffset);
-            if (version == ClipVersion.RE2_DMC5)
-            {
-                handler.Write(ref namesOffset2);
-            }
-            handler.WriteArray(namesOffsetExtra!);
             handler.Write(ref unicodeNamesOffset);
             handler.Write(ref endClipStructsOffset1);
             // if (version <= ClipVersion.RE4)
@@ -763,7 +753,7 @@ namespace ReeLib.Clip
             handler.Read(ref ukn1);
             handler.Read(ref ukn2);
             handler.Read(ref ukn3);
-            if (Version >= ClipVersion.RE2_RT)
+            if (Version >= ClipVersion.RE8)
             {
                 handler.Read(ref ukn4);
                 handler.Read(ref ukn5);
@@ -778,7 +768,7 @@ namespace ReeLib.Clip
             handler.Write(ref ukn1);
             handler.Write(ref ukn2);
             handler.Write(ref ukn3);
-            if (Version >= ClipVersion.RE2_RT)
+            if (Version >= ClipVersion.RE8)
             {
                 handler.Write(ref ukn4);
                 handler.Write(ref ukn5);
@@ -930,6 +920,16 @@ namespace ReeLib.Clip
         public override string ToString() => $"[Props: {Props1.Count} + {Props2.Count}]";
     }
 
+    public struct HermiteInterpolationData
+    {
+        public float x1;
+        public float y1;
+        public float x2;
+        public float y2;
+
+        public override string ToString() => $"{x1},{y1}  {x2},{y2}";
+    }
+
     public class ClipEntry : BaseModel
     {
         public ClipHeader Header { get; } = new();
@@ -938,7 +938,8 @@ namespace ReeLib.Clip
         public List<CTrack> CTrackList { get; } = new();
         public List<Property> Properties { get; } = new();
         public List<Key> ClipKeys { get; } = new();
-        public float[]? Unknown_Floats { get; set; }
+        public HermiteInterpolationData[]? HermiteData { get; set; }
+        public uint[]? UnknownData { get; set; }
 
         public ClipExtraPropertyData ExtraPropertyData = new();
 
@@ -993,10 +994,8 @@ namespace ReeLib.Clip
                 {
                     Property property = new(Version);
                     property.Info.Read(handler);
-                    if (clipHeader.namesOffsetExtra != null && clipHeader.namesOffsetExtra.Length > 1)
-                    {
-                        property.Info.FunctionName = handler.ReadAsciiString(clipHeader.namesOffsetExtra[1] + property.Info.nameOffset);
-                    }
+                    property.Info.FunctionName = handler.ReadAsciiString(clipHeader.namesOffset + property.Info.nameOffset);
+                    DataInterpretationException.ThrowIf(string.IsNullOrEmpty(property.Info.FunctionName));
                     Properties.Add(property);
                 }
             }
@@ -1036,19 +1035,20 @@ namespace ReeLib.Clip
                 }
             }
 
-            if (clipHeader.namesOffsetExtra != null)
+            if (clipHeader.unknownOffsets != null)
             {
-                if (clipHeader.namesOffsetExtra[1] - clipHeader.namesOffset > 0)
+                if (clipHeader.unknownOffsets[0] > clipHeader.hermiteDataOffset)
                 {
-                    handler.Seek(clipHeader.namesOffset);
-                    Unknown_Floats = handler.ReadArray<float>((int)(clipHeader.namesOffsetExtra[1] - clipHeader.namesOffset) / 4);
+                    handler.Seek(clipHeader.hermiteDataOffset);
+                    HermiteData = handler.ReadArray<HermiteInterpolationData>((int)(clipHeader.unknownOffsets[0] - clipHeader.hermiteDataOffset) / 16);
                 }
 
-                /* handler.Seek(clipHeader.namesOffsetExtra[1]);
-                for (int i = 0; i < clipHeader.numProperties + clipHeader.numNodes; i++)
+                if (clipHeader.namesOffset != clipHeader.unknownOffsets[0])
                 {
-
-                } */
+                    // TODO: exists in dmc5 pl0100_maken.motlist.85, many re8 files
+                    // re8: last offset points to 32 byte blocks @ property count
+                    UnknownData = handler.ReadArray<uint>((int)((clipHeader.namesOffset - clipHeader.unknownOffsets[0]) / 4));
+                }
             }
 
             ExtraPropertyData.Version = Header.version;
@@ -1083,7 +1083,11 @@ namespace ReeLib.Clip
             foreach (var property in Properties)
             {
                 var stringItem = handler.AsciiStringTableAdd(property.Info.FunctionName, false);
-                property.Info.nameOffset = stringItem!.TableOffset;
+                property.Info.nameOffset = stringItem.TableOffset;
+
+                stringItem = handler.StringTableAdd(property.Info.FunctionName, false);
+                property.Info.nameOffset2 = stringItem.TableOffset;
+
                 property.Info.Write(handler);
             }
 
@@ -1094,16 +1098,17 @@ namespace ReeLib.Clip
                 key.Write(handler);
             }
 
-            // TODO: check namesOffset2?
+            clipHeader.uknOffset1 = handler.Tell();
+            clipHeader.hermiteDataOffset = handler.Tell();
+            if (HermiteData?.Length > 0)
+            {
+                handler.WriteArray(HermiteData);
+            }
+            if (clipHeader.unknownOffsets?.Length != clipHeader.UnknownOffsetsCount) clipHeader.unknownOffsets = new long[clipHeader.UnknownOffsetsCount];
+            ((Span<long>)clipHeader.unknownOffsets).Fill(handler.Tell());
+
+            if (UnknownData?.Length > 0) handler.WriteArray(UnknownData);
             clipHeader.namesOffset = handler.Tell();
-            if (Unknown_Floats != null)
-            {
-                handler.WriteArray(Unknown_Floats);
-            }
-            if (clipHeader.namesOffsetExtra != null)
-            {
-                ((Span<long>)clipHeader.namesOffsetExtra).Fill(handler.Tell());
-            }
             handler.AsciiStringTableFlush();
 
             handler.Align(8);

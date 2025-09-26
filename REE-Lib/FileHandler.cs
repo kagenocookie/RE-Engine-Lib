@@ -2,6 +2,7 @@ using ReeLib.Common;
 using System.Buffers;
 using System.Collections;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -1134,6 +1135,7 @@ namespace ReeLib
             WriteInt64(0);
         }
 
+        [return: NotNullIfNotNull(nameof(text))]
         public StringTableItem? StringTableAdd(string? text, bool addOffset = true)
         {
             if (text != null)
@@ -1174,6 +1176,7 @@ namespace ReeLib
             Skip(sizeof(long));
         }
 
+        [return: NotNullIfNotNull(nameof(text))]
         public StringTableItem? AsciiStringTableAdd(string? text, bool addOffset = true)
         {
             if (text != null)

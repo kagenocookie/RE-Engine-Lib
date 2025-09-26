@@ -2115,6 +2115,7 @@ namespace ReeLib
             handler.StringTable?.Clear();
             handler.Align(16);
 
+            header.boneClipHeaderOffset = BoneClips.Count == 0 ? 0 : handler.Tell();
             foreach (var clip in BoneClips)
             {
                 clip.ClipHeader.Write(handler);

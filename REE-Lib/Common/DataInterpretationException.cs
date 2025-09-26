@@ -22,6 +22,12 @@ namespace ReeLib
         }
 
         [Conditional("DEBUG"), MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ThrowIfDifferent<TValue>(TValue value1, TValue value2, string message = "Values were expected to be identical, but weren't") where TValue : IBinaryInteger<TValue>
+        {
+            if (value1 != value2) throw new DataInterpretationException(message);
+        }
+
+        [Conditional("DEBUG"), MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ThrowIfNotEqualValues<TValue>(ReadOnlySpan<TValue> values, string message = "Array values were expected to be identical, but weren't") where TValue : IBinaryInteger<TValue>
         {
             if (values.Length == 0) return;

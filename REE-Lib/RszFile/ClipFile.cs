@@ -761,7 +761,7 @@ namespace ReeLib.Clip
             handler.Read(ref ukn);
             handler.Read(ref ukn1);
             handler.Read(ref ukn2);
-            if (Version >= ClipVersion.DD2)
+            if (Version >= ClipVersion.RE2_RT)
             {
                 handler.Read(ref ukn3);
                 handler.Read(ref ukn4);
@@ -775,7 +775,7 @@ namespace ReeLib.Clip
             handler.Write(ref ukn);
             handler.Write(ref ukn1);
             handler.Write(ref ukn2);
-            if (Version >= ClipVersion.DD2)
+            if (Version >= ClipVersion.RE2_RT)
             {
                 handler.Write(ref ukn3);
                 handler.Write(ref ukn4);

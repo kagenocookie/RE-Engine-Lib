@@ -745,27 +745,29 @@ namespace ReeLib.Clip
     public class EndClipStruct : BaseModel
     {
         public int ukn = -1;
+        // these values could be byte flags of some sort, no idea
         public uint ukn1;
-        public ulong ukn2;
-
+        public uint ukn2;
         public uint ukn3;
         public uint ukn4;
         public uint ukn5;
+        public uint ukn6;
 
         public ClipVersion Version;
 
-        public override string ToString() => $"{ukn} {ukn1} {ukn2}";
+        public override string ToString() => $"{ukn} {ukn1} {ukn2} {ukn3}";
 
         protected override bool DoRead(FileHandler handler)
         {
             handler.Read(ref ukn);
             handler.Read(ref ukn1);
             handler.Read(ref ukn2);
+            handler.Read(ref ukn3);
             if (Version >= ClipVersion.RE2_RT)
             {
-                handler.Read(ref ukn3);
                 handler.Read(ref ukn4);
                 handler.Read(ref ukn5);
+                handler.Read(ref ukn6);
             }
             return true;
         }
@@ -775,11 +777,12 @@ namespace ReeLib.Clip
             handler.Write(ref ukn);
             handler.Write(ref ukn1);
             handler.Write(ref ukn2);
+            handler.Write(ref ukn3);
             if (Version >= ClipVersion.RE2_RT)
             {
-                handler.Write(ref ukn3);
                 handler.Write(ref ukn4);
                 handler.Write(ref ukn5);
+                handler.Write(ref ukn6);
             }
             return true;
         }

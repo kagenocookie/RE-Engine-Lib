@@ -2454,6 +2454,11 @@ namespace ReeLib
             {
                 clip.ChangeVersion(clipVer);
             }
+            foreach (var tracks in MotPropertyTracks)
+            {
+                tracks.Version = version;
+                tracks.Track?.ChangeVersion(version);
+            }
         }
 
         public void CopyValuesFrom(MotFile source, bool replaceBehaviorClips)

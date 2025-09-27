@@ -1486,8 +1486,8 @@ namespace ReeLib.Mot
             get
             {
                 if (ClipEntry == null) return "";
-                if (ClipEntry.CTrackList.Count <= mainTrackIndex) return "";
-                return ClipEntry.CTrackList[mainTrackIndex].Name;
+                if (ClipEntry.Tracks.Count <= mainTrackIndex) return "";
+                return ClipEntry.Tracks[mainTrackIndex].Name;
             }
         }
 
@@ -1546,7 +1546,7 @@ namespace ReeLib.Mot
         public void ChangeVersion(ClipVersion clipVer)
         {
             ClipEntry.Version = clipVer;
-            foreach (var track in ClipEntry.CTrackList) track.Version = clipVer;
+            foreach (var track in ClipEntry.Tracks) track.Version = clipVer;
             foreach (var track in ClipEntry.Properties) track.Info.Version = clipVer;
             ClipEntry.ExtraPropertyData.Version = clipVer;
         }

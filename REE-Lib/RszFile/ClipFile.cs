@@ -213,7 +213,6 @@ namespace ReeLib.Clip
             handler.Write(ref instanceValue);
             handler.WriteNull(2);
             handler.Write(ref unknown);
-            // Value
             WriteValue(handler);
             var end = Start + ClipFile.GetTarget()!.KeySize;
             handler.WriteNull((int)(end - handler.Tell()));
@@ -353,7 +352,7 @@ namespace ReeLib.Clip
             }
         }
 
-        public override string ToString() => $"[{frame}]: {PropertyType} {Value}";
+        public override string ToString() => $"[{frame}]: {Value}";
     }
 
 
@@ -482,6 +481,8 @@ namespace ReeLib.Clip
             }
             return base.DoWrite(handler);
         }
+
+        public override string ToString() => $"[{FunctionName}]";
     }
 
 
@@ -528,7 +529,7 @@ namespace ReeLib.Clip
             }
         }
 
-        public override string ToString() => $"{Info.FunctionName} {Info.DataType} [{Info.startFrame}-{Info.endFrame}]";
+        public override string ToString() => $"{Info.FunctionName} [{Info.startFrame}-{Info.endFrame}]";
     }
 
 
@@ -547,6 +548,8 @@ namespace ReeLib.Clip
         public long nameOffset;
         public long nameOffset2;
         public long firstPropIdx;
+
+        public List<Property> Properties { get; } = new();
 
         public ClipVersion Version { get; set; }
         public string Name { get; set; } = string.Empty;
@@ -933,7 +936,7 @@ namespace ReeLib.Clip
     public class ClipEntry : BaseModel
     {
         public ClipHeader Header { get; } = new();
-        public List<CTrack> CTrackList { get; } = new();
+        public List<CTrack> Tracks { get; } = new();
         public List<Property> Properties { get; } = new();
         public List<Key> ClipKeys { get; } = new();
         public HermiteInterpolationData[]? HermiteData { get; set; }
@@ -966,7 +969,7 @@ namespace ReeLib.Clip
 
         protected override bool DoRead(FileHandler handler)
         {
-            CTrackList.Clear();
+            Tracks.Clear();
             Properties.Clear();
             ClipKeys.Clear();
             var clipHeader = Header;
@@ -983,7 +986,7 @@ namespace ReeLib.Clip
                     CTrack cTrack = new(Version);
                     cTrack.Read(handler);
                     cTrack.ReadName(handler, clipHeader);
-                    CTrackList.Add(cTrack);
+                    Tracks.Add(cTrack);
                 }
             }
 
@@ -1059,6 +1062,13 @@ namespace ReeLib.Clip
                 ExtraPropertyData.Read(handler);
             }
 
+            // setup prop/key hierarchy
+            foreach (var track in Tracks)
+            {
+                if (track.propCount == 0) continue;
+                track.Properties.AddRange(Properties.Slice((int)track.firstPropIdx, track.propCount));
+            }
+
             return true;
         }
 
@@ -1069,12 +1079,13 @@ namespace ReeLib.Clip
             clipHeader.magic = Magic;
             handler.Seek(start + clipHeader.Size);
 
-            clipHeader.numNodes = CTrackList.Count;
+            clipHeader.numNodes = Tracks.Count;
             clipHeader.clipDataOffset = handler.Tell();
-            foreach (var cTrack in CTrackList)
+            ReFlattenProperties(clipHeader);
+            foreach (var track in Tracks)
             {
-                cTrack.WriteName(handler, clipHeader);
-                cTrack.Write(handler);
+                track.WriteName(handler, clipHeader);
+                track.Write(handler);
             }
 
             handler.Align(8);
@@ -1125,6 +1136,47 @@ namespace ReeLib.Clip
 
             clipHeader.Write(handler, start);
             return true;
+        }
+
+        private void ReFlattenProperties(ClipHeader clipHeader)
+        {
+            var pendingProps = new List<Property>(Properties.Count);
+            var expectedcount = Properties.Count;
+            Properties.Clear();
+            // TODO handle Key flattening as well
+            foreach (var track in Tracks)
+            {
+                track.propCount = track.Properties.Count;
+                if (track.Properties.Count == 0)
+                {
+                    track.firstPropIdx = 0;
+                    track.propCount = 0;
+                    continue;
+                }
+
+                track.firstPropIdx = Properties.Count;
+                static void InsertProperties(List<Property> allProps, List<Property> props)
+                {
+                    allProps.AddRange(props);
+                    foreach (var prop in props)
+                    {
+                        if (!(prop.ChildProperties?.Count > 0))
+                        {
+                            if (prop.Info.DataType is PropertyType.NativeArray or PropertyType.NativeClass or PropertyType.Class or PropertyType.Struct or PropertyType.Array)
+                            {
+                                prop.Info.ChildStartIndex = 0;
+                                prop.Info.ChildMembershipCount = 0;
+                            }
+                            continue;
+                        }
+
+                        prop.Info.ChildStartIndex = allProps.Count;
+                        prop.Info.ChildMembershipCount = (ushort)prop.ChildProperties.Count;
+                        InsertProperties(allProps, prop.ChildProperties);
+                    }
+                }
+                InsertProperties(Properties, track.Properties);
+            }
         }
 
         public override string ToString() => $"Clip {Header.guid}";

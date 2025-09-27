@@ -1473,13 +1473,23 @@ namespace ReeLib.Mot
 
     public class MotClip : BaseModel
     {
-        public long clipOffset;
-        public long endClipStructsRelocation;
-        public uint uknIntA;
-        public uint uknIntB;
+        internal long clipOffset;
+        internal long endClipStructsRelocation;
+        public int lastTrackIndex; // 99.9% of the time equal to last track index
+        public int mainTrackIndex; // always equal to 1
         public byte[] uknBytes28 = new byte[28];
         public ClipEntry ClipEntry { get; set; } = new();
         public EndClipStruct[]? EndClipStructs { get; set; }
+
+        public string MainTrackName
+        {
+            get
+            {
+                if (ClipEntry == null) return "";
+                if (ClipEntry.CTrackList.Count <= mainTrackIndex) return "";
+                return ClipEntry.CTrackList[mainTrackIndex].Name;
+            }
+        }
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -1487,8 +1497,8 @@ namespace ReeLib.Mot
             handler.Read(ref clipOffset);
             handler.Read(ref endClipStructsRelocation);
             handler.ReadNull(4);
-            handler.Read(ref uknIntA);
-            handler.Read(ref uknIntB);
+            handler.Read(ref lastTrackIndex);
+            handler.Read(ref mainTrackIndex);
             handler.ReadBytes(uknBytes28);
             ClipEntry.Read(handler);
             if (ClipEntry.Header.version > ClipVersion.RE7 && ClipEntry.Header.numNodes > 1)
@@ -1501,6 +1511,7 @@ namespace ReeLib.Mot
                     EndClipStructs[i].Read(handler);
                 }
             }
+            DataInterpretationException.ThrowIfDifferent(mainTrackIndex, 1);
 
             return true;
         }
@@ -1511,8 +1522,8 @@ namespace ReeLib.Mot
             handler.Write(ref clipOffset);
             handler.Write(ref endClipStructsRelocation);
             handler.Write(0);
-            handler.Write(ref uknIntA);
-            handler.Write(ref uknIntB);
+            handler.Write(ref lastTrackIndex);
+            handler.Write(ref mainTrackIndex);
             handler.WriteBytes(uknBytes28);
 
             clipOffset = handler.Tell();
@@ -1540,7 +1551,7 @@ namespace ReeLib.Mot
             ClipEntry.ExtraPropertyData.Version = clipVer;
         }
 
-        public override string ToString() => $"MotClip: {ClipEntry}";
+        public override string ToString() => $"MotClip: {MainTrackName}";
     }
 
 

@@ -762,6 +762,7 @@ namespace ReeLib
             return result;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Write<T>(T value) where T : unmanaged
         {
             Stream.Write(MemoryUtils.StructureAsBytes(ref value));
@@ -777,6 +778,7 @@ namespace ReeLib
             return result;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Write<T>(ref T value) where T : unmanaged
         {
             Stream.Write(MemoryUtils.StructureAsBytes(ref value));

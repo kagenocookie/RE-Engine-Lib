@@ -182,8 +182,7 @@ namespace ReeLib.Clip
         public float rate;
         public InterpolationType interpolation;
         public bool instanceValue;
-        public ushort reserved;
-        public uint reserved2;
+        public uint unknown;
         public object Value { get; set; } = null!;
 
         public PropertyType PropertyType { get; set; }
@@ -200,20 +199,20 @@ namespace ReeLib.Clip
             handler.Read(ref rate);
             handler.Read(ref interpolation);
             handler.Read(ref instanceValue);
-            handler.Read(ref reserved);
-            handler.Read(ref reserved2);
+            handler.ReadNull(2);
+            handler.Read(ref unknown);
             handler.Seek(Start + ClipFile.GetTarget()!.KeySize);
             return true;
         }
 
         protected override bool DoWrite(FileHandler handler)
         {
-            handler.Write(frame);
-            handler.Write(rate);
-            handler.Write(interpolation);
-            handler.Write(instanceValue);
-            handler.Write(reserved);
-            handler.Write(reserved2);
+            handler.Write(ref frame);
+            handler.Write(ref rate);
+            handler.Write(ref interpolation);
+            handler.Write(ref instanceValue);
+            handler.WriteNull(2);
+            handler.Write(ref unknown);
             // Value
             WriteValue(handler);
             handler.Seek(Start + ClipFile.GetTarget()!.KeySize);
@@ -933,23 +932,23 @@ namespace ReeLib.Clip
     public class ClipEntry : BaseModel
     {
         public ClipHeader Header { get; } = new();
-        public long endClipOffset;
-        public long lastUnicodeNameOffset;
         public List<CTrack> CTrackList { get; } = new();
         public List<Property> Properties { get; } = new();
         public List<Key> ClipKeys { get; } = new();
         public HermiteInterpolationData[]? HermiteData { get; set; }
         public uint[]? UnknownData { get; set; }
 
-        public ClipExtraPropertyData ExtraPropertyData = new();
+        public float FrameCount { get => Header.numFrames; set => Header.numFrames = value; }
+        public Guid Guid { get => Header.guid; set => Header.guid = value; }
 
+        public ClipExtraPropertyData ExtraPropertyData = new();
 
         public const uint Magic = 0x50494C43;
         public const string Extension = ".clip";
 
         public ClipVersion Version { get => Header.version; set => Header.version = value; }
 
-        public int PropertySize => Version switch
+        internal int PropertySize => Version switch
         {
             ClipVersion.RE3 => 32,
             ClipVersion.RE7 => 120,
@@ -958,7 +957,7 @@ namespace ReeLib.Clip
             _ => 112,
         };
 
-        public int KeySize => Version switch
+        internal int KeySize => Version switch
         {
             < ClipVersion.RE3 => 40,
             _ => 32,

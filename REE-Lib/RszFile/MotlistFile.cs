@@ -109,7 +109,7 @@ namespace ReeLib.Motlist
                 }
             }
             handler.Write(ref numMots);
-            handler.Skip(2);
+            // handler.Skip(2);
             handler.StringTableFlush();
             return true;
         }
@@ -189,7 +189,7 @@ namespace ReeLib
             handler.Seek(header.pointersOffset);
             long[] motOffsets = handler.ReadArray<long>(header.numMots);
 
-            Dictionary<long, MotFile> motions = new();
+            Dictionary<long, MotFileBase> motions = new();
             MotFile? headerMot = null;
             for (int i = 0; i < motOffsets.Length; i++)
             {
@@ -210,9 +210,11 @@ namespace ReeLib
                     MotFiles.Add(motFile);
                     motions[motOffsets[i]] = motFile;
                 } else if (magic == MotTreeFile.Magic) {
-                    // MotTreeFile mtre = new MotTreeFile(fileHandler);
-                    // mtre.Read();
-                    throw new NotSupportedException("MotTree motions are not supported");
+                    MotTreeFile tree = new MotTreeFile(fileHandler);
+                    tree.Embedded = true;
+                    tree.Read();
+                    MotFiles.Add(tree);
+                    motions[motOffsets[i]] = tree;
                 }
                 // NOTE: MotionFacial also exists, haven't seen it in motlists yet though
             }
@@ -257,20 +259,21 @@ namespace ReeLib
             handler.Align(16);
 
             var motFileDict = new Dictionary<MotFileBase, long>();
+            var foundMotFile = false;
             foreach (var mot in MotFiles)
             {
-                var isFirst = motFileDict.Count == 0;
                 var motOffset = handler.Tell();
                 motFileDict[mot] = motOffset;
                 mot.FileHandler = handler.WithOffset(motOffset);
                 mot.Write();
                 // "we only need one bone list header per motlist even if some mots use different bones" - capcom dev, apparently
-                var skipBoneList = !isFirst && header.Version >= MotlistVersion.RE3;
+                var skipBoneList = header.Version >= MotlistVersion.RE3 && foundMotFile;
                 if (mot is MotFile motFile && !skipBoneList)
                 {
                     motFile.WriteBones();
                     motFile.Header.motSize = 0;
                     motFile.FileHandler.Write(12, 0);
+                    foundMotFile = true;
                 }
                 handler.Align(16);
             }

@@ -2004,6 +2004,8 @@ namespace ReeLib
         : BaseFile(fileHandler)
     {
         public abstract KnownFileFormats MotType { get; }
+
+        public abstract string Name { get; set; }
     }
 
     public class MotFile(FileHandler fileHandler)
@@ -2023,7 +2025,7 @@ namespace ReeLib
         public List<MotBone> Bones { get; } = new();
         public List<MotBone> RootBones { get; } = new();
 
-        public string Name { get => Header.motName; set => Header.motName = value; }
+        public override string Name { get => Header.motName; set => Header.motName = value; }
 
         public MotBone? GetBoneByHash(uint hash) => Bones.FirstOrDefault(b => b.Header.boneHash == hash);
 
@@ -2043,8 +2045,8 @@ namespace ReeLib
                 throw new InvalidDataException($"{handler.FilePath} Not a MOT file");
             }
 
-            if (header.boneClipCount > header.boneCount)
-                throw new InvalidDataException($"boneClipCount {header.boneClipCount} > boneCount {header.boneCount}");
+            // if (header.boneClipCount > header.boneCount)
+            //     throw new InvalidDataException($"boneClipCount {header.boneClipCount} > boneCount {header.boneCount}");
 
             if (header.boneClipCount > 0)
             {

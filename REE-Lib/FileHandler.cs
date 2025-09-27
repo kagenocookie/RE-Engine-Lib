@@ -190,8 +190,8 @@ namespace ReeLib
             switch (count) {
                 case 0: break;
                 case 1: DataInterpretationException.ThrowIfNotZero(Read<byte>()); break;
-                case 2: DataInterpretationException.ThrowIfNotZero(Read<short>()); break;
-                case 4: DataInterpretationException.ThrowIfNotZero(Read<int>()); break;
+                case 2: DataInterpretationException.ThrowIfNotZero(Read<ushort>()); break;
+                case 4: DataInterpretationException.ThrowIfNotZero(Read<uint>()); break;
                 case 8: DataInterpretationException.ThrowIfNotZero(Read<long>()); break;
                 default:
                     Span<byte> bytes = stackalloc byte[count];
@@ -763,7 +763,6 @@ namespace ReeLib
             return result;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Write<T>(T value) where T : unmanaged
         {
             Stream.Write(MemoryUtils.StructureAsBytes(ref value));
@@ -779,7 +778,6 @@ namespace ReeLib
             return result;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Write<T>(ref T value) where T : unmanaged
         {
             Stream.Write(MemoryUtils.StructureAsBytes(ref value));
@@ -1113,6 +1111,12 @@ namespace ReeLib
         public string ReadOffsetWString()
         {
             return ReadWString(ReadInt64());
+        }
+
+        public string? ReadOffsetWStringNullable()
+        {
+            var offs = ReadInt64();
+            return offs == 0 ? null : ReadWString(offs);
         }
 
         public void ReadOffsetWString(out string text)

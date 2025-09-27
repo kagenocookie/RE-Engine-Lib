@@ -188,6 +188,7 @@ namespace ReeLib
         {
             #if DEBUG
             switch (count) {
+                case 0: break;
                 case 1: DataInterpretationException.ThrowIfNotZero(Read<byte>()); break;
                 case 2: DataInterpretationException.ThrowIfNotZero(Read<short>()); break;
                 case 4: DataInterpretationException.ThrowIfNotZero(Read<int>()); break;

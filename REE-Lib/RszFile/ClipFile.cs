@@ -215,7 +215,8 @@ namespace ReeLib.Clip
             handler.Write(ref unknown);
             // Value
             WriteValue(handler);
-            handler.Seek(Start + ClipFile.GetTarget()!.KeySize);
+            var end = Start + ClipFile.GetTarget()!.KeySize;
+            handler.WriteNull((int)(end - handler.Tell()));
             return true;
         }
 
@@ -562,7 +563,7 @@ namespace ReeLib.Clip
                 action.Do(ref Unsafe.As<int, short>(ref nodeCount));
                 action.Do(ref Unsafe.As<int, short>(ref propCount));
                 action.Do(ref nodeType);
-                action.Skip(3);
+                action.Null(3);
             }
             else
             {
@@ -572,7 +573,7 @@ namespace ReeLib.Clip
                 action.Do(ref End_Frame);
                 action.Do(ref guid1);
                 action.Do(ref guid2);
-                action.Skip(8);
+                action.Null(8);
             }
             action.Do(ref nameHash);
             action.Do(ref nameOffset);

@@ -5,7 +5,7 @@ using ReeLib.via;
 
 namespace ReeLib.Mesh
 {
-	internal enum MeshMainVersion
+	public enum MeshSerializerVersion
 	{
 		Unknown,
 		RE7,
@@ -60,7 +60,7 @@ namespace ReeLib.Mesh
 		public int wilds_unkn4 = 0;
 		public short wilds_unkn5 = 0;
 
-		internal MeshMainVersion FormatVersion;
+		internal MeshSerializerVersion FormatVersion;
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -70,9 +70,9 @@ namespace ReeLib.Mesh
             handler.Read(ref version);
             handler.Read(ref fileSize);
             handler.Read(ref lodHash);
-			var Version = FormatVersion = MeshFile.GetConsistentMeshVersion(version, handler.FileVersion);
+			var Version = FormatVersion = MeshFile.GetSerializerVersion(version, (uint)handler.FileVersion);
 
-			if (Version < MeshMainVersion.RE4)
+			if (Version < MeshSerializerVersion.RE4)
 			{
 				handler.Read(ref flags);
 				handler.Read(ref nameCount);
@@ -91,7 +91,7 @@ namespace ReeLib.Mesh
 				handler.Read(ref blendShapeIndicesOffset);
 				handler.Read(ref nameOffsetsOffset);
 			}
-			else if (Version >= MeshMainVersion.RE4 && Version < MeshMainVersion.MHWILDS)
+			else if (Version >= MeshSerializerVersion.RE4 && Version < MeshSerializerVersion.MHWILDS)
 			{
 				handler.Read(ref flags);
 				handler.Read(ref uknCount);
@@ -113,7 +113,7 @@ namespace ReeLib.Mesh
 				handler.Read(ref materialIndicesOffset);
 				handler.Read(ref boneIndicesOffset);
 				handler.Read(ref blendShapeIndicesOffset);
-				if (Version < MeshMainVersion.DD2_Old)
+				if (Version < MeshSerializerVersion.DD2_Old)
 				{
 					handler.Read(ref streamingInfoOffset);
 					handler.Read(ref nameOffsetsOffset);
@@ -127,7 +127,7 @@ namespace ReeLib.Mesh
 				handler.Read(ref verticesOffset);
 				handler.Read(ref sf6unkn4);
 			}
-			else if (Version >= MeshMainVersion.MHWILDS)
+			else if (Version >= MeshSerializerVersion.MHWILDS)
 			{
 				handler.Read(ref wilds_unkn1);
 				handler.Read(ref nameCount);
@@ -207,9 +207,45 @@ namespace ReeLib.Mesh
 		public float[] boneWeights = [];
 		private static readonly byte[] byteArray8 = new byte[8];
 
-		internal void Read(FileHandler handler, MeshMainVersion version)
+        public VertexBoneWeights()
+			: this(MeshSerializerVersion.MHWILDS)
+        {
+        }
+
+        public VertexBoneWeights(MeshSerializerVersion version)
+        {
+            boneIndices = new int[GetIndexCount(version)];
+			boneWeights = new float[8];
+        }
+
+		public void NormalizeWeights()
 		{
-			if (version == MeshMainVersion.SF6) {
+			var sum = boneWeights.Sum();
+			for (int i = 0; i < boneWeights.Length; ++i) boneWeights[i] /= sum;
+		}
+
+		private static int GetIndexCount(MeshSerializerVersion version) => version == MeshSerializerVersion.SF6 ? 6 : 8;
+
+		public void ChangeVersion(MeshSerializerVersion version)
+		{
+			if (GetIndexCount(version) != boneIndices.Length) {
+				UpdateArrays(version);
+			}
+		}
+
+        private void UpdateArrays(MeshSerializerVersion version)
+        {
+			var previous = boneIndices;
+            boneIndices = new int[GetIndexCount(version)];
+			if (previous.Length > 0)
+			{
+				Array.Copy(previous, boneIndices, Math.Min(previous.Length, boneIndices.Length));
+			}
+        }
+
+        internal void Read(FileHandler handler, MeshSerializerVersion version)
+		{
+			if (version == MeshSerializerVersion.SF6) {
 				var b1 = handler.Read<uint>();
 				var b2 = handler.Read<uint>();
 				boneIndices = new int[6];
@@ -254,13 +290,13 @@ namespace ReeLib.Mesh
 
 		private const float ByteDenorm = 1f / 127f;
 
-		internal MeshMainVersion Version;
+		internal MeshSerializerVersion Version;
 
         protected override bool DoRead(FileHandler handler)
         {
 			handler.Read(ref elementHeadersOffset);
 			handler.Read(ref vertexBufferOffset);
-			if (Version >= MeshMainVersion.RE4)
+			if (Version >= MeshSerializerVersion.RE4)
 			{
 				handler.Read(ref uknOffset);
 				handler.Read(ref vertexBufferSize);
@@ -269,7 +305,7 @@ namespace ReeLib.Mesh
 			else
 			{
 				handler.Read(ref faceBufferOffset);
-				if (Version == MeshMainVersion.RE_RT)
+				if (Version == MeshSerializerVersion.RE_RT)
 				{
 					handler.Read(ref ukn1);
 					handler.Read(ref ukn2);
@@ -367,16 +403,24 @@ namespace ReeLib.Mesh
 		public int vertsIndexOffset;
 		public int vertCount;
 
-		public Span<ushort> Indices => MemoryMarshal.CreateSpan(ref Buffer.Faces[0], Buffer.Faces.Length).Slice(facesIndexOffset, indicesCount);
-		public Span<Vector3> Positions => MemoryMarshal.CreateSpan(ref Buffer.Positions[0], Buffer.Positions.Length).Slice(vertsIndexOffset, vertCount);
-		public Span<Vector3> Normals => MemoryMarshal.CreateSpan(ref Buffer.Normals[0], Buffer.Normals.Length).Slice(vertsIndexOffset, vertCount);
-		public Span<Vector3> Tangents => MemoryMarshal.CreateSpan(ref Buffer.Tangents[0], Buffer.Tangents.Length).Slice(vertsIndexOffset, vertCount);
-		public Span<Vector2> UV0 => MemoryMarshal.CreateSpan(ref Buffer.UV0[0], Buffer.UV0.Length).Slice(vertsIndexOffset, vertCount);
-		public Span<Vector2> UV1 => MemoryMarshal.CreateSpan(ref Buffer.UV1[0], Buffer.UV1.Length).Slice(vertsIndexOffset, vertCount);
-		public Span<Color> Colors => MemoryMarshal.CreateSpan(ref Buffer.Colors[0], Buffer.Colors.Length).Slice(vertsIndexOffset, vertCount);
-		public Span<VertexBoneWeights> Weights => MemoryMarshal.CreateSpan(ref Buffer.Weights[0], Buffer.Weights.Length).Slice(vertsIndexOffset, vertCount);
+		public Span<ushort> Indices => Buffer.Faces.AsSpan(facesIndexOffset, indicesCount);
+		public Span<Vector3> Positions => Buffer.Positions.AsSpan(vertsIndexOffset, vertCount);
+		public Span<Vector3> Normals => Buffer.Normals.AsSpan(vertsIndexOffset, vertCount);
+		public Span<Vector3> Tangents => Buffer.Tangents.AsSpan(vertsIndexOffset, vertCount);
+		public Span<Vector2> UV0 => Buffer.UV0.AsSpan(vertsIndexOffset, vertCount);
+		public Span<Vector2> UV1 => Buffer.UV1.AsSpan(vertsIndexOffset, vertCount);
+		public Span<Color> Colors => Buffer.Colors.AsSpan(vertsIndexOffset, vertCount);
+		public Span<VertexBoneWeights> Weights => Buffer.Weights.AsSpan(vertsIndexOffset, vertCount);
+		// public Span<ushort> Indices => MemoryMarshal.CreateSpan(ref Buffer.Faces[0], Buffer.Faces.Length).Slice(facesIndexOffset, indicesCount);
+		// public Span<Vector3> Positions => MemoryMarshal.CreateSpan(ref Buffer.Positions[0], Buffer.Positions.Length).Slice(vertsIndexOffset, vertCount);
+		// public Span<Vector3> Normals => MemoryMarshal.CreateSpan(ref Buffer.Normals[0], Buffer.Normals.Length).Slice(vertsIndexOffset, vertCount);
+		// public Span<Vector3> Tangents => MemoryMarshal.CreateSpan(ref Buffer.Tangents[0], Buffer.Tangents.Length).Slice(vertsIndexOffset, vertCount);
+		// public Span<Vector2> UV0 => MemoryMarshal.CreateSpan(ref Buffer.UV0[0], Buffer.UV0.Length).Slice(vertsIndexOffset, vertCount);
+		// public Span<Vector2> UV1 => MemoryMarshal.CreateSpan(ref Buffer.UV1[0], Buffer.UV1.Length).Slice(vertsIndexOffset, vertCount);
+		// public Span<Color> Colors => MemoryMarshal.CreateSpan(ref Buffer.Colors[0], Buffer.Colors.Length).Slice(vertsIndexOffset, vertCount);
+		// public Span<VertexBoneWeights> Weights => MemoryMarshal.CreateSpan(ref Buffer.Weights[0], Buffer.Weights.Length).Slice(vertsIndexOffset, vertCount);
 
-		internal MeshMainVersion Version;
+		internal MeshSerializerVersion Version;
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -385,12 +429,12 @@ namespace ReeLib.Mesh
 			handler.Read(ref indicesCount);
 			handler.Read(ref facesIndexOffset);
 			handler.Read(ref vertsIndexOffset);
-			if (Version >= MeshMainVersion.RE_RT)
+			if (Version >= MeshSerializerVersion.RE_RT)
 			{
 				handler.Read(ref streamingOffset);
 				handler.Read(ref streamingOffset2);
 			}
-			if (Version >= MeshMainVersion.DD2)
+			if (Version >= MeshSerializerVersion.DD2)
 			{
 				handler.Read(ref ukn2);
 			}
@@ -412,10 +456,10 @@ namespace ReeLib.Mesh
 		public byte groupId;
 		public byte submeshCount;
 		public int vertexCount;
-		public int faceCount;
+		public int indicesCount;
 		public List<Submesh> Submeshes { get; } = new();
 
-		internal MeshMainVersion Version;
+		internal MeshSerializerVersion Version;
 		internal int meshVertexOffset;
 
         protected override bool DoRead(FileHandler handler)
@@ -424,7 +468,7 @@ namespace ReeLib.Mesh
 			handler.Read(ref submeshCount);
 			handler.Skip(6);
 			handler.Read(ref vertexCount);
-			handler.Read(ref faceCount);
+			handler.Read(ref indicesCount);
 			for (var i = 0; i < submeshCount; ++i)
 			{
 				var sub = new Submesh(Buffer) { Version = Version };
@@ -448,6 +492,7 @@ namespace ReeLib.Mesh
 
         protected override bool DoWrite(FileHandler handler)
         {
+			submeshCount = (byte)Submeshes.Count;
             throw new NotImplementedException();
         }
     }
@@ -459,10 +504,11 @@ namespace ReeLib.Mesh
 		public float lodFactor;
 		public byte vertexFormat;
 
-		public int FaceCount => MeshGroups.Sum(g => g.faceCount);
+		public int FaceCount => IndexCount / 3;
+		public int IndexCount => MeshGroups.Sum(g => g.indicesCount);
 		public int VertexCount => MeshGroups.Sum(g => g.vertexCount);
 
-		internal MeshMainVersion Version;
+		internal MeshSerializerVersion Version;
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -484,8 +530,8 @@ namespace ReeLib.Mesh
 				mesh.Read(handler);
 				MeshGroups.Add(mesh);
 				vertOffset += mesh.vertexCount;
-				totalIndices += mesh.faceCount;
-				if (mesh.faceCount % 2 != 0) {
+				totalIndices += mesh.indicesCount;
+				if (mesh.indicesCount % 2 != 0) {
 					indicesPadding++;
 				}
 			}
@@ -511,10 +557,10 @@ namespace ReeLib.Mesh
 		public int skinWeightCount;
 		public int totalMeshCount;
 		public long ukn1;
-		public Vector4 boundingSphere;
+		public Sphere boundingSphere;
 		public AABB boundingBox;
 
-		internal MeshMainVersion Version;
+		internal MeshSerializerVersion Version;
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -523,7 +569,7 @@ namespace ReeLib.Mesh
 			uvCount = handler.Read<byte>();
 			skinWeightCount = handler.Read<byte>();
 			handler.Read(ref totalMeshCount);
-			if (Version <= MeshMainVersion.DMC5)
+			if (Version <= MeshSerializerVersion.DMC5)
 			{
 				handler.Read(ref ukn1);
 			}
@@ -546,6 +592,7 @@ namespace ReeLib.Mesh
 
         protected override bool DoWrite(FileHandler handler)
         {
+        	lodCount = LODs.Count;
             throw new NotImplementedException();
         }
     }
@@ -641,30 +688,44 @@ namespace ReeLib
 
 		public List<string> MaterialNames { get; } = new();
 
-		internal static MeshMainVersion GetConsistentMeshVersion(uint internalVersion, int fileVersion) => internalVersion switch
+		private static readonly Dictionary<string, (uint internalVersion, uint fileVersion, MeshSerializerVersion serializerVersion, GameName[] games)> Versions = new()
 		{
-			// internal versions
-			386270720 => MeshMainVersion.DMC5,
-			21041600 => MeshMainVersion.RE_RT,
-			2020091500 => MeshMainVersion.RE8,
-			220822879 => MeshMainVersion.RE4,
-			220705151 => MeshMainVersion.SF6,
-			230517984 => fileVersion == 231011879 ? MeshMainVersion.DD2_Old : MeshMainVersion.DD2,
-			240704828 => MeshMainVersion.MHWILDS,
+			{ "RE7", (352921600, 32, MeshSerializerVersion.RE7, [GameName.re7]) }, // currently unsupported
 
-			// file extension versions
-			1808282334 => MeshMainVersion.DMC5, // dmc5
-			1808312334 => MeshMainVersion.DMC5, // re2
-			1902042334 => MeshMainVersion.DMC5, // re3
-			2101050001 => MeshMainVersion.RE8, // re8
-			2109108288 => MeshMainVersion.RE_RT, // re2rt
-			220128762 => MeshMainVersion.RE_RT, // re7rt
-			2109148288 => MeshMainVersion.RE_RT, // mhrise
-			230110883 => MeshMainVersion.SF6, // sf6
-			221108797 => MeshMainVersion.SF6, // re4
-			241111606 => MeshMainVersion.MHWILDS,
-			_ => MeshMainVersion.MHWILDS, // assume latest format for anything unknown - in case of newer games
+			{ "DMC5", (386270720, 1808282334, MeshSerializerVersion.DMC5, [GameName.dmc5]) },
+			{ "RE2", (386270720, 1808312334, MeshSerializerVersion.DMC5, [GameName.re2]) },
+			{ "RE3", (386270720, 1902042334, MeshSerializerVersion.DMC5, [GameName.re3]) },
+
+			{ "RE2/3 RT", (21041600, 2109108288, MeshSerializerVersion.RE_RT, [GameName.re2rt, GameName.re3rt]) },
+			{ "RE7RT", (21041600, 220128762, MeshSerializerVersion.RE_RT, [GameName.re7rt]) },
+
+			{ "MHRISE", (21041600, 2109148288, MeshSerializerVersion.RE_RT, [GameName.mhrise]) },
+			{ "RE8", (2020091500, 2101050001, MeshSerializerVersion.RE8, [GameName.re8]) },
+
+			{ "RE4", (220822879, 221108797, MeshSerializerVersion.RE4, [GameName.re4]) },
+			{ "SF6", (220705151, 230110883, MeshSerializerVersion.SF6, [GameName.sf6]) },
+			{ "DD2 (old)", (230517984, 231011879, MeshSerializerVersion.DD2_Old, [GameName.dd2]) },
+			{ "DD2", (230517984, 240423143, MeshSerializerVersion.DD2, [GameName.dd2]) },
+
+			{ "MHWILDS", (240704828, 241111606, MeshSerializerVersion.MHWILDS, [GameName.mhwilds]) }, // currently unsupported
 		};
+
+		public static readonly string[] AllExportConfigs = Versions.OrderBy(kv => kv.Value.serializerVersion).Select(kv => kv.Key).ToArray();
+
+		private static readonly Dictionary<GameName, string[]> versionsPerGame = Enum.GetValues<GameName>().ToDictionary(
+			game => game,
+			game => Versions.Where(kv => kv.Value.games.Contains(game)).Select(pair => pair.Key).ToArray()
+		);
+
+		private static readonly Dictionary<ulong, MeshSerializerVersion> SerializerVersionLookups = Versions.ToDictionary(v => (((ulong)v.Value.internalVersion << 32) | (ulong)v.Value.fileVersion), kv => kv.Value.serializerVersion);
+
+		internal static MeshSerializerVersion GetSerializerVersion(uint internalVersion, uint fileVersion)
+			// on match failure, assume latest format for anything unknown - in case of newer games
+			=> SerializerVersionLookups.TryGetValue((ulong)internalVersion << 32 | fileVersion, out var vvv) ? vvv : MeshSerializerVersion.MHWILDS;
+
+		public static string[] GetGameMeshVersions(GameName game) => versionsPerGame.GetValueOrDefault(game) ?? AllExportConfigs;
+		public static MeshSerializerVersion GetPrimarySerializerVersion(GameName game) => Versions[GetGameMeshVersions(game)[0]].serializerVersion;
+		public static MeshSerializerVersion GetSerializerVersion(string exportConfig) => Versions.TryGetValue(exportConfig, out var cfg) ? cfg.serializerVersion : MeshSerializerVersion.Unknown;
 
         public MeshFile(FileHandler fileHandler) : base(fileHandler)
         {

@@ -81,11 +81,15 @@ public static class PathUtils
         return dot == -1 ? fullExt : fullExt[0..dot];
     }
 
-    public static ReadOnlySpan<char> GetFilepathWithoutExtensionOrVersion(ReadOnlySpan<char> filename)
+    public static ReadOnlySpan<char> GetFilepathWithoutExtensionOrVersion(ReadOnlySpan<char> filepath)
     {
-        var extIndex = GetFilenameExtensionStartIndex(filename);
-        if (extIndex == -1) return filename;
-        return filename[extIndex] == '.' ? filename[..extIndex] : filename[..(extIndex + 1)];
+        var extIndex = GetFilenameExtensionStartIndex(filepath);
+        if (extIndex == -1) return filepath;
+        return filepath[extIndex] == '.' ? filepath[..extIndex] : filepath[..(extIndex + 1)];
+    }
+    public static ReadOnlySpan<char> GetFilenameWithoutExtensionOrVersion(ReadOnlySpan<char> filepath)
+    {
+        return Path.GetFileName(GetFilepathWithoutExtensionOrVersion(filepath));
     }
 
     private static int GetFilenameExtensionStartIndex(ReadOnlySpan<char> filename)

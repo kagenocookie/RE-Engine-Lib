@@ -704,8 +704,8 @@ namespace ReeLib
 
 			{ "RE4", (220822879, 221108797, MeshSerializerVersion.RE4, [GameName.re4]) },
 			{ "SF6", (220705151, 230110883, MeshSerializerVersion.SF6, [GameName.sf6]) },
-			{ "DD2 (old)", (230517984, 231011879, MeshSerializerVersion.DD2_Old, [GameName.dd2]) },
 			{ "DD2", (230517984, 240423143, MeshSerializerVersion.DD2, [GameName.dd2]) },
+			{ "DD2 (old)", (230517984, 231011879, MeshSerializerVersion.DD2_Old, [GameName.dd2]) },
 
 			{ "MHWILDS", (240704828, 241111606, MeshSerializerVersion.MHWILDS, [GameName.mhwilds]) }, // currently unsupported
 		};

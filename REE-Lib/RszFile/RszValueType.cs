@@ -356,21 +356,37 @@ namespace ReeLib.via
 
     // Size=64
     public struct mat4 {
+        /// <summary>Row 1, Column 1</summary>
         public float m00;
+        /// <summary>Row 1, Column 2</summary>
         public float m01;
+        /// <summary>Row 1, Column 3</summary>
         public float m02;
+        /// <summary>Row 1, Column 4</summary>
         public float m03;
+        /// <summary>Row 2, Column 1</summary>
         public float m10;
+        /// <summary>Row 2, Column 2</summary>
         public float m11;
+        /// <summary>Row 2, Column 3</summary>
         public float m12;
+        /// <summary>Row 2, Column 4</summary>
         public float m13;
+        /// <summary>Row 3, Column 1</summary>
         public float m20;
+        /// <summary>Row 3, Column 2</summary>
         public float m21;
+        /// <summary>Row 3, Column 3</summary>
         public float m22;
+        /// <summary>Row 3, Column 4</summary>
         public float m23;
+        /// <summary>Row 4, Column 1</summary>
         public float m30;
+        /// <summary>Row 4, Column 2</summary>
         public float m31;
+        /// <summary>Row 4, Column 3</summary>
         public float m32;
+        /// <summary>Row 4, Column 4</summary>
         public float m33;
 
         public static readonly mat4 Identity = new mat4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);

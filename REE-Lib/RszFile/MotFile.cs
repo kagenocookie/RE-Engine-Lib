@@ -29,7 +29,7 @@ namespace ReeLib.Mot
     public class MotHeader : ReadWriteModel
     {
         public MotVersion version;
-        public uint magic;
+        public uint magic = MotFile.Magic;
         public uint ukn00;
         public uint motSize;
         internal long boneHeaderOffsetStart; // BoneBaseDataPointer
@@ -133,7 +133,7 @@ namespace ReeLib.Mot
 
         public string Name { get => Header.boneName; set => Header.boneName = value; }
         public int Index { get => Header.Index; set => Header.Index = value; }
-        public Vector4 Translation { get => Header.translation; set => Header.translation = value; }
+        public Vector3 Translation { get => Header.translation; set => Header.translation = value; }
         public Quaternion Quaternion { get => Header.quaternion; set => Header.quaternion = value; }
 
         public MotBone? Parent { get; set; }
@@ -150,7 +150,8 @@ namespace ReeLib.Mot
         internal long parentOffs;
         internal long childOffs;
         internal long nextSiblingOffs;
-        public Vector4 translation;
+        [RszPaddingAfter(4)]
+        public Vector3 translation;
         public Quaternion quaternion;
         public int Index;
         public uint boneHash;
@@ -1449,6 +1450,8 @@ namespace ReeLib.Mot
             Translation?.Write(handler);
             Rotation?.Write(handler);
             Scale?.Write(handler);
+            // update the clip header with our newly found offset
+            ClipHeader.Write(handler, ClipHeader.Start);
             return true;
         }
 
@@ -2128,6 +2131,8 @@ namespace ReeLib
             handler.StringTable?.Clear();
             handler.Align(16);
 
+            header.boneCount = (ushort)Bones.Count;
+            header.boneClipCount = (ushort)BoneClips.Count;
             header.boneClipHeaderOffset = BoneClips.Count == 0 ? 0 : handler.Tell();
             foreach (var clip in BoneClips)
             {

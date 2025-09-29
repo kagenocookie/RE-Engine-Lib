@@ -57,14 +57,13 @@ namespace ReeLib.Motlist
 
     public class Header : BaseModel
     {
-        public uint version;
-        public uint magic;
+        public MotlistVersion version;
+        public uint magic = MotlistFile.Magic;
         public int uknValue; // dmc5
         public long pointersOffset;
         public long motionIndicesOffset;
         public int numMots;
 
-        public MotlistVersion Version { get; set; }
         public string MotListName { get; set; } = string.Empty;
         public string? BaseMotListPath { get; set; }
 
@@ -77,8 +76,7 @@ namespace ReeLib.Motlist
             handler.Read(ref pointersOffset);
             handler.Read(ref motionIndicesOffset);
             MotListName = handler.ReadOffsetWString();
-            Version = (MotlistVersion)version;
-            if (Version > MotlistVersion.RE7)
+            if (version > MotlistVersion.RE7)
             {
                 var offset = handler.Read<long>();
                 BaseMotListPath = offset > 0 ? handler.ReadWString(offset) : null;
@@ -96,8 +94,7 @@ namespace ReeLib.Motlist
             handler.Write(ref pointersOffset);
             handler.Write(ref motionIndicesOffset);
             handler.WriteOffsetWString(MotListName);
-            Version = (MotlistVersion)version;
-            if (Version > MotlistVersion.RE7)
+            if (version > MotlistVersion.RE7)
             {
                 if (!string.IsNullOrEmpty(BaseMotListPath))
                 {
@@ -222,7 +219,7 @@ namespace ReeLib
             handler.Seek(header.motionIndicesOffset);
             for (int i = 0; i < motOffsets.Length; i++)
             {
-                MotIndex motIndex = new(header.Version);
+                MotIndex motIndex = new(header.version);
                 motIndex.Read(handler);
                 Motions.Add(motIndex);
                 var motOffset = motOffsets[i];
@@ -267,7 +264,7 @@ namespace ReeLib
                 mot.FileHandler = handler.WithOffset(motOffset);
                 mot.Write();
                 // "we only need one bone list header per motlist even if some mots use different bones" - capcom dev, apparently
-                var skipBoneList = header.Version >= MotlistVersion.RE3 && foundMotFile;
+                var skipBoneList = header.version >= MotlistVersion.RE3 && foundMotFile;
                 if (mot is MotFile motFile && !skipBoneList)
                 {
                     motFile.WriteBones();
@@ -314,6 +311,7 @@ namespace ReeLib
                     handler.Write(motIndex.Start, motIndex.motClipOffset);
                 }
             }
+            header.Write(handler, 0);
 
             return true;
         }

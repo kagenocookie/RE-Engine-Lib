@@ -118,19 +118,26 @@ namespace ReeLib.Motlist
         public long motClipOffset;  // may point to MotClip
         public ushort motNumber;
         public ushort Switch;
+
+        public uint uknData1;
+        public uint uknData2;
+        public byte uknCount1 = 1; // seems to be 1 for most of the files, setting it as default for now
+        public byte ukn2;
+        public byte ukn3;
+        public byte extraClipCount;
         public uint[] data;
 
         public MotFileBase? MotFile { get; set; }
-        public MotClip? MotClip { get; set; }
+        public List<MotClip> MotClips { get; set; } = new (0);
 
         public MotlistVersion Version { get; set; }
 
-        public int DataCount => Version > MotlistVersion.RE8 ? 15 : Version == MotlistVersion.RE7 ? 0 : 3;
+        private int UnknownDataCount => Version > MotlistVersion.RE8 ? 12 : Version == MotlistVersion.RE7 ? 0 : 3;
 
         public MotIndex(MotlistVersion version)
         {
             Version = version;
-            data = new uint[DataCount];
+            data = new uint[UnknownDataCount];
         }
 
         protected override bool DoRead(FileHandler handler)
@@ -138,9 +145,20 @@ namespace ReeLib.Motlist
             if (Version > MotlistVersion.RE7) handler.Read(ref motClipOffset);
             handler.Read(ref motNumber);
             handler.Read(ref Switch);
-            int dataCount = DataCount;
-            if (dataCount > 0) {
-                data = handler.ReadArray<uint>(dataCount);
+            if (Version > MotlistVersion.RE8)
+            {
+                handler.Read(ref uknData1);
+                handler.Read(ref uknData2);
+                handler.Read(ref uknCount1);
+                handler.Read(ref ukn2);
+                handler.Read(ref ukn3);
+                handler.Read(ref extraClipCount);
+                data = handler.ReadArray<uint>(UnknownDataCount);
+            }
+            else if (Version > MotlistVersion.RE7)
+            {
+                data = handler.ReadArray<uint>(UnknownDataCount);
+                extraClipCount = (byte)(motClipOffset > 0 ? 1 : 0);
             }
             return true;
         }
@@ -150,13 +168,24 @@ namespace ReeLib.Motlist
             if (Version > MotlistVersion.RE7) handler.Write(ref motClipOffset);
             handler.Write(ref motNumber);
             handler.Write(ref Switch);
-            if (data.Length > 0) {
+            if (Version > MotlistVersion.RE8)
+            {
+                handler.Write(ref uknData1);
+                handler.Write(ref uknData2);
+                handler.Write(ref uknCount1);
+                handler.Write(ref ukn2);
+                handler.Write(ref ukn3);
+                handler.Write(ref extraClipCount);
+                handler.WriteArray(data);
+            }
+            else if (Version > MotlistVersion.RE7)
+            {
                 handler.WriteArray(data);
             }
             return true;
         }
 
-        public override string ToString() => $"[MotID {motNumber}] [Motion: {MotFile?.ToString() ?? "-- "}] {(MotClip == null ? "" : "[ExtraClip]")}";
+        public override string ToString() => $"[MotID {motNumber}] [Motion: {MotFile?.ToString() ?? "-- "}] {(MotClips.Count == 0 ? "" : $"[ExtraClips: {MotClips.Count}]")}";
     }
 }
 
@@ -231,13 +260,16 @@ namespace ReeLib
 
             foreach (var motIndex in Motions)
             {
-                if (motIndex.motClipOffset > 0)
+                if (motIndex.motClipOffset > 0 && motIndex.extraClipCount > 0)
                 {
                     handler.Seek(motIndex.motClipOffset);
-                    long motClipOffset = handler.Read<long>();
-                    handler.Seek(motClipOffset);
-                    motIndex.MotClip = new();
-                    motIndex.MotClip.Read(handler);
+                    var headerOffsets = handler.ReadArray<long>(motIndex.extraClipCount);
+                    foreach (var off in headerOffsets) {
+                        handler.Seek(off);
+                        var clip = new MotClip();
+                        clip.Read(handler);
+                        motIndex.MotClips.Add(clip);
+                    }
                 }
             }
 
@@ -302,13 +334,21 @@ namespace ReeLib
 
             foreach (var motIndex in Motions)
             {
-                if (motIndex.MotClip != null)
+                if (motIndex.MotClips.Count != 0)
                 {
+                    handler.Align(8);
+                    motIndex.extraClipCount = (byte)motIndex.MotClips.Count;
                     motIndex.motClipOffset = handler.Tell();
-                    handler.Write(handler.Tell() + 16);
-                    handler.Write(0L);
-                    motIndex.MotClip.Write(handler);
+                    handler.Skip(motIndex.extraClipCount * 8);
+                    handler.Align(16);
+                    for (int i = 0; i < motIndex.MotClips.Count; ++i)
+                    {
+                        handler.Write(motIndex.motClipOffset + i * 8, handler.Tell());
+                        motIndex.MotClips[i].Write(handler);
+                    }
+
                     handler.Write(motIndex.Start, motIndex.motClipOffset);
+                    motIndex.Write(handler, motIndex.Start);
                 }
             }
             header.Write(handler, 0);

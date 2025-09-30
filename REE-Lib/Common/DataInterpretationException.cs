@@ -15,6 +15,12 @@ namespace ReeLib
             if (condition) throw new DataInterpretationException(message);
         }
 
+        [Conditional("DEBUG"), MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void DebugThrowIf(bool condition, string message = "Found unexpected data while reading file")
+        {
+            if (condition) throw new DataInterpretationException(message);
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ThrowIfNotZero<TValue>(TValue value, string message = "Found unexpected data instead of padding while reading file") where TValue : IBinaryNumber<TValue>
         {

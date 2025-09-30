@@ -385,7 +385,7 @@ namespace ReeLib.Clip
         public ulong uknRE7_2;
         public ulong uknRE7_3;
         public ulong uknRE7_4;
-        public long nameOffset2;
+        public long unicodeNameOffset;
         public string FunctionName { get; set; } = string.Empty;
 
 
@@ -441,7 +441,8 @@ namespace ReeLib.Clip
                     action.Do(ref uknRE7_2);
                 }
                 action.Do(ref nameOffset);
-                action.Do(ref nameOffset2);  // why?
+                action.Do(ref unicodeNameOffset);  // used by re2/dmc5/re3, otherwise 0
+                DataInterpretationException.DebugThrowIf(Version > ClipVersion.RE3 && unicodeNameOffset != 0);
                 if (Version == ClipVersion.RE7)
                 {
                     action.Do(ref uknRE7_3);
@@ -1096,8 +1097,11 @@ namespace ReeLib.Clip
                 var stringItem = handler.AsciiStringTableAdd(property.Info.FunctionName, false);
                 property.Info.nameOffset = stringItem.TableOffset;
 
-                stringItem = handler.StringTableAdd(property.Info.FunctionName, false);
-                property.Info.nameOffset2 = stringItem.TableOffset;
+                if (Version <= ClipVersion.RE3)
+                {
+                    stringItem = handler.StringTableAdd(property.Info.FunctionName, false);
+                    property.Info.unicodeNameOffset = stringItem.TableOffset;
+                }
 
                 property.Info.Write(handler);
             }

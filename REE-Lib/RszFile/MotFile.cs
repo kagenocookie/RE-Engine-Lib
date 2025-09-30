@@ -1260,7 +1260,7 @@ namespace ReeLib.Mot
                         handler.Write(value);
                         break;
                     case FloatDecompression.LoadFloats8Bit:
-                        handler.Write((byte)MathF.Round((value - unpackData[1]) / unpackData[0] * 0xFFFF));
+                        handler.Write((byte)MathF.Round((value - unpackData[1]) / unpackData[0] * 0xFF));
                         break;
                     default:
                         throw new InvalidOperationException($"Invalid type {type}");

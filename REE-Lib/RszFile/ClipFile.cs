@@ -360,8 +360,7 @@ namespace ReeLib.Clip
     {
         public ClipVersion Version { get; set; }
 
-        private uint pad;
-        private int uknRE7_1;
+        private int uknValue;
         public float startFrame;  // Start
         public float endFrame;  // End
         public uint nameHashRe7;
@@ -396,14 +395,21 @@ namespace ReeLib.Clip
 
         protected override bool ReadWrite(IFileHandlerAction action)
         {
-            if (Version < ClipVersion.RE8) action.Do(ref pad);
-            if (Version == ClipVersion.RE7) action.Do(ref uknRE7_1);
+            if (Version == ClipVersion.RE7)
+            {
+                action.Do(ref DataType);
+                action.Do(ref uknCount);
+                action.Null(2);
+                action.Do(ref uknValue);
+            }
+            else if (Version < ClipVersion.RE8)
+            {
+                action.Do(ref uknValue);
+            }
             action.Do(ref startFrame);
             action.Do(ref endFrame);
-            if (Version == ClipVersion.RE7)
-                action.Do(ref nameHashRe7);
-            else
-                action.Do(ref nameCombineHash);
+            action.Do(ref nameCombineHash);
+
             if (Version >= ClipVersion.RE8)
             {
                 action.Do(ref nameOffset);
@@ -428,17 +434,21 @@ namespace ReeLib.Clip
             }
             else
             {
-                action.Do(ref DataType);
-                action.Do(ref uknCount);
-                action.Null(2);
+                if (Version > ClipVersion.RE7)
+                {
+                    action.Do(ref DataType);
+                    action.Do(ref uknCount);
+                    action.Null(2);
+                }
+
                 if (Version == ClipVersion.RE3)
                     action.Do(ref RE3hash);
+                else if (Version > ClipVersion.RE7)
+                    action.Null(8);
                 else
-                    action.Null(8); // TODO RE7 not null
-                if (Version == ClipVersion.RE7)
                 {
-                    action.Skip(8); // TODO RE7 not null natives/x64/animation/weapon/wp1230/motlist/wp1230.motlist.60
-                    action.Do(ref uknRE7_2);
+                    action.Do(ref uknRE7_2); // TODO RE7
+                    action.Null(16);
                 }
                 action.Do(ref nameOffset);
                 action.Do(ref unicodeNameOffset);  // used by re2/dmc5/re3, otherwise 0
@@ -457,7 +467,7 @@ namespace ReeLib.Clip
                 action.Do(ref ChildMembershipCount);
                 if (Version == ClipVersion.RE7)
                 {
-                    action.Skip(8); // TODO RE7 not null natives/x64/animation/enemy/em3000/motlist/upperblend/em3000upperblend.motlist.60
+                    action.Null(6 + 8);
                     action.Do(ref uknRE7_4);
                 }
                 else
@@ -466,7 +476,6 @@ namespace ReeLib.Clip
                     action.Null(30);
                 }
             }
-            // action.Handler.Seek(Start + 112);
             return true;
         }
 
@@ -690,7 +699,8 @@ namespace ReeLib.Clip
             handler.Read(ref keysOffset);
             handler.Read(ref uknOffset1);
             handler.Read(ref hermiteDataOffset);
-            DataInterpretationException.ThrowIf(uknOffset1 != hermiteDataOffset);
+            // TODO unhandled data for RE7 - {F32 F32 U32 U32 U32 U32}[]
+            DataInterpretationException.ThrowIf(version > ClipVersion.RE7 && uknOffset1 != hermiteDataOffset, "Found unhandled clip data");
             unknownOffsets = handler.ReadArray<long>(UnknownOffsetsCount);
             DataInterpretationException.ThrowIfNotEqualValues<long>(unknownOffsets);
             handler.Read(ref namesOffset);

@@ -132,7 +132,12 @@ namespace ReeLib.Motlist
 
         public MotlistVersion Version { get; set; }
 
-        private int UnknownDataCount => Version > MotlistVersion.RE8 ? 12 : Version == MotlistVersion.RE7 ? 0 : 3;
+        private int UnknownDataCount => Version switch {
+            > MotlistVersion.RE8 => 12,
+            MotlistVersion.RE8 => 0,
+            MotlistVersion.RE7 => 0,
+            _ => 3,
+        };
 
         public MotIndex(MotlistVersion version)
         {
@@ -145,7 +150,7 @@ namespace ReeLib.Motlist
             if (Version > MotlistVersion.RE7) handler.Read(ref motClipOffset);
             handler.Read(ref motNumber);
             handler.Read(ref Switch);
-            if (Version > MotlistVersion.RE8)
+            if (Version >= MotlistVersion.RE8)
             {
                 handler.Read(ref uknData1);
                 handler.Read(ref uknData2);

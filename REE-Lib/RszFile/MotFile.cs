@@ -67,27 +67,14 @@ namespace ReeLib.Mot
                  ?.Then(ref motSize)
                  ?.Then(ref boneHeaderOffsetStart)
                  ?.Then(ref boneClipHeaderOffset)
-                 ?.Then(ref motPropertyTracksOffset);
-            jointMapPath ??= "";
-            if (version >= MotVersion.MHR_DEMO)
-            {
-                action.Null(8)
-                     ?.Then(ref clipFileOffset)
-                     ?.HandleOffsetWString(ref jointMapPath)
-                     ?.Then(ref motEndClipDataOffset)
-                     ?.Then(ref motEndClipFrameValuesOffset)
-                     ?.Then(ref propertyTreeOffset);
-            }
-            else
-            {
-                // NOTE: we're not writing the jmap path back at the same relative offset as the engine does, but it doesn't make a difference
-                action.HandleOffsetWString(ref jointMapPath)
-                     ?.Then(ref clipFileOffset)
-                     ?.Skip(8) // TODO not null, verify what it is (re2)
-                     ?.Skip(8) // TODO not null, verify what it is
-                     ?.Then(ref motEndClipDataOffset);
-            }
-            action.HandleOffsetWString(ref motName)
+                 ?.Then(ref motPropertyTracksOffset)
+                 ?.Null(8)
+                 ?.Then(ref clipFileOffset)
+                 ?.HandleOffsetWString(ref jointMapPath)
+                 ?.Then(ref motEndClipDataOffset)
+                 ?.Then(version >= MotVersion.MHR_DEMO, ref motEndClipFrameValuesOffset)
+                 ?.Then(ref propertyTreeOffset)
+                 ?.HandleOffsetWString(ref motName)
                  ?.Then(ref frameCount)
                  ?.Then(ref blending)
                  ?.Then(ref startFrame)
@@ -329,7 +316,6 @@ namespace ReeLib.Mot
     /// Packed 16-Bit Vector 3
     /// </summary>
     public record struct PackedVector3(ushort X, ushort Y, ushort Z);
-
 
     public class Track : BaseModel
     {
@@ -1560,10 +1546,6 @@ namespace ReeLib.Mot
 
     public class MotEndClipHeader(MotVersion version) : BaseModel
     {
-        public ulong unknown;
-        public long dataSize;
-        public int objectCount;
-        public int endHashCount;
         public byte count1;
         public byte type1;
         public byte endFlags1;
@@ -1572,74 +1554,45 @@ namespace ReeLib.Mot
         public float[]? frameValues1;
         public float[]? frameValues2;
 
-        public uint[] EndHashes = [];
-
-        public struct ExtraDataSubstruct1
-        {
-            public int ukn1;
-            public int ukn2;
-            public int hash;
-            public int ukn4;
-            public int ukn5;
-            public int hash3;
-            public int ukn7;
-        }
-
         public MotVersion Version { get; set; } = version;
 
         protected override bool DoRead(FileHandler handler)
         {
-            if (Version > MotVersion.MHR_DEMO)
-            {
-                handler.Read(ref count1);
-                handler.Read(ref type1);
-                handler.Read(ref endFlags1);
-                handler.Read(ref endFlags2);
+            long valuesOffset = 0;
+            if (Version < MotVersion.MHR_DEMO) valuesOffset = handler.Read<long>();
 
-                // 4 2 0 count => 8 or 9 (ch20_000_comem.motlist.751 mot 300)
-                // 1 5 0 count => 6 (ch53_000_low_com.motlist.751)
-                // 1 7 0 count => 8 or 9 (ch53_000_com.motlist.751 mot 206)
-                // 2 2 1 count => 5 (ch51_000_combm.motlist.751 mot 181)
-                // 1 2 1 count => 3 (ch51_000_com_catch.motlist.751 mot 1)
-                // 2 2 0 1 => 5 (re3rt base_cmn_move.motlist.524 mot 170)
-                // 2 2 1 1 => 5 (re3rt em9400_attack.motlist.524 mot 1)
-                // 3 4 2 0 => 13 (re8 ch01_6000_handsrose.motlist.486 mot 2)
+            handler.Read(ref count1);
+            handler.Read(ref type1);
+            handler.Read(ref endFlags1);
+            handler.Read(ref endFlags2);
 
-                // note: this may not be fully correct, but the values are consistently correct with this logic, for DD2, and at least not failing for the other games
-                if (type1 == 2 || type1 == 4) {
-                    frameValues1 = handler.ReadArray<float>(count1 * type1);
-                } else {
-                    frameValues1 = handler.ReadArray<float>(count1 + type1);
-                }
-                if (endFlags1 > 0 || endFlags2 > 0) {
-                    frameValues2 = handler.ReadArray<float>(1);
-                }
+            if (valuesOffset != 0) handler.Seek(valuesOffset);
+            // 4 2 0 count => 8 or 9 (ch20_000_comem.motlist.751 mot 300)
+            // 1 5 0 count => 6 (ch53_000_low_com.motlist.751)
+            // 1 7 0 count => 8 or 9 (ch53_000_com.motlist.751 mot 206)
+            // 2 2 1 count => 5 (ch51_000_combm.motlist.751 mot 181)
+            // 1 2 1 count => 3 (ch51_000_com_catch.motlist.751 mot 1)
+            // 1 2 0 count => 3 (cmn_move_cnagner_stwater.motlist.85 mot 192 WTF??)
+            // 2 2 0 1 => 5 (re3rt base_cmn_move.motlist.524 mot 170)
+            // 2 2 1 1 => 5 (re3rt em9400_attack.motlist.524 mot 1)
+            // 3 4 2 0 => 13 (re8 ch01_6000_handsrose.motlist.486 mot 2)
+
+            // note: not sure how the counts are supposed to work, the commented out code "mostly" worked but missed a few values sometimes
+            // if (type1 == 2 || type1 == 4) {
+            //     frameValues1 = handler.ReadArray<float>(count1 * type1);
+            // } else {
+            //     frameValues1 = handler.ReadArray<float>(count1 + type1);
+            // }
+            // if (endFlags1 > 0 || endFlags2 > 0) {
+            //     frameValues2 = handler.ReadArray<float>(1);
+            // }
+            // guessing based on values instead - the floats seem to be frame numbers so surely they'll be within a reasonable range
+            var floats = new List<float>();
+            float flt = 0;
+            while (handler.Read(ref flt) != 0 && (flt == 0 || flt >= 1 && flt < 3000)) {
+                floats.Add(flt);
             }
-            else
-            {
-                handler.Read(ref unknown);
-                handler.Read(ref dataSize);
-                handler.Read(ref objectCount);
-                handler.Read(ref endHashCount);
-                handler.ReadNull(8);
-                var dataSize1 = handler.Read<long>(); // size from startof(dataSize) to startof(hashStruct[6] thing); in other words, sizeof(structs1) + 32
-                var dataSize2 = handler.Read<long>(); // above + 32 (== unknown?)
-                // TODO
-
-                // hash structs (seem to mark "end of data" offsets):
-                // 1925441204 => end of this godforsaken struct
-                // 1904925210 => end of frame values
-                // 535309294 => end of frame indexes
-                // 3914920078 => end of frame indexes again (maybe some extra data set that isn't present in the file i'm looking at rn)
-                // 3591947802 => -||-
-                // 327324368 => end of clip list (also start of this struct)
-                if (objectCount > 1)
-                {
-                    Log.Warn("Found multi object: " + handler.FilePath);
-                }
-                handler.Seek(dataSize);
-                EndHashes = handler.ReadArray<uint>(endHashCount * 2);
-            }
+            frameValues1 = floats.ToArray();
             return true;
         }
 
@@ -1647,19 +1600,21 @@ namespace ReeLib.Mot
         {
             if (Version > MotVersion.MHR_DEMO)
             {
-                handler.Write(ref count1);
-                handler.Write(ref type1);
-                handler.Write(ref endFlags1);
-                handler.Write(ref endFlags2);
+                handler.Skip(8);
+            }
+            handler.Write(ref count1);
+            handler.Write(ref type1);
+            handler.Write(ref endFlags1);
+            handler.Write(ref endFlags2);
 
-                if (frameValues1 != null) handler.WriteArray<float>(frameValues1);
-                if (frameValues2 != null) handler.WriteArray<float>(frameValues2);
-            }
-            else
+            if (Version > MotVersion.MHR_DEMO)
             {
-                handler.Write(ref unknown);
-                throw new NotImplementedException();
+                handler.Align(8);
+                handler.Write(Start, handler.Tell());
             }
+            if (frameValues1 != null) handler.WriteArray<float>(frameValues1);
+            if (frameValues2 != null) handler.WriteArray<float>(frameValues2);
+
             return true;
         }
     }
@@ -1912,6 +1867,7 @@ namespace ReeLib.Mot
                     7 => (object)(int)offsetOrConstant,
                     8 => (uint)offsetOrConstant,
                     11 => (float)offsetOrConstant,
+                    15 => handler.ReadWString(offsetOrConstant),
                     _ => throw new NotImplementedException(),
                 };
             }
@@ -1934,6 +1890,13 @@ namespace ReeLib.Mot
                         1 => handler.Read<FrameValue>(),
                         _ => handler.ReadArray<FrameValue>(valueCount),
                     };
+                case 15:
+                    {
+                        DataInterpretationException.DebugThrowIf(true, "Verify correctness pls");
+                        var strings = new string[valueCount];
+                        for (int i = 0; i < valueCount; ++i) strings[i] = handler.ReadOffsetWString();
+                        return strings;
+                    }
                 case 17:
                     return valueCount switch {
                         1 => handler.ReadFloat(),
@@ -1956,6 +1919,7 @@ namespace ReeLib.Mot
                     case 7: handler.Write((int)value); handler.WriteNull(4); break;
                     case 8: handler.Write((uint)value); handler.WriteNull(4); break;
                     case 11: handler.Write((float)value); handler.WriteNull(4); break;
+                    case 15: handler.WriteOffsetWString((string)value); break;
                     default: throw new NotImplementedException();
                 }
                 return;
@@ -1983,6 +1947,9 @@ namespace ReeLib.Mot
                         case 1: handler.Write((FrameValue)value!); break;
                         default: handler.WriteArray((FrameValue[])value!); break;
                     }
+                    break;
+                case 15:
+                    foreach (var str in (string[])value!) handler.WriteOffsetWString(str);
                     break;
                 case 17:
                     switch (valueCount) {
@@ -2086,14 +2053,7 @@ namespace ReeLib
                 {
                     handler.Seek(header.motEndClipDataOffset);
 
-                    if (header.version > MotVersion.MHR_DEMO)
-                    {
-                        ReadMotEndClipsModern();
-                    }
-                    else
-                    {
-                        ReadMotEndClipsLegacy();
-                    }
+                    ReadMotEndClips();
                 }
             }
 
@@ -2175,14 +2135,7 @@ namespace ReeLib
                     header.motEndClipDataOffset = handler.Tell();
                     header.motEndClipCount = (byte)EndClips.Count;
 
-                    if (header.version > MotVersion.MHR_DEMO)
-                    {
-                        WriteMotEndClipsModern();
-                    }
-                    else
-                    {
-                        throw new NotImplementedException("Legacy mot endclips not supported for writing");
-                    }
+                    WriteMotEndClips();
                 }
             }
 
@@ -2267,11 +2220,7 @@ namespace ReeLib
         }
 
 #region Read helpers
-        private void ReadMotEndClipsLegacy()
-        {
-        }
-
-        private void ReadMotEndClipsModern()
+        private void ReadMotEndClips()
         {
             var handler = FileHandler;
             if (Header.motEndClipCount >= 3) throw new DataInterpretationException("Not necessarily an error - I just need this example file to verify correctness");
@@ -2286,6 +2235,12 @@ namespace ReeLib
                 endClipHeaders[i] = motClipHeader;
             }
 
+            if (Header.version < MotVersion.MHR_DEMO)
+            {
+                EndClips.AddRange(endClipHeaders.Select(hh => new MotEndClip(hh)));
+                return;
+            }
+            // new version
             handler.Seek(Header.motEndClipFrameValuesOffset);
             var frameDataOffsets = handler.ReadArray<long>(Header.motEndClipCount);
             for (int i = 0; i < Header.motEndClipCount; ++i)
@@ -2297,7 +2252,7 @@ namespace ReeLib
             }
         }
 
-        private void WriteMotEndClipsModern()
+        private void WriteMotEndClips()
         {
             var handler = FileHandler;
             var offsetsStart = handler.Tell();
@@ -2308,6 +2263,11 @@ namespace ReeLib
                 offsetsStart += sizeof(long);
                 EndClips[i].Header.Write(handler);
             }
+            if (Header.version < MotVersion.MHR_DEMO)
+            {
+                return;
+            }
+
             handler.Align(8);
             Header.motEndClipFrameValuesOffset = handler.Tell();
 

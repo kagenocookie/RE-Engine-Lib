@@ -206,6 +206,15 @@ namespace ReeLib
         public List<MotFileBase> MotFiles { get; } = new();
         public List<MotIndex> Motions { get; } = new();
 
+        public MotFileBase? Find(string motName)
+        {
+            foreach (var mot in MotFiles)
+            {
+                if (mot.Name == motName) return mot;
+            }
+            return null;
+        }
+
         protected override bool DoRead()
         {
             MotFiles.Clear();

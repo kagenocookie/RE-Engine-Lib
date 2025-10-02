@@ -1598,7 +1598,7 @@ namespace ReeLib.Mot
 
         protected override bool DoWrite(FileHandler handler)
         {
-            if (Version > MotVersion.MHR_DEMO)
+            if (Version < MotVersion.MHR_DEMO)
             {
                 handler.Skip(8);
             }
@@ -1607,7 +1607,7 @@ namespace ReeLib.Mot
             handler.Write(ref endFlags1);
             handler.Write(ref endFlags2);
 
-            if (Version > MotVersion.MHR_DEMO)
+            if (Version < MotVersion.MHR_DEMO)
             {
                 handler.Align(8);
                 handler.Write(Start, handler.Tell());

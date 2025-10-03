@@ -197,7 +197,7 @@ namespace ReeLib
 
     public abstract class ReadWriteModel : BaseModel
     {
-        protected abstract bool ReadWrite(IFileHandlerAction action);
+        protected abstract bool ReadWrite<THandler>(THandler action) where THandler : IFileHandlerAction;
 
         protected override bool DoRead(FileHandler handler)
         {

@@ -393,7 +393,7 @@ namespace ReeLib.Clip
             Version = version;
         }
 
-        protected override bool ReadWrite(IFileHandlerAction action)
+        protected override sealed bool ReadWrite<THandler>(THandler action)
         {
             if (Version == ClipVersion.RE7)
             {
@@ -569,7 +569,7 @@ namespace ReeLib.Clip
             Version = version;
         }
 
-        protected override bool ReadWrite(IFileHandlerAction action)
+        protected override sealed bool ReadWrite<THandler>(THandler action)
         {
             if (Version >= ClipVersion.RE8)
             {

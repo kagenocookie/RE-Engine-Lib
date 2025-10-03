@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -10,13 +11,13 @@ namespace ReeLib
     public class DataInterpretationException(string message = "Found unexpected data while reading file") : Exception(message)
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ThrowIf(bool condition, string message = "Found unexpected data while reading file")
+        public static void ThrowIf([DoesNotReturnIf(true)] bool condition, string message = "Found unexpected data while reading file")
         {
             if (condition) throw new DataInterpretationException(message);
         }
 
         [Conditional("DEBUG"), MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void DebugThrowIf(bool condition, string message = "Found unexpected data while reading file")
+        public static void DebugThrowIf([DoesNotReturnIf(true)] bool condition, string message = "Found unexpected data while reading file")
         {
             if (condition) throw new DataInterpretationException(message);
         }

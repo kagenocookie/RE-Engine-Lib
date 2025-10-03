@@ -59,7 +59,7 @@ namespace ReeLib.Mot
 
         internal long BoneHeaderOffsetStartOffset => Start + 16;
 
-        protected override bool ReadWrite(IFileHandlerAction action)
+        protected override sealed bool ReadWrite<THandler>(THandler action)
         {
             action.Then(ref version)
                  ?.Then(ref magic)

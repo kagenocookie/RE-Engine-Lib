@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using ReeLib.Common;
 using ReeLib.via;
 
@@ -304,6 +305,7 @@ namespace ReeLib.Mesh
 		public Vector3[] Positions = [];
 		public Vector3[] Normals = [];
 		public Vector3[] Tangents = [];
+		public sbyte[] BiTangentSigns = [];
 		public Vector2[] UV0 = [];
 		public Vector2[] UV1 = [];
 		public Color[] Colors = [];
@@ -314,6 +316,9 @@ namespace ReeLib.Mesh
 		private const float ByteNorm = 127f;
 
 		internal MeshSerializerVersion Version;
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Vector3 GetBiTangent(int index) => MathF.Sign(BiTangentSigns[index]) * Vector3.Cross(Normals[index], Tangents[index]);
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -361,13 +366,14 @@ namespace ReeLib.Mesh
 					case VertexBufferType.NormalsTangents:
 						Normals = new Vector3[count];
 						Tangents = new Vector3[count];
+						BiTangentSigns = new sbyte[count];
 						for (int k = 0; k < count; ++k)
 						{
 							Normals[k] = new Vector3(handler.Read<sbyte>() * ByteDenorm, handler.Read<sbyte>() * ByteDenorm, handler.Read<sbyte>() * ByteDenorm);
 							handler.Skip(1);
 
 							Tangents[k] = new Vector3(handler.Read<sbyte>() * ByteDenorm, handler.Read<sbyte>() * ByteDenorm, handler.Read<sbyte>() * ByteDenorm);
-							handler.Skip(1);
+							BiTangentSigns[k] = handler.Read<sbyte>();
 						}
 						break;
 
@@ -433,6 +439,7 @@ namespace ReeLib.Mesh
 			handler.Write(ref ukn1);
 			handler.Write(ref ukn2);
 			handler.Write(ref blendShapeOffset); //48/56
+			handler.WriteNull(16);
             return true;
         }
 
@@ -440,7 +447,6 @@ namespace ReeLib.Mesh
 		{
 			handler.Align(16);
 			elementHeadersOffset = handler.Tell();
-			blendShapeOffset = -(int)elementHeadersOffset; // TODO blend shapes
 			var headers = new List<MeshBufferItemHeader>();
 			var offset = 0;
 			if (Positions.Length > 0) {
@@ -471,6 +477,7 @@ namespace ReeLib.Mesh
 			handler.WriteArray(BufferHeaders);
 			handler.Align(16);
 			vertexBufferOffset = handler.Tell();
+			blendShapeOffset = -(int)vertexBufferOffset; // TODO blend shapes
 
 			for (int i = 0; i < BufferHeaders.Length; i++)
 			{
@@ -488,7 +495,7 @@ namespace ReeLib.Mesh
 						for (int k = 0; k < count; ++k)
 						{
 							var nor = Normals[k];
-							var tan = Normals[k];
+							var tan = Tangents[k];
 							handler.Write<sbyte>((sbyte)MathF.Round(nor.X * ByteNorm));
 							handler.Write<sbyte>((sbyte)MathF.Round(nor.Y * ByteNorm));
 							handler.Write<sbyte>((sbyte)MathF.Round(nor.Z * ByteNorm));
@@ -496,7 +503,7 @@ namespace ReeLib.Mesh
 							handler.Write<sbyte>((sbyte)MathF.Round(tan.X * ByteNorm));
 							handler.Write<sbyte>((sbyte)MathF.Round(tan.Y * ByteNorm));
 							handler.Write<sbyte>((sbyte)MathF.Round(tan.Z * ByteNorm));
-							handler.WriteNull(1);
+							handler.Write(BiTangentSigns[k]);
 						}
 						break;
 
@@ -553,10 +560,14 @@ namespace ReeLib.Mesh
 		public Span<Vector3> Positions => Buffer.Positions.AsSpan(vertsIndexOffset, vertCount);
 		public Span<Vector3> Normals => Buffer.Normals.AsSpan(vertsIndexOffset, vertCount);
 		public Span<Vector3> Tangents => Buffer.Tangents.AsSpan(vertsIndexOffset, vertCount);
+		public Span<sbyte> BiTangents => Buffer.BiTangentSigns.AsSpan(vertsIndexOffset, vertCount);
 		public Span<Vector2> UV0 => Buffer.UV0.AsSpan(vertsIndexOffset, vertCount);
 		public Span<Vector2> UV1 => Buffer.UV1.AsSpan(vertsIndexOffset, vertCount);
 		public Span<Color> Colors => Buffer.Colors.AsSpan(vertsIndexOffset, vertCount);
 		public Span<VertexBoneWeights> Weights => Buffer.Weights.AsSpan(vertsIndexOffset, vertCount);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Vector3 GetBiTangent(int index) => Buffer.GetBiTangent(vertsIndexOffset + index);
 
 		internal MeshSerializerVersion Version;
 
@@ -615,6 +626,12 @@ namespace ReeLib.Mesh
 
 		internal MeshSerializerVersion Version;
 		internal int meshVertexOffset;
+
+		public void ChangeVersion(MeshSerializerVersion version)
+		{
+			Version = version;
+			foreach (var sub in Submeshes) sub.Version = version;
+		}
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -738,6 +755,12 @@ namespace ReeLib.Mesh
 		internal MeshSerializerVersion Version;
 		internal MeshData? mainMesh;
 
+		public void ChangeVersion(MeshSerializerVersion version)
+		{
+			Version = version;
+			foreach (var mg in Meshes) mg.ChangeVersion(version);
+		}
+
         protected override bool DoRead(FileHandler handler)
         {
 			handler.Read(ref count);
@@ -794,6 +817,20 @@ namespace ReeLib.Mesh
 
 		internal MeshSerializerVersion Version;
 		internal MeshData? mainMesh;
+
+		public void ChangeVersion(MeshSerializerVersion version)
+		{
+			Version = version;
+			if (version == MeshSerializerVersion.SF6) skinWeightCount = 9;
+			else if (version <= MeshSerializerVersion.DMC5) skinWeightCount = 1;
+			else skinWeightCount = 18;
+
+			foreach (var lod in LODs)
+			{
+				lod.Version = version;
+				foreach (var mg in lod.MeshGroups) mg.ChangeVersion(version);
+			}
+		}
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -898,6 +935,12 @@ namespace ReeLib.Mesh
 			if (version == MeshSerializerVersion.SF6) skinWeightCount = 9;
 			else if (version <= MeshSerializerVersion.DMC5) skinWeightCount = 1;
 			else skinWeightCount = 18;
+
+			foreach (var lod in LODs)
+			{
+				lod.Version = version;
+				foreach (var mg in lod.MeshGroups) mg.ChangeVersion(version);
+			}
 		}
 
         protected override bool DoRead(FileHandler handler)
@@ -938,7 +981,6 @@ namespace ReeLib.Mesh
         	lodCount = LODs.Count;
 			uvCount = Math.Sign(Buffer.UV0.Length) + Math.Sign(Buffer.UV1.Length);
 			totalMeshCount = LODs[0].MeshGroups.Sum(mg => mg.Submeshes.Count);
-			ChangeVersion(Version); // ensure correct skinWeightCount value
 
 			handler.Write((byte)lodCount);
 			handler.Write((byte)materialCount);
@@ -1065,6 +1107,7 @@ namespace ReeLib
 		public MeshData? MeshData { get; set; }
 		public ShadowMesh? ShadowMesh { get; set; }
 		public OccluderMesh? OccluderMesh { get; set; }
+		public List<uint>? Hashes { get; set; }
 
 		public MeshBoneHierarchy? BoneData { get; set; }
 
@@ -1131,6 +1174,10 @@ namespace ReeLib
 
 			// TODO migrate field differences if applicable
 			Header.version = config.internalVersion;
+			MeshData?.ChangeVersion(config.serializerVersion);
+			ShadowMesh?.ChangeVersion(config.serializerVersion);
+			OccluderMesh?.ChangeVersion(config.serializerVersion);
+			if (MeshBuffer != null) MeshBuffer.Version = config.serializerVersion;
 		}
 
         protected override bool DoRead()
@@ -1237,6 +1284,14 @@ namespace ReeLib
 				}
 			}
 
+			if (header.dd2HashOffset > 0)
+			{
+				Hashes = new();
+				handler.Seek(header.dd2HashOffset);
+				var hashCount = MeshData?.LODs[0].MeshGroups.Count;
+				for (int i = 0; i < hashCount; ++i) Hashes.Add(handler.Read<uint>());
+			}
+
 			if (header.boneIndicesOffset > 0 && BoneData?.Bones.Count > 0)
 			{
 				handler.Seek(header.boneIndicesOffset);
@@ -1339,6 +1394,7 @@ namespace ReeLib
 				foreach (var bone in BoneData.Bones) handler.Write((short)(stringOffset++));
 			}
 
+			handler.Align(16);
 			header.nameOffsetsOffset = handler.Tell();
 			foreach (var name in MaterialNames) handler.WriteOffsetAsciiString(name);
 			if (BoneData != null)
@@ -1347,6 +1403,17 @@ namespace ReeLib
 			}
 			handler.Align(16);
 			handler.AsciiStringTableFlush();
+
+			if (Hashes != null)
+			{
+				handler.Align(16);
+				header.dd2HashOffset = handler.Tell();
+				Hashes.Write(handler);
+			}
+			else
+			{
+				header.dd2HashOffset = 0;
+			}
 
 			if (BoneData?.Bones.Count > 0)
 			{
@@ -1390,6 +1457,7 @@ namespace ReeLib
 				}
 
 				MeshBuffer.WriteBufferData(handler);
+				header.verticesOffset = MeshBuffer.vertexBufferOffset;
 			}
 
 			header.fileSize = (uint)handler.Tell();

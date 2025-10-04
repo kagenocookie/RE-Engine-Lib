@@ -82,7 +82,7 @@ namespace ReeLib.Mesh
 		public int wilds_unkn4 = 0;
 		public short wilds_unkn5 = 0;
 
-		internal MeshSerializerVersion FormatVersion;
+		internal MeshSerializerVersion FormatVersion = MeshSerializerVersion.Unknown;
 
 		public int BufferCount
 		{
@@ -98,9 +98,16 @@ namespace ReeLib.Mesh
             action.Do(ref version);
             action.Do(ref fileSize);
             action.Do(ref lodHash);
-			var Version = FormatVersion = MeshFile.GetSerializerVersion(version, (uint)action.Handler.FileVersion);
+			if (action.Handler.FileVersion != 0)
+			{
+				FormatVersion = MeshFile.GetSerializerVersion(version, (uint)action.Handler.FileVersion);
+			}
+			else if (FormatVersion == MeshSerializerVersion.Unknown)
+			{
+				throw new Exception("Unknown mesh file format! Unable to load file");
+			}
 
-			if (Version < MeshSerializerVersion.RE4)
+			if (FormatVersion < MeshSerializerVersion.RE4)
 			{
 				action.Do(ref flags);
 				action.Do(ref nameCount);
@@ -119,7 +126,7 @@ namespace ReeLib.Mesh
 				action.Do(ref blendShapeIndicesOffset);
 				action.Do(ref nameOffsetsOffset);
 			}
-			else if (Version >= MeshSerializerVersion.RE4 && Version < MeshSerializerVersion.MHWILDS)
+			else if (FormatVersion >= MeshSerializerVersion.RE4 && FormatVersion < MeshSerializerVersion.MHWILDS)
 			{
 				action.Do(ref flags);
 				action.Do(ref uknCount);
@@ -141,7 +148,7 @@ namespace ReeLib.Mesh
 				action.Do(ref materialIndicesOffset);
 				action.Do(ref boneIndicesOffset);
 				action.Do(ref blendShapeIndicesOffset);
-				if (Version < MeshSerializerVersion.DD2_Old)
+				if (FormatVersion < MeshSerializerVersion.DD2_Old)
 				{
 					action.Do(ref streamingInfoOffset);
 					action.Do(ref nameOffsetsOffset);
@@ -155,7 +162,7 @@ namespace ReeLib.Mesh
 				action.Do(ref verticesOffset);
 				action.Do(ref sf6unkn4);
 			}
-			else if (Version >= MeshSerializerVersion.MHWILDS)
+			else if (FormatVersion >= MeshSerializerVersion.MHWILDS)
 			{
 				action.Do(ref wilds_unkn1);
 				action.Do(ref nameCount);
@@ -242,7 +249,7 @@ namespace ReeLib.Mesh
 		private static readonly byte[] byteArray8 = new byte[8];
 
         public VertexBoneWeights()
-			: this(MeshSerializerVersion.MHWILDS)
+			: this(MeshSerializerVersion.Unknown)
         {
         }
 
@@ -460,7 +467,6 @@ namespace ReeLib.Mesh
 				handler.Write(ref vertexBufferSize);
 				handler.Write(ref faceVertBufferHeaderSize);
 			}
-			elementCount2 = elementCount = (short)BufferHeaders.Length;
 			handler.Write(ref elementCount);
 			handler.Write(ref elementCount2);
 			handler.Write(ref ukn1);
@@ -505,6 +511,7 @@ namespace ReeLib.Mesh
 			handler.Align(16);
 			vertexBufferOffset = handler.Tell();
 			blendShapeOffset = -(int)vertexBufferOffset; // TODO blend shapes
+			elementCount2 = elementCount = (short)BufferHeaders.Length;
 
 			for (int i = 0; i < BufferHeaders.Length; i++)
 			{
@@ -564,6 +571,7 @@ namespace ReeLib.Mesh
 			faceBufferOffset = handler.Tell();
 			handler.WriteArray(Faces);
 
+			vertexBufferSize = (int)(handler.Tell() - vertexBufferOffset);
 			// update header with offsets
 			this.Write(handler, Start);
 		}
@@ -1201,6 +1209,7 @@ namespace ReeLib
 
 			// TODO migrate field differences if applicable
 			Header.version = config.internalVersion;
+			Header.FormatVersion = config.serializerVersion;
 			MeshData?.ChangeVersion(config.serializerVersion);
 			ShadowMesh?.ChangeVersion(config.serializerVersion);
 			OccluderMesh?.ChangeVersion(config.serializerVersion);
@@ -1475,6 +1484,8 @@ namespace ReeLib
 				handler.Align(16);
 				header.meshOffset = handler.Tell();
 				MeshBuffer.Write(handler);
+
+				if (header.FormatVersion >= MeshSerializerVersion.RE_RT) StreamingInfo ??= new();
 
 				if (StreamingInfo != null)
 				{

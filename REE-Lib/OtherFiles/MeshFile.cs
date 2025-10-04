@@ -20,6 +20,26 @@ namespace ReeLib.Mesh
 		MHWILDS,
 	}
 
+	[Flags]
+	public enum ContentFlags : ushort
+	{
+		None = 0,
+		IsSkinning = (1 << 0),
+		HasJoint = (1 << 1),
+		HasBlendShape = (1 << 2),
+		HasVertexGroup = (1 << 3),
+		QuadEnable = (1 << 4),
+		StreamingBvh = (1 << 5),
+		HasTertiaryUV = (1 << 6),
+		HasVertexColor = (1 << 7),
+		SolvedOffset = (1 << 8),
+		BufferCount = (1 << 9) | (1 << 10) | (1 << 11),
+		UseRTVertexAnimation = (1 << 12),
+		UseSDF = (1 << 13),
+		EnableRebraiding = (1 << 14),
+		EnableRebraiding2 = (1 << 15),
+	}
+
     public partial class Header : ReadWriteModel
     {
         public uint magic = MeshFile.Magic;
@@ -27,8 +47,11 @@ namespace ReeLib.Mesh
         public uint fileSize;
         public uint lodHash;
 
-		public short flags = 0;
+		public ContentFlags flags = 0;
+		public short uknCount = 0;
 		public short nameCount = 0;
+		public short ukn1 = 0;
+
 		public int ukn = 0;
 		public long meshGroupOffset = 0;
 		public long lodsOffset = 0;
@@ -45,11 +68,9 @@ namespace ReeLib.Mesh
 		public long blendShapeIndicesOffset = 0;
 		public long nameOffsetsOffset = 0;
 
-		public short uknCount = 0;
 		public int sf6unkn0 = 0;
 		public long sf6unkn1 = 0;
 		public long streamingInfoOffset = 0;
-		public short ukn1 = 0;
 		public long sf6unkn4 = 0;
 
 		public long dd2HashOffset = 0;
@@ -62,6 +83,12 @@ namespace ReeLib.Mesh
 		public short wilds_unkn5 = 0;
 
 		internal MeshSerializerVersion FormatVersion;
+
+		public int BufferCount
+		{
+			get => ((int)flags >> 9) & 0x7;
+			set => flags = (flags & ~ContentFlags.BufferCount) | (ContentFlags)((value & 0x7) << 9);
+		}
 
         protected override sealed bool ReadWrite<THandler>(THandler action)
         {

@@ -298,11 +298,20 @@ public class PakReader
             var hash = entry.CombinedHash;
             if (!searchedPaths.TryGetValue(hash, out var path)) continue;
 
-            var outStream = writeStreamProvider.Invoke(ctx, path);
-            PakFile.ReadEntry(entry, fs, outStream);
-            ctx.foundHashes.Add(entry.CombinedHash);
-            ctx.fileCount++;
-            Interlocked.Increment(ref unpackedFileCount);
+            TStream outStream;
+            try
+            {
+                outStream = writeStreamProvider.Invoke(ctx, path);
+                PakFile.ReadEntry(entry, fs, outStream);
+                ctx.foundHashes.Add(entry.CombinedHash);
+                ctx.fileCount++;
+                Interlocked.Increment(ref unpackedFileCount);
+            }
+            catch (Exception ex)
+            {
+                Log.Error("Failed to read PAK entry " + path + ": " + ex.Message);
+                continue;
+            }
             yield return (entry, outStream);
         }
 

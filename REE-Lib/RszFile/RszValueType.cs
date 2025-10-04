@@ -593,6 +593,11 @@ namespace ReeLib.via
         public readonly override string ToString() => $"AABB({minpos} {maxpos})";
     }
 
+    public record struct AABBVec4(Vector4 Minpos, Vector4 Maxpos)
+    {
+        public bool IsEmpty => Minpos == Vector4.Zero && Maxpos == Vector4.Zero;
+        public AABB AsAABB => new AABB(new Vector3(Minpos.X, Minpos.Y, Minpos.Z), new Vector3(Maxpos.X, Maxpos.Y, Maxpos.Z));
+    }
 
     [StructLayout(LayoutKind.Explicit, Size = 48)]
     public struct Capsule

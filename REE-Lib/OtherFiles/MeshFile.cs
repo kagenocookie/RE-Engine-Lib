@@ -1,5 +1,5 @@
+using System.Buffers;
 using System.Numerics;
-using System.Runtime.InteropServices;
 using ReeLib.Common;
 using ReeLib.via;
 
@@ -19,7 +19,7 @@ namespace ReeLib.Mesh
 		MHWILDS,
 	}
 
-    public partial class Header : BaseModel
+    public partial class Header : ReadWriteModel
     {
         public uint magic = MeshFile.Magic;
         public uint version;
@@ -62,97 +62,92 @@ namespace ReeLib.Mesh
 
 		internal MeshSerializerVersion FormatVersion;
 
-        protected override bool DoRead(FileHandler handler)
+        protected override sealed bool ReadWrite<THandler>(THandler action)
         {
-            handler.Read(ref magic);
+            action.Do(ref magic);
 			if (magic != MeshFile.Magic) return false;
 
-            handler.Read(ref version);
-            handler.Read(ref fileSize);
-            handler.Read(ref lodHash);
-			var Version = FormatVersion = MeshFile.GetSerializerVersion(version, (uint)handler.FileVersion);
+            action.Do(ref version);
+            action.Do(ref fileSize);
+            action.Do(ref lodHash);
+			var Version = FormatVersion = MeshFile.GetSerializerVersion(version, (uint)action.Handler.FileVersion);
 
 			if (Version < MeshSerializerVersion.RE4)
 			{
-				handler.Read(ref flags);
-				handler.Read(ref nameCount);
-				handler.Read(ref ukn);
-				handler.Read(ref lodsOffset);
-				handler.Read(ref shadowLodsOffset);
-				handler.Read(ref occluderMeshOffset);
-				handler.Read(ref bonesOffset);
-				handler.Read(ref normalRecalcOffset);
-				handler.Read(ref blendShapesOffset);
-				handler.Read(ref boundsOffset);
-				handler.Read(ref meshOffset);
-				handler.Read(ref floatsOffset);
-				handler.Read(ref materialIndicesOffset);
-				handler.Read(ref boneIndicesOffset);
-				handler.Read(ref blendShapeIndicesOffset);
-				handler.Read(ref nameOffsetsOffset);
+				action.Do(ref flags);
+				action.Do(ref nameCount);
+				action.Do(ref ukn);
+				action.Do(ref lodsOffset);
+				action.Do(ref shadowLodsOffset);
+				action.Do(ref occluderMeshOffset);
+				action.Do(ref bonesOffset);
+				action.Do(ref normalRecalcOffset);
+				action.Do(ref blendShapesOffset);
+				action.Do(ref boundsOffset);
+				action.Do(ref meshOffset);
+				action.Do(ref floatsOffset);
+				action.Do(ref materialIndicesOffset);
+				action.Do(ref boneIndicesOffset);
+				action.Do(ref blendShapeIndicesOffset);
+				action.Do(ref nameOffsetsOffset);
 			}
 			else if (Version >= MeshSerializerVersion.RE4 && Version < MeshSerializerVersion.MHWILDS)
 			{
-				handler.Read(ref flags);
-				handler.Read(ref uknCount);
-				handler.Read(ref nameCount);
-				handler.Read(ref ukn1);
-				handler.Read(ref meshGroupOffset);
-				handler.Read(ref lodsOffset);
-				handler.Read(ref shadowLodsOffset);
-				handler.Read(ref occluderMeshOffset);
-				handler.Read(ref normalRecalcOffset);
-				handler.Read(ref blendShapesOffset);
-				handler.Read(ref meshOffset);
+				action.Do(ref flags);
+				action.Do(ref uknCount);
+				action.Do(ref nameCount);
+				action.Do(ref ukn1);
+				action.Do(ref meshGroupOffset);
+				action.Do(ref lodsOffset);
+				action.Do(ref shadowLodsOffset);
+				action.Do(ref occluderMeshOffset);
+				action.Do(ref normalRecalcOffset);
+				action.Do(ref blendShapesOffset);
+				action.Do(ref meshOffset);
 
-				handler.Read(ref sf6unkn1);
-				handler.Read(ref floatsOffset);
+				action.Do(ref sf6unkn1);
+				action.Do(ref floatsOffset);
 
-				handler.Read(ref boundsOffset);
-				handler.Read(ref bonesOffset);
-				handler.Read(ref materialIndicesOffset);
-				handler.Read(ref boneIndicesOffset);
-				handler.Read(ref blendShapeIndicesOffset);
+				action.Do(ref boundsOffset);
+				action.Do(ref bonesOffset);
+				action.Do(ref materialIndicesOffset);
+				action.Do(ref boneIndicesOffset);
+				action.Do(ref blendShapeIndicesOffset);
 				if (Version < MeshSerializerVersion.DD2_Old)
 				{
-					handler.Read(ref streamingInfoOffset);
-					handler.Read(ref nameOffsetsOffset);
+					action.Do(ref streamingInfoOffset);
+					action.Do(ref nameOffsetsOffset);
 				}
 				else
 				{
-					handler.Read(ref nameOffsetsOffset);
-					handler.Read(ref dd2HashOffset);
-					handler.Read(ref streamingInfoOffset);
+					action.Do(ref nameOffsetsOffset);
+					action.Do(ref dd2HashOffset);
+					action.Do(ref streamingInfoOffset);
 				}
-				handler.Read(ref verticesOffset);
-				handler.Read(ref sf6unkn4);
+				action.Do(ref verticesOffset);
+				action.Do(ref sf6unkn4);
 			}
 			else if (Version >= MeshSerializerVersion.MHWILDS)
 			{
-				handler.Read(ref wilds_unkn1);
-				handler.Read(ref nameCount);
-				handler.Read(ref flags);
-				handler.Read(ref uknCount);
-				handler.Read(ref wilds_unkn2);
-				handler.Read(ref wilds_unkn3);
-				handler.Read(ref wilds_unkn4);
-				handler.Read(ref wilds_unkn5);
-				handler.Read(ref verticesOffset);
-				handler.Read(ref meshGroupOffset);
-				handler.Read(ref shadowLodsOffset);
-				handler.Read(ref occluderMeshOffset);
-				handler.Read(ref normalRecalcOffset);
-				handler.Read(ref blendShapesOffset);
-				handler.Read(ref meshOffset);
-				handler.Read(ref sf6unkn1);
+				action.Do(ref wilds_unkn1);
+				action.Do(ref nameCount);
+				action.Do(ref flags);
+				action.Do(ref uknCount);
+				action.Do(ref wilds_unkn2);
+				action.Do(ref wilds_unkn3);
+				action.Do(ref wilds_unkn4);
+				action.Do(ref wilds_unkn5);
+				action.Do(ref verticesOffset);
+				action.Do(ref meshGroupOffset);
+				action.Do(ref shadowLodsOffset);
+				action.Do(ref occluderMeshOffset);
+				action.Do(ref normalRecalcOffset);
+				action.Do(ref blendShapesOffset);
+				action.Do(ref meshOffset);
+				action.Do(ref sf6unkn1);
 			}
 
             return true;
-        }
-
-        protected override bool DoWrite(FileHandler handler)
-        {
-            throw new NotImplementedException();
         }
     }
 
@@ -164,23 +159,32 @@ namespace ReeLib.Mesh
 
     public partial class MeshStreamingInfo : BaseModel
     {
-		public int unkn1;
 		public StreamingMeshEntry[] Entries = [];
+
+		internal long HeaderOffset => Start + Utils.Align16(Entries.Length * 8);
 
         protected override bool DoRead(FileHandler handler)
         {
 			var entryCount = handler.Read<int>();
-			handler.Read(ref unkn1);
+			handler.ReadNull(4);
 			var entryOffset = handler.Read<long>();
-			var pos = handler.Tell();
-			handler.Seek(entryOffset);
-			Entries = handler.ReadArray<StreamingMeshEntry>(entryCount);
+			if (entryCount > 0 && entryOffset > 0)
+			{
+				var pos = handler.Tell();
+				handler.Seek(entryOffset);
+				Entries = handler.ReadArray<StreamingMeshEntry>(entryCount);
+			}
 			return true;
         }
 
         protected override bool DoWrite(FileHandler handler)
         {
-            throw new NotImplementedException();
+			handler.WriteArray(Entries);
+			handler.Align(16);
+			handler.Write<int>(Entries.Length);
+			handler.WriteNull(4);
+			handler.Write(Entries.Length == 0 ? 0L : Start);
+            return true;
         }
     }
 
@@ -199,6 +203,8 @@ namespace ReeLib.Mesh
 		public VertexBufferType type;
 		public short size;
 		public int offset;
+
+		public int CalculateNextOffset(int count) => offset + size * count;
 	}
 
 	public class VertexBoneWeights
@@ -262,6 +268,22 @@ namespace ReeLib.Mesh
 			handler.ReadArray(byteArray8);
 			boneWeights = byteArray8.Select(b => ((float)b) / 255f).ToArray();
 		}
+
+        internal void Write(FileHandler handler, MeshSerializerVersion version)
+		{
+			if (version == MeshSerializerVersion.SF6)
+			{
+				var n1 = boneIndices[0] & (boneIndices[1] << 10) & (boneIndices[2] << 20);
+				var n2 = boneIndices[3] & (boneIndices[4] << 10) & (boneIndices[5] << 20);
+				handler.Write(n1);
+				handler.Write(n2);
+			}
+			else
+			{
+				for (int i = 0; i < 8; i++) handler.Write((byte)boneIndices[i]);
+			}
+			for (int i = 0; i < 8; i++) handler.Write((byte)MathF.Round(boneWeights[i] * 255f));
+		}
 	}
 
     public class MeshBuffer : BaseModel
@@ -289,34 +311,40 @@ namespace ReeLib.Mesh
 		public ushort[] Faces = [];
 
 		private const float ByteDenorm = 1f / 127f;
+		private const float ByteNorm = 127f;
 
 		internal MeshSerializerVersion Version;
 
         protected override bool DoRead(FileHandler handler)
         {
-			handler.Read(ref elementHeadersOffset);
-			handler.Read(ref vertexBufferOffset);
+			handler.Read(ref elementHeadersOffset); //8
+			handler.Read(ref vertexBufferOffset); //16
 			if (Version >= MeshSerializerVersion.RE4)
 			{
-				handler.Read(ref uknOffset);
-				handler.Read(ref vertexBufferSize);
-				faceBufferOffset = handler.Read<int>() + vertexBufferOffset;
+				handler.Read(ref uknOffset); //24
+				handler.Read(ref vertexBufferSize); //28
+				faceBufferOffset = handler.Read<int>() + vertexBufferOffset; //32
 			}
 			else
 			{
-				handler.Read(ref faceBufferOffset);
+				handler.Read(ref faceBufferOffset); //24
 				if (Version == MeshSerializerVersion.RE_RT)
 				{
 					handler.Read(ref ukn1);
-					handler.Read(ref ukn2);
+					handler.Read(ref ukn2); //32
 				}
-				handler.Read(ref vertexBufferSize);
-				handler.Read(ref faceVertBufferHeaderSize);
+				handler.Read(ref vertexBufferSize); //28/36
+				handler.Read(ref faceVertBufferHeaderSize); //32/40
 			}
-			handler.Read(ref elementCount);
-			handler.Read(ref elementCount2);
+			handler.Read(ref elementCount); //34/42
+			handler.Read(ref elementCount2); //36/44
+			handler.Read(ref ukn1); //40/48
+			handler.Read(ref ukn2); //44/52
+			handler.Read(ref blendShapeOffset);//48/56
+
 			handler.Seek(elementHeadersOffset);
 			BufferHeaders = handler.ReadArray<MeshBufferItemHeader>(elementCount);
+			// TODO streaming mesh buffer headers
 			handler.Seek(vertexBufferOffset);
             for (int i = 0; i < BufferHeaders.Length; i++)
 			{
@@ -335,16 +363,11 @@ namespace ReeLib.Mesh
 						Tangents = new Vector3[count];
 						for (int k = 0; k < count; ++k)
 						{
-							var a = handler.Read<sbyte>();
-							var b = handler.Read<sbyte>();
-							var c = handler.Read<sbyte>();
+							Normals[k] = new Vector3(handler.Read<sbyte>() * ByteDenorm, handler.Read<sbyte>() * ByteDenorm, handler.Read<sbyte>() * ByteDenorm);
 							handler.Skip(1);
-							Normals[k] = new Vector3(a * ByteDenorm, b * ByteDenorm, c * ByteDenorm);
-							a = handler.Read<sbyte>();
-							b = handler.Read<sbyte>();
-							c = handler.Read<sbyte>();
+
+							Tangents[k] = new Vector3(handler.Read<sbyte>() * ByteDenorm, handler.Read<sbyte>() * ByteDenorm, handler.Read<sbyte>() * ByteDenorm);
 							handler.Skip(1);
-							Tangents[k] = new Vector3(a * ByteDenorm, b * ByteDenorm, c * ByteDenorm);
 						}
 						break;
 
@@ -385,16 +408,139 @@ namespace ReeLib.Mesh
 
         protected override bool DoWrite(FileHandler handler)
         {
-            throw new NotImplementedException();
+			handler.Write(ref elementHeadersOffset);
+			handler.Write(ref vertexBufferOffset);
+			if (Version >= MeshSerializerVersion.RE4)
+			{
+				handler.Write(ref uknOffset);
+				handler.Write(ref vertexBufferSize);
+				handler.Write<int>((int)(faceBufferOffset - vertexBufferOffset));
+			}
+			else
+			{
+				handler.Write(ref faceBufferOffset);
+				if (Version == MeshSerializerVersion.RE_RT)
+				{
+					handler.Write(ref ukn1);
+					handler.Write(ref ukn2);
+				}
+				handler.Write(ref vertexBufferSize);
+				handler.Write(ref faceVertBufferHeaderSize);
+			}
+			elementCount2 = elementCount = (short)BufferHeaders.Length;
+			handler.Write(ref elementCount);
+			handler.Write(ref elementCount2);
+			handler.Write(ref ukn1);
+			handler.Write(ref ukn2);
+			handler.Write(ref blendShapeOffset); //48/56
+            return true;
         }
+
+		public void WriteBufferData(FileHandler handler)
+		{
+			handler.Align(16);
+			elementHeadersOffset = handler.Tell();
+			blendShapeOffset = -(int)elementHeadersOffset; // TODO blend shapes
+			var headers = new List<MeshBufferItemHeader>();
+			var offset = 0;
+			if (Positions.Length > 0) {
+				headers.Add(new MeshBufferItemHeader() { type = VertexBufferType.Position, offset = offset, size = 12 });
+				offset = headers.Last().CalculateNextOffset(Positions.Length);
+			}
+			if (Normals.Length > 0) {
+				headers.Add(new MeshBufferItemHeader() { type = VertexBufferType.NormalsTangents, offset = offset, size = 8 });
+				offset = headers.Last().CalculateNextOffset(Normals.Length);
+			}
+			if (UV0.Length > 0) {
+				headers.Add(new MeshBufferItemHeader() { type = VertexBufferType.UV0, offset = offset, size = 4 });
+				offset = headers.Last().CalculateNextOffset(UV0.Length);
+			}
+			if (UV1.Length > 0) {
+				headers.Add(new MeshBufferItemHeader() { type = VertexBufferType.UV1, offset = offset, size = 4 });
+				offset = headers.Last().CalculateNextOffset(UV1.Length);
+			}
+			if (Weights.Length > 0) {
+				headers.Add(new MeshBufferItemHeader() { type = VertexBufferType.BoneWeights, offset = offset, size = 16 });
+				offset = headers.Last().CalculateNextOffset(Weights.Length);
+			}
+			if (Colors.Length > 0) {
+				headers.Add(new MeshBufferItemHeader() { type = VertexBufferType.Colors, offset = offset, size = 4 });
+				offset = headers.Last().CalculateNextOffset(Colors.Length);
+			}
+			BufferHeaders = headers.ToArray();
+			handler.WriteArray(BufferHeaders);
+			handler.Align(16);
+			vertexBufferOffset = handler.Tell();
+
+			for (int i = 0; i < BufferHeaders.Length; i++)
+			{
+                var buffer = BufferHeaders[i];
+				var bufferStart = vertexBufferOffset + buffer.offset;
+				var bufferEnd = (i == elementCount - 1 ? bufferStart + buffer.size * Positions.Length : vertexBufferOffset + BufferHeaders[i + 1].offset);
+                handler.Seek(bufferStart);
+				var count = (int)(bufferEnd - bufferStart) / buffer.size;
+				switch (buffer.type) {
+					case VertexBufferType.Position:
+						handler.WriteArray(Positions);
+						break;
+
+					case VertexBufferType.NormalsTangents:
+						for (int k = 0; k < count; ++k)
+						{
+							var nor = Normals[k];
+							var tan = Normals[k];
+							handler.Write<sbyte>((sbyte)MathF.Round(nor.X * ByteNorm));
+							handler.Write<sbyte>((sbyte)MathF.Round(nor.Y * ByteNorm));
+							handler.Write<sbyte>((sbyte)MathF.Round(nor.Z * ByteNorm));
+							handler.WriteNull(1);
+							handler.Write<sbyte>((sbyte)MathF.Round(tan.X * ByteNorm));
+							handler.Write<sbyte>((sbyte)MathF.Round(tan.Y * ByteNorm));
+							handler.Write<sbyte>((sbyte)MathF.Round(tan.Z * ByteNorm));
+							handler.WriteNull(1);
+						}
+						break;
+
+					case VertexBufferType.UV0:
+						for (int k = 0; k < count; ++k)
+						{
+							handler.Write((Half)UV0[k].X);
+							handler.Write((Half)UV0[k].Y);
+						}
+						break;
+					case VertexBufferType.UV1:
+						for (int k = 0; k < count; ++k)
+						{
+							handler.Write((Half)UV1[k].X);
+							handler.Write((Half)UV1[k].Y);
+						}
+						break;
+					case VertexBufferType.Colors:
+						handler.WriteArray<Color>(Colors);
+						break;
+					case VertexBufferType.BoneWeights:
+						for (int k = 0; k < count; ++k)
+						{
+							Weights[k].Write(handler, Version);
+						}
+						break;
+				}
+			}
+
+			handler.Align(16);
+			faceBufferOffset = handler.Tell();
+			handler.WriteArray(Faces);
+
+			// update header with offsets
+			this.Write(handler, Start);
+		}
     }
 
     public class Submesh(MeshBuffer buffer) : BaseModel
     {
-        public MeshBuffer Buffer { get; } = buffer;
+        public MeshBuffer Buffer { get; set; } = buffer;
 
 		public ushort materialIndex;
-		public ushort ukn;
+		public ushort bufferIndex;
 		public int streamingOffset;
 		public int streamingOffset2;
 		public int ukn2;
@@ -411,21 +557,13 @@ namespace ReeLib.Mesh
 		public Span<Vector2> UV1 => Buffer.UV1.AsSpan(vertsIndexOffset, vertCount);
 		public Span<Color> Colors => Buffer.Colors.AsSpan(vertsIndexOffset, vertCount);
 		public Span<VertexBoneWeights> Weights => Buffer.Weights.AsSpan(vertsIndexOffset, vertCount);
-		// public Span<ushort> Indices => MemoryMarshal.CreateSpan(ref Buffer.Faces[0], Buffer.Faces.Length).Slice(facesIndexOffset, indicesCount);
-		// public Span<Vector3> Positions => MemoryMarshal.CreateSpan(ref Buffer.Positions[0], Buffer.Positions.Length).Slice(vertsIndexOffset, vertCount);
-		// public Span<Vector3> Normals => MemoryMarshal.CreateSpan(ref Buffer.Normals[0], Buffer.Normals.Length).Slice(vertsIndexOffset, vertCount);
-		// public Span<Vector3> Tangents => MemoryMarshal.CreateSpan(ref Buffer.Tangents[0], Buffer.Tangents.Length).Slice(vertsIndexOffset, vertCount);
-		// public Span<Vector2> UV0 => MemoryMarshal.CreateSpan(ref Buffer.UV0[0], Buffer.UV0.Length).Slice(vertsIndexOffset, vertCount);
-		// public Span<Vector2> UV1 => MemoryMarshal.CreateSpan(ref Buffer.UV1[0], Buffer.UV1.Length).Slice(vertsIndexOffset, vertCount);
-		// public Span<Color> Colors => MemoryMarshal.CreateSpan(ref Buffer.Colors[0], Buffer.Colors.Length).Slice(vertsIndexOffset, vertCount);
-		// public Span<VertexBoneWeights> Weights => MemoryMarshal.CreateSpan(ref Buffer.Weights[0], Buffer.Weights.Length).Slice(vertsIndexOffset, vertCount);
 
 		internal MeshSerializerVersion Version;
 
         protected override bool DoRead(FileHandler handler)
         {
 			handler.Read(ref materialIndex);
-			handler.Read(ref ukn);
+			handler.Read(ref bufferIndex);
 			handler.Read(ref indicesCount);
 			handler.Read(ref facesIndexOffset);
 			handler.Read(ref vertsIndexOffset);
@@ -444,7 +582,22 @@ namespace ReeLib.Mesh
 
         protected override bool DoWrite(FileHandler handler)
         {
-            throw new NotImplementedException();
+			handler.Write(ref materialIndex);
+			handler.Write(ref bufferIndex);
+			handler.Write(ref indicesCount);
+			handler.Write(ref facesIndexOffset);
+			handler.Write(ref vertsIndexOffset);
+			if (Version >= MeshSerializerVersion.RE_RT)
+			{
+				handler.Write(ref streamingOffset);
+				handler.Write(ref streamingOffset2);
+			}
+			if (Version >= MeshSerializerVersion.DD2)
+			{
+				handler.Write(ref ukn2);
+			}
+
+			return true;
         }
 
         public override string ToString() => $"SubMesh [V: {vertCount} F: {indicesCount / 3}, Mat: {materialIndex}]";
@@ -457,6 +610,7 @@ namespace ReeLib.Mesh
 		public byte submeshCount;
 		public int vertexCount;
 		public int indicesCount;
+
 		public List<Submesh> Submeshes { get; } = new();
 
 		internal MeshSerializerVersion Version;
@@ -466,7 +620,7 @@ namespace ReeLib.Mesh
         {
 			handler.Read(ref groupId);
 			handler.Read(ref submeshCount);
-			handler.Skip(6);
+			handler.ReadNull(6);
 			handler.Read(ref vertexCount);
 			handler.Read(ref indicesCount);
 			for (var i = 0; i < submeshCount; ++i)
@@ -484,8 +638,9 @@ namespace ReeLib.Mesh
 				}
 				else
 				{
-					sub.vertCount = vertexCount - (int)(sub.vertsIndexOffset - meshVertexOffset);
+					sub.vertCount = vertexCount - (sub.vertsIndexOffset - Submeshes[0].vertsIndexOffset);
 				}
+				DataInterpretationException.ThrowIf(sub.vertCount <= 0);
 			}
 			return true;
         }
@@ -493,8 +648,17 @@ namespace ReeLib.Mesh
         protected override bool DoWrite(FileHandler handler)
         {
 			submeshCount = (byte)Submeshes.Count;
-            throw new NotImplementedException();
+			handler.Write(ref groupId);
+			handler.Write(submeshCount);
+			handler.WriteNull(6);
+			handler.Write(ref vertexCount);
+			handler.Write(ref indicesCount);
+			Submeshes.Write(handler);
+
+            return true;
         }
+
+        public override string ToString() => $"Mesh Group {groupId} [Submeshes: {Submeshes.Count}]";
     }
 
     public class MeshLOD(MeshBuffer Buffer) : BaseModel
@@ -503,10 +667,14 @@ namespace ReeLib.Mesh
 
 		public float lodFactor;
 		public byte vertexFormat;
+		public byte ukn1;
+		// public byte ukn2;
 
 		public int FaceCount => IndexCount / 3;
 		public int IndexCount => MeshGroups.Sum(g => g.indicesCount);
 		public int VertexCount => MeshGroups.Sum(g => g.vertexCount);
+
+		public int PaddedIndexCount => MeshGroups.Sum(g => g.indicesCount + (g.indicesCount % 2 != 0 ? 1 : 0));
 
 		internal MeshSerializerVersion Version;
 
@@ -514,15 +682,14 @@ namespace ReeLib.Mesh
         {
 			var meshCount = handler.Read<byte>();
 			handler.Read(ref vertexFormat);
-			handler.Skip(2);
+			handler.Read(ref ukn1);
+			handler.ReadNull(1);
 			handler.Read(ref lodFactor);
 			var headerOffset = handler.ReadInt64();
 			handler.Seek(headerOffset);
 			var meshOffsets = handler.ReadArray<long>(meshCount);
 
 			var vertOffset = 0;
-			var totalIndices = 0;
-			var indicesPadding = 0;
 			for (int i = 0; i < meshCount; ++i)
 			{
 				handler.Seek(meshOffsets[i]);
@@ -530,20 +697,184 @@ namespace ReeLib.Mesh
 				mesh.Read(handler);
 				MeshGroups.Add(mesh);
 				vertOffset += mesh.vertexCount;
-				totalIndices += mesh.indicesCount;
-				if (mesh.indicesCount % 2 != 0) {
-					indicesPadding++;
-				}
 			}
 
-			handler.Seek(Buffer.faceBufferOffset);
-			Buffer.Faces = handler.ReadArray<ushort>(totalIndices + indicesPadding);
 			return true;
         }
 
         protected override bool DoWrite(FileHandler handler)
         {
-            throw new NotImplementedException();
+			handler.Write((byte)MeshGroups.Count);
+			handler.Write(ref vertexFormat);
+			handler.Write(ref ukn1);
+			handler.WriteNull(1);
+			handler.Write(ref lodFactor);
+			var offsetOffset = handler.Tell();
+			handler.Skip(8);
+			handler.Align(16);
+
+			var meshOffsetsOffset = handler.Tell();
+			handler.Write(offsetOffset, meshOffsetsOffset);
+			handler.Skip(8 * MeshGroups.Count);
+
+			handler.Align(16);
+			for (int i = 0; i < MeshGroups.Count; ++i)
+			{
+				handler.Write(meshOffsetsOffset + i * 8, handler.Tell());
+				MeshGroups[i].Write(handler);
+			}
+
+			return true;
+        }
+    }
+
+    public class OccluderMesh(MeshBuffer Buffer) : BaseModel
+    {
+        public int count;
+        public float uknFloat; // maybe a max draw distance?
+
+		public List<MeshGroup> Meshes { get; } = new();
+
+		internal MeshSerializerVersion Version;
+		internal MeshData? mainMesh;
+
+        protected override bool DoRead(FileHandler handler)
+        {
+			handler.Read(ref count);
+			handler.Read(ref uknFloat);
+
+			var offsetStart = handler.Read<long>();
+			handler.Seek(offsetStart);
+			var offsets = handler.ReadArray<long>(count);
+
+			for (int i = 0; i < count; ++i)
+			{
+				handler.Seek(offsets[i]);
+				var group = new MeshGroup(Buffer) { Version = Version };
+				group.Read(handler);
+				Meshes.Add(group);
+			}
+			return true;
+        }
+
+        protected override bool DoWrite(FileHandler handler)
+        {
+        	count = Meshes.Count;
+
+			handler.Write(ref count);
+			handler.Write(ref uknFloat);
+
+			var offsetOffset = handler.Tell();
+			handler.Skip(8);
+			handler.WriteNull(6 * 8);
+			var offsetsStart = handler.Tell();
+			handler.Write(offsetOffset, offsetsStart);
+			handler.Skip(8 * count);
+
+			handler.Align(16);
+            for (int i = 0; i < Meshes.Count; i++)
+			{
+                var group = Meshes[i];
+				handler.Write(offsetsStart + i * 8, handler.Tell());
+				group.Write(handler);
+			}
+			return true;
+        }
+    }
+
+    public class ShadowMesh(MeshBuffer Buffer) : BaseModel
+    {
+        public int lodCount;
+		public int materialCount;
+		public int uvCount;
+		public int skinWeightCount = 18;
+		public int totalMeshCount;
+
+		public List<MeshLOD> LODs { get; } = new();
+
+		internal MeshSerializerVersion Version;
+		internal MeshData? mainMesh;
+
+        protected override bool DoRead(FileHandler handler)
+        {
+			var shadowLodsOffset = handler.Tell();
+			lodCount = handler.Read<byte>();
+			materialCount = handler.Read<byte>();
+			uvCount = handler.Read<byte>();
+			skinWeightCount = handler.Read<byte>();
+			totalMeshCount = handler.Read<int>();
+
+			if (Version <= MeshSerializerVersion.DMC5)
+			{
+				handler.ReadNull(8);
+			}
+
+			var offsetStart = handler.Read<long>();
+			handler.ReadNull(6 * 8);
+			handler.Seek(offsetStart);
+			var shadowOffsets = handler.ReadArray<long>(lodCount);
+			for (int i = 0; i < lodCount; ++i)
+			{
+				var offset = shadowOffsets[i];
+				// sometimes (usually) the shadow mesh reuses the main mesh lod data
+				// reuse the same instance so we can also reserialize with the reused offsets
+				if (offset < shadowLodsOffset && mainMesh != null)
+				{
+					var lodIndex = mainMesh.LODs.FindIndex(lod => lod.Start == offset);
+					if (lodIndex != -1)
+					{
+						LODs.Add(mainMesh.LODs[lodIndex]);
+						continue;
+					}
+					throw new DataInterpretationException("Found backtracked shadow LOD that wasn't a main LOD");
+				}
+
+				handler.Seek(offset);
+				var lod = new MeshLOD(Buffer) { Version = Version };
+				lod.Read(handler);
+				LODs.Add(lod);
+			}
+			return true;
+        }
+
+        protected override bool DoWrite(FileHandler handler)
+        {
+        	lodCount = LODs.Count;
+			uvCount = Math.Sign(Buffer.UV0.Length) + Math.Sign(Buffer.UV1.Length);
+			totalMeshCount = LODs[0].MeshGroups.Sum(mg => mg.Submeshes.Count);
+			// materialCount also includes other (shadow) mesh materials as well, don't recalculate it here
+
+			handler.Write((byte)lodCount);
+			handler.Write((byte)materialCount);
+			handler.Write((byte)uvCount);
+			handler.Write((byte)skinWeightCount);
+			handler.Write(ref totalMeshCount);
+			if (Version <= MeshSerializerVersion.DMC5)
+			{
+				handler.WriteNull(8);
+			}
+
+			var offsetOffset = handler.Tell();
+			handler.Skip(8);
+			handler.WriteNull(6 * 8);
+			var offsetsStart = handler.Tell();
+			handler.Write(offsetOffset, offsetsStart);
+			handler.Skip(8 * lodCount);
+
+			handler.Align(16);
+            for (int i = 0; i < LODs.Count; i++)
+			{
+                var lod = LODs[i];
+				if (lod.Start != 0)
+				{
+					handler.Write(offsetsStart + i * 8, lod.Start);
+					continue;
+				}
+
+				handler.Write(offsetsStart + i * 8, handler.Tell());
+				lod.Write(handler);
+			}
+			return true;
         }
     }
 
@@ -554,13 +885,20 @@ namespace ReeLib.Mesh
         public int lodCount;
 		public int materialCount;
 		public int uvCount;
-		public int skinWeightCount;
+		public int skinWeightCount = 18;
 		public int totalMeshCount;
-		public long ukn1;
 		public Sphere boundingSphere;
 		public AABB boundingBox;
 
 		internal MeshSerializerVersion Version;
+
+		public void ChangeVersion(MeshSerializerVersion version)
+		{
+			Version = version;
+			if (version == MeshSerializerVersion.SF6) skinWeightCount = 9;
+			else if (version <= MeshSerializerVersion.DMC5) skinWeightCount = 1;
+			else skinWeightCount = 18;
+		}
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -568,10 +906,13 @@ namespace ReeLib.Mesh
 			materialCount = handler.Read<byte>();
 			uvCount = handler.Read<byte>();
 			skinWeightCount = handler.Read<byte>();
+			DataInterpretationException.DebugThrowIf(Version == MeshSerializerVersion.SF6 && skinWeightCount != 9);
+			DataInterpretationException.DebugThrowIf((Version > MeshSerializerVersion.SF6 || Version == MeshSerializerVersion.RE_RT) && skinWeightCount != 18);
+			DataInterpretationException.DebugThrowIf(Version <= MeshSerializerVersion.DMC5 && skinWeightCount != 1);
 			handler.Read(ref totalMeshCount);
 			if (Version <= MeshSerializerVersion.DMC5)
 			{
-				handler.Read(ref ukn1);
+				handler.ReadNull(8);
 			}
 
 			handler.Read(ref boundingSphere);
@@ -581,11 +922,13 @@ namespace ReeLib.Mesh
 			handler.Seek(lodOffsetsStart);
 			var lodOffsets = handler.ReadArray<long>(lodCount);
 
-			// read only lod 1 for now
-			handler.Seek(lodOffsets[0]);
-			var lod = new MeshLOD(Buffer) { Version = Version };
-			lod.Read(handler);
-			LODs.Add(lod);
+			for (int i = 0; i < lodCount; ++i)
+			{
+				handler.Seek(lodOffsets[i]);
+				var lod = new MeshLOD(Buffer) { Version = Version };
+				lod.Read(handler);
+				LODs.Add(lod);
+			}
 
             return true;
         }
@@ -593,17 +936,52 @@ namespace ReeLib.Mesh
         protected override bool DoWrite(FileHandler handler)
         {
         	lodCount = LODs.Count;
-            throw new NotImplementedException();
+			uvCount = Math.Sign(Buffer.UV0.Length) + Math.Sign(Buffer.UV1.Length);
+			totalMeshCount = LODs[0].MeshGroups.Sum(mg => mg.Submeshes.Count);
+			ChangeVersion(Version); // ensure correct skinWeightCount value
+
+			handler.Write((byte)lodCount);
+			handler.Write((byte)materialCount);
+			handler.Write((byte)uvCount);
+			handler.Write((byte)skinWeightCount);
+			handler.Write(ref totalMeshCount);
+			if (Version <= MeshSerializerVersion.DMC5)
+			{
+				handler.WriteNull(8);
+			}
+
+			handler.Write(ref boundingSphere);
+			handler.Write(ref boundingBox);
+
+			var lodOffsetOffset = handler.Tell();
+			handler.Skip(8);
+			handler.Align(8);
+			var lodOffsetsStart = handler.Tell();
+			handler.Write(lodOffsetOffset, lodOffsetsStart);
+			var lodOffsets = new long[LODs.Count];
+			handler.Skip(LODs.Count * 8);
+
+			handler.Align(16);
+            for (int i = 0; i < LODs.Count; i++)
+			{
+				handler.Write(lodOffsetsStart + i * 8, lodOffsets[i] = handler.Tell());
+                LODs[i].Write(handler);
+			}
+
+			return true;
         }
     }
 
     public class MeshBone : BaseModel
     {
+		public string name = "";
+
 		public int index;
 		public int parentIndex;
 		public int nextSibling;
 		public int childIndex;
 		public int symmetryIndex;
+		public int uknIndex;
 
 		public int remapIndex = -1;
 		public bool IsDeformBone => remapIndex != -1;
@@ -611,8 +989,7 @@ namespace ReeLib.Mesh
 		public mat4 localTransform;
 		public mat4 globalTransform;
 		public mat4 inverseGlobalTransform;
-
-		public string name = "";
+		public AABBVec4 boundingBox;
 
 		public readonly List<MeshBone> Children = new();
 
@@ -626,7 +1003,9 @@ namespace ReeLib.Mesh
             nextSibling = handler.Read<short>();
             childIndex = handler.Read<short>();
             symmetryIndex = handler.Read<short>();
-			handler.Skip(6);
+            uknIndex = handler.Read<short>();
+			handler.ReadNull(4);
+			DataInterpretationException.ThrowIf(uknIndex < 0 || uknIndex > 1);
 			return true;
         }
 
@@ -637,7 +1016,8 @@ namespace ReeLib.Mesh
             handler.Write((short)nextSibling);
             handler.Write((short)childIndex);
             handler.Write((short)symmetryIndex);
-			handler.Skip(6);
+            handler.Write((short)uknIndex);
+			handler.WriteNull(4);
 			return true;
         }
 
@@ -682,54 +1062,76 @@ namespace ReeLib
 		public Header Header { get; } = new();
 		public MeshStreamingInfo? StreamingInfo { get; set; }
 		public MeshBuffer? MeshBuffer { get; set; }
-		public List<MeshData> Meshes { get; } = new();
+		public MeshData? MeshData { get; set; }
+		public ShadowMesh? ShadowMesh { get; set; }
+		public OccluderMesh? OccluderMesh { get; set; }
 
 		public MeshBoneHierarchy? BoneData { get; set; }
 
 		public List<string> MaterialNames { get; } = new();
 
-		private static readonly Dictionary<string, (uint internalVersion, uint fileVersion, MeshSerializerVersion serializerVersion, GameName[] games)> Versions = new()
+        public string? CurrentVersionConfig => VersionHashLookups.TryGetValue((ulong)Header.version << 32 | (uint)FileHandler.FileVersion, out var config)
+			? Versions.FirstOrDefault(kv => kv.Value == config).Key
+			: null;
+
+		private readonly record struct MeshVersionConfig(uint internalVersion, uint fileVersion, MeshSerializerVersion serializerVersion, GameName[] games);
+
+        private static readonly Dictionary<string, MeshVersionConfig> Versions = new()
 		{
-			{ "RE7", (352921600, 32, MeshSerializerVersion.RE7, [GameName.re7]) }, // currently unsupported
+			{ "RE7", new (352921600, 32, MeshSerializerVersion.RE7, [GameName.re7]) }, // currently unsupported
 
-			{ "DMC5", (386270720, 1808282334, MeshSerializerVersion.DMC5, [GameName.dmc5]) },
-			{ "RE2", (386270720, 1808312334, MeshSerializerVersion.DMC5, [GameName.re2]) },
-			{ "RE3", (386270720, 1902042334, MeshSerializerVersion.DMC5, [GameName.re3]) },
+			{ "DMC5", new (386270720, 1808282334, MeshSerializerVersion.DMC5, [GameName.dmc5]) },
+			{ "RE2", new (386270720, 1808312334, MeshSerializerVersion.DMC5, [GameName.re2]) },
+			{ "RE3", new (386270720, 1902042334, MeshSerializerVersion.DMC5, [GameName.re3]) },
 
-			{ "RE2/3 RT", (21041600, 2109108288, MeshSerializerVersion.RE_RT, [GameName.re2rt, GameName.re3rt]) },
-			{ "RE7RT", (21041600, 220128762, MeshSerializerVersion.RE_RT, [GameName.re7rt]) },
+			{ "RE2/3 RT", new (21041600, 2109108288, MeshSerializerVersion.RE_RT, [GameName.re2rt, GameName.re3rt]) },
+			{ "RE7RT", new (21041600, 220128762, MeshSerializerVersion.RE_RT, [GameName.re7rt]) },
 
-			{ "MHRISE", (21041600, 2109148288, MeshSerializerVersion.RE_RT, [GameName.mhrise]) },
-			{ "RE8", (2020091500, 2101050001, MeshSerializerVersion.RE8, [GameName.re8]) },
+			{ "MHRISE", new (21041600, 2109148288, MeshSerializerVersion.RE_RT, [GameName.mhrise]) },
+			{ "RE8", new (2020091500, 2101050001, MeshSerializerVersion.RE8, [GameName.re8]) },
 
-			{ "RE4", (220822879, 221108797, MeshSerializerVersion.RE4, [GameName.re4]) },
-			{ "SF6", (220705151, 230110883, MeshSerializerVersion.SF6, [GameName.sf6]) },
-			{ "DD2", (230517984, 240423143, MeshSerializerVersion.DD2, [GameName.dd2]) },
-			{ "DD2 (old)", (230517984, 231011879, MeshSerializerVersion.DD2_Old, [GameName.dd2]) },
+			{ "RE4", new (220822879, 221108797, MeshSerializerVersion.RE4, [GameName.re4]) },
+			{ "SF6", new (220705151, 230110883, MeshSerializerVersion.SF6, [GameName.sf6]) },
+			{ "DD2", new (230517984, 240423143, MeshSerializerVersion.DD2, [GameName.dd2]) },
+			{ "DD2 old", new (230517984, 231011879, MeshSerializerVersion.DD2_Old, [GameName.dd2]) },
 
-			{ "MHWILDS", (240704828, 241111606, MeshSerializerVersion.MHWILDS, [GameName.mhwilds]) }, // currently unsupported
+			{ "MHWILDS", new (240704828, 241111606, MeshSerializerVersion.MHWILDS, [GameName.mhwilds]) }, // currently unsupported
 		};
 
-		public static readonly string[] AllExportConfigs = Versions.OrderBy(kv => kv.Value.serializerVersion).Select(kv => kv.Key).ToArray();
+		public static readonly string[] AllVersionConfigs = Versions.OrderBy(kv => kv.Value.serializerVersion).Select(kv => kv.Key).ToArray();
+		public static readonly string[] AllVersionConfigsWithExtension = Versions.OrderBy(kv => kv.Value.serializerVersion).Select(kv => $"{kv.Key} (.mesh.{kv.Value.fileVersion} / {kv.Value.internalVersion})").ToArray();
 
 		private static readonly Dictionary<GameName, string[]> versionsPerGame = Enum.GetValues<GameName>().ToDictionary(
 			game => game,
 			game => Versions.Where(kv => kv.Value.games.Contains(game)).Select(pair => pair.Key).ToArray()
 		);
 
-		private static readonly Dictionary<ulong, MeshSerializerVersion> SerializerVersionLookups = Versions.ToDictionary(v => (((ulong)v.Value.internalVersion << 32) | (ulong)v.Value.fileVersion), kv => kv.Value.serializerVersion);
+		private static readonly Dictionary<ulong, MeshVersionConfig> VersionHashLookups = Versions.ToDictionary(v => (((ulong)v.Value.internalVersion << 32) | (ulong)v.Value.fileVersion), kv => kv.Value);
 
 		internal static MeshSerializerVersion GetSerializerVersion(uint internalVersion, uint fileVersion)
 			// on match failure, assume latest format for anything unknown - in case of newer games
-			=> SerializerVersionLookups.TryGetValue((ulong)internalVersion << 32 | fileVersion, out var vvv) ? vvv : MeshSerializerVersion.MHWILDS;
+			=> VersionHashLookups.TryGetValue((ulong)internalVersion << 32 | fileVersion, out var vvv) ? vvv.serializerVersion : MeshSerializerVersion.MHWILDS;
 
-		public static string[] GetGameMeshVersions(GameName game) => versionsPerGame.GetValueOrDefault(game) ?? AllExportConfigs;
-		public static MeshSerializerVersion GetPrimarySerializerVersion(GameName game) => Versions[GetGameMeshVersions(game)[0]].serializerVersion;
+		public static string[] GetGameVersionConfigs(GameName game) => versionsPerGame.GetValueOrDefault(game) ?? AllVersionConfigs;
+		public static MeshSerializerVersion GetPrimarySerializerVersion(GameName game) => Versions[GetGameVersionConfigs(game)[0]].serializerVersion;
 		public static MeshSerializerVersion GetSerializerVersion(string exportConfig) => Versions.TryGetValue(exportConfig, out var cfg) ? cfg.serializerVersion : MeshSerializerVersion.Unknown;
+
+        public static uint GetFileExtension(string exportConfig) => Versions.TryGetValue(exportConfig, out var cfg) ? cfg.fileVersion : 0;
 
         public MeshFile(FileHandler fileHandler) : base(fileHandler)
         {
         }
+
+		public void ChangeVersion(string versionConfig)
+		{
+			if (!Versions.TryGetValue(versionConfig, out var config)) {
+				Log.Error("Unknown mesh version config " + versionConfig);
+				return;
+			}
+
+			// TODO migrate field differences if applicable
+			Header.version = config.internalVersion;
+		}
 
         protected override bool DoRead()
         {
@@ -738,10 +1140,9 @@ namespace ReeLib
 			var magic = handler.ReadInt(handler.Tell());
 			if (magic == MagicMply)
 			{
-				throw new NotImplementedException("MPLY meshes not yet supported");
+				throw new NotSupportedException("MPLY meshes not yet supported");
 			}
 			MaterialNames.Clear();
-			Meshes.Clear();
 			BoneData?.Clear();
 			MeshBuffer = null;
 			StreamingInfo = null;
@@ -759,14 +1160,34 @@ namespace ReeLib
 				handler.Seek(header.meshOffset);
 				MeshBuffer = new() { Version = header.FormatVersion };
 				MeshBuffer.Read(handler);
-			}
 
-			if (header.lodsOffset > 0 && MeshBuffer != null)
-			{
-				handler.Seek(header.lodsOffset);
-				var mesh = new MeshData(MeshBuffer) { Version = header.FormatVersion };
-				mesh.Read(handler);
-				Meshes.Add(mesh);
+				if (header.lodsOffset > 0)
+				{
+					handler.Seek(header.lodsOffset);
+					MeshData = new MeshData(MeshBuffer) { Version = header.FormatVersion };
+					MeshData.Read(handler);
+				}
+
+				if (header.shadowLodsOffset > 0)
+				{
+					handler.Seek(header.shadowLodsOffset);
+					ShadowMesh = new ShadowMesh(MeshBuffer) { Version = header.FormatVersion, mainMesh = MeshData };
+					ShadowMesh.Read(handler);
+				}
+
+				if (header.occluderMeshOffset > 0)
+				{
+					handler.Seek(header.occluderMeshOffset);
+					OccluderMesh = new OccluderMesh(MeshBuffer) { Version = header.FormatVersion, mainMesh = MeshData };
+					OccluderMesh.Read(handler);
+				}
+
+				handler.Seek(MeshBuffer.faceBufferOffset);
+				var mainMeshMaxIndex = MeshData == null ? 0 : MeshData.LODs.SelectMany(l => l.MeshGroups.SelectMany(mg => mg.Submeshes.Select(ss => ss.facesIndexOffset + ss.indicesCount))).Max();
+				var shadowMeshMaxIndex = ShadowMesh == null ? 0 : ShadowMesh.LODs.SelectMany(l => l.MeshGroups.SelectMany(mg => mg.Submeshes.Select(ss => ss.facesIndexOffset + ss.indicesCount))).Max();
+				var occluderMaxIndex = OccluderMesh == null ? 0 : OccluderMesh.Meshes.SelectMany(mg => mg.Submeshes.Select(ss => ss.facesIndexOffset + ss.indicesCount)).Max();
+				var indicesCount = Math.Max(mainMeshMaxIndex, shadowMeshMaxIndex);
+				MeshBuffer.Faces = handler.ReadArray<ushort>(indicesCount);
 			}
 
 			var strings = new string[header.nameCount];
@@ -780,7 +1201,7 @@ namespace ReeLib
 				handler.Seek(header.bonesOffset);
 				var boneCount = handler.Read<int>();
 				var boneMapCount = handler.Read<int>();
-				handler.Skip(sizeof(long));
+				handler.ReadNull(8);
 				var hierarchyOff = handler.Read<long>();
 				var localTransformsOff = handler.Read<long>();
 				var globallTransformsOff = handler.Read<long>();
@@ -805,10 +1226,10 @@ namespace ReeLib
 				SetupBoneHierarchy();
 			}
 
-			if (header.materialIndicesOffset > 0 && Meshes.Count > 0)
+			if (header.materialIndicesOffset > 0)
 			{
 				handler.Seek(header.materialIndicesOffset);
-				var matCount = Meshes.First().materialCount;
+				var matCount = MeshData?.materialCount ?? ShadowMesh?.materialCount ?? 0;
 				for (int i = 0; i < matCount; ++i)
 				{
 					var idx = handler.Read<short>();
@@ -828,11 +1249,153 @@ namespace ReeLib
 
 			if (header.boundsOffset > 0)
 			{
+				DataInterpretationException.ThrowIf(BoneData == null);
 				handler.Seek(header.boundsOffset);
-				// bone bounds
+				var bbCount = handler.Read<int>();
+				handler.ReadNull(4);
+				handler.Seek(handler.Read<long>());
+				if (bbCount > BoneData.DeformBones.Count)
+				{
+					DataInterpretationException.ThrowIf(bbCount != BoneData.DeformBones.Count + 1);
+					BoneData.RootBones.First().boundingBox = handler.Read<AABBVec4>();
+					bbCount--;
+				}
+				for (int i = 0; i < bbCount; ++i)
+				{
+					BoneData.DeformBones[i].boundingBox = handler.Read<AABBVec4>();
+				}
 			}
 
             return true;
+        }
+
+        protected override bool DoWrite()
+        {
+			var handler = FileHandler;
+			var header = Header;
+			header.Write(handler);
+
+			// force reset lod object start offsets - this will allow us to only write them once and reuse the LODs if multiple meshes reference the same one
+			foreach (var mesh in MeshData?.LODs ?? []) mesh.Start = 0;
+			foreach (var mesh in ShadowMesh?.LODs ?? []) mesh.Start = 0;
+
+			if (MeshData != null)
+			{
+				handler.Align(8);
+				header.lodsOffset = handler.Tell();
+				MeshData.materialCount = MaterialNames.Count;
+				MeshData.Write(handler);
+			}
+
+			if (ShadowMesh != null)
+			{
+				handler.Align(8);
+				header.shadowLodsOffset = handler.Tell();
+				ShadowMesh.materialCount = MaterialNames.Count;
+				if (MeshData != null) MeshData.skinWeightCount = MeshData.skinWeightCount;
+				ShadowMesh.Write(handler);
+			}
+
+			if (OccluderMesh != null)
+			{
+				handler.Align(8);
+				header.occluderMeshOffset = handler.Tell();
+				OccluderMesh.Write(handler);
+			}
+
+			if (BoneData != null)
+			{
+				handler.Align(16);
+				header.bonesOffset = handler.Tell();
+				handler.Write(BoneData.Bones.Count);
+				handler.Write(BoneData.DeformBones.Count);
+				handler.WriteNull(8);
+				var offsets = handler.Tell();
+				handler.Skip(32);
+				foreach (var bone in BoneData.DeformBones) handler.Write((short)bone.index);
+
+				handler.Align(16);
+				handler.Write(offsets, handler.Tell()); // hierarchyOff
+				BoneData.Bones.Write(handler);
+
+				handler.Write(offsets + 8, handler.Tell()); // localTransformsOff
+				foreach (var bone in BoneData.Bones) handler.Write(bone.localTransform);
+				handler.Write(offsets + 16, handler.Tell()); // globallTransformsOff
+				foreach (var bone in BoneData.Bones) handler.Write(bone.globalTransform);
+				handler.Write(offsets + 24, handler.Tell()); // invGloballTransformsOff
+				foreach (var bone in BoneData.Bones) handler.Write(bone.inverseGlobalTransform);
+			}
+
+			header.nameCount = (short)((BoneData?.Bones.Count ?? 0) + MaterialNames.Count);
+			int stringOffset = 0;
+			handler.Align(16);
+			header.materialIndicesOffset = handler.Tell();
+			foreach (var name in MaterialNames) handler.Write((short)(stringOffset++));
+
+			if (BoneData != null)
+			{
+				handler.Align(16);
+				header.boneIndicesOffset = handler.Tell();
+				foreach (var bone in BoneData.Bones) handler.Write((short)(stringOffset++));
+			}
+
+			header.nameOffsetsOffset = handler.Tell();
+			foreach (var name in MaterialNames) handler.WriteOffsetAsciiString(name);
+			if (BoneData != null)
+			{
+				foreach (var bone in BoneData.Bones) handler.WriteOffsetAsciiString(bone.name);
+			}
+			handler.Align(16);
+			handler.AsciiStringTableFlush();
+
+			if (BoneData?.Bones.Count > 0)
+			{
+				handler.Align(16);
+				header.boundsOffset = handler.Tell();
+
+				var boundCount = BoneData.Bones.Count(b => !b.boundingBox.IsEmpty);
+				if (boundCount == 0)
+				{
+					// TODO recalculate bounds?
+					// foreach (var bone in BoneData.DeformBones)
+					// {
+					// }
+				}
+
+				handler.Write(boundCount);
+				handler.WriteNull(4);
+				var off = handler.Tell();
+				handler.Align(16);
+				handler.Write(off, handler.Tell());
+				// instead of writing every deform bone, write any bone that has non-0 bounds
+				// some meshes contain an extra bound (root node?), and this way we retain all existing data
+				foreach (var bone in BoneData.Bones)
+				{
+					if (!bone.boundingBox.IsEmpty)
+						handler.Write(bone.boundingBox);
+				}
+			}
+
+			if (MeshBuffer != null)
+			{
+				handler.Align(16);
+				header.meshOffset = handler.Tell();
+				MeshBuffer.Write(handler);
+
+				if (StreamingInfo != null)
+				{
+					handler.Align(16);
+					StreamingInfo.Write(handler);
+					header.streamingInfoOffset = StreamingInfo.HeaderOffset;
+				}
+
+				MeshBuffer.WriteBufferData(handler);
+			}
+
+			header.fileSize = (uint)handler.Tell();
+			header.Write(handler, 0);
+
+			return true;
         }
 
 		private void SetupBoneHierarchy()
@@ -854,10 +1417,5 @@ namespace ReeLib
 				parent.Children.Add(bone);
 			}
 		}
-
-        protected override bool DoWrite()
-        {
-            throw new NotImplementedException();
-        }
     }
 }

@@ -64,6 +64,7 @@ namespace ReeLib.Common
         /// <param name="n"></param>
         /// <returns></returns>
         public static int Align8(int n) => AlignSize(n, 8);
+        public static int Align16(int n) => AlignSize(n, 16);
 
         public static bool DetectFloat(Span<byte> data, out float floatValue)
         {

@@ -325,7 +325,7 @@ namespace ReeLib.Mesh
     {
 		public long elementHeadersOffset;
 		public long vertexBufferOffset;
-		public long extendedWeightBufferOffset;
+		public long shapekeyWeightBufferOffset;
 		public int totalBufferSize;
 		public long faceBufferOffset;
 		public int faceVertBufferHeaderSize;
@@ -346,6 +346,8 @@ namespace ReeLib.Mesh
 		public VertexBoneWeights[] Weights = [];
 		public ushort[] Faces = [];
 
+		public VertexBoneWeights[] ShapeKeyWeights = [];
+
 		private const float ByteDenorm = 1f / 127f;
 		private const float ByteNorm = 127f;
 
@@ -360,7 +362,7 @@ namespace ReeLib.Mesh
 			handler.Read(ref vertexBufferOffset);
 			if (Version >= MeshSerializerVersion.RE4)
 			{
-				handler.Read(ref extendedWeightBufferOffset);
+				handler.Read(ref shapekeyWeightBufferOffset);
 				handler.Read(ref totalBufferSize);
 				var vertexBufferSize = handler.Read<int>();
 				faceBufferOffset = vertexBufferSize + vertexBufferOffset;
@@ -440,6 +442,18 @@ namespace ReeLib.Mesh
 				}
 			}
 
+			if (shapekeyWeightBufferOffset > 0)
+			{
+				handler.Seek(shapekeyWeightBufferOffset);
+				var count = Weights.Length;
+				ShapeKeyWeights = new VertexBoneWeights[count];
+				for (int k = 0; k < count; ++k)
+				{
+					ShapeKeyWeights[k] = new();
+					ShapeKeyWeights[k].Read(handler, Version);
+				}
+			}
+
 			return true;
         }
 
@@ -449,7 +463,7 @@ namespace ReeLib.Mesh
 			handler.Write(ref vertexBufferOffset);
 			if (Version >= MeshSerializerVersion.RE4)
 			{
-				handler.Write(ref extendedWeightBufferOffset);
+				handler.Write(ref shapekeyWeightBufferOffset);
 				handler.Write(ref totalBufferSize);
 				handler.Write((int)(faceBufferOffset - vertexBufferOffset));
 			}
@@ -574,6 +588,17 @@ namespace ReeLib.Mesh
 			handler.WriteNull(Utils.Align16((int)handler.Tell()) - (int)handler.Tell());
 
 			totalBufferSize = (int)(handler.Tell() - vertexBufferOffset);
+
+			if (ShapeKeyWeights.Length > 0)
+			{
+				handler.Align(16);
+				shapekeyWeightBufferOffset = handler.Tell();
+				var count = ShapeKeyWeights.Length;
+				for (int k = 0; k < count; ++k)
+				{
+					ShapeKeyWeights[k].Write(handler, Version);
+				}
+			}
 			// update header with offsets
 			this.Write(handler, Start);
 		}
@@ -602,6 +627,7 @@ namespace ReeLib.Mesh
 		public Span<Vector2> UV1 => Buffer.UV1.AsSpan(vertsIndexOffset, vertCount);
 		public Span<Color> Colors => Buffer.Colors.AsSpan(vertsIndexOffset, vertCount);
 		public Span<VertexBoneWeights> Weights => Buffer.Weights.AsSpan(vertsIndexOffset, vertCount);
+		public Span<VertexBoneWeights> ShapeKeyWeights => Buffer.ShapeKeyWeights.AsSpan(vertsIndexOffset, vertCount);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Vector3 GetBiTangent(int index) => Buffer.GetBiTangent(vertsIndexOffset + index);
@@ -1203,6 +1229,7 @@ namespace ReeLib
 		public OccluderMesh? OccluderMesh { get; set; }
 		public BlendShapeData? BlendShapes { get; set; }
 		public List<uint>? Hashes { get; set; }
+		public List<Vector3>? FloatData { get; set; }
 
 		public MeshBoneHierarchy? BoneData { get; set; }
 
@@ -1398,6 +1425,17 @@ namespace ReeLib
 				for (int i = 0; i < hashCount; ++i) Hashes.Add(handler.Read<uint>());
 			}
 
+			if (header.floatsOffset > 0)
+			{
+				FloatData = new();
+				handler.Seek(header.floatsOffset);
+				var size = handler.Read<int>();
+				handler.ReadNull(4);
+				var offset = handler.Read<long>();
+				handler.Seek(offset);
+				FloatData.ReadStructList(handler, size / 12);
+			}
+
 			if (header.boneIndicesOffset > 0 && BoneData?.Bones.Count > 0)
 			{
 				handler.Seek(header.boneIndicesOffset);
@@ -1464,13 +1502,6 @@ namespace ReeLib
 				OccluderMesh.Write(handler);
 			}
 
-			if (BlendShapes != null)
-			{
-				handler.Align(8);
-				header.blendShapesOffset = handler.Tell();
-				BlendShapes.Write(handler);
-			}
-
 			if (BoneData != null)
 			{
 				handler.Align(16);
@@ -1492,6 +1523,30 @@ namespace ReeLib
 				foreach (var bone in BoneData.Bones) handler.Write(bone.globalTransform);
 				handler.Write(offsets + 24, handler.Tell()); // invGloballTransformsOff
 				foreach (var bone in BoneData.Bones) handler.Write(bone.inverseGlobalTransform);
+			}
+
+			// TODO implement these
+			header.blendShapesOffset = 0;
+			header.normalRecalcOffset = 0;
+			if (BlendShapes != null)
+			{
+				// handler.Align(8);
+				// header.blendShapesOffset = handler.Tell();
+				// BlendShapes.Write(handler);
+			}
+
+			if (FloatData != null)
+			{
+				handler.Align(16);
+				header.floatsOffset = handler.Tell();
+				handler.Write(FloatData.Count * 12);
+				handler.WriteNull(4);
+				handler.Write(handler.Tell() + 8);
+				FloatData.Write(handler);
+			}
+			else
+			{
+				header.floatsOffset = 0;
 			}
 
 			header.nameCount = (short)((BoneData?.Bones.Count ?? 0) + MaterialNames.Count);

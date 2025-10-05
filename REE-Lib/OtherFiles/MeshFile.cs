@@ -325,14 +325,14 @@ namespace ReeLib.Mesh
     {
 		public long elementHeadersOffset;
 		public long vertexBufferOffset;
-		public long uknOffset;
-		public int vertexBufferSize;
+		public long extendedWeightBufferOffset;
+		public int totalBufferSize;
 		public long faceBufferOffset;
 		public int faceVertBufferHeaderSize;
 		public short elementCount;
 		public short elementCount2;
-		public int ukn1;
-		public int ukn2;
+		public int uknSize1;
+		public int uknSize2;
 		public int blendShapeOffset;
 		public MeshBufferItemHeader[] BufferHeaders = [];
 
@@ -356,30 +356,27 @@ namespace ReeLib.Mesh
 
         protected override bool DoRead(FileHandler handler)
         {
-			handler.Read(ref elementHeadersOffset); //8
-			handler.Read(ref vertexBufferOffset); //16
+			handler.Read(ref elementHeadersOffset);
+			handler.Read(ref vertexBufferOffset);
 			if (Version >= MeshSerializerVersion.RE4)
 			{
-				handler.Read(ref uknOffset); //24
-				handler.Read(ref vertexBufferSize); //28
-				faceBufferOffset = handler.Read<int>() + vertexBufferOffset; //32
+				handler.Read(ref extendedWeightBufferOffset);
+				handler.Read(ref totalBufferSize);
+				var vertexBufferSize = handler.Read<int>();
+				faceBufferOffset = vertexBufferSize + vertexBufferOffset;
 			}
 			else
 			{
-				handler.Read(ref faceBufferOffset); //24
-				if (Version == MeshSerializerVersion.RE_RT)
-				{
-					handler.Read(ref ukn1);
-					handler.Read(ref ukn2); //32
-				}
-				handler.Read(ref vertexBufferSize); //28/36
-				handler.Read(ref faceVertBufferHeaderSize); //32/40
+				handler.Read(ref faceBufferOffset);
+				if (Version == MeshSerializerVersion.RE_RT) handler.ReadNull(8);
+				handler.Read(ref totalBufferSize);
+				handler.Read(ref faceVertBufferHeaderSize);
 			}
-			handler.Read(ref elementCount); //34/42
-			handler.Read(ref elementCount2); //36/44
-			handler.Read(ref ukn1); //40/48
-			handler.Read(ref ukn2); //44/52
-			handler.Read(ref blendShapeOffset);//48/56
+			handler.Read(ref elementCount);
+			handler.Read(ref elementCount2);
+			handler.Read(ref uknSize1);
+			handler.Read(ref uknSize2);
+			handler.Read(ref blendShapeOffset);
 
 			handler.Seek(elementHeadersOffset);
 			BufferHeaders = handler.ReadArray<MeshBufferItemHeader>(elementCount);
@@ -452,26 +449,22 @@ namespace ReeLib.Mesh
 			handler.Write(ref vertexBufferOffset);
 			if (Version >= MeshSerializerVersion.RE4)
 			{
-				handler.Write(ref uknOffset);
-				handler.Write(ref vertexBufferSize);
-				handler.Write<int>((int)(faceBufferOffset - vertexBufferOffset));
+				handler.Write(ref extendedWeightBufferOffset);
+				handler.Write(ref totalBufferSize);
+				handler.Write((int)(faceBufferOffset - vertexBufferOffset));
 			}
 			else
 			{
 				handler.Write(ref faceBufferOffset);
-				if (Version == MeshSerializerVersion.RE_RT)
-				{
-					handler.Write(ref ukn1);
-					handler.Write(ref ukn2);
-				}
-				handler.Write(ref vertexBufferSize);
+				if (Version == MeshSerializerVersion.RE_RT) handler.WriteNull(8);
+				handler.Write(ref totalBufferSize);
 				handler.Write(ref faceVertBufferHeaderSize);
 			}
 			handler.Write(ref elementCount);
 			handler.Write(ref elementCount2);
-			handler.Write(ref ukn1);
-			handler.Write(ref ukn2);
-			handler.Write(ref blendShapeOffset); //48/56
+			handler.Write(ref uknSize1);
+			handler.Write(ref uknSize2);
+			handler.Write(ref blendShapeOffset);
 			handler.WriteNull(16);
             return true;
         }
@@ -567,11 +560,20 @@ namespace ReeLib.Mesh
 				}
 			}
 
+			var vertBufferSize = (int)(handler.Tell() - vertexBufferOffset);
+
 			handler.Align(16);
 			faceBufferOffset = handler.Tell();
 			handler.WriteArray(Faces);
 
-			vertexBufferSize = (int)(handler.Tell() - vertexBufferOffset);
+			if (Version >= MeshSerializerVersion.RE4)
+			{
+				uknSize1 = uknSize2 = vertBufferSize + (int)(handler.Tell() - faceBufferOffset);
+			}
+
+			handler.WriteNull(Utils.Align16((int)handler.Tell()) - (int)handler.Tell());
+
+			totalBufferSize = (int)(handler.Tell() - vertexBufferOffset);
 			// update header with offsets
 			this.Write(handler, Start);
 		}
@@ -1049,6 +1051,63 @@ namespace ReeLib.Mesh
         }
     }
 
+    public class BlendShapeInfo : BaseModel
+    {
+        protected override bool DoRead(FileHandler handler)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override bool DoWrite(FileHandler handler)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public class BlendShapeData : BaseModel
+    {
+		public List<BlendShapeInfo> Shapes { get; } = new();
+
+		public ulong hash;
+
+		public MeshSerializerVersion Version;
+
+        protected override bool DoRead(FileHandler handler)
+        {
+			var count = handler.Read<int>();
+			handler.ReadNull(4);
+			long offset;
+			if (Version < MeshSerializerVersion.MHWILDS)
+			{
+				offset = handler.Read<long>();
+				handler.ReadNull(8);
+			}
+			else
+			{
+				handler.ReadNull(8);
+				offset = handler.Read<long>();
+			}
+			handler.Read(ref hash);
+			handler.Seek(offset);
+			var offsets = handler.ReadArray<long>(count);
+			for (int i = 0; i < count; ++i)
+			{
+				handler.Seek(offsets[i]);
+				var shape = new BlendShapeInfo();
+				shape.Read(handler);
+				Shapes.Add(shape);
+			}
+
+            return true;
+        }
+
+        protected override bool DoWrite(FileHandler handler)
+        {
+			handler.Write(Shapes.Count);
+            return true;
+        }
+    }
+
     public class MeshBone : BaseModel
     {
 		public string name = "";
@@ -1142,6 +1201,7 @@ namespace ReeLib
 		public MeshData? MeshData { get; set; }
 		public ShadowMesh? ShadowMesh { get; set; }
 		public OccluderMesh? OccluderMesh { get; set; }
+		public BlendShapeData? BlendShapes { get; set; }
 		public List<uint>? Hashes { get; set; }
 
 		public MeshBoneHierarchy? BoneData { get; set; }
@@ -1214,6 +1274,7 @@ namespace ReeLib
 			ShadowMesh?.ChangeVersion(config.serializerVersion);
 			OccluderMesh?.ChangeVersion(config.serializerVersion);
 			if (MeshBuffer != null) MeshBuffer.Version = config.serializerVersion;
+			if (BlendShapes != null) BlendShapes.Version = config.serializerVersion;
 		}
 
         protected override bool DoRead()
@@ -1263,6 +1324,14 @@ namespace ReeLib
 					handler.Seek(header.occluderMeshOffset);
 					OccluderMesh = new OccluderMesh(MeshBuffer) { Version = header.FormatVersion, mainMesh = MeshData };
 					OccluderMesh.Read(handler);
+				}
+
+				if (header.blendShapesOffset > 0)
+				{
+					// TODO blend shapes
+					// handler.Seek(header.blendShapesOffset);
+					// BlendShapes = new BlendShapeData() { Version = header.FormatVersion };
+					// BlendShapes.Read(handler);
 				}
 
 				handler.Seek(MeshBuffer.faceBufferOffset);
@@ -1392,6 +1461,13 @@ namespace ReeLib
 				handler.Align(8);
 				header.occluderMeshOffset = handler.Tell();
 				OccluderMesh.Write(handler);
+			}
+
+			if (BlendShapes != null)
+			{
+				handler.Align(8);
+				header.blendShapesOffset = handler.Tell();
+				BlendShapes.Write(handler);
 			}
 
 			if (BoneData != null)

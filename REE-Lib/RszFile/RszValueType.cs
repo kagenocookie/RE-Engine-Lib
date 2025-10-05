@@ -595,8 +595,10 @@ namespace ReeLib.via
 
     public record struct AABBVec4(Vector4 Minpos, Vector4 Maxpos)
     {
-        public bool IsEmpty => Minpos == Vector4.Zero && Maxpos == Vector4.Zero;
-        public AABB AsAABB => new AABB(new Vector3(Minpos.X, Minpos.Y, Minpos.Z), new Vector3(Maxpos.X, Maxpos.Y, Maxpos.Z));
+        public readonly bool IsEmpty => Minpos == Vector4.Zero && Maxpos == Vector4.Zero;
+        public readonly AABB AsAABB => new AABB(new Vector3(Minpos.X, Minpos.Y, Minpos.Z), new Vector3(Maxpos.X, Maxpos.Y, Maxpos.Z));
+
+        public static implicit operator AABBVec4(AABB src) => new AABBVec4(new Vector4(src.minpos.X, src.minpos.Y, src.minpos.Z, 1), new Vector4(src.maxpos.X, src.maxpos.Y, src.maxpos.Z, 1));
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 48)]

@@ -1275,6 +1275,7 @@ namespace ReeLib
 			OccluderMesh?.ChangeVersion(config.serializerVersion);
 			if (MeshBuffer != null) MeshBuffer.Version = config.serializerVersion;
 			if (BlendShapes != null) BlendShapes.Version = config.serializerVersion;
+			FileHandler.FileVersion = (int)config.fileVersion;
 		}
 
         protected override bool DoRead()

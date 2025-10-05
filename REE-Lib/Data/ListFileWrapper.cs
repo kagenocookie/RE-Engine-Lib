@@ -95,7 +95,7 @@ public class ListFileWrapper
 
     public string[] GetFiles(string filter)
     {
-        if (filter.Contains('*')) {
+        if (filter.Contains('*') || filter.Contains('+')) {
             return FilterAllFiles(filter);
         } else {
             return GetFilesInFolder(filter);
@@ -114,7 +114,7 @@ public class ListFileWrapper
         }
 
         try {
-            var regex = new Regex("^" + pattern.Replace("/.", "\\.").Replace("**", ".*") + "$");
+            var regex = new Regex("^" + pattern.Replace("**", ".*") + "$");
             var results = FilterAllFiles(regex, int.MaxValue).ToArray();
             folderListCache[cacheKey] = results;
             return results;

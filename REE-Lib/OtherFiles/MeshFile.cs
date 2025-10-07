@@ -54,7 +54,7 @@ namespace ReeLib.Mesh
 		public short ukn1 = 0;
 
 		public int ukn = 0;
-		public long meshGroupOffset = 0;
+		public long uknOffset = 0;
 		public long lodsOffset = 0;
 		public long shadowLodsOffset = 0;
 		public long occluderMeshOffset = 0;
@@ -133,7 +133,7 @@ namespace ReeLib.Mesh
 				action.Do(ref uknCount);
 				action.Do(ref nameCount);
 				action.Do(ref ukn1);
-				action.Do(ref meshGroupOffset);
+				action.Do(ref uknOffset);
 				action.Do(ref lodsOffset);
 				action.Do(ref shadowLodsOffset);
 				action.Do(ref occluderMeshOffset);
@@ -174,13 +174,22 @@ namespace ReeLib.Mesh
 				action.Do(ref wilds_unkn4);
 				action.Do(ref wilds_unkn5);
 				action.Do(ref verticesOffset);
-				action.Do(ref meshGroupOffset);
+				action.Do(ref lodsOffset);
 				action.Do(ref shadowLodsOffset);
 				action.Do(ref occluderMeshOffset);
 				action.Do(ref normalRecalcOffset);
 				action.Do(ref blendShapeHeadersOffset);
 				action.Do(ref meshOffset);
 				action.Do(ref sf6unkn1);
+				action.Do(ref floatsOffset);
+				action.Do(ref boundsOffset);
+				action.Do(ref bonesOffset);
+				action.Do(ref materialIndicesOffset);
+				action.Do(ref boneIndicesOffset);
+				action.Do(ref blendShapeIndicesOffset);
+				action.Do(ref nameOffsetsOffset);
+				action.Do(ref streamingInfoOffset);
+				action.Do(ref sf6unkn4);
 			}
 
             return true;
@@ -688,7 +697,7 @@ namespace ReeLib.Mesh
 		}
     }
 
-    public class Submesh(MeshBuffer buffer) : BaseModel
+    public class Submesh(MeshBuffer buffer) : ReadWriteModel
     {
         public MeshBuffer Buffer { get; set; } = buffer;
 
@@ -696,11 +705,14 @@ namespace ReeLib.Mesh
 		public ushort bufferIndex;
 		public int streamingOffset;
 		public int streamingOffset2;
+		public int ukn1;
 		public int ukn2;
 		public int indicesCount;
 		public int facesIndexOffset;
 		public int vertsIndexOffset;
 		public int vertCount;
+
+		internal MeshSerializerVersion Version;
 
 		public Span<ushort> Indices => Buffer.Faces.AsSpan(facesIndexOffset, indicesCount);
 		public Span<Vector3> Positions => Buffer.Positions.AsSpan(vertsIndexOffset, vertCount);
@@ -732,45 +744,20 @@ namespace ReeLib.Mesh
 			return new ResolvedBlendShapeSegment(Buffer.BlendShapeData.AsSpan(start, end - start), start);
 		}
 
-		internal MeshSerializerVersion Version;
-
-        protected override bool DoRead(FileHandler handler)
+        protected override bool ReadWrite<THandler>(THandler action)
         {
-			handler.Read(ref materialIndex);
-			handler.Read(ref bufferIndex);
-			handler.Read(ref indicesCount);
-			handler.Read(ref facesIndexOffset);
-			handler.Read(ref vertsIndexOffset);
+			action.Do(ref materialIndex);
+			action.Do(ref bufferIndex);
+			action.Do(Version >= MeshSerializerVersion.MHWILDS, ref ukn1);
+			action.Do(ref indicesCount);
+			action.Do(ref facesIndexOffset);
+			action.Do(ref vertsIndexOffset);
 			if (Version >= MeshSerializerVersion.RE_RT)
 			{
-				handler.Read(ref streamingOffset);
-				handler.Read(ref streamingOffset2);
+				action.Do(ref streamingOffset);
+				action.Do(ref streamingOffset2);
 			}
-			if (Version >= MeshSerializerVersion.DD2)
-			{
-				handler.Read(ref ukn2);
-			}
-
-			return true;
-        }
-
-        protected override bool DoWrite(FileHandler handler)
-        {
-			handler.Write(ref materialIndex);
-			handler.Write(ref bufferIndex);
-			handler.Write(ref indicesCount);
-			handler.Write(ref facesIndexOffset);
-			handler.Write(ref vertsIndexOffset);
-			if (Version >= MeshSerializerVersion.RE_RT)
-			{
-				handler.Write(ref streamingOffset);
-				handler.Write(ref streamingOffset2);
-			}
-			if (Version >= MeshSerializerVersion.DD2)
-			{
-				handler.Write(ref ukn2);
-			}
-
+			action.Do(Version >= MeshSerializerVersion.DD2, ref ukn2);
 			return true;
         }
 
@@ -820,7 +807,7 @@ namespace ReeLib.Mesh
 				{
 					sub.vertCount = vertexCount - (sub.vertsIndexOffset - Submeshes[0].vertsIndexOffset);
 				}
-				DataInterpretationException.ThrowIf(sub.vertCount <= 0);
+				DataInterpretationException.DebugThrowIf(sub.vertCount <= 0);
 			}
 			return true;
         }

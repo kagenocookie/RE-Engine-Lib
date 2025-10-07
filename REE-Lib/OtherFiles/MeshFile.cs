@@ -2,6 +2,7 @@ using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using ReeLib.Common;
+using ReeLib.InternalAttributes;
 using ReeLib.via;
 
 namespace ReeLib.Mesh
@@ -59,7 +60,7 @@ namespace ReeLib.Mesh
 		public long occluderMeshOffset = 0;
 		public long bonesOffset = 0;
 		public long normalRecalcOffset = 0;
-		public long blendShapesOffset = 0;
+		public long blendShapeHeadersOffset = 0;
 		public long boundsOffset = 0;
 		public long meshOffset = 0;
 		public long floatsOffset = 0;
@@ -117,7 +118,7 @@ namespace ReeLib.Mesh
 				action.Do(ref occluderMeshOffset);
 				action.Do(ref bonesOffset);
 				action.Do(ref normalRecalcOffset);
-				action.Do(ref blendShapesOffset);
+				action.Do(ref blendShapeHeadersOffset);
 				action.Do(ref boundsOffset);
 				action.Do(ref meshOffset);
 				action.Do(ref floatsOffset);
@@ -137,7 +138,7 @@ namespace ReeLib.Mesh
 				action.Do(ref shadowLodsOffset);
 				action.Do(ref occluderMeshOffset);
 				action.Do(ref normalRecalcOffset);
-				action.Do(ref blendShapesOffset);
+				action.Do(ref blendShapeHeadersOffset);
 				action.Do(ref meshOffset);
 
 				action.Do(ref sf6unkn1);
@@ -177,7 +178,7 @@ namespace ReeLib.Mesh
 				action.Do(ref shadowLodsOffset);
 				action.Do(ref occluderMeshOffset);
 				action.Do(ref normalRecalcOffset);
-				action.Do(ref blendShapesOffset);
+				action.Do(ref blendShapeHeadersOffset);
 				action.Do(ref meshOffset);
 				action.Do(ref sf6unkn1);
 			}
@@ -379,12 +380,12 @@ namespace ReeLib.Mesh
 		public long faceBufferOffset;
 		public int faceVertBufferHeaderSize;
 		public short elementCount;
-		public short elementCount2;
+		public short totalElementCount;
 		public int uknSize1;
 		public int uknSize2;
 		public int blendShapeOffset;
 
-		public int uknCount;
+		public int shapekeyWeightBufferSize;
 		public int bufferIndex;
 
 		public MeshBufferHeaderList Headers = new();
@@ -399,6 +400,7 @@ namespace ReeLib.Mesh
 		public VertexBoneWeights[] Weights = [];
 		public ushort[] Faces = [];
 
+		public Vector3[] BlendShapeData = [];
 		public VertexBoneWeights[] ShapeKeyWeights = [];
 
 		private const float ByteDenorm = 1f / 127f;
@@ -419,6 +421,7 @@ namespace ReeLib.Mesh
 				handler.Read(ref totalBufferSize);
 				var vertexBufferSize = handler.Read<int>();
 				faceBufferOffset = vertexBufferSize + vertexBufferOffset;
+				faceVertBufferHeaderSize = (int)(totalBufferSize - (faceBufferOffset - vertexBufferOffset));
 			}
 			else
 			{
@@ -428,13 +431,13 @@ namespace ReeLib.Mesh
 				handler.Read(ref faceVertBufferHeaderSize);
 			}
 			handler.Read(ref elementCount);
-			handler.Read(ref elementCount2);
+			handler.Read(ref totalElementCount);
 			handler.Read(ref uknSize1);
 			handler.Read(ref uknSize2);
 			handler.Read(ref blendShapeOffset);
 			if (Version >= MeshSerializerVersion.RE4)
 			{
-				handler.Read(ref uknCount);
+				handler.Read(ref shapekeyWeightBufferSize);
 				handler.Read(ref bufferIndex);
 				handler.ReadNull(8);
 			}
@@ -442,6 +445,7 @@ namespace ReeLib.Mesh
 			using var _ = handler.SeekJumpBack(elementHeadersOffset);
 			handler.Seek(elementHeadersOffset);
 			Headers.Read(handler, elementCount);
+			// TODO earlier games can have totalElementCount > elementCount as an alternative to streaming buffers
 			return true;
         }
 
@@ -463,13 +467,13 @@ namespace ReeLib.Mesh
 				handler.Write(ref faceVertBufferHeaderSize);
 			}
 			handler.Write(ref elementCount);
-			handler.Write(ref elementCount2);
+			handler.Write(ref totalElementCount);
 			handler.Write(ref uknSize1);
 			handler.Write(ref uknSize2);
 			handler.Write(ref blendShapeOffset);
 			if (Version >= MeshSerializerVersion.RE_RT)
 			{
-				handler.WriteNull(4);
+				handler.Write(ref shapekeyWeightBufferSize);
 				handler.Write(ref bufferIndex);
 				handler.WriteNull(8);
 			}
@@ -483,7 +487,7 @@ namespace ReeLib.Mesh
 			handler.WriteArray(Headers.BufferHeaders);
 		}
 
-		public void ReadBufferData(FileHandler handler)
+		public void ReadBufferData(FileHandler handler, BlendShapeData? blendShapes)
 		{
 			handler.Seek(vertexBufferOffset);
 			var BufferHeaders = Headers.BufferHeaders;
@@ -546,7 +550,7 @@ namespace ReeLib.Mesh
 			}
 
 			handler.Seek(faceBufferOffset);
-			Faces = handler.ReadArray<ushort>((int)(totalBufferSize - (faceBufferOffset - vertexBufferOffset)) / 2);
+			Faces = handler.ReadArray<ushort>((int)faceVertBufferHeaderSize / 2);
 
 			if (shapekeyWeightBufferOffset > 0)
 			{
@@ -559,6 +563,24 @@ namespace ReeLib.Mesh
 					ShapeKeyWeights[k].Read(handler, Version);
 				}
 			}
+
+			if (blendShapeOffset > 0 && blendShapes != null)
+			{
+				handler.Seek(vertexBufferOffset + blendShapeOffset);
+				BlendShapeData = new Vector3[blendShapes.totalShapeVertexCount];
+				var shorts = new short[4];
+				var bsPosCount = blendShapes.Shapes.Max(sh => sh.Targets.Max(tt => tt.Submeshes.Max(sss => sss.vertOffset + sss.vertCount)));
+				for (int i = 0; i < blendShapes.totalShapeVertexCount; ++i)
+				{
+					handler.ReadArray(shorts);
+
+					BlendShapeData[i] = new Vector3(
+						shorts[0] / ((float)short.MaxValue + Math.Sign(shorts[0] & 0x8000)),
+						shorts[1] / ((float)short.MaxValue + Math.Sign(shorts[1] & 0x8000)),
+						shorts[2] / ((float)short.MaxValue + Math.Sign(shorts[2] & 0x8000))
+					);
+				}
+			}
 		}
 
 		public void WriteBufferData(FileHandler handler)
@@ -566,8 +588,8 @@ namespace ReeLib.Mesh
 			var elementHeaders = Headers.BufferHeaders;
 
 			vertexBufferOffset = handler.Tell();
-			blendShapeOffset = -(int)vertexBufferOffset; // TODO blend shapes
-			elementCount2 = elementCount = (short)elementHeaders.Length;
+			blendShapeOffset = -(int)vertexBufferOffset;
+			totalElementCount = elementCount = (short)elementHeaders.Length;
 
 			for (int i = 0; i < elementHeaders.Length; i++)
 			{
@@ -624,6 +646,19 @@ namespace ReeLib.Mesh
 			}
 
 			var vertBufferSize = (int)(handler.Tell() - vertexBufferOffset);
+
+			if (BlendShapeData.Length > 0)
+			{
+				blendShapeOffset = (int)(handler.Tell() - vertexBufferOffset);
+				foreach (var vert in BlendShapeData)
+				{
+					handler.Write((short)MathF.Round(vert.X * (short.MaxValue + (vert.X < 0 ? 1 : 0))));
+					handler.Write((short)MathF.Round(vert.Y * (short.MaxValue + (vert.Y < 0 ? 1 : 0))));
+					handler.Write((short)MathF.Round(vert.Z * (short.MaxValue + (vert.Z < 0 ? 1 : 0))));
+					handler.WriteNull(2);
+				}
+				vertBufferSize = (int)(handler.Tell() - vertexBufferOffset);
+			}
 
 			handler.Align(16);
 			faceBufferOffset = handler.Tell();
@@ -1126,24 +1161,239 @@ namespace ReeLib.Mesh
         }
     }
 
-    public class BlendShapeInfo : BaseModel
+	[RszGenerate, RszAutoReadWrite]
+	public partial class BlendShapeSubmesh : BaseModel
+	{
+		public int vertIndex;
+		public int vertOffset;
+		[RszPaddingAfter(4)]
+		public int vertCount;
+	}
+
+    public class BlendShapeTarget : BaseModel
     {
+		public string name = string.Empty;
+
+		public short blendSSIndex;
+		public short blendShapeNum;
+		public short ukn;
+		public byte ukn2;
+
+        public AABB bounds;
+
+		public List<BlendShapeSubmesh> Submeshes = new();
+
         protected override bool DoRead(FileHandler handler)
         {
-            throw new NotImplementedException();
+			handler.Read(ref blendSSIndex);
+			handler.Read(ref blendShapeNum);
+			handler.Read(ref ukn);
+			var submeshEntryCount = handler.Read<byte>();
+			handler.Read(ref ukn2);
+			var offset = handler.Read<long>();
+			using var _ = handler.SeekJumpBack(offset);
+			Submeshes.Read(handler, submeshEntryCount);
+			return true;
         }
 
         protected override bool DoWrite(FileHandler handler)
         {
-            throw new NotImplementedException();
+			handler.Write(ref blendSSIndex);
+			handler.Write(ref blendShapeNum);
+			handler.Write(ref ukn);
+			handler.Write<byte>((byte)Submeshes.Count);
+			handler.WriteNull(1);
+			handler.Write(Submeshes[0].Start);
+			return true;
         }
     }
 
+    public class BlendShapeInfo : BaseModel
+    {
+		public ushort flag;
+		public ushort ukn;
+		public uint ukn2;
+
+		public List<BlendShapeTarget> Targets { get; } = new();
+		public List<BlendShapeTarget> BlankTargets { get; } = new();
+
+		public int[] indicesS = [];
+		public int[] indicesSS = [];
+
+		public int totalShapeVertexCount;
+
+		public MeshSerializerVersion Version;
+
+        protected override bool DoRead(FileHandler handler)
+        {
+			var targetCount = handler.Read<ushort>();
+			var typing = handler.Read<short>();
+			handler.Read(ref flag);
+			handler.Read(ref ukn);
+			handler.Read(ref ukn2);
+			handler.ReadNull(4);
+
+			var dataOffset = handler.Read<long>();
+			var boundsOffset = handler.Read<long>();
+			var blendSOffset = handler.Read<long>();
+			var blendSSOffset = handler.Read<long>();
+
+			handler.Seek(dataOffset);
+			Targets.Read(handler, targetCount);
+			BlankTargets.Read(handler, typing);
+
+			handler.Seek(boundsOffset);
+			for (int i = 0; i < targetCount; ++i) Targets[i].bounds = handler.Read<AABB>();
+
+			handler.Seek(blendSOffset);
+			indicesS = handler.ReadArray<int>(targetCount);
+
+			handler.Seek(blendSSOffset);
+			indicesSS = handler.ReadArray<int>(targetCount);
+
+			totalShapeVertexCount = 0;
+			foreach (var target in Targets) totalShapeVertexCount += target.Submeshes.Sum(ss => ss.vertCount);
+
+			return true;
+        }
+
+        protected override bool DoWrite(FileHandler handler)
+        {
+			var targetCount = Targets.Count;
+			var typing = BlankTargets.Count;
+
+			handler.Write((short)targetCount);
+			handler.Write((short)typing);
+			handler.Write(ref flag);
+			handler.Write(ref ukn);
+			handler.Write(ref ukn2);
+			handler.WriteNull(4);
+
+			var offsets = handler.Tell();
+			handler.Skip(32);
+
+			foreach (var t in Targets) t.Submeshes.Write(handler);
+			foreach (var t in BlankTargets) t.Submeshes.Write(handler);
+
+			handler.Write(offsets, handler.Tell());
+			Targets.Write(handler);
+			BlankTargets.Write(handler);
+
+			handler.Write(offsets + 8, handler.Tell());
+			for (int i = 0; i < targetCount; ++i) handler.Write<AABB>(Targets[i].bounds);
+
+			handler.Align(16);
+			handler.Write(offsets + 16, handler.Tell());
+			handler.WriteArray(indicesS);
+
+			handler.Align(16);
+			handler.Write(offsets + 24, handler.Tell());
+			handler.WriteArray(indicesSS);
+
+			return true;
+        }
+    }
+
+    public class NormalRecalcData : BaseModel
+    {
+		public struct NormalIndexRecalc
+		{
+			public ushort index;
+			public byte left;
+			public byte right;
+		}
+
+		public class RecalcGroup
+		{
+			public List<NormalIndexRecalc> vertices = new();
+			public List<NormalIndexRecalc> faces = new();
+		}
+
+		public List<RecalcGroup> Groups { get; } = new();
+
+        internal MeshSerializerVersion Version;
+
+        internal List<MeshLOD> lods = null!;
+
+        protected override bool DoRead(FileHandler handler)
+        {
+			int count = 1;
+			long[] offsets;
+			if (Version >= MeshSerializerVersion.DD2_Old)
+			{
+				// TODO verify correct version
+				count = handler.Read<int>();
+				handler.ReadNull(4);
+				var offset = handler.Read<long>(); // note: might be only 1 group for earlier games
+				handler.Seek(offset);
+				offsets = handler.ReadArray<long>(count);
+			}
+			else
+			{
+				offsets = [handler.Tell()];
+			}
+
+			DataInterpretationException.DebugThrowIf(lods.Count < count);
+			for (int i = 0; i < count; ++i)
+			{
+				var group = new RecalcGroup();
+				handler.Seek(offsets[i]);
+				var vertsOffset = handler.Read<long>();
+				var facesOffset = handler.Read<long>();
+
+				handler.Seek(vertsOffset);
+				group.vertices.ReadStructList(handler, lods[i].VertexCount);
+
+				handler.Seek(facesOffset);
+				group.faces.ReadStructList(handler, lods[i].IndexCount);
+				Groups.Add(group);
+			}
+
+			return true;
+        }
+
+        protected override bool DoWrite(FileHandler handler)
+        {
+			int count = Groups.Count;
+			long offsetStart = handler.Tell();
+			if (Version >= MeshSerializerVersion.DD2_Old)
+			{
+				handler.Write(count);
+				handler.WriteNull(4);
+				handler.Write(handler.Tell() + 8);
+				offsetStart = handler.Tell();
+				handler.Skip(count * 8);
+			}
+			else
+			{
+				count = 1;
+			}
+
+			for (int i = 0; i < count; ++i)
+			{
+				var group = Groups[i];
+				handler.Align(16);
+
+				handler.Write(offsetStart + i * 8, handler.Tell());
+				var itemOffsetsStart = handler.Tell();
+				handler.Skip(16);
+
+				handler.Write(itemOffsetsStart + 0, handler.Tell());
+				group.vertices.Write(handler);
+
+				handler.Align(16);
+				handler.Write(itemOffsetsStart + 8, handler.Tell());
+				group.faces.Write(handler);
+			}
+
+            return true;
+        }
+    }
     public class BlendShapeData : BaseModel
     {
 		public List<BlendShapeInfo> Shapes { get; } = new();
 
-		public ulong hash;
+		public int totalShapeVertexCount;
 
 		public MeshSerializerVersion Version;
 
@@ -1152,25 +1402,27 @@ namespace ReeLib.Mesh
 			var count = handler.Read<int>();
 			handler.ReadNull(4);
 			long offset;
-			if (Version < MeshSerializerVersion.MHWILDS)
+			if (Version < MeshSerializerVersion.DD2_Old)
 			{
 				offset = handler.Read<long>();
-				handler.ReadNull(8);
+				var offset2 = handler.Read<long>();
+				// throw new NotSupportedException("Older blend shapes are currently not supported");
+				return false;
 			}
 			else
 			{
 				handler.ReadNull(8);
 				offset = handler.Read<long>();
 			}
-			handler.Read(ref hash);
 			handler.Seek(offset);
 			var offsets = handler.ReadArray<long>(count);
 			for (int i = 0; i < count; ++i)
 			{
 				handler.Seek(offsets[i]);
-				var shape = new BlendShapeInfo();
+				var shape = new BlendShapeInfo() { Version = Version };
 				shape.Read(handler);
 				Shapes.Add(shape);
+				totalShapeVertexCount += shape.totalShapeVertexCount;
 			}
 
             return true;
@@ -1179,6 +1431,29 @@ namespace ReeLib.Mesh
         protected override bool DoWrite(FileHandler handler)
         {
 			handler.Write(Shapes.Count);
+			handler.WriteNull(4);
+
+			if (Version < MeshSerializerVersion.DD2_Old)
+			{
+				handler.Write<long>(Utils.Align16((int)handler.Tell() + 16));
+			}
+			else
+			{
+				handler.WriteNull(8);
+				handler.Write<long>(Utils.Align16((int)handler.Tell() + 8));
+			}
+
+			handler.Align(16);
+			var offsets = handler.Tell();
+			handler.Skip(Shapes.Count * 8);
+			// handler.Align(16);
+			for (int i = 0; i < Shapes.Count; ++i)
+			{
+				handler.Align(16);
+				handler.Write(offsets + i * 8, handler.Tell());
+				Shapes[i].Write(handler);
+			}
+
             return true;
         }
     }
@@ -1278,6 +1553,7 @@ namespace ReeLib
 		public ShadowMesh? ShadowMesh { get; set; }
 		public OccluderMesh? OccluderMesh { get; set; }
 		public BlendShapeData? BlendShapes { get; set; }
+		public NormalRecalcData? NormalRecalcData { get; set; }
 		public List<uint>? Hashes { get; set; }
 		public List<Vector3>? FloatData { get; set; }
 
@@ -1347,6 +1623,8 @@ namespace ReeLib
 			}
 
 			// TODO migrate field differences if applicable
+			// - streaming mesh buffer <-> multiple mesh buffer headers
+			// - blend shapes
 			Header.version = config.internalVersion;
 			Header.FormatVersion = config.serializerVersion;
 			MeshData?.ChangeVersion(config.serializerVersion);
@@ -1368,7 +1646,7 @@ namespace ReeLib
             for (int i = 0; i < StreamingBuffers.Count; i++)
 			{
                 var buffer = StreamingBuffers[i];
-                buffer.ReadBufferData(handler);
+                buffer.ReadBufferData(handler, BlendShapes);
             }
 
 			if (MeshData == null) return;
@@ -1427,9 +1705,6 @@ namespace ReeLib
 					}
 				}
 
-				handler.Seek(header.verticesOffset);
-				MeshBuffer.ReadBufferData(handler);
-
 				if (header.lodsOffset > 0)
 				{
 					handler.Seek(header.lodsOffset);
@@ -1451,12 +1726,25 @@ namespace ReeLib
 					OccluderMesh.Read(handler);
 				}
 
-				if (header.blendShapesOffset > 0)
+				if (header.blendShapeHeadersOffset > 0)
 				{
-					// TODO blend shapes
-					// handler.Seek(header.blendShapesOffset);
-					// BlendShapes = new BlendShapeData() { Version = header.FormatVersion };
-					// BlendShapes.Read(handler);
+					handler.Seek(header.blendShapeHeadersOffset);
+					BlendShapes = new BlendShapeData() { Version = header.FormatVersion };
+					if (!BlendShapes.Read(handler)) {
+						BlendShapes = null;
+						Log.Warn("Discarding unsupported mesh blend shapes");
+					}
+				}
+
+				handler.Seek(header.verticesOffset);
+				MeshBuffer.ReadBufferData(handler, BlendShapes);
+
+				if (MeshBuffer.totalElementCount > MeshBuffer.elementCount)
+				{
+					// additional buffer seems to be used for the extra meshes in older games
+					Log.Warn("Separate shadow/occluder mesh buffer detected, this is currently not supported and will be discarded.");
+					ShadowMesh = null;
+					OccluderMesh = null;
 				}
 			}
 
@@ -1536,6 +1824,26 @@ namespace ReeLib
 				}
 			}
 
+			if (header.normalRecalcOffset > 0 && MeshData != null)
+			{
+				handler.Seek(header.normalRecalcOffset);
+				NormalRecalcData = new NormalRecalcData() { lods = MeshData.LODs, Version = header.FormatVersion };
+				NormalRecalcData.Read(handler);
+			}
+
+			if (header.blendShapeIndicesOffset > 0 && BlendShapes != null)
+			{
+				handler.Seek(header.blendShapeIndicesOffset);
+				foreach (var shape in BlendShapes.Shapes)
+				{
+					foreach (var target in shape.Targets)
+					{
+						var idx = handler.Read<short>();
+						target.name = strings[idx];
+					}
+				}
+			}
+
 			if (header.boundsOffset > 0)
 			{
 				DataInterpretationException.ThrowIf(BoneData == null);
@@ -1576,6 +1884,7 @@ namespace ReeLib
 				MeshData.Write(handler);
 			}
 
+			header.shadowLodsOffset = 0;
 			if (ShadowMesh != null)
 			{
 				handler.Align(8);
@@ -1585,6 +1894,7 @@ namespace ReeLib
 				ShadowMesh.Write(handler);
 			}
 
+			header.occluderMeshOffset = 0;
 			if (OccluderMesh != null)
 			{
 				handler.Align(8);
@@ -1594,7 +1904,7 @@ namespace ReeLib
 
 			if (BoneData != null)
 			{
-				handler.Align(8);
+				// handler.Align(8);
 				header.bonesOffset = handler.Tell();
 				handler.Write(BoneData.Bones.Count);
 				handler.Write(BoneData.DeformBones.Count);
@@ -1615,16 +1925,23 @@ namespace ReeLib
 				foreach (var bone in BoneData.Bones) handler.Write(bone.inverseGlobalTransform);
 			}
 
-			// TODO implement these
-			header.blendShapesOffset = 0;
 			header.normalRecalcOffset = 0;
-			if (BlendShapes != null)
+			if (NormalRecalcData != null)
 			{
-				// handler.Align(8);
-				// header.blendShapesOffset = handler.Tell();
-				// BlendShapes.Write(handler);
+				handler.Align(16);
+				header.normalRecalcOffset = handler.Tell();
+				NormalRecalcData.Write(handler);
 			}
 
+			header.blendShapeHeadersOffset = 0;
+			if (BlendShapes != null)
+			{
+				handler.Align(8);
+				header.blendShapeHeadersOffset = handler.Tell();
+				BlendShapes.Write(handler);
+			}
+
+			header.floatsOffset = 0;
 			if (FloatData != null)
 			{
 				handler.Align(16);
@@ -1634,23 +1951,28 @@ namespace ReeLib
 				handler.Write(handler.Tell() + 8);
 				FloatData.Write(handler);
 			}
-			else
-			{
-				header.floatsOffset = 0;
-			}
 
-			header.nameCount = (short)((BoneData?.Bones.Count ?? 0) + MaterialNames.Count);
-			int stringOffset = 0;
+			short stringOffset = 0;
 			handler.Align(16);
 			header.materialIndicesOffset = handler.Tell();
-			foreach (var name in MaterialNames) handler.Write((short)(stringOffset++));
+			foreach (var name in MaterialNames) handler.Write(stringOffset++);
 
+			header.boneIndicesOffset = 0;
 			if (BoneData != null)
 			{
 				handler.Align(16);
 				header.boneIndicesOffset = handler.Tell();
-				foreach (var bone in BoneData.Bones) handler.Write((short)(stringOffset++));
+				foreach (var bone in BoneData.Bones) handler.Write(stringOffset++);
 			}
+
+			header.blendShapeIndicesOffset = 0;
+			if (BlendShapes != null)
+			{
+				handler.Align(16);
+				header.blendShapeIndicesOffset = handler.Tell();
+				foreach (var shape in BlendShapes.Shapes) foreach (var target in shape.Targets) handler.Write(stringOffset++);
+			}
+			header.nameCount = stringOffset;
 
 			handler.Align(16);
 			header.nameOffsetsOffset = handler.Tell();
@@ -1658,6 +1980,16 @@ namespace ReeLib
 			if (BoneData != null)
 			{
 				foreach (var bone in BoneData.Bones) handler.WriteOffsetAsciiString(bone.name);
+			}
+			if (BlendShapes != null)
+			{
+				foreach (var shape in BlendShapes.Shapes)
+				{
+					foreach (var target in shape.Targets)
+					{
+						handler.WriteOffsetAsciiString(target.name);
+					}
+				}
 			}
 			handler.Align(16);
 			handler.AsciiStringTableFlush();

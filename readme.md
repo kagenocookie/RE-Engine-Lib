@@ -81,7 +81,7 @@ All file readers follow a similar pattern - just create the file and call `.Read
 REE-Lib is under MIT license. See LICENSE for more detail. Some of the original code that is based on RszTool is also under MIT license.
 
 ## Credits
-- chenstack - Base RszTool file handling code
+- chenstack - Base RszTool file handling code and several file loaders
 - alphaZomega, praydog, NSACloud, and other modders - File structure research
 - [Ekey/REE.PAK.Tool](https://github.com/Ekey/REE.PAK.Tool) - PAK file decryption algorithms
 

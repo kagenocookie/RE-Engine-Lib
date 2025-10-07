@@ -1485,7 +1485,7 @@ namespace ReeLib.Mesh
 		public int nextSibling;
 		public int childIndex;
 		public int symmetryIndex;
-		public int uknIndex;
+		public bool useSecondaryWeight;
 
 		public int remapIndex = -1;
 		public bool IsDeformBone => remapIndex != -1;
@@ -1507,9 +1507,8 @@ namespace ReeLib.Mesh
             nextSibling = handler.Read<short>();
             childIndex = handler.Read<short>();
             symmetryIndex = handler.Read<short>();
-            uknIndex = handler.Read<short>();
-			handler.ReadNull(4);
-			DataInterpretationException.ThrowIf(uknIndex < 0 || uknIndex > 1);
+            handler.Read(ref useSecondaryWeight);
+			handler.ReadNull(5);
 			return true;
         }
 
@@ -1520,8 +1519,8 @@ namespace ReeLib.Mesh
             handler.Write((short)nextSibling);
             handler.Write((short)childIndex);
             handler.Write((short)symmetryIndex);
-            handler.Write((short)uknIndex);
-			handler.WriteNull(4);
+            handler.Write(ref useSecondaryWeight);
+			handler.WriteNull(5);
 			return true;
         }
 

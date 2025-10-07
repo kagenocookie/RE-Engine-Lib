@@ -716,6 +716,22 @@ namespace ReeLib.Mesh
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Vector3 GetBiTangent(int index) => Buffer.GetBiTangent(vertsIndexOffset + index);
 
+        public readonly ref struct ResolvedBlendShapeSegment(Span<Vector3> Span, int start)
+        {
+            public Span<Vector3> Span { get; } = Span;
+            public int StartIndex { get; } = start;
+        }
+
+        public ResolvedBlendShapeSegment GetBlendShapeRange(BlendShapeSubmesh blend)
+		{
+			// note: unsure if this is the intended way to handle these
+			var start = Math.Clamp(blend.vertOffset, vertsIndexOffset, vertsIndexOffset + vertCount) - vertsIndexOffset;
+			var end = Math.Clamp(vertsIndexOffset + vertCount, vertsIndexOffset, vertsIndexOffset + vertCount) - vertsIndexOffset;
+			if (end == start) return default;
+
+			return new ResolvedBlendShapeSegment(Buffer.BlendShapeData.AsSpan(start, end - start), start);
+		}
+
 		internal MeshSerializerVersion Version;
 
         protected override bool DoRead(FileHandler handler)
@@ -1206,6 +1222,8 @@ namespace ReeLib.Mesh
 			handler.Write(Submeshes[0].Start);
 			return true;
         }
+
+        public override string ToString() => name;
     }
 
     public class BlendShapeInfo : BaseModel

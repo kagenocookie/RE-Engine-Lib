@@ -48,7 +48,7 @@ namespace ReeLib.MplyMesh
             action.Do(ref fileSize);
             action.Do(ref hash);
 
-            throw new NotSupportedException();
+            throw new NotSupportedException("MPLY meshes not yet supported");
         }
     }
 }

@@ -3,6 +3,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using ReeLib.Common;
 using ReeLib.InternalAttributes;
+using ReeLib.MplyMesh;
 using ReeLib.via;
 
 namespace ReeLib.Mesh
@@ -380,6 +381,52 @@ namespace ReeLib.Mesh
 		}
     }
 
+    public struct SByte4
+    {
+        public sbyte X;
+        public sbyte Y;
+        public sbyte Z;
+        public sbyte W;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly Vector3 DequantizeNormal() => new Vector3(
+			((X << 1) + 1) / 255f,
+			((Y << 1) + 1) / 255f,
+			((Z << 1) + 1) / 255f
+		);
+
+        public static SByte4 QuantizeNormal(Vector3 value, sbyte w = 0) => new SByte4() {
+            X = QuantizeNormalSingle(value.X),
+            Y = QuantizeNormalSingle(value.Y),
+            Z = QuantizeNormalSingle(value.Z),
+			W = w,
+        };
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static sbyte QuantizeNormalSingle(float value) => (sbyte)Math.Round((value * 255 - 1) * 0.5f);
+
+        public override string ToString() => $"{X}, {Y}, {Z}, {W}";
+    }
+
+	internal struct NorTanVertexBuffer
+	{
+#pragma warning disable CS0649
+		public SByte4 norm;
+		public SByte4 tan;
+#pragma warning restore CS0649
+
+		public Vector3 Normal => norm.DequantizeNormal();
+		public Vector3 Tangent => tan.DequantizeNormal();
+		public sbyte BiTangentSign => tan.W;
+
+		public (Vector3 nor, Vector3 tan, Vector3 bitan) GetAll()
+		{
+			var norm = Normal;
+			var tan = Tangent;
+			return (norm, tan, Vector3.Cross(norm, tan) * MathF.Sin(BiTangentSign));
+		}
+	}
+
     public class MeshBuffer : BaseModel
     {
 		public long elementHeadersOffset;
@@ -413,7 +460,9 @@ namespace ReeLib.Mesh
 		public VertexBoneWeights[] ShapeKeyWeights = [];
 
 		private const float ByteDenorm = 1f / 127f;
+		private const float ByteDenormNegative = 1f / 128f;
 		private const float ByteNorm = 127f;
+		private const float ByteNormNegative = 128f;
 
 		internal MeshSerializerVersion Version;
 
@@ -518,11 +567,10 @@ namespace ReeLib.Mesh
 						BiTangentSigns = new sbyte[count];
 						for (int k = 0; k < count; ++k)
 						{
-							Normals[k] = new Vector3(handler.Read<sbyte>() * ByteDenorm, handler.Read<sbyte>() * ByteDenorm, handler.Read<sbyte>() * ByteDenorm);
-							handler.Skip(1);
-
-							Tangents[k] = new Vector3(handler.Read<sbyte>() * ByteDenorm, handler.Read<sbyte>() * ByteDenorm, handler.Read<sbyte>() * ByteDenorm);
-							BiTangentSigns[k] = handler.Read<sbyte>();
+							var nortan = handler.Read<NorTanVertexBuffer>();
+							Normals[k] = nortan.Normal;
+							Tangents[k] = nortan.Tangent;
+							BiTangentSigns[k] = nortan.BiTangentSign;
 						}
 						break;
 
@@ -615,16 +663,8 @@ namespace ReeLib.Mesh
 					case VertexBufferType.NormalsTangents:
 						for (int k = 0; k < count; ++k)
 						{
-							var nor = Normals[k];
-							var tan = Tangents[k];
-							handler.Write<sbyte>((sbyte)MathF.Round(nor.X * ByteNorm));
-							handler.Write<sbyte>((sbyte)MathF.Round(nor.Y * ByteNorm));
-							handler.Write<sbyte>((sbyte)MathF.Round(nor.Z * ByteNorm));
-							handler.WriteNull(1);
-							handler.Write<sbyte>((sbyte)MathF.Round(tan.X * ByteNorm));
-							handler.Write<sbyte>((sbyte)MathF.Round(tan.Y * ByteNorm));
-							handler.Write<sbyte>((sbyte)MathF.Round(tan.Z * ByteNorm));
-							handler.Write(BiTangentSigns[k]);
+							handler.Write(SByte4.QuantizeNormal(Normals[k]));
+							handler.Write(SByte4.QuantizeNormal(Tangents[k], BiTangentSigns[k]));
 						}
 						break;
 
@@ -1092,6 +1132,18 @@ namespace ReeLib.Mesh
 				foreach (var mg in lod.MeshGroups) mg.ChangeVersion(version);
 			}
 		}
+
+		public void RecalcluateBoundingBox()
+        {
+            var bounds = AABB.MaxMin;
+			foreach (var pos in Buffer.Positions)
+			{
+				bounds = bounds.Extend(pos);
+			}
+			boundingBox = bounds;
+			// TODO not exactly correct
+        	boundingSphere = new Sphere(bounds.Center, Math.Max(bounds.Size.X, Math.Max(bounds.Size.Y, bounds.Size.Z)) / 2);
+        }
 
         protected override bool DoRead(FileHandler handler)
         {

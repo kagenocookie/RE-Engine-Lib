@@ -5,7 +5,7 @@ namespace ReeLib
     public class ResourceInfo : BaseModel
     {
         public ulong pathOffset;
-        public string? Path { get; set; }
+        public string Path { get; set; } = "";
         public bool HasOffset { get; set; } = true;
 
         public ResourceInfo()
@@ -40,12 +40,12 @@ namespace ReeLib
             }
             else
             {
-                handler.WriteWString(Path ?? "");
+                handler.WriteWString(Path);
             }
             return true;
         }
 
-        public override string ToString() => Path ?? base.ToString()!;
+        public override string ToString() => Path;
     }
 
 

@@ -162,13 +162,18 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
     /// </summary>
     public string? ResolveFilepath(string filepath)
     {
-        var stream = FindSingleFile(filepath, out var path);
-        if (stream == null) {
-            return null;
+        filepath = PrependBasePath(filepath);
+        if (GetFileExists(filepath)) {
+            return filepath;
         }
 
-        stream.Dispose();
-        return path;
+        foreach (var candidate in FindPossibleFilepaths(filepath)) {
+            if (GetFileExists(candidate)) {
+                return candidate;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -237,6 +242,37 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
             return ofstream;
         }
         if (didAttempt) return null;
+        throw new Exception("REE-Lib workspace not fully configured, we are unable to access game resources.");
+    }
+
+    /// <summary>
+    /// Checks if an exact filepath exists in any of the configured and allowed source locations (PAK, loose files, extracted chunk path).
+    /// </summary>
+    public bool GetFileExists(string filepath)
+    {
+        filepath = PrependBasePath(filepath);
+
+        bool didAttempt = false;
+        if (AllowUsePackedFiles && CanUsePakFiles) {
+            didAttempt = true;
+            if (PakReader.FileExists(filepath)) return true;
+        }
+
+        if (AllowUseLooseFiles && CanUseLooseFiles) {
+            didAttempt = true;
+            var loosePath = Path.Combine(config.GamePath, filepath);
+            if (File.Exists(loosePath)) {
+                return true;
+            }
+        }
+
+        if (CanUseChunkFiles) {
+            var outputPath = GetAbsoluteChunkFilepath(filepath);
+            if (File.Exists(outputPath)) return true;
+            if (!CanExtractPakFiles) return false;
+            return PakReader.FileExists(filepath);
+        }
+        if (didAttempt) return false;
         throw new Exception("REE-Lib workspace not fully configured, we are unable to access game resources.");
     }
 

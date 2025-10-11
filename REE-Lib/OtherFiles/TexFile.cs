@@ -168,17 +168,7 @@ namespace ReeLib
             };
         }
 
-        public DDSFile.DdsMipMapIterator CreateMipMapIterator(int imageIndex = 0)
-        {
-            var compressed = Header.format.IsBlockCompressedFormat();
-            if (compressed && !Header.IsPowerOfTwo) {
-                throw new Exception("Non-POT compressed tex file needs to be iterated with CreateNonPo2Iterator()");
-            }
-            FileHandler.Seek(Mips[imageIndex * Header.mipCount].offset);
-            return new DDSFile.DdsMipMapIterator(FileHandler, (uint)Header.width, (uint)Header.height, Header.mipCount, Header.BitsPerPixel, compressed);
-        }
-
-        public TexMipMapIterator CreateNonPo2Iterator(int imageIndex = 0)
+        public TexMipMapIterator CreateIterator(int imageIndex = 0)
         {
             FileHandler.Seek(Mips[imageIndex * Header.mipCount].offset);
             return new TexMipMapIterator(FileHandler, Mips, Header.mipCount, Header.width, Header.height, Header.format.GetCompressedBlockSize());

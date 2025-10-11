@@ -37,7 +37,7 @@ namespace ReeLib.Bvh
     {
         public int ukn0;
         public int layerIndex;
-        [RszVersion(13020)] // re2rt
+        [RszVersion(13008)] // re2rt
         public uint mask;
         [RszVersion(20021)] // re4, dd2
         public int partId;
@@ -95,7 +95,7 @@ namespace ReeLib.Bvh
 
         protected override bool DoRead(FileHandler handler)
         {
-            if (handler.FileVersion == 2) {
+            if (handler.FileVersion <= 4) {
                 return ReadRE7(handler);
             } else {
                 return DefaultRead(handler);
@@ -104,7 +104,7 @@ namespace ReeLib.Bvh
 
         protected override bool DoWrite(FileHandler handler)
         {
-            if (handler.FileVersion == 2) {
+            if (handler.FileVersion <= 4) {
                 return WriteRE7(handler);
             } else {
                 return DefaultWrite(handler);
@@ -302,7 +302,7 @@ namespace ReeLib
             for (int i = 0; i < Header.stringCount; ++i) {
                 var strOffset1 = handler.ReadInt64();
                 var strOffset2 = handler.ReadInt64();
-                if (version == 2) {
+                if (version <= 4) { // re7: mcol.2 and terr.4
                     stringTable.Add((strOffset1.ToString(), null));
                 } else {
                     var str1 = strOffset1 == 0 ? string.Empty : handler.ReadWString(strOffset1);

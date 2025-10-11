@@ -304,32 +304,36 @@ namespace ReeLib.MplyMesh
     public record struct Ushort3(ushort X, ushort Y, ushort Z)
     {
         public readonly Vector3 AsVector3 => new Vector3(X / (float)ushort.MaxValue, Y / (float)ushort.MaxValue, Z / (float)ushort.MaxValue);
+
+        public override string ToString() => $"{X}, {Y}, {Z}";
     }
 
     public record struct HFloat2(Half x, Half y)
     {
         public readonly Vector2 AsVector2 => new Vector2((float)x, (float)y);
+
+        public override string ToString() => $"{x}, {y}";
     }
 
     public enum MplyChunkFlags : uint
     {
-        CompressedNormal = 1 << 0,
-        CompressedUV0 = 1 << 1,
-        CompressedUV1 = 1 << 2,
-        CompressedUV2 = 1 << 3,
-        CompressedColor = 1 << 4,
-        CompresedSkinned = 1 << 5,
-        NoTangent = 1 << 6,
-        Reserved = 1 << 7,
+        UniformNormal = 1 << 0,
+        UniformUV0 = 1 << 1,
+        UniformUV1 = 1 << 2,
+        UniformUV2 = 1 << 3,
+        UniformColor = 1 << 4,
+        UniformVertexWeights = 1 << 5,
+        NoTangents = 1 << 6,
+        Unknown7 = 1 << 7,
 
-        UseVertexColor = 1 << 8,
-        UseUV1 = 1 << 9,
-        UseUV2 = 1 << 10,
-        UseSkinned = 1 << 11,
+        HasVertexColor = 1 << 8,
+        HasUV1 = 1 << 9,
+        HasUV2 = 1 << 10,
+        HasVertexWeights = 1 << 11,
         Use32BitPos = 1 << 12,
         unkn5 = 1 << 13,
         unkn6 = 1 << 14,
-        useUnknStruct = 1 << 15,
+        HasUnknStruct = 1 << 15,
 
         PositionScaling2 = 1 << 16,
         PositionScaling4 = 1 << 17,
@@ -370,10 +374,11 @@ namespace ReeLib.MplyMesh
         public Byte3[] faces = [];
         public byte[] PositionsBuffer = [];
         public byte[] NormalsBuffer = [];
-        public byte[] UV0Buffer = [];
-        public byte[] UV1Buffer = [];
-        public byte[] UV2Buffer = [];
+        public HFloat2[] UV0Buffer = [];
+        public HFloat2[] UV1Buffer = [];
+        public HFloat2[] UV2Buffer = [];
         public Color[] ColorBuffer = [];
+        public VertexBoneWeights[] WeightsBuffer = [];
         public short[]? uknFixedSizeData;
 
         public MeshletChunk(MeshletBVH bvh)
@@ -382,14 +387,11 @@ namespace ReeLib.MplyMesh
         }
 
         private int PositionSize => (flags & MplyChunkFlags.Use32BitPos) != 0 ? 4 : 6;
-        private int NormalSize => (flags & MplyChunkFlags.NoTangent) != 0 ? 4 : 8;
-        private int UV0Size => Bvh.Version == MeshSerializerVersion.DD2 || (flags & MplyChunkFlags.CompressedUV0) != 0 ? 4 : 8;
-        private int UV1Size => Bvh.Version == MeshSerializerVersion.DD2 || (flags & MplyChunkFlags.CompressedUV1) != 0 ? 4 : 8;
+        private int NormalSize => (flags & MplyChunkFlags.NoTangents) != 0 ? 4 : 8;
 
         public bool HasTangents => NormalSize == 8;
 
         public MeshletBVH Bvh { get; }
-        public ContentFlags ContentFlags { get; set; }
 
         public struct CompressedAABB
         {
@@ -440,20 +442,28 @@ namespace ReeLib.MplyMesh
 
         public Vector2 GetUV(int index)
         {
-            if (UV0Size == 8) return MemoryMarshal.Cast<byte, Vector2>(UV0Buffer)[index];
+            if ((flags & MplyChunkFlags.UniformUV0) != 0) return UV0Buffer[0].AsVector2;
 
-            return MemoryMarshal.Cast<byte, HFloat2>(UV0Buffer)[index].AsVector2;
+            return UV0Buffer[index].AsVector2;
         }
 
         public Vector2 GetUV1(int index)
         {
-            if (UV1Size == 8) return MemoryMarshal.Cast<byte, Vector2>(UV1Buffer)[index];
+            if ((flags & MplyChunkFlags.UniformUV1) != 0) return UV1Buffer[0].AsVector2;
 
-            return MemoryMarshal.Cast<byte, HFloat2>(UV1Buffer)[index].AsVector2;
+            return UV1Buffer[index].AsVector2;
+        }
+
+        public Vector2 GetUV2(int index)
+        {
+            if ((flags & MplyChunkFlags.UniformUV2) != 0) return UV2Buffer[0].AsVector2;
+
+            return UV2Buffer[index].AsVector2;
         }
 
         public Vector3 GetNormal(int index)
         {
+            if ((flags & MplyChunkFlags.UniformNormal) != 0) index = 0;
             if (NormalSize == 4)
             {
                 var data = MemoryMarshal.Cast<byte, SByte4>(NormalsBuffer);
@@ -470,6 +480,7 @@ namespace ReeLib.MplyMesh
         {
             if (NormalSize == 4) throw new NotSupportedException("Mesh does not contain tangents");
 
+            if ((flags & MplyChunkFlags.UniformNormal) != 0) index = 0;
             var data = MemoryMarshal.Cast<byte, NorTanVertexBuffer>(NormalsBuffer);
             var item = data[index];
             return item.GetAll();
@@ -479,6 +490,7 @@ namespace ReeLib.MplyMesh
         {
             if (NormalSize == 4) throw new NotSupportedException("Mesh does not contain tangents");
 
+            if ((flags & MplyChunkFlags.UniformNormal) != 0) index = 0;
             var data = MemoryMarshal.Cast<byte, NorTanVertexBuffer>(NormalsBuffer);
             var item = data[index];
             return (item.Normal, item.Tangent, item.BiTangentSign);
@@ -504,39 +516,50 @@ namespace ReeLib.MplyMesh
             PositionsBuffer = handler.ReadArray<byte>(PositionSize * vertCount);
             handler.Align(4);
 
-            NormalsBuffer = handler.ReadArray<byte>(NormalSize * vertCount);
-            handler.Align(4);
+            if (flags.HasFlag(MplyChunkFlags.UniformNormal))
+            {
+                NormalsBuffer = handler.ReadArray<byte>(NormalSize * 1);
+            }
+            else
+            {
+                NormalsBuffer = handler.ReadArray<byte>(NormalSize * vertCount);
+            }
 
-            if (flags.HasFlag(MplyChunkFlags.useUnknStruct))
+            if (flags.HasFlag(MplyChunkFlags.HasUnknStruct))
             {
                 uknFixedSizeData = handler.ReadArray<short>(6);
             }
 
-            UV0Buffer = handler.ReadArray<byte>(UV0Size * vertCount);
+            UV0Buffer = handler.ReadArray<HFloat2>(flags.HasFlag(MplyChunkFlags.UniformUV0) ? 1 : vertCount);
 
-            if (flags.HasFlag(MplyChunkFlags.UseUV1)) {
-                UV1Buffer = handler.ReadArray<byte>(UV0Size * vertCount);
-            }
-
-            if (flags.HasFlag(MplyChunkFlags.UseUV2)) {
-                UV2Buffer = handler.ReadArray<byte>(UV0Size * vertCount);
-            }
-
-            if (ContentFlags.HasFlag(ContentFlags.HasVertexColor))
+            if (flags.HasFlag(MplyChunkFlags.HasUV1))
             {
-                if ((flags & MplyChunkFlags.CompressedColor) != 0)
-                {
-                    ColorBuffer = handler.ReadArray<Color>(1);
-                }
-                else
-                {
-                    ColorBuffer = handler.ReadArray<Color>(vertCount);
-                }
+                var count = flags.HasFlag(MplyChunkFlags.UniformUV1) ? 1 : vertCount;
+                UV1Buffer = handler.ReadArray<HFloat2>(count);
             }
 
-            if (ContentFlags.HasFlag(ContentFlags.HasVertexGroup))
+            if (flags.HasFlag(MplyChunkFlags.HasUV2))
             {
-                throw new NotSupportedException("MPLY with weights");
+                var count = flags.HasFlag(MplyChunkFlags.UniformUV2) ? 1 : vertCount;
+                UV2Buffer = handler.ReadArray<HFloat2>(count);
+            }
+
+            if (flags.HasFlag(MplyChunkFlags.HasVertexWeights)) {
+                var count = flags.HasFlag(MplyChunkFlags.UniformVertexWeights) ? 1 : vertCount;
+                WeightsBuffer = new VertexBoneWeights[count];
+                for (int i = 0; i < count; ++i)
+                {
+                    var w = new VertexBoneWeights();
+                    w.Read(handler, Bvh.Version);
+                    WeightsBuffer[i] = w;
+                }
+                handler.Align(4);
+            }
+
+            if (flags.HasFlag(MplyChunkFlags.HasVertexColor))
+            {
+                var count = (flags & MplyChunkFlags.UniformColor) != 0 ? 1 : vertCount;
+                ColorBuffer = handler.ReadArray<Color>(count);
             }
 
             return true;
@@ -578,6 +601,7 @@ namespace ReeLib.MplyMesh
 
             for (int i = 0; i < count; ++i)
             {
+                // DataInterpretationException.DebugThrowIf(i > 0 && handler.Position != offsets[i] + handler.Offset);
                 handler.Seek(offsets[i]);
                 var sub = Chunks[i];
                 sub.Read(handler);
@@ -687,6 +711,7 @@ namespace ReeLib
             var uv0 = new List<Vector2>(verts.Capacity);
             var uv1 = new List<Vector2>(verts.Capacity);
             var colors = new List<Color>(verts.Capacity);
+            var weights = new List<VertexBoneWeights>(verts.Capacity);
             // add a bit of extra capacity for indices to pre-emptively account for padding
             var indices = new List<ushort>(LODs[minLod].Chunks.Sum(ch => ch.faceCount) + 32);
 
@@ -712,8 +737,6 @@ namespace ReeLib
                 MeshGroup? group = null;
                 foreach (var chunk in orderedChunks)
                 {
-                    var cluster = chunk.Header;
-
                     if (group == null || group.groupId != chunk.partId) {
                         outLod.MeshGroups.Add(group = new MeshGroup(buffer) {
                             groupId = chunk.partId,
@@ -780,6 +803,15 @@ namespace ReeLib
                         colors.AddRange(chunk.ColorBuffer);
                     }
 
+                    if (chunk.WeightsBuffer.Length == 1)
+                    {
+                        for (int i = 0; i < chunk.vertCount; ++i) weights.Add(chunk.WeightsBuffer[0]);
+                    }
+                    else if (chunk.WeightsBuffer.Length > 0)
+                    {
+                        weights.AddRange(chunk.WeightsBuffer);
+                    }
+
                     foreach (var index in chunk.faces)
                     {
                         indices.Add((ushort)(vertOffset + index.X));
@@ -796,6 +828,7 @@ namespace ReeLib
             buffer.Tangents = tangents.ToArray();
             buffer.BiTangentSigns = tanSigns.ToArray();
             buffer.Colors = colors.ToArray();
+            buffer.Weights = weights.ToArray();
             buffer.Faces = indices.ToArray();
             return mesh;
         }

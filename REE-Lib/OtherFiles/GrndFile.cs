@@ -28,17 +28,17 @@ namespace ReeLib.Grnd
     }
 
     [RszGenerate, RszAutoReadWrite]
-    public partial class GroundData : BaseModel
+    public partial class GroundDataHeaders : BaseModel
     {
         public int index;
         public int ukn1;
         public int ukn2;
         public int ukn3;
-        public int ukn4;
-        public int ukn5;
-        public int ukn6;
-        public int ukn7;
-        public int mask;
+        public int type;
+        public int valueCount;
+        public int totalBlocksize;
+        public int strideBytes;
+        public int uknIndex;
         public int ukn9;
     }
 }
@@ -51,7 +51,7 @@ namespace ReeLib
     {
         public readonly Header Header = new();
         public List<string> GroundTextures { get; } = new();
-        public List<GroundData> DataItems { get; } = new();
+        public List<GroundDataHeaders> ContentHeaders { get; } = new();
 
         public const int Magic = 0x444e5247;
 
@@ -71,7 +71,7 @@ namespace ReeLib
             }
 
             handler.Seek(Header.dataOffset);
-            DataItems.Read(handler, Header.dataCount);
+            ContentHeaders.Read(handler, Header.dataCount);
 
             return true;
         }
@@ -91,7 +91,7 @@ namespace ReeLib
 
             handler.Align(4);
             Header.dataOffset = handler.Tell();
-            DataItems.Write(handler);
+            ContentHeaders.Write(handler);
 
             Header.Write(handler, 0);
             return true;

@@ -6,13 +6,13 @@ namespace ReeLib.Grnd
     public partial class Header : BaseModel
     {
         public uint magic = GrndFile.Magic;
-        public uint hash;
+        public uint version;
         public float minX;
         public float minZ;
         public float maxX;
         public float maxZ;
         public float minY;
-        public float maxY;
+        public float height;
         public float unknFlt;
         public int gtlCount;
         public int uknCount;

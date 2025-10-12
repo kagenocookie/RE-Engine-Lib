@@ -8,7 +8,7 @@ namespace ReeLib.Gtl
     public partial class Header : BaseModel
     {
         public uint magic = GtlFile.Magic;
-        public uint ukn0;
+        public uint version;
         public uint ukn1;
         public int uknCount;
         public int indicesCount;
@@ -25,6 +25,8 @@ namespace ReeLib.Gtl
     {
         public float minHeight;
         public float maxHeight;
+
+        public override string ToString() => $"{minHeight} - {maxHeight}";
     }
 
     public struct HeightmapValueBlock2

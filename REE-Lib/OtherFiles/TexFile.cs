@@ -110,7 +110,7 @@ namespace ReeLib
             var handler = FileHandler;
             Header.Read(handler);
             if (Header.depth > 1) {
-                throw new Exception("Depth > 1 textures not supported");
+                throw new NotSupportedException("Depth > 1 textures not supported");
             }
             for (int i = 0; i < Header.mipCount * Header.imageCount; ++i) {
                 var mip = new MipHeader();

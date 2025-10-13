@@ -19,7 +19,7 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
     /// </summary>
     public bool AllowUsePackedFiles { get; set; } = true;
     /// <summary>
-    /// <para>Whether to allow fetching resources from the loose file folder in the game path. Loose files are evaluated before packed files, same as if the loose file loader was enabled ingame.</para>
+    /// <para>Whether to _always_ allow fetching resources from the loose file folder in the game path. Loose files are evaluated before packed files, same as if the loose file loader was enabled ingame.</para>
     /// Defaults to false to prevent accidentally fetching modded files.
     /// </summary>
     public bool AllowUseLooseFiles { get; set; } = false;
@@ -49,6 +49,16 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
     public CachedMemoryPakReader PakReader => _baseReader ??= CreateUnpacker();
 
     private readonly object _listlock = new();
+
+    [Flags]
+    public enum FileSourceType
+    {
+        Pak = 1,
+        Loose = 2,
+        ExtractedChunks = 4,
+        Original = Pak|ExtractedChunks,
+        Any = Pak|Loose|ExtractedChunks,
+    }
 
     public bool CanUsePakFiles => !string.IsNullOrEmpty(config.GamePath);
     public bool CanUseChunkFiles => !string.IsNullOrEmpty(config.ChunkPath);
@@ -163,12 +173,12 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
     public string? ResolveFilepath(string filepath)
     {
         filepath = PrependBasePath(filepath);
-        if (GetFileExists(filepath)) {
+        if (FileExists(filepath)) {
             return filepath;
         }
 
         foreach (var candidate in FindPossibleFilepaths(filepath)) {
-            if (GetFileExists(candidate)) {
+            if (FileExists(candidate)) {
                 return candidate;
             }
         }
@@ -179,22 +189,22 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
     /// <summary>
     /// Attempt to match the filename to a single file and return a <see cref="Stream"/> for it. Automatically adds any missing file extensions and suffixes.
     /// </summary>
-    public Stream? FindSingleFile(string filepath) => FindSingleFile(filepath, out _);
+    public Stream? FindSingleFile(string filepath, FileSourceType sourceTypes = FileSourceType.Original) => FindSingleFile(filepath, out _, sourceTypes);
 
     /// <summary>
     /// Attempt to match the filename to a single file and return a <see cref="Stream"/> for it. Automatically adds any missing file extensions and suffixes.
     /// </summary>
-    public Stream? FindSingleFile(string filepath, [MaybeNull] out string resolvedNativeFilepath)
+    public Stream? FindSingleFile(string filepath, [MaybeNull] out string resolvedNativeFilepath, FileSourceType sourceTypes = FileSourceType.Original)
     {
         filepath = PrependBasePath(filepath);
-        var match = GetFile(filepath);
+        var match = GetFile(filepath, sourceTypes);
         if (match != null) {
             resolvedNativeFilepath = filepath;
             return match;
         }
 
         foreach (var candidate in FindPossibleFilepaths(filepath)) {
-            match = GetFile(candidate);
+            match = GetFile(candidate, sourceTypes);
             if (match != null) {
                 resolvedNativeFilepath = candidate;
                 return match;
@@ -208,24 +218,24 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
     /// <summary>
     /// Gets a <see cref="Stream"/> for a single file. The filename should include the full file extension, version and any suffixes.
     /// </summary>
-    public Stream? GetFile(string filepath)
+    public Stream? GetFile(string filepath, FileSourceType sourceTypes = FileSourceType.Original)
     {
         filepath = PrependBasePath(filepath);
 
         bool didAttempt = false;
-        if (AllowUseLooseFiles && CanUseLooseFiles) {
+        if (((sourceTypes & FileSourceType.Loose) != 0 || AllowUseLooseFiles) && CanUseLooseFiles) {
             didAttempt = true;
             var loosePath = Path.Combine(config.GamePath, filepath);
             if (File.Exists(loosePath)) {
                 return File.OpenRead(loosePath);
             }
         }
-        if (AllowUsePackedFiles && CanUsePakFiles) {
+        if ((sourceTypes & FileSourceType.Pak) != 0 && AllowUsePackedFiles && CanUsePakFiles) {
             didAttempt = true;
             var file = PakReader.GetFile(filepath);
             if (file != null) return file;
         }
-        if (CanUseChunkFiles) {
+        if ((sourceTypes & FileSourceType.ExtractedChunks) != 0 && CanUseChunkFiles) {
             var outputPath = GetAbsoluteChunkFilepath(filepath);
             if (File.Exists(outputPath)) {
                 return File.OpenRead(outputPath);
@@ -241,14 +251,14 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
             ofstream.Seek(0, SeekOrigin.Begin);
             return ofstream;
         }
-        if (didAttempt) return null;
+        if (didAttempt || (sourceTypes & FileSourceType.Original) == 0) return null;
         throw new Exception("REE-Lib workspace not fully configured, we are unable to access game resources.");
     }
 
     /// <summary>
     /// Checks if an exact filepath exists in any of the configured and allowed source locations (PAK, loose files, extracted chunk path).
     /// </summary>
-    public bool GetFileExists(string filepath)
+    public bool FileExists(string filepath)
     {
         filepath = PrependBasePath(filepath);
 

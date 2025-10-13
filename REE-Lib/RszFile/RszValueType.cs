@@ -296,13 +296,13 @@ namespace ReeLib.via
         }
 
         [JsonIgnore]
-        public readonly int R => (int)(rgba >> 0) & 0xff;
+        public int R { readonly get => (int)(rgba >> 0) & 0xff; set => rgba = (rgba & 0xffffff00) | ((uint)value & 0xff); }
         [JsonIgnore]
-        public readonly int G => (int)(rgba >> 8) & 0xff;
+        public int G { readonly get => (int)(rgba >> 8) & 0xff; set => rgba = (rgba & 0xffff00ff) | (((uint)value & 0xff) << 8); }
         [JsonIgnore]
-        public readonly int B => (int)(rgba >> 16) & 0xff;
+        public int B { readonly get => (int)(rgba >> 16) & 0xff; set => rgba = (rgba & 0xff00ffff) | (((uint)value & 0xff) << 16); }
         [JsonIgnore]
-        public readonly int A => (int)(rgba >> 24) & 0xff;
+        public int A { readonly get => (int)(rgba >> 24) & 0xff; set => rgba = (rgba & 0x00ffffff) | (((uint)value & 0xff) << 24); }
 
         [JsonIgnore]
         public readonly int ARGB => A + (R << 8) + (G << 16) + (B << 24);
@@ -570,6 +570,8 @@ namespace ReeLib.via
         public readonly Vector3 Size => maxpos - minpos;
         public readonly Vector3 Center => (minpos + maxpos) / 2;
 
+        public readonly bool IsEmpty => minpos == maxpos;
+
         public static readonly AABB MaxMin = new ReeLib.via.AABB(new System.Numerics.Vector3(float.MaxValue), new System.Numerics.Vector3(float.MinValue));
 
         public readonly AABB Extend(Vector3 point)
@@ -728,6 +730,12 @@ namespace ReeLib.via
         [FieldOffset(16)]
         public Vector3 dir;
 
+        public Line(Vector3 from, Vector3 dir)
+        {
+            this.from = from;
+            this.dir = dir;
+        }
+
         public readonly override string ToString() => $"Line({from} -> {dir})";
     }
 
@@ -739,6 +747,12 @@ namespace ReeLib.via
         public Vector3 start;
         [FieldOffset(16)]
         public Vector3 end;
+
+        public LineSegment(Vector3 start, Vector3 end)
+        {
+            this.start = start;
+            this.end = end;
+        }
 
         public readonly override string ToString() => $"LineSegment({start} -> {end})";
     }

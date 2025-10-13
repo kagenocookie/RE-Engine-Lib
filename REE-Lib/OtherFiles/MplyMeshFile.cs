@@ -830,6 +830,7 @@ namespace ReeLib
             buffer.Colors = colors.ToArray();
             buffer.Weights = weights.ToArray();
             buffer.Faces = indices.ToArray();
+            data.RecalculateBoundingBox();
             return mesh;
         }
 

@@ -1133,7 +1133,7 @@ namespace ReeLib.Mesh
 			}
 		}
 
-		public void RecalcluateBoundingBox()
+		public void RecalculateBoundingBox()
         {
             var bounds = AABB.MaxMin;
 			foreach (var pos in Buffer.Positions)

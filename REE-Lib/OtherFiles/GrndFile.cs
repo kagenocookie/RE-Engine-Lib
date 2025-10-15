@@ -1,3 +1,4 @@
+using System.Numerics;
 using ReeLib.InternalAttributes;
 
 namespace ReeLib.Grnd
@@ -25,6 +26,9 @@ namespace ReeLib.Grnd
         public int z;
         public long stringOffset;
         public long dataOffset;
+
+        public Vector3 Min => new Vector3(minX, minY, minZ);
+        public Vector3 Max => new Vector3(maxX, minY + height, maxZ);
     }
 
     [RszGenerate, RszAutoReadWrite]

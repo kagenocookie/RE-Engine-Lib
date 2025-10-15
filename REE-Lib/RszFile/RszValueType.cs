@@ -571,8 +571,10 @@ namespace ReeLib.via
         public readonly Vector3 Center => (minpos + maxpos) / 2;
 
         public readonly bool IsEmpty => minpos == maxpos;
+        public readonly bool IsInvalid => minpos.X == float.MaxValue;
 
         public static readonly AABB MaxMin = new ReeLib.via.AABB(new System.Numerics.Vector3(float.MaxValue), new System.Numerics.Vector3(float.MinValue));
+        public static readonly AABB Invalid = new ReeLib.via.AABB(new System.Numerics.Vector3(float.MaxValue), new System.Numerics.Vector3(float.MaxValue));
 
         public readonly AABB Extend(Vector3 point)
         {
@@ -763,6 +765,27 @@ namespace ReeLib.via
     {
         public Vector3 normal;
         public float dist;
+
+        public Plane(Vector3 normal, float dist)
+        {
+            this.normal = normal;
+            this.dist = dist;
+        }
+
+        public Plane(float x, float y, float z, float dist)
+        {
+            this.normal = new Vector3(x, y, z);
+            this.dist = dist;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool IsInFront(Vector3 point) => Vector3.Dot(point, normal) + dist > 0;
+
+        public Plane Normalize()
+        {
+            float invLen = 1.0f / normal.Length();
+            return new Plane(normal * invLen, dist * invLen);
+        }
 
         public readonly override string ToString() => $"Plane({normal}, Dist = {dist})>";
     }
@@ -964,6 +987,20 @@ namespace ReeLib.via
         public Plane plane3;
         public Plane plane4;
         public Plane plane5;
+
+        public Plane this[int index]
+        {
+            get
+            {
+                ref Plane ptr = ref plane0;
+                return Unsafe.Add(ref ptr, index);
+            }
+            set
+            {
+                ref Plane ptr = ref plane0;
+                Unsafe.Add(ref ptr, index) = value;
+            }
+        }
     }
 
 

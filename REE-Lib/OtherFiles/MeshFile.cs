@@ -443,6 +443,8 @@ namespace ReeLib.Mesh
 
 		public int shapekeyWeightBufferSize;
 		public int bufferIndex;
+		public int bufferUkn1;
+		public int bufferUkn2;
 
 		public MeshBufferHeaderList Headers = new();
 
@@ -497,7 +499,8 @@ namespace ReeLib.Mesh
 			{
 				handler.Read(ref shapekeyWeightBufferSize);
 				handler.Read(ref bufferIndex);
-				handler.ReadNull(8);
+				handler.Read(ref bufferUkn1);
+				handler.Read(ref bufferUkn2);
 			}
 
 			using var _ = handler.SeekJumpBack(elementHeadersOffset);
@@ -533,7 +536,8 @@ namespace ReeLib.Mesh
 			{
 				handler.Write(ref shapekeyWeightBufferSize);
 				handler.Write(ref bufferIndex);
-				handler.WriteNull(8);
+				handler.Write(ref bufferUkn1);
+				handler.Write(ref bufferUkn2);
 			}
             return true;
         }
@@ -1118,13 +1122,17 @@ namespace ReeLib.Mesh
 		public AABB boundingBox;
 
 		internal MeshSerializerVersion Version;
+		private int ExpectedSkinWeightCount => Version switch {
+			MeshSerializerVersion.SF6 => 9,
+			MeshSerializerVersion.MHWILDS => 25,
+			<= MeshSerializerVersion.DMC5 => 1,
+			_ => 18,
+        };
 
 		public void ChangeVersion(MeshSerializerVersion version)
 		{
 			Version = version;
-			if (version == MeshSerializerVersion.SF6) skinWeightCount = 9;
-			else if (version <= MeshSerializerVersion.DMC5) skinWeightCount = 1;
-			else skinWeightCount = 18;
+			skinWeightCount = ExpectedSkinWeightCount;
 
 			foreach (var lod in LODs)
 			{
@@ -1151,9 +1159,7 @@ namespace ReeLib.Mesh
 			materialCount = handler.Read<byte>();
 			uvCount = handler.Read<byte>();
 			skinWeightCount = handler.Read<byte>();
-			DataInterpretationException.DebugThrowIf(Version == MeshSerializerVersion.SF6 && skinWeightCount != 9);
-			DataInterpretationException.DebugThrowIf((Version > MeshSerializerVersion.SF6 || Version == MeshSerializerVersion.RE_RT) && skinWeightCount != 18);
-			DataInterpretationException.DebugThrowIf(Version <= MeshSerializerVersion.DMC5 && skinWeightCount != 1);
+			DataInterpretationException.DebugThrowIf(skinWeightCount != ExpectedSkinWeightCount);
 			handler.Read(ref totalMeshCount);
 			if (Version <= MeshSerializerVersion.DMC5)
 			{

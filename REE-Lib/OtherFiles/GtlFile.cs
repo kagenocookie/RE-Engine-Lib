@@ -10,7 +10,7 @@ namespace ReeLib.Gtl
         public uint magic = GtlFile.Magic;
         public uint version;
         public uint ukn1;
-        public int uknCount;
+        public int subdivisionCount;
         public int indicesCount;
         public int count1;
         [RszPaddingAfter(4)]

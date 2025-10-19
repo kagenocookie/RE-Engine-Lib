@@ -452,6 +452,18 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
         return _baseReader;
     }
 
+    public RszInstance CreateRszInstance(string classname)
+    {
+        var cls = RszParser.GetRSZClass(classname);
+        if (cls == null) {
+            Log.Error($"Unknown classname {classname} for game {Config.Game}");
+            return RszInstance.NULL;
+        }
+        return RszInstance.CreateInstance(RszParser, cls);
+    }
+
+    public RszInstance CreateRszInstance(RszClass cls) => RszInstance.CreateInstance(RszParser, cls);
+
     private JsonSerializerOptions CreateJsonSerializerOptions()
     {
         var options = new JsonSerializerOptions(DefaultJsonOptions);

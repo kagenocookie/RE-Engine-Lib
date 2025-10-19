@@ -488,6 +488,12 @@ namespace ReeLib.via
             extent = Vector3.One;
         }
 
+        public OBB(mat4 coord, Vector3 extent)
+        {
+            this.coord = coord;
+            this.extent = extent;
+        }
+
         public mat4 Coord { readonly get => coord; set => coord = value; }
         public Vector3 Extent { readonly get => extent; set => extent = value; }
 
@@ -622,6 +628,13 @@ namespace ReeLib.via
         public Capsule()
         {
             r = 1;
+        }
+
+        public Capsule(Vector3 p0, Vector3 p1, float r)
+        {
+            this.p0 = p0;
+            this.p1 = p1;
+            this.r = r;
         }
 
         public readonly AABB GetBounds(float margin = 0)
@@ -896,6 +909,13 @@ namespace ReeLib.via
         public Cylinder()
         {
             r = 1;
+        }
+
+        public Cylinder(Vector3 p0, Vector3 p1, float r)
+        {
+            this.p0 = p0;
+            this.p1 = p1;
+            this.r = r;
         }
 
         public readonly override string ToString() => $"Cylinder(P1={p0}, P2={p1}, R={r})";

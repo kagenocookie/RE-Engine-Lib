@@ -1,6 +1,8 @@
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using ReeLib.Common;
 using ReeLib.Rcol;
+using ReeLib.via;
 
 
 namespace ReeLib.Rcol
@@ -360,9 +362,25 @@ namespace ReeLib.Rcol
     public class RcolShape : BaseModel
     {
         public RcolShapeInfo Info { get; } = new();
-        public object? shape;
+        public object? shape = new AABB(Vector3.Zero, Vector3.One);
 
         public RszInstance? Instance { get; set; }
+
+        public void UpdateShapeType()
+        {
+            switch (Info.shapeType) {
+                case ShapeType.Aabb: shape = new AABB(new System.Numerics.Vector3(-0.5f), new System.Numerics.Vector3(0.5f)); break;
+                case ShapeType.Sphere or ShapeType.ContinuousSphere: shape = new Sphere(); break;
+                case ShapeType.Capsule or ShapeType.ContinuousCapsule: shape = new via.Capsule(); break;
+                case ShapeType.Box: shape = new via.OBB(); break;
+                case ShapeType.Area: shape = new via.Area(); break;
+                case ShapeType.Triangle: shape = new via.Triangle(); break;
+                case ShapeType.Cylinder: shape = new via.Cylinder(); break;
+                default:
+                    Log.Error("Unsupported shape for rcol: " + Info.shapeType);
+                    break;
+            }
+        }
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -537,6 +555,20 @@ namespace ReeLib
         public RcolFile(RszFileOption option, FileHandler fileHandler) : base(option, fileHandler)
         {
             RSZ = new RSZFile(option, fileHandler);
+        }
+
+        public RequestSet CreateNewRequestSet(string name)
+        {
+            var set = new RequestSet(RequestSets.Count == 0 ? 0 : RequestSets.Max(s => s.Index));
+            set.Info.ID = RequestSets.Count == 0 ? 0 : RequestSets.Max(s => s.Info.ID);
+            set.Info.Name = string.IsNullOrEmpty(name) ? "NewSet" : name;
+            RequestSets.Add(set);
+            set.Instance = RszInstance.CreateInstance(Option.RszParser, Option.RszParser.GetRSZClass("via.physics.RequestSetColliderUserData")!);
+            RSZ.AddToObjectTable(set.Instance);
+            set.Group = new RcolGroup();
+            set.Group.Info.guid = Guid.NewGuid();
+            set.Group.Info.Name = string.IsNullOrEmpty(name) ? "NewGroup" : name;
+            return set;
         }
 
         public override RSZFile? GetRSZ() => RSZ;

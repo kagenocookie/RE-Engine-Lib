@@ -1,10 +1,11 @@
+using System.Runtime.CompilerServices;
 using ReeLib.Common;
 using ReeLib.Rcol;
 
 
 namespace ReeLib.Rcol
 {
-    public class Header : BaseModel
+    public class Header : ReadWriteModel
     {
         public uint magic = RcolFile.Magic;
         public int numGroups;
@@ -36,130 +37,70 @@ namespace ReeLib.Rcol
         public long unknPtr1;
         public ulong uknRe3;
 
-        protected override bool DoRead(FileHandler handler)
+        protected override bool ReadWrite<THandler>(THandler action)
         {
-            handler.Read(ref magic);
-            if (handler.FileVersion == 2)
+            var version = action.Handler.FileVersion;
+            action.Do(ref magic);
+            if (version == 2)
             {
-                numGroups = handler.ReadByte();
-                numShapes = handler.ReadByte();
-                uknCount = handler.ReadShort();
-                numRequestSets = handler.ReadShort();
-                maxRequestSetId = handler.ReadUShort();
+                action.Do(ref Unsafe.As<int, byte>(ref numGroups));
+                action.Do(ref Unsafe.As<int, byte>(ref numShapes));
+                action.Do(ref Unsafe.As<int, short>(ref uknCount));
+                action.Do(ref Unsafe.As<int, short>(ref numRequestSets));
+                action.Do(ref Unsafe.As<uint, ushort>(ref maxRequestSetId));
             }
             else
             {
-                handler.Read(ref numGroups);
-                if (handler.FileVersion >= 25) {
-                    handler.Read(ref numUserData);
+                action.Do(ref numGroups);
+                if (version >= 25) {
+                    action.Do(ref numUserData);
+                    action.Do(ref uknCount);
+                    numShapes = 0;
                 } else {
-                    handler.Read(ref numShapes);
+                    action.Do(ref numShapes);
+                    action.Do(ref numUserData);
                 }
-                handler.Read(ref uknCount);
-                handler.Read(ref numRequestSets);
-                handler.Read(ref maxRequestSetId);
+                action.Do(ref numRequestSets);
+                action.Do(ref maxRequestSetId);
             }
-            if (handler.FileVersion > 11)
+            if (version > 11)
             {
-                handler.Read(ref numIgnoreTags);
-                handler.Read(ref numAutoGenerateJoints);
+                action.Do(ref numIgnoreTags);
+                action.Do(ref numAutoGenerateJoints);
             }
-            handler.Read(ref userDataSize);
-            handler.Read(ref status);
-            if (handler.FileVersion == 2) handler.Read<int>();
-            if (handler.FileVersion == 11)
+            action.Do(ref userDataSize);
+            action.Do(ref status);
+            // if (version == 2) action.Skip(4);
+            if (version == 2) action.Null(4);
+            if (version == 11)
             {
-                handler.Read(ref uknRe3_A);
-                handler.Read(ref uknRe3_B);
+                action.Do(ref uknRe3_A);
+                action.Do(ref uknRe3_B);
             }
-            if (handler.FileVersion >= 20)
+            if (version >= 20)
             {
-                handler.Read(ref ukn1);
-                handler.Read(ref ukn2);
+                action.Do(ref ukn1);
+                action.Do(ref ukn2);
             }
-            handler.Read(ref groupsPtrOffset);
-            handler.Read(ref dataOffset);
-            handler.Read(ref requestSetOffset);
-            if (handler.FileVersion > 11)
+            action.Do(ref groupsPtrOffset);
+            action.Do(ref dataOffset);
+            action.Do(ref requestSetOffset);
+            if (version > 11)
             {
-                handler.Read(ref ignoreTagOffset);
-                handler.Read(ref autoGenerateJointDescOffset);
+                action.Do(ref ignoreTagOffset);
+                action.Do(ref autoGenerateJointDescOffset);
             }
-            else if (handler.FileVersion == 2)
+            else if (version == 2)
             {
-                handler.Read(ref requestSetIDLookupsOffset);
+                action.Do(ref requestSetIDLookupsOffset);
             }
-            else if (handler.FileVersion == 11)
+            else if (version == 11)
             {
-                handler.Read(ref uknRe3);
+                action.Do(ref uknRe3);
             }
-            if (handler.FileVersion >= 20) {
-                handler.Read(ref unknPtr0);
-                handler.Read(ref unknPtr1);
-            }
-            return true;
-        }
-
-        protected override bool DoWrite(FileHandler handler)
-        {
-            handler.Write(ref magic);
-            if (handler.FileVersion == 2)
-            {
-                handler.WriteByte((byte)numGroups);
-                handler.WriteByte((byte)numShapes);
-                handler.WriteShort((short)uknCount);
-                handler.WriteShort((short)numRequestSets);
-                handler.WriteShort((short)maxRequestSetId);
-            }
-            else
-            {
-                handler.Write(ref numGroups);
-                if (handler.FileVersion >= 25) {
-                    handler.Write(ref numUserData);
-                } else {
-                    handler.Write(ref numShapes);
-                }
-                handler.Write(ref uknCount);
-                handler.Write(ref numRequestSets);
-                handler.Write(ref maxRequestSetId);
-            }
-            if (handler.FileVersion > 11)
-            {
-                handler.Write(ref numIgnoreTags);
-                handler.Write(ref numAutoGenerateJoints);
-            }
-            handler.Write(ref userDataSize);
-            handler.Write(ref status);
-            if (handler.FileVersion == 2) handler.Write<int>(0);
-            if (handler.FileVersion == 11)
-            {
-                handler.Write(ref uknRe3_A);
-                handler.Write(ref uknRe3_B);
-            }
-            if (handler.FileVersion >= 20)
-            {
-                handler.Write(ref ukn1);
-                handler.Write(ref ukn2);
-            }
-            handler.Write(ref groupsPtrOffset);
-            handler.Write(ref dataOffset);
-            handler.Write(ref requestSetOffset);
-            if (handler.FileVersion > 11)
-            {
-                handler.Write(ref ignoreTagOffset);
-                handler.Write(ref autoGenerateJointDescOffset);
-            }
-            else if (handler.FileVersion == 2)
-            {
-                handler.Write(ref requestSetIDLookupsOffset);
-            }
-            else if (handler.FileVersion == 11)
-            {
-                handler.Write(ref uknRe3);
-            }
-            if (handler.FileVersion >= 20) {
-                handler.Write(ref unknPtr0);
-                handler.Write(ref unknPtr1);
+            if (version >= 20) {
+                action.Do(ref unknPtr0);
+                action.Do(ref unknPtr1);
             }
             return true;
         }
@@ -188,34 +129,42 @@ namespace ReeLib.Rcol
 
         public long ShapesOffsetStart;
 
-        protected override bool DoRead(FileHandler handler)
+        private void ReadWriteShared<THandler>(THandler action) where THandler : IFileHandlerAction
         {
-            MaskGuids?.Clear();
-            handler.Read(ref guid);
-            handler.ReadOffsetWString(out Name);
-            handler.Read(ref NameHash);
-            if (handler.FileVersion >= 25)
+            var version = action.Handler.FileVersion;
+
+            action.Do(ref guid);
+            action.HandleOffsetWString(ref Name);
+            action.Do(ref NameHash);
+            if (version >= 25)
             {
-                handler.Read(ref NumShapes);
+                action.Do(ref NumShapes);
                 // verified: for 27, this is extra (mirror) shape count and not userdata. need to recheck v25 and pre-25
-                handler.Read(ref NumExtraShapes);
-                handler.Read(ref NumMaskGuids);
+                action.Do(ref NumExtraShapes);
+                action.Do(ref NumMaskGuids);
             }
-            else if (handler.FileVersion > 2)
+            else if (version > 2)
             {
-                handler.Read(ref UserDataIndex);
-                handler.Read(ref NumShapes);
-                handler.Read(ref NumMaskGuids);
+                action.Do(ref UserDataIndex);
+                action.Do(ref NumShapes);
+                action.Do(ref NumMaskGuids);
             }
             else // RE7
             {
-                UserDataIndex = handler.Read<short>();
-                NumShapes = handler.Read<short>();
+                action.Do(ref Unsafe.As<int, short>(ref UserDataIndex));
+                action.Do(ref Unsafe.As<int, short>(ref NumShapes));
             }
+        }
+
+        protected override bool DoRead(FileHandler handler)
+        {
+            ReadWriteShared(new FileHandlerRead(handler));
+
             handler.Read(ref ShapesOffset);
             handler.Read(ref LayerIndex);
             handler.Read(ref MaskBits);
 
+            MaskGuids?.Clear();
             if (handler.FileVersion > 2) {
                 handler.Read(ref MaskGuidsOffset);
                 handler.Read(ref LayerGuid);
@@ -231,29 +180,11 @@ namespace ReeLib.Rcol
 
         protected override bool DoWrite(FileHandler handler)
         {
-            handler.Write(ref guid);
-            handler.WriteOffsetWString(Name);
-            NameHash = MurMur3HashUtils.GetHash(Name ?? string.Empty);
-            handler.Write(ref NameHash);
+            NameHash = MurMur3HashUtils.GetHash(Name ??= string.Empty);
             UserDataIndex = UserData?.Index ?? UserDataIndex;
             NumMaskGuids = MaskGuids?.Count ?? 0;
-            if (handler.FileVersion >= 25)
-            {
-                handler.Write(ref NumShapes);
-                handler.Write(ref NumExtraShapes);
-                handler.Write(ref NumMaskGuids);
-            }
-            else if (handler.FileVersion > 2)
-            {
-                handler.Write(ref UserDataIndex);
-                handler.Write(ref NumShapes);
-                handler.Write(ref NumMaskGuids);
-            }
-            else
-            {
-                handler.Write((short)UserDataIndex);
-                handler.Write((short)NumShapes);
-            }
+            ReadWriteShared(new FileHandlerWrite(handler));
+
             ShapesOffsetStart = handler.Tell();
             handler.Write(ref ShapesOffset);
             handler.Write(ref LayerIndex);
@@ -358,7 +289,7 @@ namespace ReeLib.Rcol
     }
 
 
-    public class RcolShapeInfo : BaseModel
+    public class RcolShapeInfo : ReadWriteModel
     {
         public Guid Guid;
         public string Name = string.Empty;
@@ -375,91 +306,51 @@ namespace ReeLib.Rcol
         public uint SecondaryJointNameHash;
         public ShapeType shapeType;
 
-        protected override bool DoRead(FileHandler handler)
+        protected override bool ReadWrite<THandler>(THandler action)
         {
-            handler.Read(ref Guid);
-            handler.ReadOffsetWString(out Name);
-            handler.Read(ref NameHash);
-            handler.Read(ref UserDataIndex);
-            handler.Read(ref LayerIndex);
-            handler.Read(ref Attribute);
-
-            if (handler.FileVersion >= 27)
-            {
-                handler.Read(ref SkipIdBits);
-                handler.Read(ref shapeType);
-                handler.Read(ref IgnoreTagBits);
-                handler.Skip(4);
-                handler.ReadOffsetWString(out primaryJointNameStr);
-                handler.ReadOffsetWString(out secondaryJointNameStr);
-                handler.Read(ref PrimaryJointNameHash);
-                handler.Read(ref SecondaryJointNameHash);
+            if (action is FileHandlerWrite) {
+                PrimaryJointNameHash = MurMur3HashUtils.GetHash(primaryJointNameStr ?? string.Empty);
+                SecondaryJointNameHash = MurMur3HashUtils.GetHash(secondaryJointNameStr ?? string.Empty);
+                NameHash = MurMur3HashUtils.GetHash(Name ?? string.Empty);
             }
-            else if (handler.FileVersion > 2)
+
+            action.Do(ref Guid);
+            action.HandleOffsetWString(ref Name);
+            action.Do(ref NameHash);
+            action.Do(ref UserDataIndex);
+            action.Do(ref LayerIndex);
+            action.Do(ref Attribute);
+
+            if (action.Handler.FileVersion >= 27)
             {
-                handler.Read(ref SkipIdBits);
-                handler.Read(ref IgnoreTagBits);
-                handler.ReadOffsetWString(out primaryJointNameStr);
-                handler.ReadOffsetWString(out secondaryJointNameStr);
-                handler.Read(ref PrimaryJointNameHash);
-                handler.Read(ref SecondaryJointNameHash);
-                handler.Read(ref shapeType);
-                handler.Skip(4);
+                action.Do(ref SkipIdBits);
+                action.Do(ref shapeType);
+                action.Do(ref IgnoreTagBits);
+                action.Skip(4);
+                action.HandleOffsetWString(ref primaryJointNameStr);
+                action.HandleOffsetWString(ref secondaryJointNameStr);
+                action.Do(ref PrimaryJointNameHash);
+                action.Do(ref SecondaryJointNameHash);
+            }
+            else if (action.Handler.FileVersion > 2)
+            {
+                action.Do(ref SkipIdBits);
+                action.Do(ref IgnoreTagBits);
+                action.HandleOffsetWString(ref primaryJointNameStr);
+                action.HandleOffsetWString(ref secondaryJointNameStr);
+                action.Do(ref PrimaryJointNameHash);
+                action.Do(ref SecondaryJointNameHash);
+                action.Do(ref shapeType);
+                action.Skip(4);
             }
             else
             {
-                handler.ReadOffsetWString(out primaryJointNameStr);
-                handler.ReadOffsetWString(out secondaryJointNameStr);
-                handler.Read(ref PrimaryJointNameHash);
-                handler.Read(ref SecondaryJointNameHash);
-                handler.Read(ref shapeType);
-                handler.Skip(12);
-            }
-            return true;
-        }
-
-        protected override bool DoWrite(FileHandler handler)
-        {
-            PrimaryJointNameHash = MurMur3HashUtils.GetHash(primaryJointNameStr ?? string.Empty);
-            SecondaryJointNameHash = MurMur3HashUtils.GetHash(secondaryJointNameStr ?? string.Empty);
-            NameHash = MurMur3HashUtils.GetHash(Name ?? string.Empty);
-            handler.Write(ref Guid);
-            handler.WriteOffsetWString(Name ?? string.Empty);
-            handler.Write(ref NameHash);
-            handler.Write(ref UserDataIndex);
-            handler.Write(ref LayerIndex);
-            handler.Write(ref Attribute);
-
-            if (handler.FileVersion >= 27)
-            {
-                handler.Write(ref SkipIdBits);
-                handler.Write(ref shapeType);
-                handler.Write(ref IgnoreTagBits);
-                handler.Skip(4);
-                handler.WriteOffsetWString(primaryJointNameStr ?? string.Empty);
-                handler.WriteOffsetWString(secondaryJointNameStr ?? string.Empty);
-                handler.Write(ref PrimaryJointNameHash);
-                handler.Write(ref SecondaryJointNameHash);
-            }
-            else if (handler.FileVersion > 2)
-            {
-                handler.Write(ref SkipIdBits);
-                handler.Write(ref IgnoreTagBits);
-                handler.WriteOffsetWString(primaryJointNameStr ?? string.Empty);
-                handler.WriteOffsetWString(secondaryJointNameStr ?? string.Empty);
-                handler.Write(ref PrimaryJointNameHash);
-                handler.Write(ref SecondaryJointNameHash);
-                handler.Write(ref shapeType);
-                handler.Skip(4);
-            }
-            else
-            {
-                handler.WriteOffsetWString(primaryJointNameStr ?? string.Empty);
-                handler.WriteOffsetWString(secondaryJointNameStr ?? string.Empty);
-                handler.Write(ref PrimaryJointNameHash);
-                handler.Write(ref SecondaryJointNameHash);
-                handler.Write(ref shapeType);
-                handler.Skip(12);
+                action.HandleOffsetWString(ref primaryJointNameStr);
+                action.HandleOffsetWString(ref secondaryJointNameStr);
+                action.Do(ref PrimaryJointNameHash);
+                action.Do(ref SecondaryJointNameHash);
+                action.Do(ref shapeType);
+                action.Skip(12);
             }
             return true;
         }
@@ -520,7 +411,7 @@ namespace ReeLib.Rcol
     }
 
 
-    public class RequestSetInfo : BaseModel
+    public class RequestSetInfo : ReadWriteModel
     {
         public uint ID;
         public int GroupIndex;
@@ -536,86 +427,42 @@ namespace ReeLib.Rcol
         public string KeyName = string.Empty;
         public uint KeyHash;
 
-        protected override bool DoRead(FileHandler handler)
+        protected override bool ReadWrite<THandler>(THandler action)
         {
-            if (handler.FileVersion >= 25)
+            var version = action.Handler.FileVersion;
+            if (version >= 25)
             {
-                handler.Read(ref ID);
-                handler.Read(ref GroupIndex);
-                handler.Read(ref requestSetUserdataIndex);
-                handler.Read(ref groupUserdataIndexStart);
-                handler.Read(ref status);
-                handler.Read(ref requestSetIndex);
-                handler.ReadOffsetWString(out Name);
-                handler.ReadOffsetWString(out KeyName);
-                handler.Read(ref NameHash);
-                handler.Read(ref KeyHash);
+                action.Do(ref ID);
+                action.Do(ref GroupIndex);
+                action.Do(ref requestSetUserdataIndex);
+                action.Do(ref groupUserdataIndexStart);
+                action.Do(ref status);
+                action.Do(ref requestSetIndex);
+                action.HandleOffsetWString(ref Name);
+                action.HandleOffsetWString(ref KeyName);
+                action.Do(ref NameHash);
+                action.Do(ref KeyHash);
             }
-            else if (handler.FileVersion > 2)
+            else if (version > 2)
             {
-                handler.Read(ref ID);
-                handler.Read(ref GroupIndex);
-                handler.Read(ref ShapeOffset);
-                handler.Read(ref status);
-                handler.ReadOffsetWString(out Name);
-                handler.Read(ref NameHash);
-                handler.Skip(4);
-                handler.ReadOffsetWString(out KeyName);
-                handler.Read(ref KeyHash);
-                handler.Skip(4);
+                action.Do(ref ID);
+                action.Do(ref GroupIndex);
+                action.Do(ref ShapeOffset);
+                action.Do(ref status);
+                action.HandleOffsetWString(ref Name);
+                action.Do(ref NameHash);
+                action.Skip(4);
+                action.HandleOffsetWString(ref KeyName);
+                action.Do(ref KeyHash);
+                action.Skip(4);
             }
             else
             {
-                handler.Read(ref GroupIndex);
-                handler.Read(ref ShapeOffset);
-                handler.Read(ref status);
-                handler.Skip(4);
+                action.Do(ref GroupIndex);
+                action.Do(ref ShapeOffset);
+                action.Do(ref status);
+                action.Skip(4);
             }
-
-            return true;
-        }
-
-        protected override bool DoWrite(FileHandler handler)
-        {
-            if (handler.FileVersion >= 25)
-            {
-                handler.Write(ref ID);
-                handler.Write(ref GroupIndex);
-                NameHash = MurMur3HashUtils.GetHash(Name);
-                KeyHash = MurMur3HashUtils.GetHash(KeyName);
-                // TODO make sure we set requestSetUserdataIndex
-                handler.Write(ref requestSetUserdataIndex);
-                handler.Write(ref groupUserdataIndexStart);
-                handler.Write(ref status);
-                handler.Write(ref requestSetIndex);
-                handler.WriteOffsetWString(Name);
-                handler.WriteOffsetWString(KeyName);
-                handler.Write(ref NameHash);
-                handler.Write(ref KeyHash);
-            }
-            else if (handler.FileVersion > 2)
-            {
-                handler.Write(ref ID);
-                handler.Write(ref GroupIndex);
-                NameHash = MurMur3HashUtils.GetHash(Name);
-                KeyHash = MurMur3HashUtils.GetHash(KeyName);
-                handler.Write(ref ShapeOffset);
-                handler.Write(ref status);
-                handler.WriteOffsetWString(Name);
-                handler.Write(ref NameHash);
-                handler.Skip(4);
-                handler.WriteOffsetWString(KeyName);
-                handler.Write(ref KeyHash);
-                handler.Skip(4);
-            }
-            else
-            {
-                handler.Write(ref GroupIndex);
-                handler.Write(ref ShapeOffset);
-                handler.Write(ref status);
-                handler.Skip(4);
-            }
-
             return true;
         }
 
@@ -631,7 +478,7 @@ namespace ReeLib.Rcol
         public RszInstance? Instance { get; set; }
         public List<RszInstance> ShapeUserdata { get; set; } = new();
 
-        public override string ToString() => $"[{Index:00000000}] {Info.Name}";
+        public override string ToString() => $"[{Info.ID:00000000}] {Info.Name}";
 
         object ICloneable.Clone() => Clone();
 
@@ -827,19 +674,11 @@ namespace ReeLib
             header.numRequestSets = RequestSets.Count;
             header.numGroups = Groups.Count;
             header.numIgnoreTags = IgnoreTags?.Count ?? 0;
-            header.uknCount = Groups.Count; // value seems meaningless, putting something in just in case
+            // uknCount value seems meaningless (rcol.25+), putting something in just in case
+            if (header.uknCount == 0) header.uknCount = Groups.Count;
             header.numUserData = 0;
             header.numShapes = 0;
             header.maxRequestSetId = RequestSets.Count == 0 ? uint.MaxValue : (uint)RequestSets.Max(s => s.Index);
-
-            if (handler.FileVersion >= 25)
-            {
-                header.numUserData = RequestSets.Sum(s => s.ShapeUserdata.Count);
-            }
-            else
-            {
-                header.numUserData = RequestSets.Count + Groups.Sum(g => g.Shapes.Count);
-            }
 
             header.Write(handler);
             handler.Align(16);
@@ -896,19 +735,37 @@ namespace ReeLib
             {
                 header.requestSetIDLookupsOffset = handler.Tell();
                 int index = 0;
+                int setIndex = 0;
                 foreach (var set in RequestSets.OrderBy(s => s.Info.ID))
                 {
                     while (index < set.Info.ID) {
                         index++;
                         handler.Write<int>(-1);
                     }
-                    handler.Write(set.Info.ID);
+                    handler.Write(setIndex++);
                     index++;
                 }
             }
 
             handler.StringTableFlush();
             handler.OffsetContentTableFlush();
+
+            if (handler.FileVersion >= 25)
+            {
+                header.numUserData = RequestSets.Sum(s => s.ShapeUserdata.Count);
+            }
+            else if (handler.FileVersion > 2)
+            {
+                int minIndex = int.MaxValue;
+                int maxIndex = int.MinValue;
+                foreach (var g in Groups) {
+                    foreach (var s in g.Shapes) {
+                        minIndex = Math.Min(s.Info.UserDataIndex, minIndex);
+                        maxIndex = Math.Max(s.Info.UserDataIndex, maxIndex);
+                    }
+                }
+                header.numUserData = maxIndex - minIndex;
+            }
 
             header.magic = Magic;
             header.Write(handler, 0);

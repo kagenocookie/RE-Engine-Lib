@@ -622,6 +622,7 @@ namespace ReeLib
                 handler.Seek(header.ignoreTagOffset);
                 IgnoreTags ??= new();
                 IgnoreTags.Read(handler, header.numIgnoreTags);
+                DataInterpretationException.DebugThrowIf(IgnoreTags.Any(tag => tag.hash != MurMur3HashUtils.GetHash(tag.tag)));
             }
 
             if (header.numAutoGenerateJoints > 0)

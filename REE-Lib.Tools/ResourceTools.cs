@@ -141,6 +141,7 @@ public class ResourceTools(Workspace workspace)
         HandleFiles(workspace, "rcol", (path, stream) => {
             var file = new RcolFile(workspace.RszFileOption, new FileHandler(stream, path));
             file.Read();
+            dupeHandler.FindDuplicateRszObjectInstances(file.RSZ, path);
         });
         StoreInferredRszTypes(workspace.RszParser.ClassDict.Values);
     }

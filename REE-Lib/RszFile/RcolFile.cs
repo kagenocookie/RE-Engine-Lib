@@ -488,9 +488,8 @@ namespace ReeLib.Rcol
     }
 
 
-    public class RequestSet(int index = 0, RequestSetInfo? info = null) : ICloneable
+    public class RequestSet(RequestSetInfo? info = null) : ICloneable
     {
-        public int Index { get; set; } = index;
         public RequestSetInfo Info { get; set; } = info ?? new();
         public RcolGroup? Group { get; set; }
         public RszInstance? Instance { get; set; }
@@ -502,7 +501,7 @@ namespace ReeLib.Rcol
 
         public RequestSet Clone()
         {
-            var clone = new RequestSet(Index, (RequestSetInfo)Info.Clone());
+            var clone = new RequestSet((RequestSetInfo)Info.Clone());
             clone.Instance = Instance;
             clone.Group = Group;
             clone.ShapeUserdata = new List<RszInstance>(ShapeUserdata);
@@ -559,7 +558,7 @@ namespace ReeLib
 
         public RequestSet CreateNewRequestSet(string name)
         {
-            var set = new RequestSet(RequestSets.Count == 0 ? 0 : RequestSets.Max(s => s.Index));
+            var set = new RequestSet();
             set.Info.ID = RequestSets.Count == 0 ? 0 : RequestSets.Max(s => s.Info.ID);
             set.Info.Name = string.IsNullOrEmpty(name) ? "NewSet" : name;
             RequestSets.Add(set);
@@ -612,7 +611,7 @@ namespace ReeLib
                     RequestSetInfo requestSetInfo = new();
                     if (!requestSetInfo.Read(handler)) return false;
 
-                    RequestSet requestSet = new(i, requestSetInfo);
+                    RequestSet requestSet = new(requestSetInfo);
                     RequestSets.Add(requestSet);
                 }
             }
@@ -711,7 +710,7 @@ namespace ReeLib
             if (header.uknCount == 0) header.uknCount = Groups.Count;
             header.numUserData = 0;
             header.numShapes = 0;
-            header.maxRequestSetId = RequestSets.Count == 0 ? uint.MaxValue : (uint)RequestSets.Max(s => s.Index);
+            header.maxRequestSetId = RequestSets.Count == 0 ? uint.MaxValue : (uint)RequestSets.Max(s => s.Info.ID);
 
             header.Write(handler);
             handler.Align(16);

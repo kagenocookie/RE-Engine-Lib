@@ -502,7 +502,7 @@ namespace ReeLib.Rcol
         public RequestSet Clone()
         {
             var clone = new RequestSet((RequestSetInfo)Info.Clone());
-            clone.Instance = Instance;
+            clone.Instance = Instance?.Clone();
             clone.Group = Group;
             clone.ShapeUserdata = new List<RszInstance>(ShapeUserdata);
             return clone;

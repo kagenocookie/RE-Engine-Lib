@@ -50,8 +50,6 @@ public class CachedMemoryPakReader : PakReader, IDisposable
         if (cachedEntries.TryGetValue(filepathHash, out var entry))
         {
             var memoryStream = new MemoryStream();
-            memoryStream.Seek(0, SeekOrigin.Begin);
-            memoryStream.SetLength(0);
             using var fs = File.OpenRead(entry.file.filepath);
             PakFile.ReadEntry(entry.entry, fs, memoryStream);
             memoryStream.Seek(0, SeekOrigin.Begin);

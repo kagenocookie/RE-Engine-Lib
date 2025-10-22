@@ -37,6 +37,7 @@ namespace ReeLib.Tex
             handler.Read(ref depth);
             var Version = TexFile.GetInternalVersion(version);
             if (Version > 20) {
+                // TODO some tex have 0 imageCount but still contain data (re4 debugsplatindex.tex.143221013) and mip header size 17
                 handler.Read(ref imageCount);
                 handler.Read(ref mipHeaderSize);
                 mipCount = (byte)(mipHeaderSize / 16);
@@ -168,10 +169,25 @@ namespace ReeLib
             };
         }
 
+        public DDSFile.DdsMipMapIterator CreateMipMapIterator(int imageIndex = 0)
+        {
+            var compressed = Header.format.IsBlockCompressedFormat();
+            if (compressed && !Header.IsPowerOfTwo) {
+                throw new Exception("Non-POT compressed tex file needs to be iterated with CreateNonPo2Iterator()");
+            }
+            FileHandler.Seek(Mips[imageIndex * Header.mipCount].offset);
+            return new DDSFile.DdsMipMapIterator(FileHandler, (uint)Header.width, (uint)Header.height, Header.mipCount, Header.BitsPerPixel, compressed);
+        }
+
         public TexMipMapIterator CreateIterator(int imageIndex = 0)
         {
+            if (imageIndex >= Header.imageCount) return new TexMipMapIterator();
             FileHandler.Seek(Mips[imageIndex * Header.mipCount].offset);
-            return new TexMipMapIterator(FileHandler, Mips, Header.mipCount, Header.width, Header.height, Header.format.GetCompressedBlockSize());
+            var compressed = Header.format.IsBlockCompressedFormat();
+            if (!compressed) {
+                return new TexMipMapIterator(FileHandler, Mips, Header.mipCount, Header.width, Header.height, Header.BitsPerPixel, false);
+            }
+            return new TexMipMapIterator(FileHandler, Mips, Header.mipCount, Header.width, Header.height, Header.format.GetCompressedBlockSize(), true);
         }
 
         public struct TexMipMapIterator : IDisposable
@@ -183,10 +199,13 @@ namespace ReeLib
             private uint h;
             private int mip;
             private int blockSize;
+            private bool isCompressed;
 
             private byte[]? bytes;
 
-            public TexMipMapIterator(FileHandler handler, List<MipHeader> mips, int maxMipMapLevel, int w, int h, int blockSize)
+            private int CurrentCompressedMipSize => isCompressed ? (int)((w + 3) / 4) * (int)((h + 3) / 4) * blockSize : (int)(w * h * (blockSize / 8));
+
+            public TexMipMapIterator(FileHandler handler, List<MipHeader> mips, int maxMipMapLevel, int w, int h, int blockSize, bool compressed)
             {
                 this.handler = handler;
                 this.mips = mips;
@@ -194,6 +213,7 @@ namespace ReeLib
                 this.blockSize = blockSize;
                 this.w = (uint)w;
                 this.h = (uint)h;
+                isCompressed = compressed;
             }
 
             public bool Next(ref DDSFile.MipMapLevelData data)
@@ -209,8 +229,8 @@ namespace ReeLib
                     return false;
                 }
 
-                var size = (int)((w + 3) / 4) * (int)((h + 3) / 4) * blockSize;
-                int realPitchSize = (int)(size / h * 4);
+                var size = CurrentCompressedMipSize;
+                int realPitchSize = (int)(!isCompressed ? size / h : size / h * 4);
 
                 if (bytes == null) {
                     bytes = ArrayPool<byte>.Shared.Rent(size);

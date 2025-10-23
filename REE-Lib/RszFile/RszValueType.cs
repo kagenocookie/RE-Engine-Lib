@@ -27,6 +27,12 @@ namespace ReeLib.via
         public int x;
         public int y;
 
+        public Int2(int x, int y)
+        {
+            this.x = x;
+            this.y = y;
+        }
+
         public readonly override string ToString()
         {
             return $"<{x}, {y}>";

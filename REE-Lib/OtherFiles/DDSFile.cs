@@ -328,7 +328,7 @@ namespace ReeLib
         {
             var handler = FileHandler;
             handler.ReadRange(ref Header.magic, ref Header.mipMapCount);
-            handler.Skip(44); // reserved 11 * 4b
+            handler.Seek(76); // reserved 11 * 4b
             handler.ReadRange(ref Header.PixelFormat, ref Header.Caps2);
             handler.Skip(12); // caps3, caps4, reserved
             if (Header.PixelFormat.FourCC == DDSFourCC.DX10) {
@@ -353,9 +353,7 @@ namespace ReeLib
             var handler = FileHandler;
             handler.WriteRange(ref Header.magic, ref Header.mipMapCount);
             handler.Seek(76);
-            handler.Write(ref Header.PixelFormat);
-            handler.Write(ref Header.Caps1);
-            handler.Write(ref Header.Caps2);
+            handler.WriteRange(ref Header.PixelFormat, ref Header.Caps2);
             handler.Skip(12); // skip caps3, 4, reserved
             if (Header.IsHasDX10) {
                 handler.Write(ref Header.DX10);

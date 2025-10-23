@@ -127,6 +127,51 @@ namespace ReeLib
             throw new NotImplementedException();
         }
 
+        public int GetBestMipLevelForDimensions(int width, int height)
+        {
+            var targetMip = 0;
+            var mipW = Header.width;
+            var mipH = Header.height;
+            while (mipW > width && mipH > height && Mips.Count > targetMip + 1) {
+                mipW /= 2;
+                mipH /= 2;
+                targetMip++;
+            }
+            return targetMip;
+        }
+
+        public void SaveAsDDS(string filepath, int imageIndex = 0, int startMipMap = 0, int maxMipCount = int.MaxValue)
+        {
+            using var fs = File.Create(filepath);
+            ConvertToDDS(new FileHandler(fs, filepath));
+        }
+
+        public DDSFile ConvertToDDS(FileHandler? newFileHandler = null, int imageIndex = 0, int startMipMap = 0, int maxMipCount = int.MaxValue)
+        {
+            newFileHandler ??= new FileHandler();
+
+            var dds = new DDSFile(newFileHandler);
+            dds.Header = ToDDSHeader();
+            var mips = 0;
+            dds.Write();
+            var iterator = CreateIterator(imageIndex, startMipMap);
+            var data = new DDSFile.MipMapLevelData();
+            while (iterator.Next(ref data)) {
+                if (mips == 0) {
+                    dds.Header.width = data.width;
+                    dds.Header.height = data.height;
+                }
+                mips++;
+                newFileHandler.Stream.Write(data.data);
+                if (mips >= maxMipCount) break;
+            }
+            dds.Header.mipMapCount = mips;
+            newFileHandler.Seek(0);
+            dds.Write();
+            iterator.Dispose();
+            return dds;
+        }
+
         public DDSFile.MipMapLevelData GetMipMapData(int level, int imageIndex = 0)
         {
             var mipHeader = Mips[imageIndex * Header.mipCount + level];
@@ -165,29 +210,22 @@ namespace ReeLib
                     MiscFlags = 0,
                     MiscFlags2 = DDSMisc2.ALPHA_MODE_UNKNOWN,
                     ResourceDimension = ResourceDimension.TEXTURE2D,
-                }
+                },
+                IsHasDX10 = true,
             };
         }
 
-        public DDSFile.DdsMipMapIterator CreateMipMapIterator(int imageIndex = 0)
+        public TexMipMapIterator CreateIterator(int imageIndex = 0, int mipMapLevel = 0)
         {
-            var compressed = Header.format.IsBlockCompressedFormat();
-            if (compressed && !Header.IsPowerOfTwo) {
-                throw new Exception("Non-POT compressed tex file needs to be iterated with CreateNonPo2Iterator()");
-            }
-            FileHandler.Seek(Mips[imageIndex * Header.mipCount].offset);
-            return new DDSFile.DdsMipMapIterator(FileHandler, (uint)Header.width, (uint)Header.height, Header.mipCount, Header.BitsPerPixel, compressed);
-        }
-
-        public TexMipMapIterator CreateIterator(int imageIndex = 0)
-        {
-            if (imageIndex >= Header.imageCount) return new TexMipMapIterator();
-            FileHandler.Seek(Mips[imageIndex * Header.mipCount].offset);
+            if (imageIndex >= Header.imageCount || mipMapLevel >= Header.mipCount) return new TexMipMapIterator();
+            FileHandler.Seek(Mips[imageIndex * Header.mipCount + mipMapLevel].offset);
+            var w = Math.Max(1, Header.width >> mipMapLevel);
+            var h = Math.Max(1, Header.height >> mipMapLevel);
             var compressed = Header.format.IsBlockCompressedFormat();
             if (!compressed) {
-                return new TexMipMapIterator(FileHandler, Mips, Header.mipCount, Header.width, Header.height, Header.BitsPerPixel, false);
+                return new TexMipMapIterator(FileHandler, Mips, Header.mipCount, w, h, Header.BitsPerPixel, false) { mip = mipMapLevel };
             }
-            return new TexMipMapIterator(FileHandler, Mips, Header.mipCount, Header.width, Header.height, Header.format.GetCompressedBlockSize(), true);
+            return new TexMipMapIterator(FileHandler, Mips, Header.mipCount, w, h, Header.format.GetCompressedBlockSize(), true) { mip = mipMapLevel };
         }
 
         public struct TexMipMapIterator : IDisposable
@@ -197,7 +235,7 @@ namespace ReeLib
             private int maxMipMapLevel;
             private uint w;
             private uint h;
-            private int mip;
+            internal int mip;
             private int blockSize;
             private bool isCompressed;
 

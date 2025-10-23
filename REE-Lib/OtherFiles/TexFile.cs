@@ -132,7 +132,7 @@ namespace ReeLib
             var targetMip = 0;
             var mipW = Header.width;
             var mipH = Header.height;
-            while (mipW > width && mipH > height && Mips.Count > targetMip + 1) {
+            while (mipW > width && mipH > height && Header.mipCount > targetMip + 1) {
                 mipW /= 2;
                 mipH /= 2;
                 targetMip++;

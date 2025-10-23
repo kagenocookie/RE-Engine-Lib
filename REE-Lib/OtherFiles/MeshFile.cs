@@ -456,7 +456,8 @@ namespace ReeLib.Mesh
 		public Vector2[] UV1 = [];
 		public Color[] Colors = [];
 		public VertexBoneWeights[] Weights = [];
-		public ushort[] Faces = [];
+		public ushort[]? Faces;
+		public int[]? IntegerFaces;
 
 		public Vector3[] BlendShapeData = [];
 		public VertexBoneWeights[] ShapeKeyWeights = [];
@@ -549,7 +550,7 @@ namespace ReeLib.Mesh
 			handler.WriteArray(Headers.BufferHeaders);
 		}
 
-		public void ReadBufferData(FileHandler handler, BlendShapeData? blendShapes)
+		public void ReadBufferData(FileHandler handler, BlendShapeData? blendShapes, bool integerFaces)
 		{
 			handler.Seek(vertexBufferOffset);
 			var BufferHeaders = Headers.BufferHeaders;
@@ -611,7 +612,11 @@ namespace ReeLib.Mesh
 			}
 
 			handler.Seek(faceBufferOffset);
-			Faces = handler.ReadArray<ushort>((int)faceVertBufferHeaderSize / 2);
+			if (integerFaces) {
+				IntegerFaces = handler.ReadArray<int>((int)faceVertBufferHeaderSize / 4);
+            } else {
+				Faces = handler.ReadArray<ushort>((int)faceVertBufferHeaderSize / 2);
+            }
 
 			if (shapekeyWeightBufferOffset > 0)
 			{
@@ -715,7 +720,11 @@ namespace ReeLib.Mesh
 
 			handler.Align(16);
 			faceBufferOffset = handler.Tell();
-			handler.WriteArray(Faces);
+			if (IntegerFaces != null) {
+				handler.WriteArray(IntegerFaces);
+            } else {
+				handler.WriteArray(Faces!);
+            }
 
 			if (Version >= MeshSerializerVersion.RE4)
 			{
@@ -759,6 +768,7 @@ namespace ReeLib.Mesh
 		internal MeshSerializerVersion Version;
 
 		public Span<ushort> Indices => Buffer.Faces.AsSpan(facesIndexOffset, indicesCount);
+		public Span<int> IntegerIndices => Buffer.IntegerFaces.AsSpan(facesIndexOffset, indicesCount);
 		public Span<Vector3> Positions => Buffer.Positions.AsSpan(vertsIndexOffset, vertCount);
 		public Span<Vector3> Normals => Buffer.Normals.AsSpan(vertsIndexOffset, vertCount);
 		public Span<Vector3> Tangents => Buffer.Tangents.AsSpan(vertsIndexOffset, vertCount);
@@ -1117,7 +1127,8 @@ namespace ReeLib.Mesh
 		public int materialCount;
 		public int uvCount;
 		public int skinWeightCount = 18;
-		public int totalMeshCount;
+		public short totalMeshCount;
+		public bool integerFaces;
 		public Sphere boundingSphere;
 		public AABB boundingBox;
 
@@ -1161,6 +1172,8 @@ namespace ReeLib.Mesh
 			skinWeightCount = handler.Read<byte>();
 			DataInterpretationException.DebugThrowIf(skinWeightCount != ExpectedSkinWeightCount);
 			handler.Read(ref totalMeshCount);
+			handler.Read(ref integerFaces);
+			handler.ReadNull(1);
 			if (Version <= MeshSerializerVersion.DMC5)
 			{
 				handler.ReadNull(8);
@@ -1188,7 +1201,9 @@ namespace ReeLib.Mesh
         {
         	lodCount = LODs.Count;
 			uvCount = Math.Sign(Buffer.UV0.Length) + Math.Sign(Buffer.UV1.Length);
-			totalMeshCount = LODs[0].MeshGroups.Sum(mg => mg.Submeshes.Count);
+			totalMeshCount = (short)LODs[0].MeshGroups.Sum(mg => mg.Submeshes.Count);
+			handler.Write(ref integerFaces);
+			handler.WriteNull(1);
 
 			handler.Write((byte)lodCount);
 			handler.Write((byte)materialCount);
@@ -1708,7 +1723,7 @@ namespace ReeLib
             for (int i = 0; i < StreamingBuffers.Count; i++)
 			{
                 var buffer = StreamingBuffers[i];
-                buffer.ReadBufferData(handler, BlendShapes);
+                buffer.ReadBufferData(handler, BlendShapes, MeshData?.integerFaces ?? false);
             }
 
 			if (MeshData == null) return;
@@ -1799,7 +1814,7 @@ namespace ReeLib
 				}
 
 				handler.Seek(header.verticesOffset);
-				MeshBuffer.ReadBufferData(handler, BlendShapes);
+				MeshBuffer.ReadBufferData(handler, BlendShapes, MeshData?.integerFaces ?? false);
 
 				if (MeshBuffer.totalElementCount > MeshBuffer.elementCount)
 				{

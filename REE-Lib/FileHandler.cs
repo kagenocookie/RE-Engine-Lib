@@ -1218,10 +1218,10 @@ namespace ReeLib
             AsciiStringTable?.FlushOffsets(this);
         }
 
-        public OffsetContent OffsetContentTableAdd(Action<FileHandler> write)
+        public OffsetContent OffsetContentTableAdd(Action<FileHandler> write, bool addOffset = true)
         {
             OffsetContentTable ??= new();
-            return OffsetContentTable.Add(write, Tell());
+            return OffsetContentTable.Add(write, addOffset ? Tell() : -1);
         }
 
         public void OffsetContentTableAddAlign(int align)

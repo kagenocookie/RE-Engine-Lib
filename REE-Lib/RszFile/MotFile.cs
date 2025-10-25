@@ -15,9 +15,7 @@ namespace ReeLib.Mot
         RE3 = 78,
         MHR_DEMO = 456,
         RE8 = 458,
-        RE2_RT = 492,
-        RE3_RT = RE2_RT,
-        RE7_RT = RE2_RT,
+        RE_RT = 492,
         MHR = 495,
         SF6 = 603,
         RE4 = 613,
@@ -2354,6 +2352,9 @@ namespace ReeLib
                                 if (refBoneIndex == next.Index) break;
 
                                 next = GetBoneByHash(BoneHeaders[refBoneIndex].boneHash);
+                                // NOTE: some files have the same bone defined twice for some reason (dd2 - ch253000_00_cs_feather.motlist.751)
+                                // ignore such cases and forget about the duplicates, hopefully not important
+                                if (next != null && bone.Children.Contains(next)) break;
                             }
                         }
                     }
@@ -2387,7 +2388,7 @@ namespace ReeLib
 
             // rebuild Bone headers in case anything changed and to ensure correct offsets
             var sortedBones = Bones.OrderBy(b => b.Index).ToList();
-            DataInterpretationException.ThrowIf(sortedBones.Last().Index != sortedBones.Count - 1, "Detected skips in bone indices, this probably shouldn't happen!");
+            DataInterpretationException.ThrowIf(sortedBones.Count > 0 && sortedBones.Last().Index != sortedBones.Count - 1, "Detected skips in bone indices, this probably shouldn't happen!");
             Debug.Assert(sortedBones.Count == Bones.Count);
 
             BoneHeaders.Sort(new FuncComparer<BoneHeader>((a, b) => a.Index.CompareTo(b.Index)));

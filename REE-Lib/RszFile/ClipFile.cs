@@ -1,3 +1,4 @@
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using ReeLib.Clip;
 using ReeLib.Common;
@@ -10,12 +11,8 @@ namespace ReeLib.Clip
         RE7 = 18,
         RE2_DMC5 = 27,
         RE3 = 34,
-        MHR_DEMO = 40,
-        RE8 = MHR_DEMO,
-        RE7_RT = 43,
-        RE2_RT = RE7_RT,
-        RE3_RT = RE7_RT,
-        MHR = RE7_RT,
+        RE8 = 40,
+        RE_RT = 43,
         SF6 = 53,
         RE4 = 54,
         DD2 = 62,
@@ -182,15 +179,29 @@ namespace ReeLib.Clip
         public float rate;
         public InterpolationType interpolation;
         public bool instanceValue;
-        public uint unknown;
+        public uint unknown; // might be some sort of frame length?
         public object Value { get; set; } = null!;
 
-        public PropertyType PropertyType { get; set; }
-        public WeakReference<ClipEntry> ClipFile { get; set; }
-
-        public Key(ClipEntry clipFile)
+        public interface IKeyValueContainer
         {
-            ClipFile = new(clipFile);
+            long AsciiStringOffset { get; }
+            long UnicodeStringOffset { get; }
+            long DataOffset16B { get; }
+        }
+
+        public PropertyType PropertyType { get; set; }
+        public ClipVersion Version { get; set; }
+
+        internal int KeySize => GetKeySize(Version);
+
+        public static int GetKeySize(ClipVersion version) => version switch {
+            < ClipVersion.RE3 => 40,
+            _ => 32,
+        };
+
+        public Key(ClipVersion version)
+        {
+            Version = version;
         }
 
         protected override bool DoRead(FileHandler handler)
@@ -201,7 +212,7 @@ namespace ReeLib.Clip
             handler.Read(ref instanceValue);
             handler.ReadNull(2);
             handler.Read(ref unknown);
-            handler.Seek(Start + ClipFile.GetTarget()!.KeySize);
+            handler.Seek(Start + KeySize);
             return true;
         }
 
@@ -214,15 +225,14 @@ namespace ReeLib.Clip
             handler.WriteNull(2);
             handler.Write(ref unknown);
             WriteValue(handler);
-            var end = Start + ClipFile.GetTarget()!.KeySize;
+            var end = Start + KeySize;
             handler.WriteNull((int)(end - handler.Tell()));
             return true;
         }
 
-        public void ReadValue(FileHandler handler, Property property)
+        public void ReadValue(FileHandler handler, Property property, IKeyValueContainer offsets)
         {
             handler.Seek(Start + 16);
-            var clipFile = ClipFile.GetTarget()!;
             PropertyType = property.Info.DataType;
             if (PropertyType == PropertyType.Unknown)
             {
@@ -268,7 +278,7 @@ namespace ReeLib.Clip
                 case PropertyType.Enum:
                     {
                         long offset = handler.Read<long>();
-                        Value = handler.ReadAsciiString(clipFile.Header.namesOffset + offset);
+                        Value = handler.ReadAsciiString(offsets.AsciiStringOffset + offset);
                     }
                     break;
                 case PropertyType.Str16:
@@ -276,9 +286,17 @@ namespace ReeLib.Clip
                 case PropertyType.Guid:
                     {
                         long offset = handler.Read<long>();
-                        // clipHeader.unicodeNamesOffs + start + offset*2
-                        Value = handler.ReadWString(clipFile.Header.unicodeNamesOffset + offset * 2);
+                        Value = handler.ReadWString(offsets.UnicodeStringOffset + offset * 2);
                     }
+                    break;
+                case PropertyType.PathPoint3D:
+                    {
+                        var offset = handler.Read<long>();
+                        Value = handler.Read<Vector3>(offsets.DataOffset16B + offset * 16);
+                    }
+                    break;
+                case PropertyType.Action:
+                    Value = handler.Read<long>();
                     break;
                 default:
                     throw new Exception($"Unsupported PropertyType: {PropertyType}");
@@ -347,12 +365,26 @@ namespace ReeLib.Clip
                         handler.Write(stringItem.TableOffset);
                     }
                     break;
+                case PropertyType.PathPoint3D:
+                    {
+                        var vec = (Vector3)Value;
+                        handler.OffsetContentTableAdd((h) => {
+                            h.Write(vec);
+                            h.WriteNull(4);
+                        }, false);
+                        var offset = handler.OffsetContentTable!.Items.Count - 1;
+                        handler.Write((long)offset);
+                    }
+                    break;
+                case PropertyType.Action:
+                    handler.Write((long)Value);
+                    break;
                 default:
                     throw new Exception($"Unsupported PropertyType: {PropertyType}");
             }
         }
 
-        public override string ToString() => $"[{frame}]: {Value}";
+        public override string ToString() => $"[Frame {frame}]: {Value}";
     }
 
 
@@ -363,8 +395,8 @@ namespace ReeLib.Clip
         private int uknValue;
         public float startFrame;  // Start
         public float endFrame;  // End
-        public uint nameHashRe7;
-        public ulong nameCombineHash; // UTF16 + ascii hash
+        public uint nameUtf16Hash; // UTF16 + ascii hash
+        public uint nameAsciiHash; // UTF16 + ascii hash
 
         public long nameOffset;
         public long dataOffset;
@@ -387,6 +419,8 @@ namespace ReeLib.Clip
         public long unicodeNameOffset;
         public string FunctionName { get; set; } = string.Empty;
 
+        public long timelineUkn;
+        public long timelineUkn2;
 
         public PropertyInfo(ClipVersion version)
         {
@@ -408,7 +442,9 @@ namespace ReeLib.Clip
             }
             action.Do(ref startFrame);
             action.Do(ref endFrame);
-            action.Do(ref nameCombineHash);
+            action.Do(ref nameUtf16Hash);
+            action.Do(ref nameAsciiHash);
+            DataInterpretationException.DebugThrowIf(Version > ClipVersion.RE7 && Version < ClipVersion.RE8 && nameUtf16Hash != 2);
 
             if (Version >= ClipVersion.RE8)
             {
@@ -473,7 +509,10 @@ namespace ReeLib.Clip
                 else
                 {
                     // dmc5+
-                    action.Null(30);
+                    action.Null(6);
+                    action.Do(ref timelineUkn);
+                    action.Do(ref timelineUkn2);
+                    action.Null(8);
                 }
             }
             return true;
@@ -483,11 +522,17 @@ namespace ReeLib.Clip
         {
             if (Version == ClipVersion.RE7)
             {
-                nameHashRe7 = MurMur3HashUtils.GetHash(FunctionName);
+                nameUtf16Hash = MurMur3HashUtils.GetHash(FunctionName);
+            }
+            else if (Version >= ClipVersion.RE8)
+            {
+                nameUtf16Hash = MurMur3HashUtils.GetHash(FunctionName);
+                nameAsciiHash = MurMur3HashUtils.GetAsciiHash(FunctionName);
             }
             else
             {
-                nameCombineHash = MurMur3HashUtils.GetCombineHash(FunctionName);
+                nameUtf16Hash = 2;
+                // nameAsciiHash = 2; // sometimes 0, sometimes 2 ¯\_(ツ)_/¯
             }
             return base.DoWrite(handler);
         }
@@ -529,8 +574,12 @@ namespace ReeLib.Clip
                     case PropertyType.Float4:      // 0x1C
                     case PropertyType.RangeI:      // 0x1D
                     case PropertyType.Point:       // 0x1E
+                    case PropertyType.Uint2:       // 0x23
+                    case PropertyType.Uint3:       // 0x24 (assumption)
+                    case PropertyType.Uint4:       // 0x25 (assumption)
                     case PropertyType.OBB:         // 0x29
                     case PropertyType.Mat4:        // 0x2A
+                    case PropertyType.Rect:        // 0x2B
                     case PropertyType.Nullable:    // 0x31
                         return true;
                     default:
@@ -607,24 +656,29 @@ namespace ReeLib.Clip
 
         public void ReadName(FileHandler handler, ClipHeader header)
         {
+            ReadName(handler, header.unicodeNamesOffset, header.namesOffset);
+        }
+
+        public void ReadName(FileHandler handler, long unicodeOffset, long asciiOffset)
+        {
             if (Version >= ClipVersion.RE3)
             {
-                Name = handler.ReadWString(header.unicodeNamesOffset + nameOffset * 2);
+                Name = handler.ReadWString(unicodeOffset + nameOffset * 2);
             }
-            else if (header.unknownOffsets != null)
+            else
             {
-                Name = handler.ReadAsciiString(header.namesOffset + nameOffset);
+                Name = handler.ReadAsciiString(asciiOffset + nameOffset);
             }
         }
 
-        public void WriteName(FileHandler handler, ClipHeader header)
+        public void WriteName(FileHandler handler)
         {
             if (Version >= ClipVersion.RE3)
             {
                 var stringItem = handler.StringTableAdd(Name, false);
                 nameOffset = stringItem.TableOffset;
             }
-            else if (header.unknownOffsets != null)
+            else
             {
                 var stringItem = handler.AsciiStringTableAdd(Name, false);
                 nameOffset = stringItem.TableOffset;
@@ -639,7 +693,7 @@ namespace ReeLib.Clip
     /// 这是Embedded Clip的结构，用在motlists和gui文件中，单独的clip结构不一样，多几个字段
     /// 暂时没想好怎么做兼容
     /// </summary>
-    public class ClipHeader : BaseModel
+    public class ClipHeader : BaseModel, Key.IKeyValueContainer
     {
         public uint magic = ClipEntry.Magic;
         public ClipVersion version;
@@ -674,6 +728,10 @@ namespace ReeLib.Clip
             ClipVersion.RE2_DMC5 => 3,
             _ => 2,
         };
+
+        long Key.IKeyValueContainer.AsciiStringOffset => namesOffset;
+        long Key.IKeyValueContainer.UnicodeStringOffset => unicodeNamesOffset;
+        long Key.IKeyValueContainer.DataOffset16B => throw new NotImplementedException();
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -963,21 +1021,6 @@ namespace ReeLib.Clip
 
         public ClipVersion Version { get => Header.version; set => Header.version = value; }
 
-        internal int PropertySize => Version switch
-        {
-            ClipVersion.RE3 => 32,
-            ClipVersion.RE7 => 120,
-            ClipVersion.MHR_DEMO or ClipVersion.RE8 => 72,
-            ClipVersion.SF6 or ClipVersion.RE4 => 56,
-            _ => 112,
-        };
-
-        internal int KeySize => Version switch
-        {
-            < ClipVersion.RE3 => 40,
-            _ => 32,
-        };
-
         protected override bool DoRead(FileHandler handler)
         {
             Tracks.Clear();
@@ -1019,7 +1062,7 @@ namespace ReeLib.Clip
                 handler.Seek(clipHeader.keysOffset);
                 for (int i = 0; i < clipHeader.numKeys; i++)
                 {
-                    Key key = new(this);
+                    Key key = new(Version);
                     key.Read(handler);
                     ClipKeys.Add(key);
                 }
@@ -1044,7 +1087,7 @@ namespace ReeLib.Clip
                     {
                         Key key = ClipKeys[(int)i];
                         property.Keys.Add(key);
-                        key.ReadValue(handler, property);
+                        key.ReadValue(handler, property, Header);
                     }
                 }
             }
@@ -1095,7 +1138,7 @@ namespace ReeLib.Clip
             ReFlattenProperties(clipHeader);
             foreach (var track in Tracks)
             {
-                track.WriteName(handler, clipHeader);
+                track.WriteName(handler);
                 track.Write(handler);
             }
 

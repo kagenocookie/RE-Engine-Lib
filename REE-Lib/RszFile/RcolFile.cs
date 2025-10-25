@@ -356,6 +356,8 @@ namespace ReeLib.Rcol
             }
             return true;
         }
+
+        public override string ToString() => Name;
     }
 
 
@@ -369,13 +371,13 @@ namespace ReeLib.Rcol
         public void UpdateShapeType()
         {
             switch (Info.shapeType) {
-                case ShapeType.Aabb: shape = new AABB(new System.Numerics.Vector3(-0.5f), new System.Numerics.Vector3(0.5f)); break;
-                case ShapeType.Sphere or ShapeType.ContinuousSphere: shape = new Sphere(); break;
-                case ShapeType.Capsule or ShapeType.ContinuousCapsule: shape = new via.Capsule(); break;
-                case ShapeType.Box: shape = new via.OBB(); break;
-                case ShapeType.Area: shape = new via.Area(); break;
-                case ShapeType.Triangle: shape = new via.Triangle(); break;
-                case ShapeType.Cylinder: shape = new via.Cylinder(); break;
+                case ShapeType.Aabb: if (shape is not AABB) shape = new AABB(new System.Numerics.Vector3(-0.5f), new System.Numerics.Vector3(0.5f)); break;
+                case ShapeType.Sphere or ShapeType.ContinuousSphere: if (shape is not Sphere) shape = new Sphere(); break;
+                case ShapeType.Capsule or ShapeType.ContinuousCapsule: if (shape is not Capsule) shape = new Capsule(); break;
+                case ShapeType.Box: if (shape is not OBB) shape = new OBB(); break;
+                case ShapeType.Area: if (shape is not Area) shape = new Area(); break;
+                case ShapeType.Triangle: if (shape is not Triangle) shape = new Triangle(); break;
+                case ShapeType.Cylinder: if (shape is not Cylinder) shape = new Cylinder(); break;
                 default:
                     Log.Error("Unsupported shape for rcol: " + Info.shapeType);
                     break;
@@ -425,7 +427,7 @@ namespace ReeLib.Rcol
             return true;
         }
 
-        public override string ToString() => shape == null ? $"{nameof(RcolShape)} [{Instance}]" : $"{shape} [{Instance}]";
+        public override string ToString() => (shape == null ? Info.Name : $"{Info.Name} <{shape}>");
     }
 
 

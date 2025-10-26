@@ -719,7 +719,7 @@ namespace ReeLib.Clip
         internal long speedPointOffset;
         internal long hermiteDataOffset;
 
-        // note: one of these is likely bezier3D data (based on .tml files), but doesn't seem used in motlists)
+        // note: one of these is likely bezier3D data (based on .clip/.tml files), but doesn't seem used in motlists)
         internal long[] unknownOffsets = [];
 
         internal long namesOffset;

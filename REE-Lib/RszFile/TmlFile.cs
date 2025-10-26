@@ -8,7 +8,6 @@ namespace ReeLib.Tml
     public class Header : ReadWriteModel, Key.IKeyValueContainer
     {
         public uint magic = TmlFile.Magic;
-        // note: intentionally using Clip version here - they seem to be in sync so far
         public ClipVersion version;
         public float totalFrames;
         public int rootNodeCount;

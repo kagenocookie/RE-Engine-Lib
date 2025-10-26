@@ -248,7 +248,7 @@ public class LocalResources
         return true;
     }
 
-    private static bool SaveRSZTemplateFile(Stream file, string source, string outputPath)
+    internal static bool SaveRSZTemplateFile(Stream file, string source, string outputPath)
     {
         var jsondoc = JsonSerializer.Deserialize<JsonObject>(file);
         if (jsondoc == null) {

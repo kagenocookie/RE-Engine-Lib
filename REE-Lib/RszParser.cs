@@ -56,7 +56,22 @@ namespace ReeLib
             classDict = new();
             classNameDict = new();
             using FileStream fileStream = File.OpenRead(jsonPath);
-            var dict = JsonSerializer.Deserialize<Dictionary<string, RszClass>>(fileStream);
+            Dictionary<string, RszClass> dict;
+            try {
+                dict = JsonSerializer.Deserialize<Dictionary<string, RszClass>>(fileStream) ?? throw new Exception("Invalid RSZ JSON file " + jsonPath);
+            } catch (Exception) {
+                var fixedFilepath = jsonPath.Replace(".json", "_reelib_fixed.json");
+                if (!File.Exists(fixedFilepath) || new FileInfo(jsonPath).LastWriteTimeUtc > new FileInfo(fixedFilepath).LastWriteTimeUtc) {
+                    fileStream.Seek(0, SeekOrigin.Begin);
+                    if (!LocalResources.SaveRSZTemplateFile(fileStream, jsonPath, fixedFilepath)) {
+                        throw;
+                    }
+                }
+                fileStream.Dispose();
+                using var fixedFile = File.OpenRead(fixedFilepath);
+                dict = JsonSerializer.Deserialize<Dictionary<string, RszClass>>(fixedFile) ?? throw new Exception("Invalid RSZ JSON file " + new FileInfo(fixedFilepath).LastWriteTimeUtc);
+            }
+
             if (dict != null)
             {
                 var unresolvedStructs = new HashSet<RszField>();

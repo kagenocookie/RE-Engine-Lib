@@ -393,10 +393,10 @@ namespace ReeLib.Clip
         public ClipVersion Version { get; set; }
 
         private int uknValue;
-        public float startFrame;  // Start
-        public float endFrame;  // End
-        public uint nameUtf16Hash; // UTF16 + ascii hash
-        public uint nameAsciiHash; // UTF16 + ascii hash
+        public float startFrame;
+        public float endFrame;
+        public uint nameUtf16Hash;
+        public uint nameAsciiHash;
 
         public long nameOffset;
         public long dataOffset;
@@ -992,6 +992,16 @@ namespace ReeLib.Clip
         public override string ToString() => $"[Props: {Props1.Count} + {Props2.Count}]";
     }
 
+    public struct SpeedPointData
+    {
+        public float f1;
+        public float f2;
+        public long a;
+        public long b;
+
+        public override string ToString() => $"{f1} {f2}  {a} {b}";
+    }
+
     public struct HermiteInterpolationData
     {
         public float x1;
@@ -1000,6 +1010,20 @@ namespace ReeLib.Clip
         public float y2;
 
         public override string ToString() => $"{x1},{y1}  {x2},{y2}";
+    }
+
+    public struct Bezier3DKeys
+    {
+        public float x1;
+        public float y1;
+        public float x2;
+        public float y2;
+        public float x3;
+        public float y3;
+        public float x4;
+        public float y4;
+
+        public override string ToString() => $"{x1},{y1}  {x2},{y2}  {x3},{y3}  {x4},{y4}";
     }
 
     public class ClipEntry : BaseModel

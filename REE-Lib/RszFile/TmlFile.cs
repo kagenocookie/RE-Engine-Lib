@@ -1,7 +1,4 @@
-using System.Runtime.CompilerServices;
-using System.Text;
 using ReeLib.Clip;
-using ReeLib.Common;
 using ReeLib.InternalAttributes;
 using ReeLib.MotTree;
 using ReeLib.Tml;
@@ -33,7 +30,7 @@ namespace ReeLib.Tml
         public long keyOffset;
         public long speedPointOffset;
         public long hermiteDataOffset;
-        public long hermiteData3DOffset;
+        public long beizer3DDataOffset;
         public long uknOffset;
         public long clipInfoOffset;
 
@@ -70,9 +67,11 @@ namespace ReeLib.Tml
             action.Do(ref keyOffset);
             action.Do(ref speedPointOffset);
             action.Do(ref hermiteDataOffset);
-            action.Do(version != ClipVersion.RE4, ref hermiteData3DOffset);
+            action.Do(version != ClipVersion.RE4, ref beizer3DDataOffset);
             action.Do(version <= ClipVersion.RE2_DMC5, ref uknOffset);
             action.Do(ref clipInfoOffset);
+            DataInterpretationException.DebugThrowIf(uknOffset != 0 && uknOffset != clipInfoOffset, "It's actually used??");
+            DataInterpretationException.DebugThrowIf(version > ClipVersion.RE2_DMC5 && speedPointOffset != hermiteDataOffset, "Speedpoint does still exist");
 
             action.Do(ref stringsOffset);
             action.Do(ref unicodeStringsOffset);
@@ -282,6 +281,32 @@ namespace ReeLib.Tml
 
         public override string ToString() => Name;
     }
+
+    [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(ClipVersion))]
+    public partial class TmlClipInfo : BaseModel
+    {
+        public float f1;
+        public UndeterminedFieldType f2;
+        public uint a;
+        public UndeterminedFieldType b;
+        public uint c;
+
+        public float x1;
+        public UndeterminedFieldType x2;
+        public UndeterminedFieldType x3;
+        [RszVersion(nameof(Version), "<", ClipVersion.RE3, EndAt = nameof(dmc5_x5))]
+        public UndeterminedFieldType dmc5_x4;
+        public UndeterminedFieldType dmc5_x5;
+
+        [RszIgnore] public ClipVersion Version;
+
+        public static int GetSize(ClipVersion version) => version switch {
+            < ClipVersion.RE3 => 40,
+            _ => 32,
+        };
+
+        public override string ToString() => $"{f1} {f2} / {a} {b} {c}";
+    }
 }
 
 
@@ -296,6 +321,11 @@ namespace ReeLib
         public List<TimelineNode> Nodes { get; } = new();
         public List<Property> Properties { get; } = new();
         public List<Key> Keys { get; } = new();
+
+        public List<SpeedPointData> SpeedPointData { get; } = new();
+        public List<HermiteInterpolationData> HermiteData { get; } = new();
+        public List<Bezier3DKeys> Bezier3DData { get; } = new();
+        public List<TmlClipInfo> ClipInfo { get; } = new();
 
         public const uint Magic = 0x50494C43;
 
@@ -318,6 +348,10 @@ namespace ReeLib
             Nodes.Clear();
             RootNodes.Clear();
             Properties.Clear();
+            HermiteData.Clear();
+            SpeedPointData.Clear();
+            Bezier3DData.Clear();
+            ClipInfo.Clear();
 
             handler.Seek(Header.nodesOffset);
             var rootOffsets = handler.ReadArray<long>(Header.rootNodeCount);
@@ -363,10 +397,13 @@ namespace ReeLib
 
             foreach (var off in rootOffsets)
             {
+                // one dmc5 file has duplicate nodes where this fails - ignore, surely nobody's gonna edit this one
                 var rootNode = Nodes.First(n => n.Start == off);
                 RootNodes.Add(rootNode);
             }
 
+            var speedPointCount = 0;
+            var clipInfoCount = 0;
             handler.Seek(Header.propertyOffset);
             for (int i = 0; i < Header.propertyCount; i++)
             {
@@ -375,14 +412,65 @@ namespace ReeLib
                 property.Info.FunctionName = handler.ReadAsciiString(Header.stringsOffset + property.Info.nameOffset);
                 DataInterpretationException.ThrowIf(string.IsNullOrEmpty(property.Info.FunctionName));
                 Properties.Add(property);
+                if (Header.version <= ClipVersion.RE2_DMC5)
+                {
+                    speedPointCount += (int)property.Info.nameAsciiHash;
+                }
             }
 
+            var hermiteKeys = 0;
+            var bezier3dCount = 0;
             handler.Seek(Header.keyOffset);
             for (int i = 0; i < Header.keyCount; i++)
             {
                 Key key = new(Header.version);
                 key.Read(handler);
                 Keys.Add(key);
+                if (key.interpolation == InterpolationType.Hermite) hermiteKeys++;
+                if (key.interpolation == InterpolationType.Bezier3D) bezier3dCount++;
+            }
+
+            if (speedPointCount > 0)
+            {
+                handler.Seek(Header.speedPointOffset);
+                SpeedPointData.ReadStructList(handler, speedPointCount);
+                DataInterpretationException.DebugThrowIf((Header.hermiteDataOffset - Header.speedPointOffset) / 24 != speedPointCount);
+            }
+            else if (Header.version == ClipVersion.RE7 && Header.speedPointOffset != Header.hermiteDataOffset)
+            {
+                // I have no idea why it's like this here, re7 being re7 I guess
+                // the struct looks identical so it's _probably_ the same thing as in newer games
+                handler.Seek(Header.speedPointOffset);
+                SpeedPointData.ReadStructList(handler, Properties.Count);
+                DataInterpretationException.DebugThrowIf((Header.hermiteDataOffset - Header.speedPointOffset) / 24 != speedPointCount);
+            }
+            else
+            {
+                DataInterpretationException.DebugThrowIf(Header.speedPointOffset != Header.hermiteDataOffset);
+            }
+
+            if (hermiteKeys > 0)
+            {
+                handler.Seek(Header.hermiteDataOffset);
+                HermiteData.ReadStructList(handler, hermiteKeys);
+            }
+
+            if (bezier3dCount > 0)
+            {
+                handler.Seek(Header.beizer3DDataOffset);
+                Bezier3DData.ReadStructList(handler, bezier3dCount);
+            }
+
+            // TODO figure out where the count actually comes from
+            // not key interpolation and not linked to properties directly
+            handler.Seek(Header.clipInfoOffset);
+            clipInfoCount = (int)(Header.stringsOffset - Header.clipInfoOffset) / TmlClipInfo.GetSize(Header.version);
+            DataInterpretationException.DebugThrowIf((Header.stringsOffset - Header.clipInfoOffset) % TmlClipInfo.GetSize(Header.version) != 0);
+            for (int i = 0; i < clipInfoCount; ++i)
+            {
+                var clip = new TmlClipInfo() { Version = Header.version };
+                clip.Read(handler);
+                ClipInfo.Add(clip);
             }
 
             // note: copied from ClipEntry due to otherwise different file contents
@@ -428,7 +516,6 @@ namespace ReeLib
             {
                 for (int i = track.nodeStartOffset; i < track.nodeStartOffset + track.nodeCount; ++i)
                 {
-                    // TODO Nodes or RootNodes?
                     track.Nodes.Add(RootNodes[i]);
                 }
             }
@@ -502,14 +589,23 @@ namespace ReeLib
                 key.Write(handler);
             }
 
-            // TODO handle all tml extra data offsets
             Header.speedPointOffset = handler.Tell();
-            Header.hermiteDataOffset = handler.Tell();
-            Header.hermiteData3DOffset = handler.Tell();
-            Header.uknOffset = handler.Tell();
-            Header.clipInfoOffset = handler.Tell();
+            if (SpeedPointData.Count > 0)
+            {
+                SpeedPointData.Write(handler);
+            }
 
-            handler.Align(16);
+            Header.hermiteDataOffset = handler.Tell();
+            HermiteData.Write(handler);
+
+            Header.beizer3DDataOffset = handler.Tell();
+            Bezier3DData.Write(handler);
+
+            Header.uknOffset = handler.Tell(); // this one never has content
+
+            Header.clipInfoOffset = handler.Tell();
+            ClipInfo.Write(handler);
+
             Header.stringsOffset = handler.Tell();
             handler.AsciiStringTableFlush();
 

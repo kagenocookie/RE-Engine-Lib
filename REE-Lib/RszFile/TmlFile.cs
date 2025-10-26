@@ -30,7 +30,7 @@ namespace ReeLib.Tml
         public long keyOffset;
         public long speedPointOffset;
         public long hermiteDataOffset;
-        public long beizer3DDataOffset;
+        public long bezier3DDataOffset;
         public long uknOffset;
         public long clipInfoOffset;
 
@@ -67,7 +67,7 @@ namespace ReeLib.Tml
             action.Do(ref keyOffset);
             action.Do(ref speedPointOffset);
             action.Do(ref hermiteDataOffset);
-            action.Do(version != ClipVersion.RE4, ref beizer3DDataOffset);
+            action.Do(version != ClipVersion.RE4, ref bezier3DDataOffset);
             action.Do(version <= ClipVersion.RE2_DMC5, ref uknOffset);
             action.Do(ref clipInfoOffset);
             DataInterpretationException.DebugThrowIf(uknOffset != 0 && uknOffset != clipInfoOffset, "It's actually used??");
@@ -281,32 +281,6 @@ namespace ReeLib.Tml
 
         public override string ToString() => Name;
     }
-
-    [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(ClipVersion))]
-    public partial class TmlClipInfo : BaseModel
-    {
-        public float f1;
-        public UndeterminedFieldType f2;
-        public uint a;
-        public UndeterminedFieldType b;
-        public uint c;
-
-        public float x1;
-        public UndeterminedFieldType x2;
-        public UndeterminedFieldType x3;
-        [RszVersion(nameof(Version), "<", ClipVersion.RE3, EndAt = nameof(dmc5_x5))]
-        public UndeterminedFieldType dmc5_x4;
-        public UndeterminedFieldType dmc5_x5;
-
-        [RszIgnore] public ClipVersion Version;
-
-        public static int GetSize(ClipVersion version) => version switch {
-            < ClipVersion.RE3 => 40,
-            _ => 32,
-        };
-
-        public override string ToString() => $"{f1} {f2} / {a} {b} {c}";
-    }
 }
 
 
@@ -325,7 +299,7 @@ namespace ReeLib
         public List<SpeedPointData> SpeedPointData { get; } = new();
         public List<HermiteInterpolationData> HermiteData { get; } = new();
         public List<Bezier3DKeys> Bezier3DData { get; } = new();
-        public List<TmlClipInfo> ClipInfo { get; } = new();
+        public List<ClipInfoStruct> ClipInfo { get; } = new();
 
         public const uint Magic = 0x50494C43;
 
@@ -457,18 +431,18 @@ namespace ReeLib
 
             if (bezier3dCount > 0)
             {
-                handler.Seek(Header.beizer3DDataOffset);
+                handler.Seek(Header.bezier3DDataOffset);
                 Bezier3DData.ReadStructList(handler, bezier3dCount);
             }
 
             // TODO figure out where the count actually comes from
             // not key interpolation and not linked to properties directly
             handler.Seek(Header.clipInfoOffset);
-            clipInfoCount = (int)(Header.stringsOffset - Header.clipInfoOffset) / TmlClipInfo.GetSize(Header.version);
-            DataInterpretationException.DebugThrowIf((Header.stringsOffset - Header.clipInfoOffset) % TmlClipInfo.GetSize(Header.version) != 0);
+            clipInfoCount = (int)(Header.stringsOffset - Header.clipInfoOffset) / ClipInfoStruct.GetSize(Header.version);
+            DataInterpretationException.DebugThrowIf((Header.stringsOffset - Header.clipInfoOffset) % ClipInfoStruct.GetSize(Header.version) != 0);
             for (int i = 0; i < clipInfoCount; ++i)
             {
-                var clip = new TmlClipInfo() { Version = Header.version };
+                var clip = new ClipInfoStruct() { Version = Header.version };
                 clip.Read(handler);
                 ClipInfo.Add(clip);
             }
@@ -598,7 +572,7 @@ namespace ReeLib
             Header.hermiteDataOffset = handler.Tell();
             HermiteData.Write(handler);
 
-            Header.beizer3DDataOffset = handler.Tell();
+            Header.bezier3DDataOffset = handler.Tell();
             Bezier3DData.Write(handler);
 
             Header.uknOffset = handler.Tell(); // this one never has content

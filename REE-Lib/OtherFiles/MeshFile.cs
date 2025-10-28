@@ -1202,14 +1202,14 @@ namespace ReeLib.Mesh
         	lodCount = LODs.Count;
 			uvCount = Math.Sign(Buffer.UV0.Length) + Math.Sign(Buffer.UV1.Length);
 			totalMeshCount = (short)LODs[0].MeshGroups.Sum(mg => mg.Submeshes.Count);
-			handler.Write(ref integerFaces);
-			handler.WriteNull(1);
 
 			handler.Write((byte)lodCount);
 			handler.Write((byte)materialCount);
 			handler.Write((byte)uvCount);
 			handler.Write((byte)skinWeightCount);
 			handler.Write(ref totalMeshCount);
+			handler.Write(ref integerFaces);
+			handler.WriteNull(1);
 			if (Version <= MeshSerializerVersion.DMC5)
 			{
 				handler.WriteNull(8);

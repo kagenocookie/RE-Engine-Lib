@@ -2331,6 +2331,7 @@ namespace ReeLib
                         }
 
                         bone.Parent = parentBone;
+                        if (!parentBone.Children.Contains(bone)) parentBone.Children.Add(bone);
                     }
                     else
                     {
@@ -2345,7 +2346,7 @@ namespace ReeLib
                             var next = GetBoneByHash(BoneHeaders[refBoneIndex].boneHash);
                             while (next != null)
                             {
-                                bone.Children.Add(next);
+                                if (!bone.Children.Contains(next)) bone.Children.Add(next);
                                 if (BoneHeaders[refBoneIndex].nextSiblingOffs == 0) break;
 
                                 refBoneIndex = (int)((BoneHeaders[refBoneIndex].nextSiblingOffs - boneHeaderOffset) / BoneHeader.StructSize);
@@ -2388,8 +2389,7 @@ namespace ReeLib
 
             // rebuild Bone headers in case anything changed and to ensure correct offsets
             var sortedBones = Bones.OrderBy(b => b.Index).ToList();
-            DataInterpretationException.ThrowIf(sortedBones.Count > 0 && sortedBones.Last().Index != sortedBones.Count - 1, "Detected skips in bone indices, this probably shouldn't happen!");
-            Debug.Assert(sortedBones.Count == Bones.Count);
+            DataInterpretationException.ThrowIf(sortedBones.Count > 0 && sortedBones.Last().Index != sortedBones.Count - 1 && !sortedBones.All(b => b.Index == 0), "Detected skips in bone indices, this probably shouldn't happen!");
 
             BoneHeaders.Sort(new FuncComparer<BoneHeader>((a, b) => a.Index.CompareTo(b.Index)));
             var firstBoneOffset = handler.Tell();

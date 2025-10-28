@@ -2,6 +2,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using ReeLib.Common;
 using ReeLib.InternalAttributes;
+using ReeLib.via;
 
 namespace ReeLib.Clip
 {
@@ -38,6 +39,221 @@ namespace ReeLib.Clip
         DiscreteToEnd = 0xE,
     }
 
+    public static class ClipPropertyExtensions
+    {
+        public static object Read(this PropertyType type, FileHandler handler, IKeyValueContainer? relativeOffsets = null)
+        {
+            if (type == PropertyType.Unknown) return handler.Read<long>();
+
+            switch (type)
+            {
+                case PropertyType.Bool: return handler.Read<bool>();
+                case PropertyType.S8:  return handler.Read<sbyte>();
+                case PropertyType.U8:  return handler.Read<byte>();
+                case PropertyType.S16: return handler.Read<short>();
+                case PropertyType.U16: return handler.Read<ushort>();
+                case PropertyType.S32: return handler.Read<int>();
+                case PropertyType.U32: return handler.Read<uint>();
+                case PropertyType.S64: return handler.Read<long>();
+                case PropertyType.U64: return handler.Read<ulong>();
+                case PropertyType.F64: return handler.Read<double>();
+                case PropertyType.F64_alt: { // yes they both look like doubles ¯\_(ツ)_/¯
+                        var value = handler.Read<double>();
+                        return value;
+                    }
+                case PropertyType.Str8:
+                case PropertyType.Enum:
+                    {
+                        long offset = handler.Read<long>();
+                        return handler.ReadAsciiString(relativeOffsets == null ? offset : relativeOffsets.AsciiStringOffset + offset);
+                    }
+                case PropertyType.Str16:
+                case PropertyType.Asset:
+                case PropertyType.GameObjectRef:
+                    {
+                        long offset = handler.Read<long>();
+                        return handler.ReadWString(relativeOffsets == null ? offset : relativeOffsets.UnicodeStringOffset + offset * 2);
+                    }
+                case PropertyType.Guid:
+                    {
+                        long offset = handler.Read<long>();
+                        if (relativeOffsets == null)
+                        {
+                            return handler.Read<Guid>(offset);
+                        }
+                        return Guid.Parse(handler.ReadWString(relativeOffsets.UnicodeStringOffset + offset * 2));
+                    }
+                case PropertyType.Vec2:
+                case PropertyType.Float2:
+                    return handler.Read<Vector2>(handler.Read<long>());
+                case PropertyType.Float3:
+                case PropertyType.Vec3:
+                case PropertyType.PathPoint3D:
+                    {
+                        var offset = handler.Read<long>();
+                        return handler.Read<Vector3>(relativeOffsets == null ? offset : relativeOffsets.DataOffset16B + offset * 16);
+                    }
+                case PropertyType.Float4:
+                case PropertyType.Vec4:
+                    return handler.Read<Vector4>(handler.Read<long>());
+                case PropertyType.Int2: return handler.Read<Int2>(handler.Read<long>());
+                case PropertyType.Int3: return handler.Read<Int3>(handler.Read<long>());
+                case PropertyType.Int4: return handler.Read<Int4>(handler.Read<long>());
+                case PropertyType.Uint2: return handler.Read<Uint2>(handler.Read<long>());
+                case PropertyType.Uint3: return handler.Read<Uint3>(handler.Read<long>());
+                case PropertyType.Uint4: return handler.Read<Uint4>(handler.Read<long>());
+                case PropertyType.Color: return handler.Read<Color>(handler.Read<long>());
+                case PropertyType.Rect: return handler.Read<Rect>(handler.Read<long>());
+                case PropertyType.RangeI: return handler.Read<RangeI>(handler.Read<long>());
+                case PropertyType.Size: return handler.Read<Size>(handler.Read<long>());
+                case PropertyType.Action: return handler.Read<long>();
+                default:
+                    throw new Exception($"Unsupported PropertyType: {type}");
+            }
+        }
+
+        private static void WriteOffsetValue<T>(T value, FileHandler handler, bool relativeOffsets) where T : unmanaged
+        {
+            if (relativeOffsets)
+            {
+                handler.OffsetContentTableAdd((h) => h.Write(value), false);
+                var offset = handler.OffsetContentTable!.Items.Count - 1;
+                handler.Write((long)offset);
+            }
+            else
+            {
+                handler.WriteOffsetContent((h) => h.Write(value));
+            }
+        }
+
+        public static void Write(this PropertyType type, object Value, FileHandler handler, bool relativeOffsets)
+        {
+            if (type == PropertyType.Unknown)
+            {
+                handler.Write((long)(Value ?? 0L));
+                return;
+            }
+
+            var endOffset = handler.Tell() + 8;
+            switch (type)
+            {
+                case PropertyType.Bool:
+                    handler.Write((bool)Value);
+                    break;
+                case PropertyType.S8:
+                    handler.Write((sbyte)Value);
+                    break;
+                case PropertyType.U8:
+                    handler.Write((byte)Value);
+                    break;
+                case PropertyType.S16:
+                    handler.Write((short)Value);
+                    break;
+                case PropertyType.U16:
+                    handler.Write((ushort)Value);
+                    break;
+                case PropertyType.S32:
+                    handler.Write((int)Value);
+                    break;
+                case PropertyType.U32:
+                    handler.Write((uint)Value);
+                    break;
+                case PropertyType.S64:
+                    handler.Write((long)Value);
+                    break;
+                case PropertyType.U64:
+                    handler.Write((ulong)Value);
+                    break;
+                case PropertyType.F64:
+                    handler.Write((double)Value);
+                    break;
+                case PropertyType.F64_alt:
+                    handler.Write((double)Value);
+                    break;
+                case PropertyType.Str8:
+                case PropertyType.Enum:
+                    if (relativeOffsets)
+                    {
+                        var stringItem = handler.AsciiStringTableAdd((string)Value, false);
+                        handler.Write(stringItem.TableOffset);
+                    }
+                    else
+                    {
+                        handler.WriteOffsetAsciiString((string)Value);
+                    }
+                    break;
+                case PropertyType.Str16:
+                case PropertyType.Asset:
+                case PropertyType.GameObjectRef:
+                    if (relativeOffsets)
+                    {
+                        var stringItem = handler.StringTableAdd((string)Value, false);
+                        handler.Write(stringItem.TableOffset);
+                    }
+                    else
+                    {
+                        handler.WriteOffsetWString((string)Value);
+                    }
+                    break;
+                case PropertyType.Guid:
+                    if (relativeOffsets)
+                    {
+                        var stringItem = handler.StringTableAdd(((Guid)Value).ToString(), false);
+                        handler.Write(stringItem.TableOffset);
+                    }
+                    else
+                    {
+                        handler.WriteOffsetContent(h => h.Write((Guid)Value));
+                    }
+                    break;
+                case PropertyType.Vec2:
+                case PropertyType.Float2:
+                    WriteOffsetValue((Vector2)Value, handler, relativeOffsets);
+                    break;
+                case PropertyType.PathPoint3D:
+                case PropertyType.Float3:
+                case PropertyType.Vec3:
+                    {
+                        var vec = (Vector3)Value;
+                        if (relativeOffsets)
+                        {
+                            handler.OffsetContentTableAdd((h) => {
+                                h.Write(vec);
+                                h.WriteNull(4);
+                            }, false);
+                            var offset = handler.OffsetContentTable!.Items.Count - 1;
+                            handler.Write((long)offset);
+                        }
+                        else
+                        {
+                            handler.WriteOffsetContent(h => {
+                                h.Write(vec);
+                                h.WriteNull(4);
+                            });
+                        }
+                    }
+                    break;
+                case PropertyType.Float4:
+                case PropertyType.Vec4:
+                    WriteOffsetValue((Vector4)Value, handler, relativeOffsets);
+                    break;
+                case PropertyType.Uint2: WriteOffsetValue((Uint2)Value, handler, relativeOffsets); break;
+                case PropertyType.Uint3: WriteOffsetValue((Uint3)Value, handler, relativeOffsets); break;
+                case PropertyType.Uint4: WriteOffsetValue((Uint4)Value, handler, relativeOffsets); break;
+                case PropertyType.Int2: WriteOffsetValue((Int2)Value, handler, relativeOffsets); break;
+                case PropertyType.Int3: WriteOffsetValue((Int3)Value, handler, relativeOffsets); break;
+                case PropertyType.Int4: WriteOffsetValue((Int4)Value, handler, relativeOffsets); break;
+                case PropertyType.Color: WriteOffsetValue((Color)Value, handler, relativeOffsets); break;
+                case PropertyType.Rect: WriteOffsetValue((Rect)Value, handler, relativeOffsets); break;
+                case PropertyType.RangeI: WriteOffsetValue((RangeI)Value, handler, relativeOffsets); break;
+                case PropertyType.Size: WriteOffsetValue((Size)Value, handler, relativeOffsets); break;
+                case PropertyType.Action: handler.Write((long)Value); break;
+                default:
+                    throw new Exception($"Unsupported PropertyType: {type}");
+            }
+            handler.Seek(endOffset);
+        }
+    }
 
     /// <summary>
     /// source: via.timeline.PropertyType
@@ -56,7 +272,7 @@ namespace ReeLib.Clip
         U64 = 0x9,
         // yes, it's actually a double even though the ingame enum says F32 for this value, maybe it's not the right enum, or the devs are dumb; haven't found a F64 instance in the wild yet
         F64 = 0xA,
-        F64_invalid = 0xB,
+        F64_alt = 0xB,
         Str8 = 0xC,
         Str16 = 0xD,
         Enum = 0xE,
@@ -171,6 +387,12 @@ namespace ReeLib.Clip
         }
     }
 
+    public interface IKeyValueContainer
+    {
+        long AsciiStringOffset { get; }
+        long UnicodeStringOffset { get; }
+        long DataOffset16B { get; }
+    }
 
     public class Key : BaseModel
     {
@@ -180,13 +402,6 @@ namespace ReeLib.Clip
         public bool instanceValue;
         public uint unknown; // might be some sort of frame length?
         public object Value { get; set; } = null!;
-
-        public interface IKeyValueContainer
-        {
-            long AsciiStringOffset { get; }
-            long UnicodeStringOffset { get; }
-            long DataOffset16B { get; }
-        }
 
         public PropertyType PropertyType { get; set; }
         public ClipVersion Version { get; set; }
@@ -233,156 +448,13 @@ namespace ReeLib.Clip
         {
             handler.Seek(Start + 16);
             PropertyType = property.Info.DataType;
-            if (PropertyType == PropertyType.Unknown)
-            {
-                Value = handler.Read<long>();
-            }
-            else switch (PropertyType)
-            {
-                case PropertyType.Bool:
-                    Value = handler.Read<bool>();
-                    break;
-                case PropertyType.S8:
-                    Value = handler.Read<sbyte>();
-                    break;
-                case PropertyType.U8:
-                    Value = handler.Read<byte>();
-                    break;
-                case PropertyType.S16:
-                    Value = handler.Read<short>();
-                    break;
-                case PropertyType.U16:
-                    Value = handler.Read<ushort>();
-                    break;
-                case PropertyType.S32:
-                    Value = handler.Read<int>();
-                    break;
-                case PropertyType.U32:
-                    Value = handler.Read<uint>();
-                    break;
-                case PropertyType.S64:
-                    Value = handler.Read<long>();
-                    break;
-                case PropertyType.U64:
-                    Value = handler.Read<ulong>();
-                    break;
-                case PropertyType.F64:
-                    Value = handler.Read<double>();
-                    break;
-                case PropertyType.F64_invalid:
-                    throw new DataInterpretationException("F64_invalid, formerly known as non-existent F64, has been found.");
-                    // Value = handler.Read<double>();
-                    // break;
-                case PropertyType.Str8:
-                case PropertyType.Enum:
-                    {
-                        long offset = handler.Read<long>();
-                        Value = handler.ReadAsciiString(offsets.AsciiStringOffset + offset);
-                    }
-                    break;
-                case PropertyType.Str16:
-                case PropertyType.Asset:
-                case PropertyType.Guid:
-                case PropertyType.GameObjectRef:
-                    {
-                        long offset = handler.Read<long>();
-                        Value = handler.ReadWString(offsets.UnicodeStringOffset + offset * 2);
-                    }
-                    break;
-                case PropertyType.PathPoint3D:
-                    {
-                        var offset = handler.Read<long>();
-                        Value = handler.Read<Vector3>(offsets.DataOffset16B + offset * 16);
-                    }
-                    break;
-                case PropertyType.Action:
-                    Value = handler.Read<long>();
-                    break;
-                default:
-                    throw new Exception($"Unsupported PropertyType: {PropertyType}");
-            }
+            Value = PropertyType.Read(handler, offsets);
         }
 
         public void WriteValue(FileHandler handler)
         {
             handler.Seek(Start + 16);
-            if (PropertyType == PropertyType.Unknown)
-            {
-                if (Value != null)
-                {
-                    handler.Write((long)Value);
-                }
-            }
-            else switch (PropertyType)
-            {
-                case PropertyType.Bool:
-                    handler.Write((bool)Value);
-                    break;
-                case PropertyType.S8:
-                    handler.Write((sbyte)Value);
-                    break;
-                case PropertyType.U8:
-                    handler.Write((byte)Value);
-                    break;
-                case PropertyType.S16:
-                    handler.Write((short)Value);
-                    break;
-                case PropertyType.U16:
-                    handler.Write((ushort)Value);
-                    break;
-                case PropertyType.S32:
-                    handler.Write((int)Value);
-                    break;
-                case PropertyType.U32:
-                    handler.Write((uint)Value);
-                    break;
-                case PropertyType.S64:
-                    handler.Write((long)Value);
-                    break;
-                case PropertyType.U64:
-                    handler.Write((ulong)Value);
-                    break;
-                case PropertyType.F64:
-                    handler.Write((double)Value);
-                    break;
-                case PropertyType.F64_invalid:
-                    handler.Write((double)Value);
-                    break;
-                case PropertyType.Str8:
-                case PropertyType.Enum:
-                    {
-                        string text = (string)Value;
-                        var stringItem = handler.AsciiStringTableAdd(text, false);
-                        handler.Write(stringItem.TableOffset);
-                    }
-                    break;
-                case PropertyType.Str16:
-                case PropertyType.Asset:
-                case PropertyType.Guid:
-                case PropertyType.GameObjectRef:
-                    {
-                        string text = (string)Value;
-                        var stringItem = handler.StringTableAdd(text, false);
-                        handler.Write(stringItem.TableOffset);
-                    }
-                    break;
-                case PropertyType.PathPoint3D:
-                    {
-                        var vec = (Vector3)Value;
-                        handler.OffsetContentTableAdd((h) => {
-                            h.Write(vec);
-                            h.WriteNull(4);
-                        }, false);
-                        var offset = handler.OffsetContentTable!.Items.Count - 1;
-                        handler.Write((long)offset);
-                    }
-                    break;
-                case PropertyType.Action:
-                    handler.Write((long)Value);
-                    break;
-                default:
-                    throw new Exception($"Unsupported PropertyType: {PropertyType}");
-            }
+            PropertyType.Write(Value, handler, true);
         }
 
         public override string ToString() => $"[Frame {frame}]: {Value}";
@@ -516,6 +588,7 @@ namespace ReeLib.Clip
                     action.Null(8);
                 }
             }
+            DataInterpretationException.DebugThrowIf(DataType == PropertyType.Unknown);
             return true;
         }
 
@@ -575,6 +648,7 @@ namespace ReeLib.Clip
                     case PropertyType.Float4:      // 0x1C
                     case PropertyType.RangeI:      // 0x1D
                     case PropertyType.Point:       // 0x1E
+                    case PropertyType.Size:        // 0x1F
                     case PropertyType.Uint2:       // 0x23
                     case PropertyType.Uint3:       // 0x24 (assumption)
                     case PropertyType.Uint4:       // 0x25 (assumption)
@@ -699,7 +773,7 @@ namespace ReeLib.Clip
     /// 这是Embedded Clip的结构，用在motlists和gui文件中，单独的clip结构不一样，多几个字段
     /// 暂时没想好怎么做兼容
     /// </summary>
-    public class ClipHeader : BaseModel, Key.IKeyValueContainer
+    public class ClipHeader : BaseModel, IKeyValueContainer
     {
         public uint magic = ClipEntry.Magic;
         public ClipVersion version;
@@ -736,9 +810,9 @@ namespace ReeLib.Clip
             _ => 2,
         };
 
-        long Key.IKeyValueContainer.AsciiStringOffset => namesOffset;
-        long Key.IKeyValueContainer.UnicodeStringOffset => unicodeNamesOffset;
-        long Key.IKeyValueContainer.DataOffset16B => throw new NotImplementedException();
+        long IKeyValueContainer.AsciiStringOffset => namesOffset;
+        long IKeyValueContainer.UnicodeStringOffset => unicodeNamesOffset;
+        long IKeyValueContainer.DataOffset16B => throw new NotImplementedException();
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -801,7 +875,6 @@ namespace ReeLib.Clip
             handler.Write(ref namesOffset);
             handler.Write(ref unicodeNamesOffset);
             handler.Write(ref endClipStructsOffset1);
-            // if (version <= ClipVersion.RE4)
             handler.Write(ref endClipStructsOffset2);
             return true;
         }
@@ -1195,7 +1268,7 @@ namespace ReeLib.Clip
             }
 
             ExtraPropertyData.Version = Header.version;
-            if (Version != ClipVersion.RE7 && clipHeader.endClipStructsOffset1 > 0)
+            if (Version != ClipVersion.RE7 && clipHeader.endClipStructsOffset1 > 0 && clipHeader.endClipStructsOffset2 == clipHeader.endClipStructsOffset1 + 8)
             {
                 handler.Seek(clipHeader.endClipStructsOffset1);
                 // TODO figure out what and why this section exists

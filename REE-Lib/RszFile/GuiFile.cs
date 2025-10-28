@@ -1,28 +1,36 @@
-using System.Collections.ObjectModel;
-using System.Numerics;
+using ReeLib.Clip;
+using ReeLib.Common;
 using ReeLib.Gui;
 
 namespace ReeLib
 {
     public enum GuiVersion
     {
-        RE7 = 60,
-        RE2_DMC5 = 85,
-        RE3 = 99,
-        RE8 = 486,
+        RE7 = 14,
+        RE2_DMC5 = 20,
+        RE8 = 23,
+        RE_RT = 27,
+        MHRise = 33,
+        RE4 = 34,
+        DD2 = 35,
+        MHWilds = 41,
     }
-
 
     public class GuiFile : BaseFile
     {
-        // 内存结构顺序：
-        // 1. Header
-        // 2. ElementHeader[]
-        // 3. SubElementHeader[]
-        // 4. ClipHeader[]
-
         public HeaderStruct Header { get; } = new();
-        public List<Element> Elements { get; } = new();
+        public DisplayElement? Root { get; set; }
+
+        public List<GuiContainer> Containers { get; } = new();
+        public Element RootElement { get; set; } = null!;
+
+        public List<ResourceAttribute> ResourceAttributes { get; } = new();
+        public List<string> Resources { get; } = new();
+        public List<string> ChildGUIs { get; } = new();
+
+        public List<ChildGuiOverride> ChildGuiOverries { get; } = new();
+        public List<AdditionalData2> Additional2 { get; } = new();
+        public List<AdditionalData3> Additional3 { get; } = new();
 
         public GuiFile(FileHandler fileHandler) : base(fileHandler)
         {
@@ -41,20 +49,267 @@ namespace ReeLib
                 throw new InvalidDataException($"{handler.FilePath} Not a GUI file");
             }
 
-            if (header.version < 430000)
+            Containers.Clear();
+            ResourceAttributes.Clear();
+            Resources.Clear();
+            ChildGUIs.Clear();
+            ChildGuiOverries.Clear();
+            Additional2.Clear();
+            Additional3.Clear();
+
+            var offsets = handler.ReadArray<long>((int)handler.Read<long>());
+
+            for (int i = 0; i < offsets.Length; ++i)
             {
-                handler.Seek(header.endOffs[0]);
-                throw new NotImplementedException("Not implemented for version < 430000");
+                handler.Seek(offsets[i]);
+                var control = new GuiContainer();
+                control.Info.Read(handler);
+                Containers.Add(control);
             }
 
-            handler.Seek(header.elementOffsets[0]);
+            foreach (var container in Containers)
+            {
+                handler.Seek(container.Info.elementsOffset);
+                var elementOffsets = handler.ReadArray<long>((int)handler.Read<long>());
 
+                handler.Seek(container.Info.clipsOffset);
+                var totalClipCount = handler.Read<int>();
+                var clipCount = handler.Read<int>();
+                DataInterpretationException.DebugThrowIf(clipCount != 0 && totalClipCount % clipCount != 0);
+                var clipOffsets = handler.ReadArray<long>(totalClipCount);
+
+                foreach (var subOffset in elementOffsets)
+                {
+                    handler.Seek(subOffset);
+                    var sub = new Element(header.GuiVersion);
+                    sub.Read(handler);
+                    container.Elements.Add(sub);
+                }
+
+                foreach (var clipOffset in clipOffsets)
+                {
+                    handler.Seek(clipOffset);
+                    var gclip = new GuiClip();
+                    gclip.Read(handler);
+                    container.Clips.Add(gclip);
+                }
+            }
+
+            foreach (var elem in Containers)
+            {
+                foreach (var gclip in elem.Clips)
+                {
+                    if (gclip.transitionAfterEndClipOffset != 0)
+                    {
+                        // the "next" clip doesn't need to be on the same element
+                        gclip.NextClip = Containers.SelectMany(e => e.Clips).First(clip => clip.Start == gclip.transitionAfterEndClipOffset);
+                    }
+                }
+            }
+
+            handler.Seek(header.viewOffset);
+            RootElement = new Element(header.GuiVersion);
+            RootElement.Read(handler);
+            DataInterpretationException.DebugThrowIf(RootElement.ClassName != "via.gui.View");
+
+            int count;
+            if (header.uknOffset != 0)
+            {
+                handler.Seek(header.uknOffset);
+                count = (int)handler.Read<long>();
+                DataInterpretationException.DebugThrowIf(count != 0);
+            }
+
+            handler.Seek(header.resourceAttributesOffset);
+            count = (int)handler.Read<long>();
+            for (int i = 0; i < count; ++i)
+            {
+                var attr = new ResourceAttribute(header.GuiVersion);
+                attr.Read(handler);
+                ResourceAttributes.Add(attr);
+            }
+
+            if (header.additionalDataOffset > 0)
+            {
+                handler.Seek(header.additionalDataOffset);
+                var offs1 = handler.Read<long>();
+                var offs2 = handler.Read<long>();
+                var offs3 = handler.Read<long>();
+                handler.Seek(offs1);
+                count = (int)handler.Read<long>();
+
+                for (int i = 0; i < count; ++i)
+                {
+                    var pr = new ChildGuiOverride();
+                    pr.Read(handler);
+                    ChildGuiOverries.Add(pr);
+                }
+
+                handler.Seek(offs2);
+                count = (int)handler.Read<long>();
+                for (int i = 0; i < count; ++i)
+                {
+                    var pr = new AdditionalData2();
+                    pr.Read(handler);
+                    Additional2.Add(pr);
+                }
+
+                handler.Seek(offs3);
+                count = (int)handler.Read<long>();
+                for (int i = 0; i < count; ++i)
+                {
+                    var pr = new AdditionalData3();
+                    pr.Read(handler);
+                    Additional3.Add(pr);
+                }
+            }
+
+            handler.Seek(header.guiFilesOffset);
+            count = (int)handler.Read<long>();
+            for (int i = 0; i < count; ++i) ChildGUIs.Add(handler.ReadOffsetWString());
+
+            handler.Seek(header.resourcePathsOffset);
+            count = (int)handler.Read<long>();
+            for (int i = 0; i < count; ++i) Resources.Add(handler.ReadOffsetWString());
+
+            ConstructElementHierarchy();
             return true;
+        }
+
+        private void ConstructElementHierarchy()
+        {
+            var containersDict = Containers.ToDictionary(c => c.Info.guid);
+            Root = new DisplayElement(RootElement, containersDict[RootElement.ContainerId]);
+            SetupDisplayElementChildren(Root, containersDict);
+        }
+
+        private void SetupDisplayElementChildren(DisplayElement element, Dictionary<Guid, GuiContainer> containersDict)
+        {
+            if (element.Container == null) return;
+
+            foreach (var child in element.Container.Elements)
+            {
+                // note: ContainerId can reference a ChildGui's container, that's not handled yet
+                var displayChild = new DisplayElement(child, containersDict.GetValueOrDefault(child.ContainerId));
+                SetupDisplayElementChildren(displayChild, containersDict);
+                element.Children.Add(displayChild);
+            }
         }
 
         protected override bool DoWrite()
         {
-            throw new NotImplementedException();
+            var handler = FileHandler;
+            var header = Header;
+            header.Write(handler);
+
+            handler.Write((long)Containers.Count);
+            var elementsStartOffset = handler.Tell();
+            handler.Skip(Containers.Count * 8);
+
+            header.offsetsStart = handler.Tell();
+            for (int i = 0; i < Containers.Count; ++i)
+            {
+                handler.Write(elementsStartOffset + i * 8, handler.Tell());
+                Containers[i].Info.Write(handler);
+            }
+
+            foreach (var elem in Containers)
+            {
+                elem.Info.elementsOffset = handler.Tell();
+                handler.Write((long)elem.Elements.Count);
+                handler.Skip(elem.Elements.Count * 8);
+
+                elem.Info.clipsOffset = handler.Tell();
+                handler.Write(elem.Clips.Count);
+                handler.Write(elem.Clips.DistinctBy(c => c.name).Count()); // maybe
+                handler.Skip(elem.Clips.Count * 8);
+                elem.Info.Write(handler, elem.Info.Start);
+            }
+
+            header.viewOffset = handler.Tell();
+            RootElement.Write(handler);
+
+            foreach (var elem in Containers)
+            {
+                for (int i = 0; i < elem.Elements.Count; ++i)
+                {
+                    handler.Write(elem.Info.elementsOffset + 8 + i * 8, handler.Tell());
+                    elem.Elements[i].Write(handler);
+                }
+            }
+
+            foreach (var elem in Containers)
+            {
+                for (int i = 0; i < elem.Clips.Count; ++i)
+                {
+                    handler.Write(elem.Info.clipsOffset + 8 + i * 8, handler.Tell());
+                    elem.Clips[i].Write(handler);
+                }
+            }
+
+            var endSectionOffset = handler.Tell();
+
+            foreach (var elem in Containers)
+            {
+                foreach (var gclip in elem.Clips)
+                {
+                    if (gclip.NextClip != null)
+                    {
+                        gclip.transitionAfterEndClipOffset = gclip.NextClip.Start;
+                        handler.Seek(gclip.Start);
+                        gclip.WriteHeader(handler);
+                    }
+                }
+            }
+
+            handler.Seek(endSectionOffset);
+            handler.Align(16);
+
+            if (header.GuiVersion < GuiVersion.DD2)
+            {
+                header.uknOffset = handler.Tell();
+                handler.WriteNull(8);
+            }
+
+            header.resourceAttributesOffset = handler.Tell();
+            handler.Write((long)ResourceAttributes.Count);
+            ResourceAttributes.Write(handler);
+
+            if (header.GuiVersion >= GuiVersion.RE_RT)
+            {
+                header.additionalDataOffset = handler.Tell();
+                handler.Skip(24);
+
+                handler.Write(header.additionalDataOffset, handler.Tell());
+                handler.Write((long)ChildGuiOverries.Count);
+                ChildGuiOverries.Write(handler);
+                handler.Align(16);
+
+                handler.Write(header.additionalDataOffset + 8, handler.Tell());
+                handler.Write((long)Additional2.Count);
+                Additional2.Write(handler);
+                handler.Align(16);
+
+                handler.Write(header.additionalDataOffset + 16, handler.Tell());
+                handler.Write((long)Additional3.Count);
+                Additional3.Write(handler);
+                handler.Align(16);
+            }
+
+            header.guiFilesOffset = handler.Tell();
+            handler.Write((long)ChildGUIs.Count);
+            foreach (var str in ChildGUIs) handler.WriteOffsetWString(str);
+
+            header.resourcePathsOffset = handler.Tell();
+            handler.Write((long)Resources.Count);
+            foreach (var str in Resources) handler.WriteOffsetWString(str);
+
+            handler.StringTableFlush();
+            handler.AsciiStringTableFlush();
+            handler.OffsetContentTableFlush();
+
+            header.Write(handler, 0);
+            return true;
         }
     }
 }
@@ -65,42 +320,33 @@ namespace ReeLib.Gui
     public class HeaderStruct : BaseModel {
         public uint version;
         public uint magic;
-        public long offsetsStartOffset;
-        public long[] endOffs = new long[4];
-        public ulong ukn;
-        public long offsetsStart;
-        public long viewOffset;
-        public long numOffs;
-        public List<long> elementOffsets = new();
+        internal long offsetsStartOffset;
+        internal long uknOffset;
+        internal long resourceAttributesOffset;
+        internal long guiFilesOffset;
+        internal long resourcePathsOffset;
+        internal long additionalDataOffset;
+        internal long offsetsStart;
+        internal long viewOffset;
 
         public GuiVersion GuiVersion { get; private set; }
 
         protected override bool DoRead(FileHandler handler)
         {
             handler.Read(ref version);
+            GuiVersion = (GuiVersion)(version % 100);
             handler.Read(ref magic);
             handler.Read(ref offsetsStartOffset);
-            handler.ReadArray(endOffs);
-            if (version > 430000)
-            {
-                handler.Read(ref ukn);
-            }
+
+            if (GuiVersion < GuiVersion.DD2) handler.Read(ref uknOffset);
+            handler.Read(ref resourceAttributesOffset);
+            if (GuiVersion >= GuiVersion.RE_RT) handler.Read(ref additionalDataOffset);
+            handler.Read(ref guiFilesOffset);
+            handler.Read(ref resourcePathsOffset);
+
             handler.Seek(offsetsStartOffset);
             handler.Read(ref offsetsStart);
             handler.Read(ref viewOffset);
-            handler.Read(ref numOffs);
-            elementOffsets.Clear();
-            for (int i = 0; i < numOffs; i++)
-            {
-                elementOffsets.Add(handler.ReadInt64());
-            }
-
-            if (version == 180014) // RE7
-                GuiVersion = GuiVersion.RE7;
-            else if (version == 340020) // RE3
-                GuiVersion = GuiVersion.RE3;
-            else if (version  >= 400022) // RE8 and MHRise
-                GuiVersion = GuiVersion.RE8;
             return true;
         }
 
@@ -110,511 +356,449 @@ namespace ReeLib.Gui
             handler.Write(ref magic);
             var addrOffset = handler.Tell();
             handler.Write(ref offsetsStartOffset);
-            handler.ReadArray(endOffs);
-            if (version > 430000)
-            {
-                handler.Write(ref ukn);
-            }
-            offsetsStartOffset = handler.Tell();
-            handler.Write(addrOffset, offsetsStartOffset);
+
+            if (GuiVersion < GuiVersion.DD2) handler.Write(ref uknOffset);
+            handler.Write(ref resourceAttributesOffset);
+            if (GuiVersion >= GuiVersion.RE_RT) handler.Write(ref additionalDataOffset);
+            handler.Write(ref guiFilesOffset);
+            handler.Write(ref resourcePathsOffset);
+            handler.Write(addrOffset, offsetsStartOffset = handler.Tell());
             handler.Write(ref offsetsStart);
             handler.Write(ref viewOffset);
-            numOffs = elementOffsets.Count;
-            handler.Write(ref numOffs);
-            elementOffsets.Clear();
-            for (int i = 0; i < numOffs; i++)
-            {
-                handler.Write(elementOffsets[i]);
-            }
             return true;
         }
     }
 
-
-    // for header.version < 430000
-    public class GPath : BaseModel
+    public class DisplayElement(Element element, GuiContainer? container)
     {
-        public long count;
+        public Element Element { get; set; } = element;
+        public GuiContainer? Container { get; set; } = container;
+        public List<DisplayElement> Children { get; } = new();
+
+        public override string ToString() => Element.ToString();
+    }
+
+    public class GuiClip : BaseModel
+    {
+        public Guid guid;
+        public string name = "";
+        public ClipEntry? clip;
+        public bool IsDefault;
+
+        public GuiClip? NextClip { get; set; }
+
+        internal long transitionAfterEndClipOffset;
+
+        public override string ToString() => (NextClip == null ? name : $"{name} [=> {NextClip.name}]");
 
         protected override bool DoRead(FileHandler handler)
         {
-            throw new NotImplementedException();
+            handler.Read<Guid>(ref guid);
+            var uknNum = handler.Read<long>();
+            DataInterpretationException.ThrowIf(uknNum != 0 && uknNum != 1, "It's no bool");
+            IsDefault = uknNum != 0;
+
+            name = handler.ReadOffsetWString();
+            handler.Read(ref transitionAfterEndClipOffset);
+
+            clip = new ClipEntry();
+            clip.Read(handler.WithOffset(handler.Tell()));
+            return true;
         }
 
         protected override bool DoWrite(FileHandler handler)
         {
-            throw new NotImplementedException();
-        }
-    }
-
-
-    public enum AttributeType
-    {
-        Unknown,
-        Bool,
-        Int,
-        Float,
-        String,
-        WString,
-        Vec4,
-        Vec3,
-        Color,
-        ColorFloat,
-    }
-
-
-    public class AttributeInfo : BaseModel
-    {
-        public uint type;
-        public long nameOffset;
-        public string? Name { get; set; }
-
-        public override string ToString()
-        {
-            return Name ?? "";
-        }
-
-        protected override bool DoRead(FileHandler handler)
-        {
-            handler.Read(ref type);
-            handler.ReadNull(4);
-            handler.Read(ref nameOffset);
-            Name = handler.ReadWString(nameOffset);
-            return true;
-
-        }
-
-        protected override bool DoWrite(FileHandler handler)
-        {
-            handler.Write(ref type);
-            handler.WriteNull(4);
-            handler.StringTableAdd(Name);
-            handler.Write(ref nameOffset);
+            WriteHeader(handler);
+            clip!.Write(handler.WithOffset(handler.Tell()));
             return true;
         }
 
-        public AttributeType AttributeType
+        internal void WriteHeader(FileHandler handler)
         {
-            get
-            {
-                switch (type)
-                {
-                    case 1:
-                        return AttributeType.Bool;
-                    case 3:
-                    case 4: // UV
-                    case 5:
-                    case 6: // RE3
-                    case 7:
-                        return AttributeType.Int;
-                    case 10:
-                        return AttributeType.Float;
-                    case 14:
-                    case 43: // RE3
-                        return AttributeType.String;
-                    case 13:
-                    case 32: // filepath
-                    case 34: // string RE3
-                        return AttributeType.WString;
-                    case 22:
-                    case 26:
-                        return AttributeType.Vec4;
-                    case 21: // RE3
-                    case 31: // vector3
-                        return AttributeType.Vec3;
-                    case 24: // color (bytes)
-                        return AttributeType.Color;
-                    case 27:
-                    case 28: // color (floats)
-                        return AttributeType.ColorFloat;
-                    default:
-                        return AttributeType.Unknown;
-                }
-            }
-        }
+            handler.Write<Guid>(ref guid);
+            handler.Write(IsDefault ? 1L : 0L);
 
-        public bool IsPointer
-        {
-            get
-            {
-                return AttributeType switch
-                {
-                    AttributeType.String or AttributeType.WString or AttributeType.Vec4 or AttributeType.Vec3
-                        or AttributeType.Color or AttributeType.ColorFloat => true,
-                    _ => false,
-                };
-            }
+            handler.WriteOffsetWString(name);
+            handler.Write(ref transitionAfterEndClipOffset);
         }
     }
-
-
-    public struct ColorFloat
-    {
-        public float Red;
-        public float Blue;
-        public float Green;
-        public float Alpha;
-    }
-
 
     public class Attribute : BaseModel
     {
-        private uint Version { get; }
-        public AttributeInfo AttributeInfo { get; }
+        private GuiVersion Version { get; set; }
+
+        public string Name { get; set; } = "";
+        public PropertyType propertyType;
+        public int uknInt;
+
+        public int OrderIndex;
 
         public long valueOffset;
-        private long ukn;
+        private long nameHash;
 
-        // public bool UniqueOffset { get; set; }
-        // public int OffsetIdx { get; set; }
         public object Value { get; set; } = 0;
 
-
-        public Attribute(uint version, AttributeInfo attributeInfo)
+        public Attribute(GuiVersion version)
         {
             Version = version;
-            AttributeInfo = attributeInfo;
         }
 
         protected override bool DoRead(FileHandler handler)
         {
-            handler.Read(ref valueOffset);
-            if (Version > 430000) handler.Read(ref ukn);
+            handler.Read(ref propertyType);
+            handler.ReadNull(3);
+            handler.Read(ref uknInt);
+            Name = handler.ReadOffsetAsciiString();
 
-            long jumpBack = handler.Tell();
-            handler.Seek(valueOffset);
-            switch (AttributeInfo.AttributeType)
-            {
-                case AttributeType.Bool:
-                    Value = handler.Read<int>();
-                    break;
-                case AttributeType.Int:
-                    Value = handler.Read<int>();
-                    break;
-                case AttributeType.Float:
-                    handler.Skip(4);
-                    Value = handler.Read<float>();
-                    break;
-                case AttributeType.String:
-                    Value = handler.ReadAsciiString();
-                    break;
-                case AttributeType.WString:
-                    Value = handler.ReadWString();
-                    break;
-                case AttributeType.Vec4:
-                    Value = handler.Read<Vector4>();
-                    break;
-                case AttributeType.Vec3:
-                    Value = handler.Read<Vector3>();
-                    break;
-                case AttributeType.Color:
-                    Value = handler.Read<via.Color>();
-                    break;
-                case AttributeType.ColorFloat:
-                    Value = handler.Read<ColorFloat>();
-                    break;
-            }
+            long jumpBack = handler.Tell() + 8;
+            Value = propertyType.Read(handler);
             handler.Seek(jumpBack);
+            if (Version > GuiVersion.RE_RT) handler.Read(ref nameHash);
             return true;
         }
 
         protected override bool DoWrite(FileHandler handler)
         {
-            handler.Write(ref valueOffset);
-            if (Version > 430000) handler.Write(ref ukn);
-            // TODO write Value
+            handler.Write(ref propertyType);
+            handler.WriteNull(3);
+            handler.Write(ref uknInt);
+            handler.WriteOffsetAsciiString(Name);
+
+            var valueEndOffset = handler.Tell() + 8;
+            propertyType.Write(Value, handler, false);
+            handler.Seek(valueEndOffset);
+            if (Version > GuiVersion.RE_RT) handler.Write(nameHash = MurMur3HashUtils.GetHash(Name));
             return true;
         }
 
-        public void WriteValue(FileHandler handler)
-        {
-            switch (AttributeInfo.AttributeType)
-            {
-                case AttributeType.Bool:
-                    handler.Write((int)Value);
-                    break;
-                case AttributeType.Int:
-                    handler.Write((int)Value);
-                    break;
-                case AttributeType.Float:
-                    handler.Skip(4);
-                    handler.Write((float)Value);
-                    break;
-                case AttributeType.String:
-                    handler.WriteAsciiString((string)Value);
-                    break;
-                case AttributeType.WString:
-                    handler.WriteWString((string)Value);
-                    break;
-                case AttributeType.Vec4:
-                    handler.Write((Vector4)Value);
-                    break;
-                case AttributeType.Vec3:
-                    handler.Write((Vector3)Value);
-                    break;
-                case AttributeType.Color:
-                    handler.Write((via.Color)Value);
-                    break;
-                case AttributeType.ColorFloat:
-                    handler.Write((ColorFloat)Value);
-                    break;
-            }
-        }
+        public override string ToString() => $"[{Name}]: {Value}";
     }
 
+    public class ResourceAttribute(GuiVersion version) : Attribute(version)
+    {
+        public string TargetPath { get; set; } = "";
+        public string TargetField { get; set; } = "";
 
-    public class ElementInfo : BaseModel
+        protected override bool DoRead(FileHandler handler)
+        {
+            TargetPath = handler.ReadOffsetWString();
+            TargetField = handler.ReadOffsetAsciiString();
+            return base.DoRead(handler);
+        }
+
+        protected override bool DoWrite(FileHandler handler)
+        {
+            handler.WriteOffsetWString(TargetPath);
+            handler.WriteOffsetAsciiString(TargetField);
+            return base.DoWrite(handler);
+        }
+
+        public override string ToString() => $"{TargetPath} | {base.ToString()}";
+    }
+
+    public class ContainerInfo : BaseModel
     {
         public Guid guid;
-        public long nameOffset;
-        public long classNameOffset;
-        public long subElementOffset;
-        public long clipOffset;
-        public string? Name { get; set; }
-        public string? ClassName { get; set; }
+        public string Name { get; set; } = "";
+        public string ClassName { get; set; } = "";
 
-        public override string ToString()
-        {
-            return ClassName ?? "";
-        }
+        internal long elementsOffset;
+        internal long clipsOffset;
+
+        public override string ToString() => ClassName;
 
         protected override bool DoRead(FileHandler handler)
         {
             handler.Read(ref guid);
-            handler.Read(ref nameOffset);
-            handler.Read(ref classNameOffset);
-            handler.Read(ref subElementOffset);
-            handler.Read(ref clipOffset);
-
-            Name = handler.ReadWString(nameOffset);
-            ClassName = handler.ReadWString(classNameOffset);
+            Name = handler.ReadOffsetWString();
+            ClassName = handler.ReadOffsetAsciiString();
+            handler.Read(ref elementsOffset);
+            handler.Read(ref clipsOffset);
             return true;
         }
 
         protected override bool DoWrite(FileHandler handler)
         {
             handler.Write(ref guid);
-            handler.StringTableAdd(Name);
-            handler.Write(ref nameOffset);
-            handler.StringTableAdd(ClassName);
-            handler.Write(ref classNameOffset);
-            handler.Write(ref subElementOffset);
-            handler.Write(ref clipOffset);
+            handler.WriteOffsetWString(Name);
+            handler.WriteOffsetAsciiString(ClassName);
+            handler.Write(ref elementsOffset);
+            handler.Write(ref clipsOffset);
             return true;
         }
     }
 
-
-    public class ElementInfoSubElement : BaseModel
+    public class GuiContainer
     {
-        public long subElementCount;
-        public List<long> subElementOffsets = new();
+        public ContainerInfo Info { get; } = new();
+        public List<Element> Elements { get; } = new();
+        public List<GuiClip> Clips { get; } = new();
 
-        protected override bool DoRead(FileHandler handler)
+        public override string ToString()
         {
-            handler.Read(ref subElementCount);
-            subElementOffsets.Clear();
-            for (int i = 0; i < subElementCount; i++)
-            {
-                subElementOffsets.Add(handler.ReadInt64());
-            }
-            return true;
-        }
-
-        protected override bool DoWrite(FileHandler handler)
-        {
-            subElementCount = subElementOffsets.Count;
-            handler.Write(ref subElementCount);
-            for (int i = 0; i < subElementCount; i++)
-            {
-                handler.WriteInt64(subElementOffsets[i]);
-            }
-            return true;
+            return $"{Info.Name}: {Info.ClassName}";
         }
     }
 
-
-    public class ElementInfoClip : BaseModel
+    public class Element(GuiVersion version) : BaseModel
     {
-        public uint E;
-        public int clipCount;
-        public List<long> clipOffsets = new();
-
-        protected override bool DoRead(FileHandler handler)
-        {
-            handler.Read(ref E);
-            handler.Read(ref clipCount);
-            clipOffsets.Clear();
-            for (int i = 0; i < clipCount; i++)
-            {
-                clipOffsets.Add(handler.ReadInt64());
-            }
-            return true;
-        }
-
-        protected override bool DoWrite(FileHandler handler)
-        {
-            handler.Write(ref E);
-            clipCount = clipOffsets.Count;
-            handler.Write(ref clipCount);
-            for (int i = 0; i < clipCount; i++)
-            {
-                handler.WriteInt64(clipOffsets[i]);
-            }
-            return true;
-        }
-    }
-
-
-    public class Element
-    {
-        public ElementInfo? Info { get; }
-        public ObservableCollection<SubElement> SubElements { get; } = new();
-        // Clips
-    }
-
-
-    public class SubElementInfo : BaseModel
-    {
-        private uint Version { get; }
-        public Guid guid1;
-        public Guid guid2;
-        private ulong ukn1;
-        private ulong ukn2;
         public string Name { get; set; } = "";
         public string ClassName { get; set; } = "";
-        public long subStructOffs;
-        public long subStructEndOffs;
 
-        public SubElementInfo(uint version)
-        {
-            Version = version;
-        }
+        private GuiVersion Version { get; } = version;
 
-        protected override bool DoRead(FileHandler handler)
-        {
-            handler.Read(ref guid1);
-            handler.Read(ref guid2);
-            if (Version >= 400022)
-            {
-                handler.Read(ref ukn1);
-                handler.Read(ref ukn2);
-            }
-            Name = handler.ReadWString(handler.ReadInt64());
-            ClassName = handler.ReadAsciiString(handler.ReadInt64());
-            handler.Read(ref subStructOffs);
-            handler.Read(ref subStructEndOffs);
-            handler.ReadNull(8);
-            return true;
-        }
+        public Guid ID;
+        public Guid ContainerId;
+        public Guid guid3;
+        private ulong uknNum;
 
-        protected override bool DoWrite(FileHandler handler)
-        {
-            handler.Write(ref guid1);
-            handler.Write(ref guid2);
-            if (Version >= 400022)
-            {
-                handler.Write(ref ukn1);
-                handler.Write(ref ukn2);
-            }
-            handler.WriteWString(Name);
-            handler.WriteAsciiString(ClassName);
-            handler.Write(ref subStructOffs);
-            handler.Write(ref subStructEndOffs);
-            handler.WriteNull(8);
-            return true;
-        }
-    }
-
-
-    public class SubElement : BaseModel
-    {
-        public SubElementInfo Info { get; }
-        public long attributeCount;
         public List<Attribute> Attributes { get; } = new();
+        public List<Attribute> ExtraAttributes { get; } = new();
 
-        public class UnknownStruct : BaseModel
-        {
-            public int A, B, C, D;
-            public string? sName1;
-            public long valueOffset;
-            public int E, F;
-            public string? sName2;
-            public long G;
-            public Guid guid;
-            public long H;
-            public string? wName;
-
-            protected override bool DoRead(FileHandler handler)
-            {
-                handler.Read(ref A);
-                handler.Read(ref B);
-                handler.Read(ref C);
-                handler.Read(ref D);
-                sName1 = handler.ReadAsciiString(handler.ReadInt64());
-                handler.Read(ref valueOffset);
-                handler.Read(ref E);
-                handler.Read(ref F);
-                sName2 = handler.ReadAsciiString(handler.ReadInt64());
-                handler.Read(ref G);
-                handler.Read(ref guid);
-                handler.Read(ref H);
-                wName = handler.ReadWString(handler.ReadInt64());
-                return true;
-            }
-
-            protected override bool DoWrite(FileHandler handler)
-            {
-                handler.Write(ref A);
-                handler.Write(ref B);
-                handler.Write(ref C);
-                handler.Write(ref D);
-                handler.WriteAsciiString(sName1 ?? "");
-                handler.Write(ref valueOffset);
-                handler.Write(ref E);
-                handler.Write(ref F);
-                handler.WriteAsciiString(sName2 ?? "");
-                handler.Write(ref G);
-                handler.Write(ref guid);
-                handler.Write(ref H);
-                handler.WriteWString(wName ?? "");
-                return true;
-            }
-        }
-
-        public UnknownStruct? Unknown;
-
-        public SubElement(SubElementInfo info)
-        {
-            Info = info;
-        }
+        public byte[] ElementData = [];
 
         protected override bool DoRead(FileHandler handler)
         {
-            handler.Seek(Info.subStructOffs);
-            handler.Read(ref attributeCount);
+            handler.Read(ref ID);
+            handler.Read(ref ContainerId);
+            if (Version >= GuiVersion.RE8)
+            {
+                handler.Read(ref guid3);
+            }
+            Name = handler.ReadOffsetWString();
+            ClassName = handler.ReadOffsetAsciiString();
+            var attributesOffset = handler.Read<long>();
+            var reordersOffset = Version >= GuiVersion.RE4 ? handler.Read<long>() : 0;
+            var extraAttributesOffset = handler.Read<long>();
+            if (Version >= GuiVersion.RE_RT) handler.ReadNull(8);
+            var elementDataOffset = handler.Read<long>();
+            if (Version >= GuiVersion.RE_RT) handler.Read(ref uknNum);
+
+            handler.Seek(attributesOffset);
+            var attributeCount = (int)handler.Read<long>();
 
             Attributes.Clear();
             for (int i = 0; i < attributeCount; i++)
             {
-                // TODO
-                // Attribute attribute = new();
-                // attribute.Read(handler);
-                // Attributes.Add(attribute);
+                Attribute attribute = new(Version);
+                attribute.Read(handler);
+                Attributes.Add(attribute);
             }
 
-            handler.Seek(Info.subStructEndOffs);
-            if (handler.ReadUInt() != 0)
+            if (reordersOffset != 0)
             {
-                Unknown = new();
-                Unknown.Read(handler);
+                handler.Seek(reordersOffset);
+                var indices = handler.ReadArray<short>(attributeCount);
+                for (int i = 0; i < attributeCount; ++i)
+                {
+                    Attributes[i].OrderIndex = indices[i];
+                }
+                handler.Align(8);
             }
+
+            handler.Seek(extraAttributesOffset);
+            var extraAttributeCount = (int)handler.Read<long>();
+            for (int i = 0; i < extraAttributeCount; i++)
+            {
+                Attribute attribute = new(Version);
+                attribute.Read(handler);
+                ExtraAttributes.Add(attribute);
+            }
+
+            if (elementDataOffset != 0)
+            {
+                // Log.Warn(handler.FilePath + " | " + ClassName + " | Found extra gui subelem data: " + uknExtraOffset);
+                handler.Seek(elementDataOffset);
+                switch (ClassName) {
+                    case "via.gui.TextureSet":
+                        ElementData = handler.ReadArray<byte>(handler.Read<int>() * 24);
+                        break;
+                    case "via.gui.Scale9Grid":
+                    case "via.gui.BlurFilter":
+                        ElementData = handler.ReadArray<byte>(160);
+                        break;
+                    default:
+                        throw new NotImplementedException("Unhandled GUI element data for type " + ClassName);
+                }
+            }
+            DataInterpretationException.DebugThrowIf(elementDataOffset == 0 && (ClassName == "via.gui.TextureSet" || ClassName == "via.gui.Scale9Grid" || ClassName == "via.gui.BlurFilter"));
+
             return true;
         }
 
         protected override bool DoWrite(FileHandler handler)
         {
-            throw new NotImplementedException();
+            handler.Write(ref ID);
+            handler.Write(ref ContainerId);
+            if (Version >= GuiVersion.RE8)
+            {
+                handler.Write(ref guid3);
+            }
+            handler.WriteOffsetWString(Name);
+            handler.WriteOffsetAsciiString(ClassName);
+
+            var attributesOffsetStart = handler.Tell();
+            handler.Skip(8);
+            if (Version >= GuiVersion.RE4) handler.Skip(8);
+            handler.Skip(8);
+            if (Version >= GuiVersion.RE_RT) handler.WriteNull(8);
+
+            switch (ClassName) {
+                case "via.gui.TextureSet":
+                    handler.WriteOffsetContent((h) => {
+                        h.Write(ElementData.Length / 24);
+                        h.WriteArray(ElementData);
+                    });
+                    break;
+                case "via.gui.Scale9Grid":
+                case "via.gui.BlurFilter":
+                    handler.WriteOffsetContent((h) => h.WriteArray(ElementData));
+                    break;
+                default:
+                    handler.WriteNull(8);
+                    break;
+            }
+
+            if (Version >= GuiVersion.RE_RT) handler.Write(ref uknNum);
+            WriteAttributes(handler, attributesOffsetStart);
+            return true;
+        }
+
+        private void WriteAttributes(FileHandler handler, long offsetStart)
+        {
+            handler.Write(offsetStart, handler.Tell());
+            handler.Write((long)Attributes.Count);
+
+            foreach (var attr in Attributes)
+            {
+                attr.Write(handler);
+            }
+
+            if (Version >= GuiVersion.RE4)
+            {
+                handler.Write(offsetStart += 8, handler.Tell());
+                foreach (var attr in Attributes) handler.Write((short)attr.OrderIndex);
+                handler.Align(8);
+            }
+
+            handler.Write(offsetStart + 8, handler.Tell());
+            handler.Write((long)ExtraAttributes.Count);
+            ExtraAttributes.Write(handler);
+
+        }
+
+        public override string ToString() => $"{Name}: {ClassName}";
+    }
+
+    public class ChildGuiOverride : BaseModel
+    {
+        public Guid guid;
+        public string name = "";
+        public string classname = "";
+        public string targetType = "";
+        public PropertyType type;
+        public byte uknByte;
+        public object? value;
+
+        protected override bool DoRead(FileHandler handler)
+        {
+            handler.Read(ref guid);
+            name = handler.ReadOffsetWString();
+            classname = handler.ReadOffsetAsciiString();
+            targetType = handler.ReadOffsetWString();
+            handler.Read(ref type);
+            handler.Read(ref uknByte);
+            handler.Skip(6);
+            value = type.Read(handler);
+            return true;
+        }
+
+        protected override bool DoWrite(FileHandler handler)
+        {
+            handler.Write(ref guid);
+            handler.WriteOffsetWString(name);
+            handler.WriteOffsetAsciiString(classname);
+            handler.WriteOffsetWString(targetType);
+            handler.Write(ref type);
+            handler.Write(ref uknByte);
+            handler.WriteNull(6);
+            type.Write(value ?? 0L, handler, false);
+            return true;
+        }
+
+        public override string ToString() => name;
+    }
+
+    public class AdditionalData2 : BaseModel
+    {
+        public Guid guid;
+        public string path = "";
+
+        public PropertyType type;
+        public int uknInt;
+        public string name = "";
+        public string field = "";
+
+        protected override bool DoRead(FileHandler handler)
+        {
+            handler.Read(ref guid);
+            path = handler.ReadOffsetWString();
+            handler.Read(ref type);
+            handler.ReadNull(3);
+            handler.Read(ref uknInt);
+            name = handler.ReadOffsetAsciiString();
+            field = handler.ReadOffsetAsciiString();
+            return true;
+        }
+
+        protected override bool DoWrite(FileHandler handler)
+        {
+            handler.Write(ref guid);
+            handler.WriteOffsetWString(path);
+            handler.Write(ref type);
+            handler.WriteNull(3);
+            handler.Write(ref uknInt);
+            handler.WriteOffsetAsciiString(name);
+            handler.WriteOffsetAsciiString(field);
+            return true;
+        }
+
+        public override string ToString() => path;
+    }
+
+    public class AdditionalData3 : BaseModel
+    {
+        public Guid guid;
+        public string path = "";
+        public PropertyType type;
+        public byte uknByte;
+        public string? str;
+        public object? value;
+
+        protected override bool DoRead(FileHandler handler)
+        {
+            handler.Read(ref guid);
+            path = handler.ReadOffsetWString();
+            handler.Read(ref type);
+            handler.Read(ref uknByte);
+            handler.Skip(6);
+            var strOffset = handler.Read<long>();
+            str = strOffset == 0 ? null : handler.ReadOffsetAsciiString();
+            value = type.Read(handler);
+            return true;
+        }
+
+        protected override bool DoWrite(FileHandler handler)
+        {
+            handler.Write(ref guid);
+            handler.WriteOffsetWString(path);
+            handler.Write(ref type);
+            handler.Write(ref uknByte);
+            handler.Skip(6);
+            if (str == null) handler.WriteNull(8);
+            else handler.WriteOffsetAsciiString(str);
+            type.Write(value ?? 0L, handler, false);
+            return true;
         }
     }
 }

@@ -5,7 +5,7 @@ using ReeLib.Tml;
 
 namespace ReeLib.Tml
 {
-    public class Header : ReadWriteModel, Key.IKeyValueContainer
+    public class Header : ReadWriteModel, IKeyValueContainer
     {
         public uint magic = TmlFile.Magic;
         public ClipVersion version;
@@ -17,7 +17,6 @@ namespace ReeLib.Tml
         public int nodeCount;
         public int propertyCount;
         public int keyCount;
-        public int ukn; // padding?
         public Guid guid;
 
         public long nodesOffset;
@@ -38,9 +37,9 @@ namespace ReeLib.Tml
         public long owordOffset;
         public long dataOffset;
 
-        long Key.IKeyValueContainer.AsciiStringOffset => stringsOffset;
-        long Key.IKeyValueContainer.UnicodeStringOffset => unicodeStringsOffset;
-        long Key.IKeyValueContainer.DataOffset16B => owordOffset;
+        long IKeyValueContainer.AsciiStringOffset => stringsOffset;
+        long IKeyValueContainer.UnicodeStringOffset => unicodeStringsOffset;
+        long IKeyValueContainer.DataOffset16B => owordOffset;
 
         protected override sealed bool ReadWrite<THandler>(THandler action)
         {

@@ -66,6 +66,14 @@ namespace ReeLib.InternalAttributes
     }
 
     /// <summary>
+    /// Mark a string as being an int64 offset to a wstring (UTF-16) in the string table.
+    /// </summary>
+    [System.AttributeUsage(System.AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
+    public sealed class RszOffsetStringAttribute : System.Attribute
+    {
+    }
+
+    /// <summary>
     /// Mark a string as being an inline ascii string. If no size is provided, a length integer prefix is expected.
     /// </summary>
     [System.AttributeUsage(System.AttributeTargets.Field, Inherited = false, AllowMultiple = false)]

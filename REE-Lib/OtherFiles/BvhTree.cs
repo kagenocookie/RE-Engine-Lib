@@ -10,7 +10,6 @@ using ReeLib.via;
 
 namespace ReeLib.Bvh
 {
-    [RszGenerate]
     public partial class Entry : BaseModel
     {
         public Vector3 boundMin;
@@ -18,30 +17,36 @@ namespace ReeLib.Bvh
         public Vector3 boundMax;
         public int index2;
 
-        [RszIgnore] public bool isLeaf;
+        public bool isLeaf;
+        private const uint indexBits = ~0x80000000;
         private const uint leafBit = 0x80000000;
-        public int RealIndex => (int)((uint)index & ~leafBit);
+        public int RealIndex => (int)((uint)index & indexBits);
 
         public void SetLeafIndex(int index)
         {
+            isLeaf = true;
             this.index = (int)(index | leafBit);
         }
 
         protected override bool DoRead(FileHandler handler)
         {
-            DefaultRead(handler);
+            handler.Read(ref boundMin);
+            handler.Read(ref index);
+            handler.Read(ref boundMax);
+            handler.Read(ref index2);
             if (index != -1 && (index & leafBit) != 0) {
                 isLeaf = true;
-                index = (int)((uint)index & ~leafBit);
+                index = (int)((uint)index & indexBits);
             }
             return true;
         }
         protected override bool DoWrite(FileHandler handler)
         {
-            if (isLeaf) {
-                index = (int)(index | leafBit);
-            }
-            return DefaultWrite(handler);
+            handler.Write(ref boundMin);
+            handler.Write((isLeaf ? (uint)index | leafBit : (uint)RealIndex));
+            handler.Write(ref boundMax);
+            handler.Write(ref index2);
+            return true;
         }
     }
 

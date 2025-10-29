@@ -19,10 +19,10 @@ namespace ReeLib
     public class GuiFile : BaseFile
     {
         public HeaderStruct Header { get; } = new();
-        public DisplayElement? Root { get; set; }
+        public DisplayElement? RootView { get; set; }
 
         public List<GuiContainer> Containers { get; } = new();
-        public Element RootElement { get; set; } = null!;
+        public Element RootViewElement { get; set; } = null!;
 
         public List<ResourceAttribute> ResourceAttributes { get; } = new();
         public List<string> Resources { get; } = new();
@@ -108,9 +108,9 @@ namespace ReeLib
             }
 
             handler.Seek(header.viewOffset);
-            RootElement = new Element(header.GuiVersion);
-            RootElement.Read(handler);
-            DataInterpretationException.DebugThrowIf(RootElement.ClassName != "via.gui.View");
+            RootViewElement = new Element(header.GuiVersion);
+            RootViewElement.Read(handler);
+            DataInterpretationException.DebugThrowIf(RootViewElement.ClassName != "via.gui.View");
 
             int count;
             if (header.uknOffset != 0)
@@ -179,8 +179,8 @@ namespace ReeLib
         private void ConstructElementHierarchy()
         {
             var containersDict = Containers.ToDictionary(c => c.Info.guid);
-            Root = new DisplayElement(RootElement, containersDict[RootElement.ContainerId]);
-            SetupDisplayElementChildren(Root, containersDict);
+            RootView = new DisplayElement(RootViewElement, containersDict[RootViewElement.ContainerId]);
+            SetupDisplayElementChildren(RootView, containersDict);
         }
 
         private void SetupDisplayElementChildren(DisplayElement element, Dictionary<Guid, GuiContainer> containersDict)
@@ -227,7 +227,7 @@ namespace ReeLib
             }
 
             header.viewOffset = handler.Tell();
-            RootElement.Write(handler);
+            RootViewElement.Write(handler);
 
             foreach (var elem in Containers)
             {
@@ -549,8 +549,8 @@ namespace ReeLib.Gui
 
         public Guid ID;
         public Guid ContainerId;
-        public Guid guid3;
-        private ulong uknNum;
+        public Guid guid3; // could be some sort of "group" or "tag" guid
+        private ulong uknNum; // seems like a set of bools
 
         public List<Attribute> Attributes { get; } = new();
         public List<Attribute> ExtraAttributes { get; } = new();

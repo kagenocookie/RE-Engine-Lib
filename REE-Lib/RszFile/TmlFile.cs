@@ -1,4 +1,5 @@
 using ReeLib.Clip;
+using ReeLib.Common;
 using ReeLib.InternalAttributes;
 using ReeLib.MotTree;
 using ReeLib.Tml;
@@ -473,23 +474,17 @@ namespace ReeLib
             // setup node children
             foreach (var node in Nodes)
             {
-                for (int i = (int)node.childIndex; i < node.childIndex + node.childCount; ++i)
-                {
-                    node.ChildNodes.Add(Nodes[i]);
-                }
+                if (node.childCount != 0)
+                    node.ChildNodes.AddRange(Nodes.Slice((int)node.childIndex, node.childCount));
 
-                for (int i = (int)node.propertyIndex; i < node.propertyIndex + node.propCount; ++i)
-                {
-                    node.Properties.Add(Properties[i]);
-                }
+                if (node.propCount != 0)
+                    node.Properties.AddRange(Properties.Slice((int)node.propertyIndex, node.propCount));
             }
 
             foreach (var track in Tracks)
             {
-                for (int i = track.nodeStartOffset; i < track.nodeStartOffset + track.nodeCount; ++i)
-                {
-                    track.Nodes.Add(RootNodes[i]);
-                }
+                if (track.nodeCount != 0)
+                    track.Nodes.AddRange(RootNodes.Slice(track.nodeStartOffset, track.nodeCount));
             }
 
             return true;

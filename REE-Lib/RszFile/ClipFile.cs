@@ -684,10 +684,11 @@ namespace ReeLib.Clip
         public byte nodeType;
 
         public ulong nameHash;
-        public long nameOffset;
-        public long nameOffset2;
-        public long firstPropIdx;
+        internal long nameOffset;
+        internal long childNodeIndex;
+        internal long firstPropIdx;
 
+        public List<CTrack> ChildTracks { get; } = new();
         public List<Property> Properties { get; } = new();
 
         public ClipVersion Version { get; set; }
@@ -719,7 +720,7 @@ namespace ReeLib.Clip
             }
             action.Do(ref nameHash);
             action.Do(ref nameOffset);
-            action.Do(ref nameOffset2);
+            action.Do(ref childNodeIndex);
             action.Do(ref firstPropIdx);
             if (Version == ClipVersion.RE2_DMC5)
             {
@@ -1278,8 +1279,11 @@ namespace ReeLib.Clip
             // setup prop/key hierarchy
             foreach (var track in Tracks)
             {
-                if (track.propCount == 0) continue;
-                track.Properties.AddRange(Properties.Slice((int)track.firstPropIdx, track.propCount));
+                if (track.propCount != 0)
+                    track.Properties.AddRange(Properties.Slice((int)track.firstPropIdx, track.propCount));
+
+                if (track.nodeCount != 0)
+                    track.ChildTracks.AddRange(Tracks.Slice((int)track.childNodeIndex, track.nodeCount));
             }
 
             return true;

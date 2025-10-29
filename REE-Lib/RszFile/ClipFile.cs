@@ -776,7 +776,7 @@ namespace ReeLib.Clip
     /// </summary>
     public class ClipHeader : BaseModel, IKeyValueContainer
     {
-        public uint magic = ClipEntry.Magic;
+        public uint magic = EmbeddedClip.Magic;
         public ClipVersion version;
         public float numFrames;
         public int numNodes;
@@ -1129,7 +1129,7 @@ namespace ReeLib.Clip
 
         public override string ToString() => $"{f1} {f2} / {a} {b} {c}";
     }
-    public class ClipEntry : BaseModel
+    public class EmbeddedClip : BaseModel
     {
         public ClipHeader Header { get; } = new();
         public List<CTrack> Tracks { get; } = new();
@@ -1213,10 +1213,7 @@ namespace ReeLib.Clip
                 if (property.IsPropertyContainer)
                 {
                     property.ChildProperties ??= new();
-                    for (long i = property.Info.ChildStartIndex; i < property.Info.ChildMembershipCount + property.Info.ChildStartIndex; i++)
-                    {
-                        property.ChildProperties.Add(Properties[(int)i]);
-                    }
+                    property.ChildProperties.AddRange(Properties.Slice((int)property.Info.ChildStartIndex, property.Info.ChildMembershipCount));
                 }
                 else
                 {

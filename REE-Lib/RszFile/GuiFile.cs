@@ -24,13 +24,13 @@ namespace ReeLib
         public List<GuiContainer> Containers { get; } = new();
         public Element RootViewElement { get; set; } = null!;
 
-        public List<ResourceAttribute> ResourceAttributes { get; } = new();
+        public List<AttributeOverride> AttributeOverrides { get; } = new();
         public List<string> Resources { get; } = new();
-        public List<string> ChildGUIs { get; } = new();
+        public List<string> LinkedGUIs { get; } = new();
 
-        public List<ChildGuiOverride> ChildGuiOverries { get; } = new();
-        public List<AdditionalData2> Additional2 { get; } = new();
-        public List<AdditionalData3> Additional3 { get; } = new();
+        public List<GuiParameter> Parameters { get; } = new();
+        public List<GuiParameterReference> ParameterReferences { get; } = new();
+        public List<GuiParameterOverride> ParameterOverrides { get; } = new();
 
         public GuiFile(FileHandler fileHandler) : base(fileHandler)
         {
@@ -50,12 +50,12 @@ namespace ReeLib
             }
 
             Containers.Clear();
-            ResourceAttributes.Clear();
+            AttributeOverrides.Clear();
             Resources.Clear();
-            ChildGUIs.Clear();
-            ChildGuiOverries.Clear();
-            Additional2.Clear();
-            Additional3.Clear();
+            LinkedGUIs.Clear();
+            Parameters.Clear();
+            ParameterReferences.Clear();
+            ParameterOverrides.Clear();
 
             var offsets = handler.ReadArray<long>((int)handler.Read<long>());
 
@@ -120,18 +120,18 @@ namespace ReeLib
                 DataInterpretationException.DebugThrowIf(count != 0);
             }
 
-            handler.Seek(header.resourceAttributesOffset);
+            handler.Seek(header.attributeOverridesOffset);
             count = (int)handler.Read<long>();
             for (int i = 0; i < count; ++i)
             {
-                var attr = new ResourceAttribute(header.GuiVersion);
+                var attr = new AttributeOverride(header.GuiVersion);
                 attr.Read(handler);
-                ResourceAttributes.Add(attr);
+                AttributeOverrides.Add(attr);
             }
 
-            if (header.additionalDataOffset > 0)
+            if (header.parameterDataOffset > 0)
             {
-                handler.Seek(header.additionalDataOffset);
+                handler.Seek(header.parameterDataOffset);
                 var offs1 = handler.Read<long>();
                 var offs2 = handler.Read<long>();
                 var offs3 = handler.Read<long>();
@@ -140,33 +140,33 @@ namespace ReeLib
 
                 for (int i = 0; i < count; ++i)
                 {
-                    var pr = new ChildGuiOverride();
+                    var pr = new GuiParameter();
                     pr.Read(handler);
-                    ChildGuiOverries.Add(pr);
+                    Parameters.Add(pr);
                 }
 
                 handler.Seek(offs2);
                 count = (int)handler.Read<long>();
                 for (int i = 0; i < count; ++i)
                 {
-                    var pr = new AdditionalData2();
+                    var pr = new GuiParameterReference();
                     pr.Read(handler);
-                    Additional2.Add(pr);
+                    ParameterReferences.Add(pr);
                 }
 
                 handler.Seek(offs3);
                 count = (int)handler.Read<long>();
                 for (int i = 0; i < count; ++i)
                 {
-                    var pr = new AdditionalData3();
+                    var pr = new GuiParameterOverride();
                     pr.Read(handler);
-                    Additional3.Add(pr);
+                    ParameterOverrides.Add(pr);
                 }
             }
 
             handler.Seek(header.guiFilesOffset);
             count = (int)handler.Read<long>();
-            for (int i = 0; i < count; ++i) ChildGUIs.Add(handler.ReadOffsetWString());
+            for (int i = 0; i < count; ++i) LinkedGUIs.Add(handler.ReadOffsetWString());
 
             handler.Seek(header.resourcePathsOffset);
             count = (int)handler.Read<long>();
@@ -271,34 +271,34 @@ namespace ReeLib
                 handler.WriteNull(8);
             }
 
-            header.resourceAttributesOffset = handler.Tell();
-            handler.Write((long)ResourceAttributes.Count);
-            ResourceAttributes.Write(handler);
+            header.attributeOverridesOffset = handler.Tell();
+            handler.Write((long)AttributeOverrides.Count);
+            AttributeOverrides.Write(handler);
 
             if (header.GuiVersion >= GuiVersion.RE_RT)
             {
-                header.additionalDataOffset = handler.Tell();
+                header.parameterDataOffset = handler.Tell();
                 handler.Skip(24);
 
-                handler.Write(header.additionalDataOffset, handler.Tell());
-                handler.Write((long)ChildGuiOverries.Count);
-                ChildGuiOverries.Write(handler);
+                handler.Write(header.parameterDataOffset, handler.Tell());
+                handler.Write((long)Parameters.Count);
+                Parameters.Write(handler);
                 handler.Align(16);
 
-                handler.Write(header.additionalDataOffset + 8, handler.Tell());
-                handler.Write((long)Additional2.Count);
-                Additional2.Write(handler);
+                handler.Write(header.parameterDataOffset + 8, handler.Tell());
+                handler.Write((long)ParameterReferences.Count);
+                ParameterReferences.Write(handler);
                 handler.Align(16);
 
-                handler.Write(header.additionalDataOffset + 16, handler.Tell());
-                handler.Write((long)Additional3.Count);
-                Additional3.Write(handler);
+                handler.Write(header.parameterDataOffset + 16, handler.Tell());
+                handler.Write((long)ParameterOverrides.Count);
+                ParameterOverrides.Write(handler);
                 handler.Align(16);
             }
 
             header.guiFilesOffset = handler.Tell();
-            handler.Write((long)ChildGUIs.Count);
-            foreach (var str in ChildGUIs) handler.WriteOffsetWString(str);
+            handler.Write((long)LinkedGUIs.Count);
+            foreach (var str in LinkedGUIs) handler.WriteOffsetWString(str);
 
             header.resourcePathsOffset = handler.Tell();
             handler.Write((long)Resources.Count);
@@ -322,10 +322,10 @@ namespace ReeLib.Gui
         public uint magic;
         internal long offsetsStartOffset;
         internal long uknOffset;
-        internal long resourceAttributesOffset;
+        internal long attributeOverridesOffset;
         internal long guiFilesOffset;
         internal long resourcePathsOffset;
-        internal long additionalDataOffset;
+        internal long parameterDataOffset;
         internal long offsetsStart;
         internal long viewOffset;
 
@@ -339,8 +339,8 @@ namespace ReeLib.Gui
             handler.Read(ref offsetsStartOffset);
 
             if (GuiVersion < GuiVersion.DD2) handler.Read(ref uknOffset);
-            handler.Read(ref resourceAttributesOffset);
-            if (GuiVersion >= GuiVersion.RE_RT) handler.Read(ref additionalDataOffset);
+            handler.Read(ref attributeOverridesOffset);
+            if (GuiVersion >= GuiVersion.RE_RT) handler.Read(ref parameterDataOffset);
             handler.Read(ref guiFilesOffset);
             handler.Read(ref resourcePathsOffset);
 
@@ -358,8 +358,8 @@ namespace ReeLib.Gui
             handler.Write(ref offsetsStartOffset);
 
             if (GuiVersion < GuiVersion.DD2) handler.Write(ref uknOffset);
-            handler.Write(ref resourceAttributesOffset);
-            if (GuiVersion >= GuiVersion.RE_RT) handler.Write(ref additionalDataOffset);
+            handler.Write(ref attributeOverridesOffset);
+            if (GuiVersion >= GuiVersion.RE_RT) handler.Write(ref parameterDataOffset);
             handler.Write(ref guiFilesOffset);
             handler.Write(ref resourcePathsOffset);
             handler.Write(addrOffset, offsetsStartOffset = handler.Tell());
@@ -382,7 +382,7 @@ namespace ReeLib.Gui
     {
         public Guid guid;
         public string name = "";
-        public ClipEntry? clip;
+        public EmbeddedClip? clip;
         public bool IsDefault;
 
         public GuiClip? NextClip { get; set; }
@@ -401,7 +401,7 @@ namespace ReeLib.Gui
             name = handler.ReadOffsetWString();
             handler.Read(ref transitionAfterEndClipOffset);
 
-            clip = new ClipEntry();
+            clip = new EmbeddedClip();
             clip.Read(handler.WithOffset(handler.Tell()));
             return true;
         }
@@ -433,7 +433,6 @@ namespace ReeLib.Gui
 
         public int OrderIndex;
 
-        public long valueOffset;
         private long nameHash;
 
         public object Value { get; set; } = 0;
@@ -474,22 +473,22 @@ namespace ReeLib.Gui
         public override string ToString() => $"[{Name}]: {Value}";
     }
 
-    public class ResourceAttribute(GuiVersion version) : Attribute(version)
+    public class AttributeOverride(GuiVersion version) : Attribute(version)
     {
         public string TargetPath { get; set; } = "";
-        public string TargetField { get; set; } = "";
+        public string TargetClassname { get; set; } = "";
 
         protected override bool DoRead(FileHandler handler)
         {
             TargetPath = handler.ReadOffsetWString();
-            TargetField = handler.ReadOffsetAsciiString();
+            TargetClassname = handler.ReadOffsetAsciiString();
             return base.DoRead(handler);
         }
 
         protected override bool DoWrite(FileHandler handler)
         {
             handler.WriteOffsetWString(TargetPath);
-            handler.WriteOffsetAsciiString(TargetField);
+            handler.WriteOffsetAsciiString(TargetClassname);
             return base.DoWrite(handler);
         }
 
@@ -690,7 +689,7 @@ namespace ReeLib.Gui
         public override string ToString() => $"{Name}: {ClassName}";
     }
 
-    public class ChildGuiOverride : BaseModel
+    public class GuiParameter : BaseModel
     {
         public Guid guid;
         public string name = "";
@@ -729,7 +728,7 @@ namespace ReeLib.Gui
         public override string ToString() => name;
     }
 
-    public class AdditionalData2 : BaseModel
+    public class GuiParameterReference : BaseModel
     {
         public Guid guid;
         public string path = "";
@@ -766,7 +765,7 @@ namespace ReeLib.Gui
         public override string ToString() => path;
     }
 
-    public class AdditionalData3 : BaseModel
+    public class GuiParameterOverride : BaseModel
     {
         public Guid guid;
         public string path = "";
@@ -800,5 +799,7 @@ namespace ReeLib.Gui
             type.Write(value ?? 0L, handler, false);
             return true;
         }
+
+        public override string ToString() => $"{guid}: {value}";
     }
 }

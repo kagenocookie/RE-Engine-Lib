@@ -1465,7 +1465,7 @@ namespace ReeLib.Mot
         public int lastTrackIndex; // 99.9% of the time equal to last track index
         public int mainTrackIndex; // always equal to 1
         public byte[] uknBytes28 = new byte[28];
-        public ClipEntry ClipEntry { get; set; } = new();
+        public EmbeddedClip ClipEntry { get; set; } = new();
         public EndClipStruct[]? EndClipStructs { get; set; }
 
         public string MainTrackName

@@ -2,7 +2,7 @@ using System.Numerics;
 
 namespace ReeLib
 {
-    public abstract class BaseHFField : BaseFile
+    public abstract class BaseHeightFieldFile : BaseFile
     {
         public int splitCount;
         public int ukn;
@@ -19,9 +19,11 @@ namespace ReeLib
         public int TileCount => splitCount * splitCount;
         public int PointCount => (splitCount + 1) * (splitCount + 1);
 
+        public Vector3 this[int x, int y] => new Vector3(x * tileSizeX, PointHeights[x + (splitCount + 1) * y], y * tileSizeY);
+
         public List<string> Strings = new();
 
-        protected BaseHFField(FileHandler fileHandler) : base(fileHandler)
+        protected BaseHeightFieldFile(FileHandler fileHandler) : base(fileHandler)
         {
         }
 
@@ -76,7 +78,7 @@ namespace ReeLib
     /// <summary>
     /// via.physics.CollisionHeightFieldResource, used by via.physics.HeightFieldShape
     /// </summary>
-    public class CHFFile : BaseHFField
+    public class CHFFile : BaseHeightFieldFile
     {
         public int[] PointData = Array.Empty<int>();
         public uint[] MaskBits = Array.Empty<uint>();
@@ -126,7 +128,7 @@ namespace ReeLib
     /// <summary>
     /// via.dynamics.HeightFieldResource, used by via.dynamics.HeightFieldShape
     /// </summary>
-    public class HFFile : BaseHFField
+    public class HFFile : BaseHeightFieldFile
     {
         public int[] PointData = Array.Empty<int>();
         public uint[] MaskBits = Array.Empty<uint>();
@@ -164,16 +166,14 @@ namespace ReeLib
             TileData = new TileInfo[tileCount];
             for (int i = 0; i < tileCount;++i)
             {
-                var data = new TileInfo() {
-                    data = handler.ReadArray<int>(8),
-                    collisionPresetId = handler.ReadInt(),
-                    id2 = handler.ReadInt(),
-                    id3 = handler.ReadInt(),
-                    id4 = handler.ReadInt(),
-                };
-
                 // note: (DD2) every single file has all 0 except the collisionPresetId
                 // note2: (DD2) every single TileInfo is identically duplicated twice
+                handler.ReadNull(32);
+                var data = new TileInfo() {
+                    collisionPresetId = handler.ReadInt(),
+                };
+                handler.ReadNull(12);
+
                 // if (data.data!.Any(n => n != 0) || data.id2 != 0 || data.id3 != 0 || data.id4 != 0) {
                 //     throw new Exception("Unexpected notnull in tile data");
                 // }

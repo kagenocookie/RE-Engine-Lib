@@ -417,6 +417,14 @@ namespace ReeLib.via
             this.m33 = m33;
         }
 
+        public mat4(Matrix4x4 matrix) : this(
+            matrix.M11, matrix.M12, matrix.M13, matrix.M14,
+            matrix.M21, matrix.M22, matrix.M23, matrix.M24,
+            matrix.M31, matrix.M32, matrix.M33, matrix.M34,
+            matrix.M41, matrix.M42, matrix.M43, matrix.M44
+        )
+        { }
+
         public float this[int index]
         {
             get
@@ -466,12 +474,7 @@ namespace ReeLib.via
             );
         }
 
-        public static implicit operator mat4(Matrix4x4 matrix) => new mat4(
-            matrix.M11, matrix.M12, matrix.M13, matrix.M14,
-            matrix.M21, matrix.M22, matrix.M23, matrix.M24,
-            matrix.M31, matrix.M32, matrix.M33, matrix.M34,
-            matrix.M41, matrix.M42, matrix.M43, matrix.M44
-        );
+        public static implicit operator mat4(Matrix4x4 matrix) => new mat4(matrix);
 
         public override string ToString() => $"[Pos: {m30} {m31} {m32}]";
     }
@@ -738,6 +741,14 @@ namespace ReeLib.via
         public float r0;
         public Vector3 p1;
         public float r1;
+
+        public Cone(Vector3 p0, float r0, Vector3 p1, float r1)
+        {
+            this.p0 = p0;
+            this.r0 = r0;
+            this.p1 = p1;
+            this.r1 = r1;
+        }
 
         public readonly override string ToString() => $"Cone({p0} ({r0}), {p1} ({r1}))";
     }

@@ -29,7 +29,7 @@ public static class FileExtensionTools
                 Directory.CreateDirectory(Path.GetDirectoryName(path)!);
                 using var singleFs = File.Create(path);
                 JsonSerializer.Serialize(singleFs, dict, jsonOptions);
-                Log.Info($"File extension cache for {item.name} successfully generated");
+                Log.Info($"File extension cache for {item.name} successfully generated to {path}");
             }
         }
 
@@ -37,7 +37,7 @@ public static class FileExtensionTools
         Directory.CreateDirectory(Path.GetDirectoryName(cacheFilepath)!);
         using var fs = File.Create(cacheFilepath);
         JsonSerializer.Serialize(fs, dict, jsonOptions);
-        Log.Info("File extension cache successfully generated");
+        Log.Info($"Combined file extension cache successfully generated to {cacheFilepath}");
     }
 
     private static readonly JsonSerializerOptions jsonOptions = new() {

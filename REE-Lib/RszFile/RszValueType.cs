@@ -609,6 +609,9 @@ namespace ReeLib.via
 
         public static AABB Combine(IEnumerable<AABB> bounds) => bounds.Aggregate(MaxMin, (bound, item) => bound.Extend(item));
 
+        public static AABB operator+(AABB aabb, Vector3 vec) => new AABB(aabb.minpos + vec, aabb.maxpos + vec);
+        public static AABB operator-(AABB aabb, Vector3 vec) => new AABB(aabb.minpos - vec, aabb.maxpos - vec);
+
         public readonly override string ToString() => $"AABB({minpos} {maxpos})";
     }
 

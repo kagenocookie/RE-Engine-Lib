@@ -683,6 +683,9 @@ namespace ReeLib
             return length;
         }
 
+        /// <summary>
+        /// Reads a length-prefixed UTF-16 string with 4 byte padding at the end.
+        /// </summary>
         public string ReadInlineWString()
         {
             var count = Read<int>();
@@ -695,6 +698,20 @@ namespace ReeLib
         public bool WriteWString(string text)
         {
             return WriteSpan(text.AsSpan()) && Write<ushort>(0);
+        }
+
+        /// <summary>
+        /// Writes a length-prefixed UTF-16 string with 4 byte padding at the end.
+        /// </summary>
+        public bool WriteInlineWString(string text)
+        {
+            if (text.Length == 0) return Write(0);
+
+            Write(text.Length + 1);
+            WriteWString(text);
+            var pos = (int)Tell();
+            WriteNull(Utils.Align4(pos) - pos);
+            return true;
         }
 
         public string ReadUTF8String(long pos = -1, bool jumpBack = true, int maxByteSize = 128)

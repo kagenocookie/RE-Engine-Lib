@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using ReeLib.Common;
 
 namespace ReeLib
 {
@@ -52,6 +53,16 @@ namespace ReeLib
             {
                 ThrowIfDifferent(values1[i], values2[i], message);
             }
+        }
+
+        [Conditional("DEBUG")]
+        public static void ThrowIfNotZeroEOF(FileHandler handler, string message = "Found unhandled data at end of file")
+        {
+            var size = (int)(handler.Stream.Length - handler.Position);
+            if (size < 0) throw new DataInterpretationException(message);
+
+            Span<byte> bytes = stackalloc byte[size];
+            for (int i = 0; i < bytes.Length; ++i) DataInterpretationException.ThrowIfNotZero(bytes[i], message);
         }
     }
 }

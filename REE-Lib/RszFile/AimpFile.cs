@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
 using ReeLib.Aimp;
+using ReeLib.InternalAttributes;
 using ReeLib.via;
 
 namespace ReeLib.Aimp
@@ -64,7 +65,7 @@ namespace ReeLib.Aimp
 
     public class AimpHeader : BaseModel
     {
-        public uint magic;
+        public uint magic = AimpFile.Magic;
         public string? name;
         public string? hash;
         public MapType mapType;
@@ -72,16 +73,16 @@ namespace ReeLib.Aimp
         public Guid guid;
         public float agentRadWhenBuild;
         public ulong uriHash;
-        public int uknId; // usually 1, sometimes 0 or 2; not related to embedded data, nor to mystery padding, nor is it the sectionID
+        public int uknId; // usually 1, sometimes 0 or 2; not related to embedded data nor is it the sectionID
 
         public long layersOffset;
         public long rszOffset;
         public long embeddedContentOffset;
-        public long contentGroup1Offset;
 
-        public long indexDataOffset;
-        public long secondContentGroupOffset;
-        public long secondNodeTableOffset;
+        public long contentGroup1Offset;
+        public long group1DataOffset;
+        public long contentGroup2Offset;
+        public long group2DataOffset;
 
         public AimpFormat Version { get; }
 
@@ -103,8 +104,7 @@ namespace ReeLib.Aimp
 
             mapType = (MapType)handler.ReadByte();
             sectionType = (SectionType)handler.ReadByte();
-            var reserved = handler.ReadShort(); // section ID?
-            if (reserved != 0) throw new Exception("Unexpected value in type block: " + reserved);
+            handler.ReadNull(2);
 
             if (Version >= AimpFormat.Format46) {
                 handler.Read(ref agentRadWhenBuild);
@@ -122,22 +122,51 @@ namespace ReeLib.Aimp
             }
 
             handler.Read(ref contentGroup1Offset);
-            handler.Read(ref indexDataOffset);
-            handler.Read(ref secondContentGroupOffset);
-            handler.Read(ref secondNodeTableOffset);
+            handler.Read(ref group1DataOffset);
+            handler.Read(ref contentGroup2Offset);
+            handler.Read(ref group2DataOffset);
             return true;
         }
 
         protected override bool DoWrite(FileHandler handler)
         {
+            handler.Write(ref magic);
+            handler.WriteInlineWString(name ??= "");
+            if (Version > AimpFormat.Format41) {
+                handler.WriteInlineWString(hash ??= Guid.NewGuid().ToString().Replace("-", ""));
+            }
+
+            handler.WriteByte((byte)mapType);
+            handler.WriteByte((byte)sectionType);
+            handler.WriteNull(2);
+
+            if (Version >= AimpFormat.Format46) {
+                handler.Write(ref agentRadWhenBuild);
+                handler.Write(ref uriHash);
+                handler.Write(ref uknId);
+            } else if (Version >= AimpFormat.Format28) {
+                handler.Write(ref guid);
+                handler.Write(ref uknId);
+            }
+
+            handler.Write(ref layersOffset);
+            if (Version >= AimpFormat.Format28) {
+                handler.Write(ref rszOffset);
+                handler.Write(ref embeddedContentOffset);
+            }
+
+            handler.Write(ref contentGroup1Offset);
+            handler.Write(ref group1DataOffset);
+            handler.Write(ref contentGroup2Offset);
+            handler.Write(ref group2DataOffset);
             return true;
         }
     }
 
     public class NodeInfoAttributes
     {
-        public byte[]? attributeIds;
-        public float[]? values;
+        public byte[] attributeIds = [];
+        public float[] values = [];
 
         public void Init(int count)
         {
@@ -202,11 +231,10 @@ namespace ReeLib.Aimp
         public int index1;
         public int index2;
         public int index3;
-        public NodeInfoAttributes? attributes;
+        public NodeInfoAttributes attributes = new();
 
         public void Read(FileHandler handler, AimpFormat format)
         {
-            attributes ??= new();
             handler.Read(ref index1);
             handler.Read(ref index2);
             handler.Read(ref index3);
@@ -215,7 +243,6 @@ namespace ReeLib.Aimp
 
         public void Write(FileHandler handler, AimpFormat format)
         {
-            attributes ??= new();
             handler.Write(ref index1);
             handler.Write(ref index2);
             handler.Write(ref index3);
@@ -227,7 +254,7 @@ namespace ReeLib.Aimp
     {
         public int pointCount;
         public int[]? indices;
-        public NodeInfoAttributes? attributes;
+        public NodeInfoAttributes attributes = new();
         public Vector3 min;
         public Vector3 max;
 
@@ -237,7 +264,6 @@ namespace ReeLib.Aimp
         {
             handler.Read(ref pointCount);
             indices = handler.ReadArray<int>(pointCount);
-            attributes ??= new NodeInfoAttributes();
             attributes.Read(pointCount, handler, version);
             handler.Read(ref min);
             handler.Read(ref max);
@@ -247,7 +273,6 @@ namespace ReeLib.Aimp
         {
             handler.Write(ref pointCount);
             handler.WriteArray<int>(indices ?? Array.Empty<int>());
-            attributes ??= new NodeInfoAttributes();
             if (version >= AimpFormat.Format28) {
                 attributes.Write(handler);
             } else {
@@ -274,13 +299,17 @@ namespace ReeLib.Aimp
         public Vector3 max;
     }
 
-    public class WallNode
+    [RszGenerate]
+    public partial class WallNode
     {
         public via.mat4 matrix;
         public Vector4 scale;
         public Vector4 rotation;
         public Vector4 position;
-        public int[] values = new int[8];
+        [RszFixedSizeArray(8)] public int[] values = new int[8];
+
+        public void Read(FileHandler handler) => DefaultRead(handler);
+        public void Write(FileHandler handler) => DefaultWrite(handler);
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 16)]
@@ -303,10 +332,10 @@ namespace ReeLib.Aimp
 
     public class NodeTypeData
     {
-        public int[]? type1;
-        public int[]? type2;
-        public int[]? type3;
-        public int[]? type4;
+        public int[] type1 = [];
+        public int[] type2 = [];
+        public int[] type3 = [];
+        public int[] type4 = [];
         public int TotalCount => (type1?.Length ?? 0) + (type2?.Length ?? 0) + (type3?.Length ?? 0) + (type4?.Length ?? 0);
 
         public void Read(FileHandler handler)
@@ -320,29 +349,53 @@ namespace ReeLib.Aimp
             type3 = handler.ReadArray<int>(c3);
             type4 = handler.ReadArray<int>(c4);
         }
+
+        public void Write(FileHandler handler)
+        {
+            handler.Write(type1.Length);
+            handler.Write(type2.Length);
+            handler.Write(type3.Length);
+            handler.Write(type4.Length);
+            handler.WriteArray(type1);
+            handler.WriteArray(type2);
+            handler.WriteArray(type3);
+            handler.WriteArray(type4);
+        }
     }
 
     public abstract class ContentGroup
     {
         public AimpFormat format;
 
+        public abstract int NodeCount { get; }
+        public string Classname => "via.navigation.map." + GetType().Name;
+
         public abstract bool ReadNodes(FileHandler handler, int count);
         public abstract bool ReadData(FileHandler handler);
+        public abstract void WriteData(FileHandler handler);
+        public abstract void WriteNodes(FileHandler handler);
 
         public static ContentGroup Create(string classname, AimpFormat format)
         {
             ContentGroup content = classname switch {
-                "via.navigation.map.ContentGroupMapPoint" => new ContentGroupPoints(),
-                "via.navigation.map.ContentGroupTriangle" => new ContentGroupTriangles(),
-                "via.navigation.map.ContentGroupPolygon" => new ContentGroupPolygons(),
+                "via.navigation.map.ContentGroupMapPoint" => new ContentGroupMapPoint(),
+                "via.navigation.map.ContentGroupTriangle" => new ContentGroupTriangle(),
+                "via.navigation.map.ContentGroupPolygon" => new ContentGroupPolygon(),
                 "via.navigation.map.ContentGroupMapBoundary" => new ContentGroupMapBoundary(),
-                "via.navigation.map.ContentGroupMapAABB" => new ContentGroupAABB(),
+                "via.navigation.map.ContentGroupMapAABB" => new ContentGroupMapAABB(),
                 "via.navigation.map.ContentGroupWall" => new ContentGroupWall(),
                 _ => throw new NotImplementedException("Unknown content group type " + classname),
             };
             content.format = format;
             return content;
         }
+    }
+
+    public abstract class ContentGroup<TNode> : ContentGroup
+    {
+        public List<TNode> Nodes { get; } = new();
+
+        public override int NodeCount => Nodes.Count;
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
@@ -355,6 +408,8 @@ namespace ReeLib.Aimp
         public int userdataIndex;
         public int linkCount;
         public int nextIndex;
+
+        public readonly NodeInfoRE7 AsRE7() => new NodeInfoRE7() { flags = flags, index = index, index2 = index, attributes = attributes };
     }
 
     public struct NodeInfoRE7
@@ -365,7 +420,7 @@ namespace ReeLib.Aimp
         public int flags;
         public ulong attributes;
 
-        public NodeInfo Upgrade() => new NodeInfo() { flags = flags, index = index, attributes = attributes, nextIndex = index + 1 };
+        public readonly NodeInfo Upgrade() => new NodeInfo() { flags = flags, index = index, attributes = attributes, nextIndex = index + 1 };
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
@@ -381,15 +436,15 @@ namespace ReeLib.Aimp
 
     public struct IndexSet
     {
-        public int[]? indices;
+        public int[] indices;
 
         public override string ToString() => string.Join(", ", indices ?? Array.Empty<int>());
     };
 
     public class NodeData
     {
-        public NodeInfo[]? Nodes;
-        public LinkInfo[]? Links;
+        public NodeInfo[] Nodes = [];
+        public LinkInfo[] Links = [];
         public int maxIndex;
         public int minIndex;
 
@@ -426,15 +481,33 @@ namespace ReeLib.Aimp
                 handler.ReadArray(Links);
             }
         }
+
+        public void Write(FileHandler handler, AimpFormat format)
+        {
+            handler.Write(Nodes.Length);
+            if (format >= AimpFormat.Format28) {
+                handler.Write(ref maxIndex);
+            }
+            if (format >= AimpFormat.Format41) {
+                handler.Write(ref minIndex);
+            }
+
+            if (format >= AimpFormat.Format28) {
+                handler.WriteArray(Nodes);
+                handler.WriteArray(Links);
+            } else {
+                foreach (var node in Nodes) {
+                    handler.Write(node.AsRE7());
+                }
+                handler.Write(Links.Length);
+                handler.WriteArray(Links);
+            }
+        }
     }
 
-    public class ContentGroupPoints : ContentGroup
+    public class ContentGroupMapPoint : ContentGroup<ContentGroupMapPoint.Point>
     {
-        public Point[]? points;
-        public Connection[]? connections;
-        public ConnectionInfo[]? connectionInfos;
-        public NodeTypeData? QuadData;
-        public int[]? indexData;
+        public int[] indexData = [];
 
         public struct Point
         {
@@ -442,80 +515,94 @@ namespace ReeLib.Aimp
             public Vector3 normal;
         }
 
-        public struct Connection
-        {
-            public int id;
-            public int n1, n2, n3, n4, n5, n6, n7;
-        }
-
-        public struct ConnectionInfo
-        {
-            public int id;
-            public int connectionId;
-            public int n1, n2, n3, n4, n5;
-        }
-
         public override bool ReadNodes(FileHandler handler, int count)
         {
             if (format >= AimpFormat.Format28) {
-                points = handler.ReadArray<Point>(count);
+                Nodes.ReadStructList(handler, count);
             } else {
-                points = new Point[count];
-                for (int i = 0; i < count; ++i) points[i] = new Point() { pos = handler.Read<Vector3>() };
+                Nodes.Clear();
+                for (int i = 0; i < count; ++i) Nodes.Add(new Point() { pos = handler.Read<Vector3>() });
             }
             return true;
         }
 
+        public override void WriteNodes(FileHandler handler)
+        {
+            if (format >= AimpFormat.Format28) {
+                Nodes.Write(handler);
+            } else {
+                foreach (var pt in Nodes) handler.Write(pt.pos);
+            }
+        }
+
         public override bool ReadData(FileHandler handler)
         {
-            indexData = handler.ReadArray<int>(points!.Length);
+            indexData = handler.ReadArray<int>(Nodes.Count);
             return true;
+        }
+
+        public override void WriteData(FileHandler handler)
+        {
+            handler.WriteArray(indexData);
         }
     }
 
-    public class ContentGroupTriangles : ContentGroup
+    public class ContentGroupTriangle : ContentGroup<TriangleNode>
     {
-        public TriangleNode[]? nodes;
-        public int[]? polygonIndices;
+        public int[] polygonIndices = [];
 
         public override bool ReadNodes(FileHandler handler, int count)
         {
-            nodes = new TriangleNode[count];
+            Nodes.Clear();
             for (int i = 0; i < count; ++i)
             {
                 var node = new TriangleNode();
                 node.Read(handler, format);
-                nodes[i] = node;
+                Nodes.Add(node);
             }
             return true;
         }
 
+        public override void WriteNodes(FileHandler handler)
+        {
+            foreach (var node in Nodes) node.Write(handler, format);
+        }
+
         public override bool ReadData(FileHandler handler)
         {
-            polygonIndices = handler.ReadArray<int>(nodes!.Length);
+            polygonIndices = handler.ReadArray<int>(Nodes.Count);
             return true;
+        }
+
+        public override void WriteData(FileHandler handler)
+        {
+            handler.WriteArray(polygonIndices);
         }
     }
 
-    public class ContentGroupPolygons : ContentGroup
+    public class ContentGroupPolygon : ContentGroup<PolygonNode>
     {
-        public PolygonNode[]? nodes;
-        public IndexSet[]? triangleIndices;
+        public IndexSet[] triangleIndices = [];
 
         public override bool ReadNodes(FileHandler handler, int count)
         {
-            nodes = new PolygonNode[count];
+            Nodes.Clear();
             for (int i = 0; i < count; ++i) {
                 var n = new PolygonNode() { version = format };
                 n.Read(handler);
-                nodes[i] = n;
+                Nodes.Add(n);
             }
             return true;
         }
 
+        public override void WriteNodes(FileHandler handler)
+        {
+            foreach (var node in Nodes) node.Write(handler);
+        }
+
         public override bool ReadData(FileHandler handler)
         {
-            triangleIndices = new IndexSet[nodes!.Length];
+            triangleIndices = new IndexSet[Nodes.Count];
             for (int i = 0; i < triangleIndices.Length; ++i) {
                 triangleIndices[i] = new IndexSet() {
                     indices = handler.ReadArray<int>(handler.Read<int>()),
@@ -523,12 +610,20 @@ namespace ReeLib.Aimp
             }
             return true;
         }
+
+        public override void WriteData(FileHandler handler)
+        {
+            foreach (var item in triangleIndices)
+            {
+                handler.Write(item.indices.Length);
+                handler.WriteArray(item.indices);
+            }
+        }
     }
 
-    public class ContentGroupMapBoundary : ContentGroup
+    public class ContentGroupMapBoundary : ContentGroup<ContentGroupMapBoundary.MapBoundaryNodeInfo>
     {
-        public MapBoundaryNodeInfo[]? boundaries;
-        public int[]? integers; // always all -1
+        public int[] integers = []; // always all -1
 
         public class MapBoundaryNodeInfo
         {
@@ -538,32 +633,47 @@ namespace ReeLib.Aimp
 
         public override bool ReadNodes(FileHandler handler, int count)
         {
-            boundaries = new MapBoundaryNodeInfo[count];
+            Nodes.Clear();
             for (int i = 0; i < count; ++i) {
-                boundaries[i] = new MapBoundaryNodeInfo() {
+                var bi = new MapBoundaryNodeInfo() {
                     indices = handler.ReadArray<int>(8),
                     min = handler.Read<Vector3>(),
                     max = handler.Read<Vector3>(),
                 };
+                Nodes.Add(bi);
             }
             return true;
         }
 
+        public override void WriteNodes(FileHandler handler)
+        {
+            foreach (var node in Nodes)
+            {
+                handler.WriteArray(node.indices);
+                handler.Write(node.min);
+                handler.Write(node.max);
+            }
+        }
+
         public override bool ReadData(FileHandler handler)
         {
-            integers = handler.ReadArray<int>(boundaries!.Length);
+            integers = handler.ReadArray<int>(Nodes.Count);
             return true;
+        }
+
+        public override void WriteData(FileHandler handler)
+        {
+            handler.WriteArray(integers);
         }
     }
 
-    public class ContentGroupAABB : ContentGroup
+    public class ContentGroupMapAABB : ContentGroup<AABBNode>
     {
-        public AABBNode[]? AABBs;
-        public IndexSet[]? data;
+        public IndexSet[] data = [];
 
         public override bool ReadNodes(FileHandler handler, int count)
         {
-            AABBs = new AABBNode[count];
+            Nodes.Clear();
             for (int i = 0; i < count; ++i) {
                 var item = new AABBNode();
                 handler.ReadArray(item.indices);
@@ -571,15 +681,27 @@ namespace ReeLib.Aimp
                     item.values = handler.ReadArray<float>(12);
                     item.value = handler.ReadInt();
                 }
-                AABBs[i] = item;
+                Nodes.Add(item);
             }
             return true;
+        }
+
+        public override void WriteNodes(FileHandler handler)
+        {
+            foreach (var item in Nodes)
+            {
+                handler.WriteArray(item.indices);
+                if (format > AimpFormat.Format28) {
+                    handler.WriteArray(item.values ??= new float[12]);
+                    handler.Write(item.value);
+                }
+            }
         }
 
 
         public override bool ReadData(FileHandler handler)
         {
-            data = new IndexSet[AABBs!.Length];
+            data = new IndexSet[Nodes.Count];
             for (int i = 0; i < data.Length; ++i) {
                 data[i] = new IndexSet() {
                     indices = handler.ReadArray<int>(handler.Read<int>()),
@@ -587,43 +709,64 @@ namespace ReeLib.Aimp
             }
             return true;
         }
+
+        public override void WriteData(FileHandler handler)
+        {
+            foreach (var item in data)
+            {
+                handler.Write(item.indices.Length);
+                handler.WriteArray(item.indices);
+            }
+        }
     }
-    public class ContentGroupWall : ContentGroup
+    public class ContentGroupWall : ContentGroup<WallNode>
     {
-        public WallNode[]? AABBs;
-        public OffsetData[]? data;
+        public OffsetData[] data = [];
 
         public struct OffsetData { public uint mask; }; // re4: 1x uint; before was saved as 2x uint -- why? dd2+ change?
 
         public override bool ReadNodes(FileHandler handler, int count)
         {
-            AABBs = new WallNode[count];
+            Nodes.Clear();
             for (int i = 0; i < count; ++i) {
-                AABBs[i] = new WallNode() {
-                    matrix = handler.Read<via.mat4>(),
-                    scale = handler.Read<Vector4>(),
-                    rotation = handler.Read<Vector4>(),
-                    position = handler.Read<Vector4>(),
-                    values = handler.ReadArray<int>(8),
-                };
+                // var node = new WallNode() {
+                //     matrix = handler.Read<via.mat4>(),
+                //     scale = handler.Read<Vector4>(),
+                //     rotation = handler.Read<Vector4>(),
+                //     position = handler.Read<Vector4>(),
+                //     values = handler.ReadArray<int>(8),
+                // };
+                var node = new WallNode();
+                node.Read(handler);
+                Nodes.Add(node);
             }
             return true;
         }
 
+        public override void WriteNodes(FileHandler handler)
+        {
+            foreach (var node in Nodes) node.Write(handler);
+        }
+
         public override bool ReadData(FileHandler handler)
         {
-            data = handler.ReadArray<OffsetData>(AABBs!.Length);
+            data = handler.ReadArray<OffsetData>(Nodes.Count);
             return true;
+        }
+
+        public override void WriteData(FileHandler handler)
+        {
+            handler.WriteArray(data);
         }
     }
 
     public class ContentGroupContainer : BaseModel
     {
         public int contentCount;
-        public ContentGroup[]? contents;
+        public ContentGroup[] contents = [];
 
-        public PaddedVec3[]? Positions;
-        public NodeData? Nodes;
+        public PaddedVec3[] Positions = [];
+        public NodeData Nodes = new();
 
         // aiwayp, aivspc: float1,2 = 1f, 0f
         // ainvm: float2 always 1.396263f
@@ -645,6 +788,8 @@ namespace ReeLib.Aimp
         public NodeTypeData? QuadData;
         public AimpFormat version;
 
+        internal AimpHeader header = null!;
+
         public ContentGroupContainer(AimpFormat version)
         {
             this.version = version;
@@ -662,6 +807,7 @@ namespace ReeLib.Aimp
         protected override bool DoRead(FileHandler handler)
         {
             handler.Read(ref contentCount);
+            var firstHeaderOffset = handler.Tell();
             if (contentCount == 0) {
                 contents = Array.Empty<ContentGroup>();
             } else {
@@ -672,49 +818,54 @@ namespace ReeLib.Aimp
                 }
             }
 
-            var ukn = handler.Read<int>();
-            if (ukn != 0) throw new Exception("Unexpected ukn != 0");
+            handler.ReadNull(4);
 
             Positions = handler.ReadArray<PaddedVec3>(handler.Read<int>());
-            Nodes ??= new();
             Nodes.Read(handler, version);
 
-            // var boundsPos = handler.Tell();
-            // var sizeToDate = boundsPos - Start;
-
-            // I have no idea what this is
-            // I have no idea how to determine whether it would need to be there
-            // I have no idea how the game would know either
-            // The header.ukn value is irrelevant
-            // alignment is irrelevant (see DD2 aimapwaypoint_event_11, ch259rootwaypoint)
-            // happens with all content group types
-            // mostly consistent per game, but not always
-            // using the bounds Vector4's paddings (both vectors because there's some cases with x,y,0 coords) as an indicator for whether it's there or not
-
-            // DD2: padding mostly only present for MapPoint groups, except: worldway.aiwayp
-            // could it be there just to fuck with people trying to reverse engineer the format? lol
-            var hasMysteryPadding = version > AimpFormat.Format8 && (handler.Read<int>(handler.Tell() + 36) != 0 || handler.Read<int>(handler.Tell() + 20) != 0);
-            if (hasMysteryPadding) {
-                var padding = handler.Read<int>();
-                if (padding != 0) throw new Exception("Mysterious padding is not actually padding!??");
+            // why the hell does this exist
+            // maybe it's supposed to be a section type override, so a file could contain multiple section types?
+            // leaving my original "hasMysteryPadding" hack condition here in case we need it again and the section type isn't the true indicator of its presence
+            // var hasMysteryPadding = version > AimpFormat.Format8 && (handler.Read<int>(handler.Tell() + 36) != 0 || handler.Read<int>(handler.Tell() + 20) != 0);
+            if (header.Version > AimpFormat.Format8 && header.sectionType == SectionType.NoSection) {
+                handler.ReadNull(4);
             }
 
             handler.Read(ref float1);
             handler.Read(ref float2);
 
-            // var expected = false;
-            // var possiblyRelevantData = $"{boundsPos}/align:{boundsPos%16}/line:{boundsPos/16}/size:{sizeToDate}/{sizeToDate%16} {(contentCount == 0 ? "EMPTY" : contents[0].GetType().ToString())}";
-            // Console.WriteLine($"Mysterious: {hasMysteryPadding} - {handler.FilePath} - {possiblyRelevantData}");
-            // if (hasMysteryPadding != expected) {
-            //     // Console.WriteLine($"{possiblyRelevantData}  Expectation: {expected} reality: {hasMysteryPadding} - {handler.FilePath}");
-            // } else {
-            //     // Console.WriteLine($"{possiblyRelevantData}  Expectation: {expected} reality: {bounds.hasMysteryPadding}");
-            // }
-
             if (version > AimpFormat.Format8) {
                 handler.Read(ref bounds);
                 QuadData ??= new();
                 QuadData.Read(handler);
+            }
+
+            return true;
+        }
+
+        protected override bool DoWrite(FileHandler handler)
+        {
+            handler.Write(ref contentCount);
+            foreach (var content in contents) {
+                handler.WriteInlineWString(content.Classname);
+                handler.Write(content.NodeCount);
+                content.WriteNodes(handler);
+            }
+
+            handler.WriteNull(4);
+            handler.Write(Positions.Length);
+            handler.WriteArray(Positions);
+            Nodes.Write(handler, version);
+            if (header.Version > AimpFormat.Format8 && header.sectionType == SectionType.NoSection) {
+                handler.WriteNull(4);
+            }
+
+            handler.Write(ref float1);
+            handler.Write(ref float2);
+            if (version > AimpFormat.Format8) {
+                handler.Write(ref bounds);
+                QuadData ??= new();
+                QuadData.Write(handler);
             }
 
             return true;
@@ -727,10 +878,11 @@ namespace ReeLib.Aimp
             }
         }
 
-        protected override bool DoWrite(FileHandler handler)
+        public void WriteData(FileHandler handler)
         {
-            handler.Write(ref contentCount);
-            return true;
+            for (int i = 0; i < contentCount; ++i) {
+                contents![i].WriteData(handler);
+            }
         }
     }
 
@@ -748,6 +900,16 @@ namespace ReeLib.Aimp
                 name = handler.ReadInlineWString();
             }
             handler.Read(ref flags);
+        }
+
+        public void Write(FileHandler handler, AimpFormat format)
+        {
+            if (format <= AimpFormat.Format28) {
+                handler.Write(ref nameHash);
+            } else {
+                handler.WriteInlineWString(name ??= "");
+            }
+            handler.Write(ref flags);
         }
 
         public override string ToString() => $"{name ?? nameHash.ToString()}: {flags:x}";
@@ -781,13 +943,12 @@ namespace ReeLib.Aimp
             public int a, b;
         }
 
-        public EmbedIndexedPosition[]? positions1;
-        public PaddedVec3[]? positions2;
-        public PaddedVec3 min;
-        public PaddedVec3 max;
-        public EmbedIndexedTriangle[]? data1;
-        public EmbedIndexedTriangle[]? data2;
-        public EmbedIndexedTriangle[]? data3;
+        public EmbedIndexedPosition[] positions1 = [];
+        public PaddedVec3[] positions2 = [];
+        public AABB bounds;
+        public EmbedIndexedTriangle[] data1 = [];
+        public EmbedIndexedTriangle[] data2 = [];
+        public EmbedIndexedTriangle[] data3 = [];
         public Data2[]? data4;
         public int[]? data5; // unknown
         public ContentGroup? contentGroup;
@@ -803,8 +964,7 @@ namespace ReeLib.Aimp
 
             positions1 = handler.ReadArray<EmbedIndexedPosition>(handler.ReadInt());
             positions2 = handler.ReadArray<PaddedVec3>(handler.ReadInt());
-            handler.Read(ref min);
-            handler.Read(ref max);
+            handler.Read(ref bounds);
             data1 = handler.ReadArray<EmbedIndexedTriangle>(handler.ReadInt());
             data2 = handler.ReadArray<EmbedIndexedTriangle>(handler.ReadInt());
             data3 = handler.ReadArray<EmbedIndexedTriangle>(handler.ReadInt());
@@ -814,36 +974,88 @@ namespace ReeLib.Aimp
                 if (data5.Length > 0) throw new Exception("Found unhandled data5 embed data");
             }
         }
+
+        public void Write(FileHandler handler, AimpFormat format)
+        {
+            handler.Write(contentGroup?.NodeCount ?? 0);
+            if (contentGroup != null)
+            {
+                handler.WriteInlineWString(contentGroup.Classname);
+                contentGroup.WriteNodes(handler);
+            }
+
+            handler.Write(positions1.Length);
+            handler.WriteArray(positions1);
+            handler.Write(positions2.Length);
+            handler.WriteArray(positions2);
+            handler.Write(ref bounds);
+            handler.Write(data1.Length);
+            handler.WriteArray(data1);
+            handler.Write(data2.Length);
+            handler.WriteArray(data2);
+            handler.Write(data3.Length);
+            handler.WriteArray(data3);
+            if (format > AimpFormat.Format28) {
+                data4 ??= [];
+                data5 ??= [];
+                handler.Write(data4.Length);
+                handler.WriteArray(data4);
+                handler.Write(data5.Length);
+                handler.WriteArray(data5);
+            }
+        }
     }
 
     public class EmbeddedMap
     {
-        public uint hash1, hash2;
-        public uint hash3, hash4;
+        public ulong hash1;
+        public ulong hash2;
 
         public string? key;
 
-        public int[]? preData1, preData2;
+        public int[] preData1 = [];
+        public int[] preData2 = [];
 
-        public EmbeddedGroupData? data1;
+        public EmbeddedGroupData data1 = new();
         public EmbeddedGroupData? data2;
 
         public void Read(FileHandler handler, AimpFormat format)
         {
             handler.Read(ref hash1);
-            handler.Read(ref hash2);
-            if (format <= AimpFormat.Format41) { // TODO: this was only fmt28 before - what changed? re2rt != re3rt?
-                handler.Read(ref hash3);
-                handler.Read(ref hash4);
+            if (format <= AimpFormat.Format41) {
+                handler.Read(ref hash2);
             }
             preData1 = handler.ReadArray<int>(handler.ReadInt());
             preData2 = handler.ReadArray<int>(handler.ReadInt());
-            data1 ??= new();
             data1.Read(handler, format);
             if (format >= AimpFormat.Format41) {
                 data2 ??= new();
                 data2.Read(handler, format);
-                key = handler.ReadInlineWString();
+                if (format > AimpFormat.Format41) {
+                    key = handler.ReadInlineWString();
+                }
+            }
+        }
+
+        public void Write(FileHandler handler, AimpFormat format)
+        {
+            handler.Write(ref hash1);
+            if (format <= AimpFormat.Format41)
+            {
+                handler.Write(ref hash2);
+            }
+            handler.Write(preData1.Length);
+            handler.WriteArray(preData1);
+            handler.Write(preData2.Length);
+            handler.WriteArray(preData2);
+
+            data1.Write(handler, format);
+            if (format >= AimpFormat.Format41) {
+                data2 ??= new();
+                data2.Write(handler, format);
+                if (format > AimpFormat.Format41) {
+                    handler.WriteInlineWString(key ??= "");
+                }
             }
         }
 
@@ -874,11 +1086,8 @@ namespace ReeLib
         public ContentGroupContainer? secondaryContent;
         public MapLayers[]? layers;
 
-        public int embedHash1;
-        public int embedHash2;
-        public int embedHash3;
-        public int embedHash4;
-        public int embedCount;
+        public ulong embedHash1;
+        public ulong embedHash2;
 
         public EmbeddedMap[] embeds = Array.Empty<EmbeddedMap>();
 
@@ -950,7 +1159,7 @@ namespace ReeLib
                 "aivspc" => AimpType.VolumeSpace,
                 "ainvm" => AimpType.Navmesh,
                 "ainvmmgr" => AimpType.NavmeshManager,
-                _ => AimpType.Invalid,
+                _ => AimpType.Map,
             };
         }
 
@@ -971,23 +1180,18 @@ namespace ReeLib
             if (header.contentGroup1Offset > 0) {
                 handler.Seek(header.contentGroup1Offset);
                 // note: there are cases with no content groups (DMC5)
-                mainContent ??= new(format);
+                mainContent ??= new(format) { header = header };
                 mainContent.Read(handler);
             }
 
-            if (header.secondContentGroupOffset > 0 && header.secondNodeTableOffset > 0) {
-                secondaryContent ??= new(format);
-                handler.Seek(header.secondContentGroupOffset);
+            if (header.contentGroup2Offset > 0 && header.group2DataOffset > 0) {
+                secondaryContent ??= new(format) { header = header };
+                handler.Seek(header.contentGroup2Offset);
                 secondaryContent.Read(handler);
             }
 
-            var dataOffset = handler.Tell();
-            if (header.indexDataOffset > 0) {
-                handler.Seek(header.indexDataOffset);
-                dataOffset = (dataOffset % 16) == 0 ? dataOffset : dataOffset + (16 - dataOffset % 16);
-                if (dataOffset != header.indexDataOffset) {
-                    throw new Exception($"Mismatch from expected data offset: {header.indexDataOffset}, expected {dataOffset}");
-                }
+            if (header.group1DataOffset > 0) {
+                handler.Seek(header.group1DataOffset);
                 if (mainContent != null) {
                     handler.Align(16);
                     mainContent.ReadData(handler);
@@ -1015,13 +1219,11 @@ namespace ReeLib
                 handler.Seek(header.embeddedContentOffset);
 
                 handler.Read(ref embedHash1);
-                handler.Read(ref embedHash2);
                 if (format <= AimpFormat.Format41) {
-                    handler.Read(ref embedHash3);
-                    handler.Read(ref embedHash4);
+                    handler.Read(ref embedHash2);
                 }
 
-                handler.Read(ref embedCount);
+                var embedCount = handler.Read<int>();
                 embeds = new EmbeddedMap[embedCount];
                 for (int i = 0; i < embedCount; ++i) {
                     var embed = new EmbeddedMap();
@@ -1029,11 +1231,83 @@ namespace ReeLib
                     embeds[i] = embed;
                 }
             }
+            else
+            {
+                DataInterpretationException.DebugThrowIf(header.Version >= AimpFormat.Format28, "Missing embed offset");
+            }
+
+            DataInterpretationException.ThrowIfNotZeroEOF(handler);
             return true;
         }
 
         protected override bool DoWrite()
         {
+            var handler = FileHandler;
+            var header = Header;
+            header.Write(handler);
+
+            if (mainContent != null)
+            {
+                header.contentGroup1Offset = handler.Tell();
+                mainContent.header = header;
+                mainContent.Write(handler);
+            }
+
+            if (secondaryContent != null)
+            {
+                handler.Align(16);
+                header.contentGroup2Offset = handler.Tell();
+                secondaryContent.header = header;
+                secondaryContent.Write(handler);
+            }
+
+            if (mainContent != null)
+            {
+                handler.Align(16);
+                header.group1DataOffset = handler.Tell();
+                mainContent.WriteData(handler);
+            }
+
+            if (secondaryContent != null)
+            {
+                handler.Align(16);
+                header.group2DataOffset = handler.Tell();
+                secondaryContent.WriteData(handler);
+            }
+
+            if (layers?.Length > 0)
+            {
+                handler.Align(16);
+                header.layersOffset = handler.Tell();
+                foreach (var layer in layers) layer.Write(handler, header.Version);
+            }
+
+            if (header.Version >= AimpFormat.Format28) {
+                handler.Align(16);
+                WriteRsz(RSZ, header.rszOffset = handler.Tell());
+
+                handler.Align(16);
+                header.embeddedContentOffset = handler.Tell();
+                handler.Write(ref embedHash1);
+                if (header.Version <= AimpFormat.Format41) {
+                    handler.Write(ref embedHash2);
+                }
+                handler.Write(embeds.Length);
+
+                if (embeds.Length > 0)
+                {
+                    foreach (var embed in embeds)
+                    {
+                        embed.Write(handler, header.Version);
+                    }
+                }
+
+                // some DD2 base game files _sometimes_ have extra 0s, seemingly when no embeds and embedHash1 == 0; some games don't
+                // I don't think it's worth trying to figure out what exactly this is so just in case, write an extra 8 bytes here
+                if (embeds.Length == 0) handler.WriteNull(8);
+            }
+
+            header.Write(handler, 0);
             return true;
         }
     }

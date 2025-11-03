@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
 using ReeLib.Aimp;
+using ReeLib.Common;
 using ReeLib.InternalAttributes;
 using ReeLib.via;
 
@@ -398,8 +399,8 @@ namespace ReeLib.Aimp
         public override int NodeCount => Nodes.Count;
     }
 
-    [StructLayout(LayoutKind.Sequential, Pack = 4)]
-    public struct NodeInfo
+    [RszGenerate]
+    public partial class NodeInfo
     {
         public int groupIndex;
         public int index;
@@ -409,7 +410,13 @@ namespace ReeLib.Aimp
         public int linkCount;
         public int nextIndex;
 
-        public readonly NodeInfoRE7 AsRE7() => new NodeInfoRE7() { flags = flags, index = index, index2 = index, attributes = attributes };
+        [field: RszIgnore] public List<LinkInfo> Links { get; } = new();
+        [field: RszIgnore] public RszInstance? UserData { get; set; }
+
+        public void Read(FileHandler handler) => DefaultRead(handler);
+        public void Write(FileHandler handler) => DefaultWrite(handler);
+
+        public NodeInfoRE7 AsRE7() => new NodeInfoRE7() { flags = flags, index = index, index2 = index, attributes = attributes };
     }
 
     public struct NodeInfoRE7
@@ -427,8 +434,8 @@ namespace ReeLib.Aimp
     public struct LinkInfo
     {
         public int index;
-        public int selfIndex;
-        public int otherIndex;
+        public int sourceNodeIndex;
+        public int targetNodeIndex;
         public int ukn1; // if 2 => 2-way
         public ulong attributes;
         public int ukn2;
@@ -444,7 +451,6 @@ namespace ReeLib.Aimp
     public class NodeData
     {
         public NodeInfo[] Nodes = [];
-        public LinkInfo[] Links = [];
         public int maxIndex;
         public int minIndex;
 
@@ -460,47 +466,63 @@ namespace ReeLib.Aimp
 
             Nodes = new NodeInfo[nodeCount];
 
-            if (format >= AimpFormat.Format28) {
-                int linkCount = 0;
-                for (int i = 0; i < nodeCount; ++i) {
-                    var tri = handler.Read<NodeInfo>();
-                    Nodes[i] = tri;
-                    linkCount += tri.linkCount;
+            if (format >= AimpFormat.Format28)
+            {
+                for (int i = 0; i < nodeCount; ++i)
+                {
+                    var node = new NodeInfo();
+                    node.Read(handler);
+                    Nodes[i] = node;
                 }
-                Links = new LinkInfo[linkCount];
-                for (int i = 0; i < linkCount; ++i) {
-                    Links[i] = handler.Read<LinkInfo>();
+
+                foreach (var node in Nodes)
+                {
+                    for (int i = 0; i < node.linkCount; ++i)
+                    {
+                        node.Links.Add(handler.Read<LinkInfo>());
+                    }
                 }
-            } else {
-                for (int i = 0; i < nodeCount; ++i) {
-                    var tri = handler.Read<NodeInfoRE7>().Upgrade();
-                    Nodes[i] = tri;
+            }
+            else
+            {
+                for (int i = 0; i < nodeCount; ++i)
+                {
+                    var node = handler.Read<NodeInfoRE7>().Upgrade();
+                    Nodes[i] = node;
                 }
                 int linkCount = handler.Read<int>();
-                Links = new LinkInfo[linkCount];
-                handler.ReadArray(Links);
+                for (int i = 0; i < linkCount; ++i)
+                {
+                    var link = handler.Read<LinkInfo>();
+                    Nodes[link.sourceNodeIndex].Links.Add(link);
+                }
             }
         }
 
         public void Write(FileHandler handler, AimpFormat format)
         {
             handler.Write(Nodes.Length);
-            if (format >= AimpFormat.Format28) {
-                handler.Write(ref maxIndex);
-            }
-            if (format >= AimpFormat.Format41) {
-                handler.Write(ref minIndex);
-            }
+            if (format >= AimpFormat.Format28) handler.Write(ref maxIndex);
+            if (format >= AimpFormat.Format41) handler.Write(ref minIndex);
 
             if (format >= AimpFormat.Format28) {
-                handler.WriteArray(Nodes);
-                handler.WriteArray(Links);
+                foreach (var node in Nodes) node.Write(handler);
             } else {
-                foreach (var node in Nodes) {
+                var linkCount = 0;
+                foreach (var node in Nodes)
+                {
                     handler.Write(node.AsRE7());
+                    linkCount += node.Links.Count;
                 }
-                handler.Write(Links.Length);
-                handler.WriteArray(Links);
+                handler.Write(linkCount);
+            }
+
+            foreach (var node in Nodes)
+            {
+                foreach (var link in node.Links)
+                {
+                    handler.Write(link);
+                }
             }
         }
     }
@@ -762,10 +784,9 @@ namespace ReeLib.Aimp
 
     public class ContentGroupContainer : BaseModel
     {
-        public int contentCount;
         public ContentGroup[] contents = [];
 
-        public PaddedVec3[] Positions = [];
+        public PaddedVec3[] Vertices = [];
         public NodeData Nodes = new();
 
         // aiwayp, aivspc: float1,2 = 1f, 0f
@@ -806,7 +827,7 @@ namespace ReeLib.Aimp
 
         protected override bool DoRead(FileHandler handler)
         {
-            handler.Read(ref contentCount);
+            var contentCount = handler.Read<int>();
             var firstHeaderOffset = handler.Tell();
             if (contentCount == 0) {
                 contents = Array.Empty<ContentGroup>();
@@ -820,7 +841,7 @@ namespace ReeLib.Aimp
 
             handler.ReadNull(4);
 
-            Positions = handler.ReadArray<PaddedVec3>(handler.Read<int>());
+            Vertices = handler.ReadArray<PaddedVec3>(handler.Read<int>());
             Nodes.Read(handler, version);
 
             // why the hell does this exist
@@ -845,7 +866,7 @@ namespace ReeLib.Aimp
 
         protected override bool DoWrite(FileHandler handler)
         {
-            handler.Write(ref contentCount);
+            handler.Write(contents.Length);
             foreach (var content in contents) {
                 handler.WriteInlineWString(content.Classname);
                 handler.Write(content.NodeCount);
@@ -853,8 +874,8 @@ namespace ReeLib.Aimp
             }
 
             handler.WriteNull(4);
-            handler.Write(Positions.Length);
-            handler.WriteArray(Positions);
+            handler.Write(Vertices.Length);
+            handler.WriteArray(Vertices);
             Nodes.Write(handler, version);
             if (header.Version > AimpFormat.Format8 && header.sectionType == SectionType.NoSection) {
                 handler.WriteNull(4);
@@ -873,15 +894,15 @@ namespace ReeLib.Aimp
 
         public void ReadData(FileHandler handler)
         {
-            for (int i = 0; i < contentCount; ++i) {
-                contents![i].ReadData(handler);
+            foreach (var group in contents) {
+                group.ReadData(handler);
             }
         }
 
         public void WriteData(FileHandler handler)
         {
-            for (int i = 0; i < contentCount; ++i) {
-                contents![i].WriteData(handler);
+            foreach (var group in contents) {
+                group.WriteData(handler);
             }
         }
     }
@@ -890,7 +911,7 @@ namespace ReeLib.Aimp
     {
         public uint nameHash;
         public string? name;
-        public uint flags;
+        public Color color;
 
         public void Read(FileHandler handler, AimpFormat format)
         {
@@ -899,7 +920,7 @@ namespace ReeLib.Aimp
             } else {
                 name = handler.ReadInlineWString();
             }
-            handler.Read(ref flags);
+            handler.Read(ref color);
         }
 
         public void Write(FileHandler handler, AimpFormat format)
@@ -909,49 +930,67 @@ namespace ReeLib.Aimp
             } else {
                 handler.WriteInlineWString(name ??= "");
             }
-            handler.Write(ref flags);
+            handler.Write(ref color);
         }
 
-        public override string ToString() => $"{name ?? nameHash.ToString()}: {flags:x}";
+        public override string ToString() => $"{name ?? nameHash.ToString()}: {color}";
     }
 
     public class EmbeddedGroupData
     {
+        public struct FlaggedIndex
+        {
+            public short index;
+            public byte indexUpperByte;
+            public byte flag;
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
         public struct EmbedIndexedPosition
         {
-            public short a;
-            public byte b1, b2;
-            public int c, d, e;
-            public PaddedVec3 position;
+            // one of these unknowns could be a userdata index; not enough sample files to make a good conclusion
+            // index is equal to index2 _most_ of the time but not always
+            public FlaggedIndex index;
+            public int ukn1;
+            public int index2;
+            public int zero2;
+            public int zero3;
+            public int zero4;
+            public int ukn2;
+            public int ukn3;
         }
 
         public struct EmbedIndexedTriangle
         {
             public int index;
 
-            public short b1;
-            public byte b2, b3;
+            public FlaggedIndex flagIndex1;
+            public FlaggedIndex flagIndex2;
 
-            public short c1;
-            public byte c2, c3;
-
-            public int d, e, f, g;
+            public int ukn1;
+            public int ukn2_zero;
+            public int ukn3_zero;
+            public int ukn4;
         }
 
         public struct Data2
         {
-            public int a, b;
+            public int num1, num2;
         }
 
+        public ContentGroup? contentGroup;
+
         public EmbedIndexedPosition[] positions1 = [];
-        public PaddedVec3[] positions2 = [];
+        public PaddedVec3[] vertices = [];
         public AABB bounds;
+
+        // the main index between the 3 data groups seems to increment across all of them
         public EmbedIndexedTriangle[] data1 = [];
         public EmbedIndexedTriangle[] data2 = [];
         public EmbedIndexedTriangle[] data3 = [];
+        // these might be wrong
         public Data2[]? data4;
         public int[]? data5; // unknown
-        public ContentGroup? contentGroup;
 
         public void Read(FileHandler handler, AimpFormat format)
         {
@@ -963,16 +1002,39 @@ namespace ReeLib.Aimp
             }
 
             positions1 = handler.ReadArray<EmbedIndexedPosition>(handler.ReadInt());
-            positions2 = handler.ReadArray<PaddedVec3>(handler.ReadInt());
+            // TODO: this doesn't seem quite correct in all cases (specifically when nodeCount == 0, they aren't always floats - see dd2 aimapwaypoint_event_11)
+            // could also be a data4 interpretation issue
+
+            vertices = handler.ReadArray<PaddedVec3>(handler.ReadInt());
             handler.Read(ref bounds);
             data1 = handler.ReadArray<EmbedIndexedTriangle>(handler.ReadInt());
             data2 = handler.ReadArray<EmbedIndexedTriangle>(handler.ReadInt());
             data3 = handler.ReadArray<EmbedIndexedTriangle>(handler.ReadInt());
-            if (format > AimpFormat.Format28) {
+            if (format >= AimpFormat.Format41) {
                 data4 = handler.ReadArray<Data2>(handler.ReadInt());
                 data5 = handler.ReadArray<int>(handler.ReadInt());
+                if (data4.Length > 0) Log.Info("Found data4 " + handler.FilePath);
                 if (data5.Length > 0) throw new Exception("Found unhandled data5 embed data");
             }
+
+#if DEBUG
+            foreach (var p in positions1) {
+                DataInterpretationException.DebugThrowIf(p.index.indexUpperByte != 0);
+                DataInterpretationException.DebugThrowIf(p.zero2 != 0);
+                DataInterpretationException.DebugThrowIf(p.zero3 != 0);
+                DataInterpretationException.DebugThrowIf(p.zero4 != 0);
+            }
+
+            foreach (var tri in data1) {
+                DataInterpretationException.DebugThrowIf(tri.ukn2_zero != 0 || tri.ukn3_zero != 0 || tri.flagIndex1.indexUpperByte != 0 || tri.flagIndex2.indexUpperByte != 0);
+            }
+            foreach (var tri in data2) {
+                DataInterpretationException.DebugThrowIf(tri.ukn2_zero != 0 || tri.ukn3_zero != 0 || tri.flagIndex1.indexUpperByte != 0 || tri.flagIndex2.indexUpperByte != 0);
+            }
+            foreach (var tri in data3) {
+                DataInterpretationException.DebugThrowIf(tri.ukn2_zero != 0 || tri.ukn3_zero != 0 || tri.flagIndex1.indexUpperByte != 0 || tri.flagIndex2.indexUpperByte != 0);
+            }
+#endif
         }
 
         public void Write(FileHandler handler, AimpFormat format)
@@ -986,8 +1048,8 @@ namespace ReeLib.Aimp
 
             handler.Write(positions1.Length);
             handler.WriteArray(positions1);
-            handler.Write(positions2.Length);
-            handler.WriteArray(positions2);
+            handler.Write(vertices.Length);
+            handler.WriteArray(vertices);
             handler.Write(ref bounds);
             handler.Write(data1.Length);
             handler.WriteArray(data1);
@@ -1211,8 +1273,15 @@ namespace ReeLib
                 }
             }
 
-            if (header.rszOffset > 0) {
+            if (header.rszOffset > 0)
+            {
                 ReadRsz(RSZ, header.rszOffset);
+                var nodes = (mainContent?.Nodes.Nodes ?? []).Concat(secondaryContent?.Nodes.Nodes ?? []);
+                foreach (var node in nodes)
+                {
+                    if (node.userdataIndex == 0) continue;
+                    node.UserData = RSZ.ObjectList[node.userdataIndex - 1];
+                }
             }
 
             if (header.embeddedContentOffset > 0) {
@@ -1283,6 +1352,19 @@ namespace ReeLib
             }
 
             if (header.Version >= AimpFormat.Format28) {
+                // rebuild the RSZ data table just in case anything relevant changed
+                var userdataInstances = (mainContent?.Nodes.Nodes ?? [])
+                    .Concat(secondaryContent?.Nodes.Nodes ?? [])
+                    .Where(x => x.UserData != null);
+
+                RSZ.ClearObjects();
+                foreach (var ud in userdataInstances)
+                {
+                    RSZ.AddToObjectTable(ud.UserData!);
+                    ud.userdataIndex = ud.UserData!.ObjectTableIndex + 1;
+                }
+                RSZ.RebuildInstanceList(userdataInstances.Select(x => x.UserData!));
+
                 handler.Align(16);
                 WriteRsz(RSZ, header.rszOffset = handler.Tell());
 

@@ -272,7 +272,7 @@ namespace ReeLib
         /// Reconstructs the full instance list based on the given list including nested instances.
         /// Unreferenced / dangling instances will be discarded.
         /// </summary>
-        public void RebuildInstanceList(IList<RszInstance> srcList)
+        public void RebuildInstanceList(IEnumerable<RszInstance> srcList)
         {
             ClearInstances();
             var list = InstanceList;

@@ -177,6 +177,7 @@ namespace ReeLib
         MotionList,
         /// <summary>.motbank</summary>
         MotionBank,
+        /// <summary>.gpumotlist</summary>
         GpuMotionList,
         /// <summary>.cfil</summary>
         CollisionFilter,
@@ -315,7 +316,6 @@ namespace ReeLib
         Lod,
         /// <summary>.terr</summary>
         Terrain,
-
         /// <summary>.gml</summary>
         GroundMaterialList,
         /// <summary>.gtl</summary>
@@ -403,19 +403,35 @@ namespace ReeLib
         PSOPatch,
         /// <summary>.sst</summary>
         SetStateList,
-
-        /// <summary>.fxct</summary>
-        fxct, // EffectCollision?
-        /// <summary>.ord</summary>
-        ord,
+        /// <summary>.chainwnd</summary>
+        ChainWind,
         /// <summary>.pog</summary>
-        pog,
+        PointGraph,
         /// <summary>.poglst</summary>
-        poglst,
-        /// <summary>.rcfg</summary>
-        rcfg,
+        PointGraphList,
+        /// <summary>.csdf</summary>
+        CfxShader,
         /// <summary>.sdf</summary>
-        sdf, // BankInfo?
+        Shader,
+        /// <summary>.fxct</summary>
+        EffectCollision,
+        /// <summary>.ord</summary>
+        OodleNetworkRuntimeData,
+        /// <summary>.rcfg</summary>
+        RenderConfigAsset,
+
+        /// <remarks>Deprecated in favor of <see cref="EffectCollision"/></remarks>
+        fxct,
+        /// <remarks>Deprecated in favor of <see cref="OodleNetworkRuntimeData"/></remarks>
+        ord,
+        /// <remarks>Deprecated in favor of <see cref="PointGraph"/></remarks>
+        pog,
+        /// <remarks>Deprecated in favor of <see cref="PointGraphList"/></remarks>
+        poglst,
+        /// <remarks>Deprecated in favor of <see cref="RenderConfigAsset"/></remarks>
+        rcfg,
+        /// <remarks>Deprecated in favor of <see cref="Shader"/></remarks>
+        sdf,
 
         TimelineBase, // Timeline or Clip
         MotionBase, // Motion or MotionTree or MotionList or GpuMotionList or MotionCamera or MotionCameraList

@@ -62,7 +62,9 @@ public class ReeLibGenerator : IIncrementalGenerator
                     var valName = val.Identifier.Text;
                     if (val.HasLeadingTrivia) {
                         var comp = val.GetLeadingTrivia().ToFullString()
-                            .Replace("\n", "").Replace("\r", "").Replace("<summary>", "").Replace("</summary>", "").Replace("///", "").Replace(" ", "").Replace(".", "").Trim();
+                            .Replace("\n", "").Replace("\r", "");
+                        if (!comp.Contains("<summary>")) continue;
+                        comp = comp.Replace("<summary>", "").Replace("</summary>", "").Replace("///", "").Replace(" ", "").Replace(".", "").Trim();
                         if (!string.IsNullOrWhiteSpace(comp)) {
                             var extensionList = comp!.Split(',');
                             foreach (var ext in extensionList) {

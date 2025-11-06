@@ -254,7 +254,7 @@ namespace ReeLib.Aimp
     public class PolygonNode
     {
         public int pointCount;
-        public int[]? indices;
+        public int[] indices = [];
         public NodeInfoAttributes attributes = new();
         public Vector3 min;
         public Vector3 max;
@@ -273,7 +273,7 @@ namespace ReeLib.Aimp
         public void Write(FileHandler handler)
         {
             handler.Write(ref pointCount);
-            handler.WriteArray<int>(indices ?? Array.Empty<int>());
+            handler.WriteArray<int>(indices);
             if (version >= AimpFormat.Format28) {
                 attributes.Write(handler);
             } else {
@@ -413,6 +413,8 @@ namespace ReeLib.Aimp
         [field: RszIgnore] public List<LinkInfo> Links { get; } = new();
         [field: RszIgnore] public RszInstance? UserData { get; set; }
 
+        public Color GetColor(AimpFile file) => attributes == 0 ? new Color(0xffffffff) : file.layers![BitOperations.TrailingZeroCount(attributes)].color;
+
         public void Read(FileHandler handler) => DefaultRead(handler);
         public void Write(FileHandler handler) => DefaultWrite(handler);
 
@@ -438,7 +440,7 @@ namespace ReeLib.Aimp
         public int targetNodeIndex;
         public int ukn1; // if 2 => 2-way
         public ulong attributes;
-        public int ukn2;
+        public int ukn2; // this is sometimes int, sometimes float...
     }
 
     public struct IndexSet
@@ -496,6 +498,8 @@ namespace ReeLib.Aimp
                     var link = handler.Read<LinkInfo>();
                     Nodes[link.sourceNodeIndex].Links.Add(link);
                 }
+                // convenience to simplify usage - integration can also assume it's there and valid
+                maxIndex = linkCount;
             }
         }
 
@@ -535,6 +539,8 @@ namespace ReeLib.Aimp
         {
             public Vector3 pos;
             public Vector3 normal;
+
+            public override string ToString() => pos.ToString();
         }
 
         public override bool ReadNodes(FileHandler handler, int count)

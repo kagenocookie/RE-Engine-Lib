@@ -304,10 +304,10 @@ namespace ReeLib.Aimp
     public partial class WallNode
     {
         public via.mat4 matrix;
-        public Vector4 scale;
-        public Vector4 rotation;
-        public Vector4 position;
-        [RszFixedSizeArray(8)] public int[] values = new int[8];
+        public PaddedVec3 scale;
+        public Quaternion rotation;
+        public PaddedVec3 position;
+        [RszFixedSizeArray(8)] public int[] indices = new int[8];
 
         public void Read(FileHandler handler) => DefaultRead(handler);
         public void Write(FileHandler handler) => DefaultWrite(handler);
@@ -757,13 +757,6 @@ namespace ReeLib.Aimp
         {
             Nodes.Clear();
             for (int i = 0; i < count; ++i) {
-                // var node = new WallNode() {
-                //     matrix = handler.Read<via.mat4>(),
-                //     scale = handler.Read<Vector4>(),
-                //     rotation = handler.Read<Vector4>(),
-                //     position = handler.Read<Vector4>(),
-                //     values = handler.ReadArray<int>(8),
-                // };
                 var node = new WallNode();
                 node.Read(handler);
                 Nodes.Add(node);

@@ -164,11 +164,12 @@ namespace ReeLib
             return true;
         }
 
-        public void ReadData(GrndFile ground)
+        public void ReadData(GrndFile ground, int minLevel = 0, int maxLevel = int.MaxValue)
         {
-            var handler = FileHandler;
             // we need the parent grnd file to get the real content sizes here
-            for (int i = 0; i < Header.count2;++i)
+            var handler = FileHandler;
+            maxLevel = Math.Min(maxLevel, Header.count2);
+            for (int i = minLevel; i < maxLevel;++i)
             {
                 var item = new GtlData();
                 handler.Seek(DataOffets[i]);

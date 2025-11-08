@@ -604,7 +604,11 @@ namespace ReeLib.Aimp
     {
         public int[] polygonIndices = [];
 
-        public override Vector3 GetNodeCenter(ContentGroupContainer container, int i) => container.Vertices[Nodes[i].index1].Vector3;
+        public override Vector3 GetNodeCenter(ContentGroupContainer container, int i) => (
+            container.Vertices[Nodes[i].index1].Vector3 +
+            container.Vertices[Nodes[i].index2].Vector3 +
+            container.Vertices[Nodes[i].index3].Vector3
+        ) * 0.333f;
 
         public override bool ReadNodes(FileHandler handler, int count)
         {

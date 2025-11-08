@@ -376,6 +376,8 @@ namespace ReeLib.Aimp
         public abstract void WriteData(FileHandler handler);
         public abstract void WriteNodes(FileHandler handler);
 
+        public abstract Vector3 GetNodeCenter(ContentGroupContainer container, int i);
+
         public static ContentGroup Create(string classname, AimpFormat format)
         {
             ContentGroup content = classname switch {
@@ -456,6 +458,27 @@ namespace ReeLib.Aimp
         public int maxIndex;
         public int minIndex;
 
+        private int[]? _effectiveNodeIndices;
+        public int[] EffectiveNodeIndices
+        {
+            get
+            {
+                if (_effectiveNodeIndices == null)
+                {
+                    _effectiveNodeIndices = new int[maxIndex + 1];
+                    int offsetIndex = 0;
+                    for (int i = 0; i < Nodes.Length; i++) {
+                        var node = Nodes[i];
+                        // I'm not quite sure what the point of these extra indices is... maybe they generate lerped gap points for wayp files?
+                        while (offsetIndex < node.nextIndex && offsetIndex < _effectiveNodeIndices.Length) {
+                            _effectiveNodeIndices[offsetIndex++] = i;
+                        }
+                    }
+                }
+                return _effectiveNodeIndices;
+            }
+        }
+
         public void Read(FileHandler handler, AimpFormat format)
         {
             var nodeCount = handler.Read<int>();
@@ -535,6 +558,8 @@ namespace ReeLib.Aimp
     {
         public int[] indexData = [];
 
+        public override Vector3 GetNodeCenter(ContentGroupContainer container, int i) => Nodes[i].pos;
+
         public struct Point
         {
             public Vector3 pos;
@@ -579,6 +604,8 @@ namespace ReeLib.Aimp
     {
         public int[] polygonIndices = [];
 
+        public override Vector3 GetNodeCenter(ContentGroupContainer container, int i) => container.Vertices[Nodes[i].index1].Vector3;
+
         public override bool ReadNodes(FileHandler handler, int count)
         {
             Nodes.Clear();
@@ -611,6 +638,8 @@ namespace ReeLib.Aimp
     public class ContentGroupPolygon : ContentGroup<PolygonNode>
     {
         public IndexSet[] triangleIndices = [];
+
+        public override Vector3 GetNodeCenter(ContentGroupContainer container, int i) => container.Vertices[Nodes[i].indices[0]].Vector3;
 
         public override bool ReadNodes(FileHandler handler, int count)
         {
@@ -659,6 +688,8 @@ namespace ReeLib.Aimp
             public Vector3 min, max;
         }
 
+        public override Vector3 GetNodeCenter(ContentGroupContainer container, int i) => (Nodes[i].min + Nodes[i].max) * 0.5f;
+
         public override bool ReadNodes(FileHandler handler, int count)
         {
             Nodes.Clear();
@@ -698,6 +729,8 @@ namespace ReeLib.Aimp
     public class ContentGroupMapAABB : ContentGroup<AABBNode>
     {
         public IndexSet[] data = [];
+
+        public override Vector3 GetNodeCenter(ContentGroupContainer container, int i) => container.Vertices[Nodes[i].indices[0]].Vector3;
 
         public override bool ReadNodes(FileHandler handler, int count)
         {
@@ -751,6 +784,8 @@ namespace ReeLib.Aimp
     {
         public OffsetData[] data = [];
 
+        public override Vector3 GetNodeCenter(ContentGroupContainer container, int i) => container.Vertices[Nodes[i].indices[0]].Vector3;
+
         public struct OffsetData { public uint mask; }; // re4: 1x uint; before was saved as 2x uint -- why? dd2+ change?
 
         public override bool ReadNodes(FileHandler handler, int count)
@@ -802,6 +837,26 @@ namespace ReeLib.Aimp
         public float float1;
         public float float2;
         public AABB bounds;
+
+        private Vector3[]? _nodeOrigins;
+        public Vector3[] NodeOrigins
+        {
+            get {
+                if (_nodeOrigins == null)
+                {
+                    _nodeOrigins = new Vector3[Nodes.Nodes.Length];
+                    int offset = 0;
+                    foreach (var content in contents)
+                    {
+                        for (int i = 0; i < content.NodeCount; ++i)
+                        {
+                            _nodeOrigins[offset + i] = content.GetNodeCenter(this, i);
+                        }
+                    }
+                }
+                return _nodeOrigins;
+            }
+        }
 
         // for paired content group types, this is only ever present on group 2 (always the last group)
         // each sub array contains indices of the current group nodes, one node can be in multiple

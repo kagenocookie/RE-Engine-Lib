@@ -3,7 +3,7 @@ namespace ReeLib
     public class CmatFile : BaseFile
     {
         public Guid materialGuid;
-        public Guid[]? Attributes;
+        public List<Guid> Attributes = [];
 
         private const int Magic = 0x54414D43;
 
@@ -20,29 +20,24 @@ namespace ReeLib
                 throw new Exception("Invalid CMAT file");
             }
 
+            Attributes.Clear();
+
             var attributeCount = handler.Read<int>();
+            var attributesOffset = handler.Read<long>();
             handler.Read(ref materialGuid);
-            handler.Skip(8); // filesize
-            if (Attributes == null || Attributes.Length != attributeCount)
-            {
-                Attributes = new Guid[attributeCount];
-            }
-            handler.ReadArray(Attributes);
+            handler.Seek(attributesOffset);
+            Attributes.ReadStructList(handler, attributeCount);
             return true;
         }
 
         protected override bool DoWrite()
         {
-            var attributeCount = Attributes?.Length ?? 0;
-
             var handler = FileHandler;
             handler.Write(Magic);
-            handler.Write(ref attributeCount);
-            handler.Write(16 + attributeCount * sizeof(long) * 2);
-            if (attributeCount > 0)
-            {
-                handler.WriteArray(Attributes!);
-            }
+            handler.Write(Attributes.Count);
+            handler.Write(handler.Tell() + 24); // attribute offset
+            handler.Read(ref materialGuid);
+            Attributes.Write(handler);
             return true;
         }
     }

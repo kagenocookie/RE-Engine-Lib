@@ -190,11 +190,6 @@ namespace ReeLib
         }
     }
 
-    public abstract class VersionedBaseModel : BaseModel
-    {
-        public GameVersion Version { get; set; }
-    }
-
     public abstract class ReadWriteModel : BaseModel
     {
         protected abstract bool ReadWrite<THandler>(THandler action) where THandler : IFileHandlerAction;

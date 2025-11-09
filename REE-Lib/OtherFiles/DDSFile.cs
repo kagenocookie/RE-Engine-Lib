@@ -397,12 +397,15 @@ namespace ReeLib
             private uint w;
             private uint h;
             private int mip;
-            private int blockSize;
+
+            internal int blockSize;
             internal FileHandler handler;
-            public bool isCompressed;
 
             public int totalMipMapCount;
             public int CurrentMipLevel => mip;
+
+            public readonly bool IsCompressed { get; }
+            public int CurrentCompressedMipSize => IsCompressed ? (int)((w + 3) / 4) * (int)((h + 3) / 4) * blockSize : (int)(w * h * (blockSize / 8));
 
             private byte[]? bytes;
 
@@ -412,11 +415,9 @@ namespace ReeLib
                 h = height;
                 this.blockSize = blockSize;
                 this.handler = handler;
-                this.isCompressed = isCompressed;
+                this.IsCompressed = isCompressed;
                 totalMipMapCount = totalMipCount;
             }
-
-            private int CurrentCompressedMipSize => isCompressed ? (int)((w + 3) / 4) * (int)((h + 3) / 4) * blockSize : (int)(w * h * (blockSize / 8));
 
             public bool Skip()
             {

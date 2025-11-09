@@ -43,7 +43,7 @@ public class CachedMemoryPakReader : PakReader, IDisposable
                     {
                         uint magic1 = 0;
                         file.Read(MemoryUtils.StructureAsBytes(ref magic1));
-                        var fmt = GuessFileNameFromMagic(magic1);
+                        var fmt = GuessFileFormatFromMagic(magic1);
                         if (fmt != KnownFileFormats.Unknown)
                         {
                             list[hash] = fmt;
@@ -55,7 +55,7 @@ public class CachedMemoryPakReader : PakReader, IDisposable
                     {
                         uint magic2 = 0;
                         file.Read(MemoryUtils.StructureAsBytes(ref magic2));
-                        var fmt = GuessFileNameFromMagic(magic2);
+                        var fmt = GuessFileFormatFromMagic(magic2);
                         if (fmt != KnownFileFormats.Unknown)
                         {
                             list[hash] = fmt;
@@ -215,7 +215,7 @@ public class CachedMemoryPakReader : PakReader, IDisposable
         GC.SuppressFinalize(this);
     }
 
-    private static KnownFileFormats GuessFileNameFromMagic(uint magic)
+    private static KnownFileFormats GuessFileFormatFromMagic(uint magic)
     {
         return magic switch {
             AimapAttrFile.Magic => KnownFileFormats.AIMapAttribute,

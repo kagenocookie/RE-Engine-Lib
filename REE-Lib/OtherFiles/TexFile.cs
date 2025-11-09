@@ -1,9 +1,16 @@
-using System.Numerics;
 using ReeLib.DDS;
 
 namespace ReeLib.Tex
 {
-    public partial class Header : BaseModel
+	public enum TexSerializerVersion
+	{
+		Unknown,
+		RE7_8,
+        MHRise_28,
+        MHWilds,
+	}
+
+    public partial class Header : ReadWriteModel
     {
         public uint magic = TexFile.Magic;
         public int version;
@@ -15,7 +22,7 @@ namespace ReeLib.Tex
         public byte mipCount;
 
         public DxgiFormat format;
-        public int swizzleControl;
+        public int swizzleControl = -1;
         public uint cubemapMarker;
         public TexFlags flags;
 
@@ -26,43 +33,39 @@ namespace ReeLib.Tex
         public ushort one;
 
         public int BitsPerPixel => format.GetBitsPerPixel();
-        public bool IsPowerOfTwo => BitOperations.IsPow2(width) && BitOperations.IsPow2(height);
 
-        protected override bool DoRead(FileHandler handler)
+        internal const int MipHeaderSize = 16;
+
+        protected override bool ReadWrite<THandler>(THandler action)
         {
-            handler.Read(ref magic);
-            handler.Read(ref version);
-            handler.Read(ref width);
-            handler.Read(ref height);
-            handler.Read(ref depth);
-            var Version = TexFile.GetInternalVersion(version);
-            if (Version > 20) {
+            action.Do(ref magic);
+            action.Do(ref version);
+            action.Do(ref width);
+            action.Do(ref height);
+            action.Do(ref depth);
+            var Version = TexFile.GetSerializerVersion(version, action.Handler.FileVersion);
+            if (Version >= TexSerializerVersion.MHRise_28) {
                 // TODO some tex have 0 imageCount but still contain data (re4 debugsplatindex.tex.143221013) and mip header size 17
-                handler.Read(ref imageCount);
-                handler.Read(ref mipHeaderSize);
-                mipCount = (byte)(mipHeaderSize / 16);
+                action.Do(ref imageCount);
+                action.Do(ref mipHeaderSize);
+                mipCount = (byte)(mipHeaderSize / MipHeaderSize);
             } else {
-                handler.Read(ref mipCount);
-                handler.Read(ref imageCount);
+                action.Do(ref mipCount);
+                action.Do(ref imageCount);
             }
-            handler.Read(ref format);
-            handler.Read(ref swizzleControl);
-            handler.Read(ref cubemapMarker);
-            handler.Read(ref flags);
-            if (Version > 27) {
-                handler.Read(ref swizzleHeightDepth);
-                handler.Read(ref swizzleWidth);
-                handler.Read(ref null1);
-                handler.Read(ref seven);
-                handler.Read(ref one);
+            action.Do(ref format);
+            action.Do(ref swizzleControl);
+            action.Do(ref cubemapMarker);
+            action.Do(ref flags);
+            if (Version >= TexSerializerVersion.MHRise_28) {
+                action.Do(ref swizzleHeightDepth);
+                action.Do(ref swizzleWidth);
+                action.Do(ref null1);
+                action.Do(ref seven);
+                action.Do(ref one);
             }
 
             return true;
-        }
-
-        protected override bool DoWrite(FileHandler handler)
-        {
-            throw new NotImplementedException();
         }
     }
 
@@ -88,6 +91,7 @@ namespace ReeLib.Tex
 namespace ReeLib
 {
     using System.Buffers;
+    using ReeLib.Common;
     using ReeLib.Tex;
 
     public class TexFile : BaseFile
@@ -97,13 +101,94 @@ namespace ReeLib
         public Header Header = new();
         public List<MipHeader> Mips { get; } = new();
 
-        public static int GetInternalVersion(int version) => version switch {
-            190820018 => 20, // re3
-            _ => version,
-        };
+        internal int TotalTextureDataLength => Mips.Count == 0 ? 0 : (int)(Mips[^1].offset + Mips[^1].size - Mips[0].offset);
+
+        public TexSerializerVersion CurrentSerializerVersion =>
+            VersionHashLookups.TryGetValue(FileHandler.FileVersion, out var config) || VersionHashLookups.TryGetValue(Header.version, out config)
+            ? config.serializerVersion
+			: TexSerializerVersion.Unknown;
+
+        public string? CurrentVersionConfig =>
+            VersionHashLookups.TryGetValue(FileHandler.FileVersion, out var config) || VersionHashLookups.TryGetValue(Header.version, out config)
+            ? Versions.FirstOrDefault(kv => kv.Value == config).Key
+			: null;
+
+		private readonly record struct TexVersionConfig(int fileVersion, TexSerializerVersion serializerVersion, GameName[] games);
+
+        private static readonly Dictionary<string, TexVersionConfig> Versions = new()
+		{
+			{ "RE7", new (8, TexSerializerVersion.RE7_8, [GameName.re7]) },
+			{ "RE2", new (10, TexSerializerVersion.RE7_8, [GameName.re2]) },
+			{ "DMC5", new (11, TexSerializerVersion.RE7_8, [GameName.dmc5]) },
+			{ "RE3", new (190820018, TexSerializerVersion.RE7_8, [GameName.re3]) },
+
+			{ "MHRISE", new (28, TexSerializerVersion.MHRise_28, [GameName.mhrise]) },
+			{ "RE8", new (30, TexSerializerVersion.MHRise_28, [GameName.re8]) },
+			{ "RE2/3 RT", new (34, TexSerializerVersion.MHRise_28, [GameName.re2rt, GameName.re3rt]) },
+			{ "RE7RT", new (35, TexSerializerVersion.MHRise_28, [GameName.re7rt]) },
+
+			{ "RE4 / SF6", new (143221013, TexSerializerVersion.MHRise_28, [GameName.re4, GameName.sf6]) },
+
+			{ "DD2", new (760230703, TexSerializerVersion.MHRise_28, [GameName.dd2]) },
+
+			{ "DR", new (240606151, TexSerializerVersion.MHRise_28, [GameName.drdr]) },
+			{ "MHWILDS", new (241106027, TexSerializerVersion.MHWilds, [GameName.mhwilds]) }, // TODO support tex gdeflate
+		};
+
+		public static readonly string[] AllVersionConfigs = Versions.OrderBy(kv => kv.Value.serializerVersion).Select(kv => kv.Key).ToArray();
+		public static readonly string[] AllVersionConfigsWithExtension = Versions.OrderBy(kv => kv.Value.serializerVersion).Select(kv => $"{kv.Key} (.tex.{kv.Value.fileVersion})").ToArray();
+
+		private static readonly Dictionary<GameName, string[]> versionsPerGame = Enum.GetValues<GameName>().ToDictionary(
+			game => game,
+			game => Versions.Where(kv => kv.Value.games.Contains(game)).Select(pair => pair.Key).ToArray()
+		);
+
+		private static readonly Dictionary<int, TexVersionConfig> VersionHashLookups = Versions.ToDictionary(v => v.Value.fileVersion, kv => kv.Value);
+
+		internal static TexSerializerVersion GetSerializerVersion(int internalVersion, int fileVersion)
+			// on match failure, assume latest format for anything unknown - in case of newer games
+			=> VersionHashLookups.TryGetValue(internalVersion, out var vvv) ? vvv.serializerVersion :
+                VersionHashLookups.TryGetValue(fileVersion, out vvv) ? vvv.serializerVersion : TexSerializerVersion.MHWilds;
+
+		public static string[] GetGameVersionConfigs(GameName game) => versionsPerGame.GetValueOrDefault(game) ?? AllVersionConfigs;
+		public static TexSerializerVersion GetPrimarySerializerVersion(GameName game) => Versions[GetGameVersionConfigs(game)[0]].serializerVersion;
+		public static TexSerializerVersion GetSerializerVersion(string exportConfig) => Versions.TryGetValue(exportConfig, out var cfg) ? cfg.serializerVersion : TexSerializerVersion.Unknown;
+
+        public static int GetFileExtension(string exportConfig) => Versions.TryGetValue(exportConfig, out var cfg) ? cfg.fileVersion : 0;
 
         public TexFile(FileHandler fileHandler) : base(fileHandler)
         {
+        }
+
+        public void ChangeVersion(string versionConfig)
+        {
+			if (!Versions.TryGetValue(versionConfig, out var config)) {
+				Log.Error("Unknown mesh version config " + versionConfig);
+				return;
+			}
+
+            var headerSize = Header.Size;
+			Header.version = config.fileVersion;
+            var handler = FileHandler;
+            Header.Write(handler, 0);
+            if (headerSize != 0 && headerSize != Header.Size && Mips.Count > 0)
+            {
+                // relocate mip offsets and data
+                var mipOffsetsDelta = Header.Size - headerSize;
+                handler.Seek(Mips[0].offset);
+                var originalData = handler.ReadArray<byte>(TotalTextureDataLength);
+
+                for (int i = 0; i < Mips.Count; i++)
+                {
+                    var mip = Mips[i];
+                    mip.offset -= mipOffsetsDelta;
+                    Mips[i] = mip;
+                }
+
+                handler.Seek(Mips[0].offset);
+                Mips.Write(handler);
+                handler.WriteArray(originalData);
+            }
         }
 
         protected override bool DoRead()
@@ -113,10 +198,28 @@ namespace ReeLib
             if (Header.depth > 1) {
                 throw new NotSupportedException("Depth > 1 textures not supported");
             }
+
+            Mips.Clear();
             for (int i = 0; i < Header.mipCount * Header.imageCount; ++i) {
                 var mip = new MipHeader();
                 handler.Read(ref mip);
                 Mips.Add(mip);
+            }
+
+            var serializerVersion = CurrentSerializerVersion;
+            if (serializerVersion >= TexSerializerVersion.MHWilds && Mips.Count > 0)
+            {
+                handler.Seek(Mips[0].offset);
+                var compressedSize = (int)(handler.FileSize() - handler.Tell());
+                var decompressedSize = TotalTextureDataLength;
+                var compressedBytes = ArrayPool<byte>.Shared.Rent(compressedSize);
+                handler.ReadArray(compressedBytes);
+                handler.Seek(Mips[0].offset);
+                // TODO gdeflate contents and write back
+                // using var gdeflateStream = GDeflate.Decompress(compressedBytes, compressedSize);
+                // gdeflateStream.CopyTo(handler.Stream);
+
+                ArrayPool<byte>.Shared.Return(compressedBytes);
             }
 
             return true;
@@ -124,7 +227,36 @@ namespace ReeLib
 
         protected override bool DoWrite()
         {
-            throw new NotImplementedException();
+            var handler = FileHandler;
+            Header.Write(handler);
+
+            // NOTE: the tex data in the stream should be up to date if the proper manipulation methods were used, write header only
+
+            // we're unable to write compressed data through this because the tex file is intended to be decompressed while in memory
+            // if we were to compress now, we don't have a way of automatically re-decompressing afterwards
+
+            return true;
+        }
+
+        public void WriteTo(FileHandler output)
+        {
+            // all the header/mip/tex data should've already been up to date, therefore we just need to write everything out here
+
+            Header.Write(output);
+            Mips.Write(output);
+
+            FileHandler.Seek(Mips[0].offset);
+            output.Seek(Mips[0].offset);
+
+            if (CurrentSerializerVersion >= TexSerializerVersion.MHWilds && Mips.Count > 0)
+            {
+                // TODO gdeflate compress
+                FileHandler.Stream.CopyTo(output.Stream);
+            }
+            else
+            {
+                FileHandler.Stream.CopyTo(output.Stream);
+            }
         }
 
         public int GetBestMipLevelForDimensions(int width, int height)
@@ -138,6 +270,63 @@ namespace ReeLib
                 targetMip++;
             }
             return targetMip;
+        }
+
+        public void LoadDataFromDDS(DDSFile source)
+        {
+            var handler = FileHandler;
+
+            handler.Seek(0);
+            // update header data
+            Header.format = source.Header.DX10.Format;
+            Header.width = (short)source.Header.width;
+            Header.height = (short)source.Header.height;
+            Header.depth = 1;
+            Header.imageCount = 1;
+            Header.mipCount = (byte)source.Header.mipMapCount;
+            Header.mipHeaderSize = (byte)(Header.mipCount * Header.MipHeaderSize);
+            Header.swizzleControl = -1;
+            Header.Write(handler);
+
+            var mipHeaderOffet = handler.Tell();
+            handler.Skip(Header.mipHeaderSize);
+
+            Mips.Clear();
+            var dataStartOffset = handler.Tell();
+            // truncate any existing data
+            handler.Stream.SetLength(dataStartOffset);
+
+            var mipIterator = source.CreateMipMapIterator();
+            var mipData = new DDSFile.MipMapLevelData();
+            while (mipIterator.Next(ref mipData))
+            {
+                var mip = new MipHeader();
+                mip.offset = handler.Tell();
+
+                int realPitchSize = (int)(!mipIterator.IsCompressed ? mipData.data.Length / mipData.height : mipData.data.Length / mipData.height * 4);
+                // round up to nearest multiple of 256 because REE does that
+                var paddedPitchSize = (int)(Math.Ceiling(realPitchSize / 256f) * 256f);
+                var pitchPadding = paddedPitchSize - realPitchSize;
+                mip.pitch = paddedPitchSize;
+                if (pitchPadding == 0)
+                {
+                    handler.WriteSpan<byte>(mipData.data);
+                }
+                else
+                {
+                    // write line per line
+                    for (int i = 0; i < mipData.data.Length; i += realPitchSize)
+                    {
+                        handler.WriteSpan<byte>(mipData.data.Slice(i, realPitchSize));
+                        handler.WriteNull(pitchPadding);
+                    }
+                }
+                mip.size = (int)(handler.Tell() - mip.offset);
+                Mips.Add(mip);
+            }
+
+            handler.Seek(mipHeaderOffet);
+            Mips.Write(handler);
         }
 
         public void SaveAsDDS(string filepath, int imageIndex = 0, int startMipMap = 0, int maxMipCount = int.MaxValue)

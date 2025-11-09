@@ -470,7 +470,8 @@ namespace ReeLib
                 if (strideOffset == 0) {
                     handler.ReadBytes(bytes, size);
                 } else {
-                    for (int i = 0; i < h; i += 4) {
+                    var pixelBlockSize = isCompressed ? 4 : 1;
+                    for (int i = 0; i < h; i += pixelBlockSize) {
                         handler.Stream.Read(bytes, offset, realPitchSize);
                         handler.Skip(strideOffset);
                         offset += realPitchSize;

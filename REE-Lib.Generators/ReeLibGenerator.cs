@@ -49,6 +49,7 @@ public class ReeLibGenerator : IIncrementalGenerator
             if (name == "KnownFileFormats") {
                 var sb1 = new StringBuilder();
                 var sb2 = new StringBuilder();
+                var sb3 = new StringBuilder();
                 AppendParentClasses(sb1, enumDecl, out var indent);
                 var indentStr = new string('\t', indent - 1);
                 var indentStr2 = new string('\t', indent);
@@ -58,6 +59,8 @@ public class ReeLibGenerator : IIncrementalGenerator
                 sb1.Append(indentStr2).AppendLine($"public static {name} ExtensionToEnum(string extension) => extension switch {{");
                 sb2.Append(indentStr2).AppendLine($"public static {name} ExtensionHashToEnum(int hash) => ExtensionHashToEnum((uint)hash);");
                 sb2.Append(indentStr2).AppendLine($"public static {name} ExtensionHashToEnum(uint hash) => hash switch {{");
+
+                sb3.Append(indentStr2).AppendLine($"public static string FormatToFileExtension({name} format) => format switch {{");
                 foreach (var val in enumDecl.Members) {
                     var valName = val.Identifier.Text;
                     if (val.HasLeadingTrivia) {
@@ -71,6 +74,7 @@ public class ReeLibGenerator : IIncrementalGenerator
                                 sb1.Append(indentStr3).AppendLine($"\"{ext}\" => {name}.{valName},");
                                 sb2.Append(indentStr3).AppendLine($"{MurMur3Hash(ext)} => {name}.{valName},");
                             }
+                            sb3.Append(indentStr3).AppendLine($"{name}.{valName} => \"{extensionList[0]}\",");
                         } else {
                             sb1.Append(indentStr3).AppendLine("//unhandled: " + valName);
                         }
@@ -84,6 +88,10 @@ public class ReeLibGenerator : IIncrementalGenerator
 
                 sb1.AppendLine().Append(sb2);
                 sb1.Append(indentStr3).AppendLine($"_ => {name}.Unknown");
+                sb1.Append(indentStr2).AppendLine("};");
+
+                sb1.AppendLine().Append(sb3);
+                sb1.Append(indentStr3).AppendLine($"_ => \"unknown\"");
                 sb1.Append(indentStr2).AppendLine("};");
 
                 CloseIndents(sb1, indent);

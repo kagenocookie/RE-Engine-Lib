@@ -776,7 +776,7 @@ namespace ReeLib.Clip
     /// </summary>
     public class ClipHeader : BaseModel, IKeyValueContainer
     {
-        public uint magic = EmbeddedClip.Magic;
+        public uint magic = ClipFile.Magic;
         public ClipVersion version;
         public float numFrames;
         public int numNodes;
@@ -1145,9 +1145,6 @@ namespace ReeLib.Clip
 
         public ClipExtraPropertyData ExtraPropertyData = new();
 
-        public const uint Magic = 0x50494C43;
-        public const string Extension = ".clip";
-
         public ClipVersion Version { get => Header.version; set => Header.version = value; }
 
         protected override bool DoRead(FileHandler handler)
@@ -1157,7 +1154,7 @@ namespace ReeLib.Clip
             ClipKeys.Clear();
             var clipHeader = Header;
             if (!clipHeader.Read(handler)) return false;
-            if (clipHeader.magic != Magic)
+            if (clipHeader.magic != ClipFile.Magic)
             {
                 throw new InvalidDataException($"{handler.FilePath} Not a CLIP file");
             }
@@ -1290,7 +1287,7 @@ namespace ReeLib.Clip
         {
             long start = Start;
             var clipHeader = Header;
-            clipHeader.magic = Magic;
+            clipHeader.magic = ClipFile.Magic;
             handler.Seek(start + clipHeader.Size);
 
             clipHeader.numNodes = Tracks.Count;
@@ -1404,5 +1401,11 @@ namespace ReeLib
 {
     public class ClipFile(FileHandler fileHandler) : TmlFile(fileHandler)
     {
+        public const int Magic = 0x50494C43;
+    }
+
+    public class UcurveFile(FileHandler fileHandler) : TmlFile(fileHandler)
+    {
     }
 }
+

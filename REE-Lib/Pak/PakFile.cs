@@ -238,6 +238,8 @@ namespace ReeLib
         private Stream? pakStream;
         private MemoryStream? entryTempStream;
 
+        public bool IncludeUnknowns { get; set; }
+
         public const uint Magic = 0x414B504B;
 
         private const int FileHeaderSize = 16;
@@ -317,7 +319,7 @@ namespace ReeLib
                         {
                             entry.path = path;
                         }
-                        else
+                        else if (!IncludeUnknowns)
                         {
                             continue;
                         }
@@ -337,7 +339,7 @@ namespace ReeLib
                         {
                             entry.path = path;
                         }
-                        else
+                        else if (!IncludeUnknowns)
                         {
                             continue;
                         }

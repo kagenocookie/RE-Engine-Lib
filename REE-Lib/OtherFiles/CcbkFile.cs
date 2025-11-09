@@ -4,7 +4,7 @@ namespace ReeLib
     {
         public List<ResourceID> Resources { get; } = new();
 
-        private const int Magic = 0x4B424343;
+        public const int Magic = 0x4B424343;
 
         public record class ResourceID
         {

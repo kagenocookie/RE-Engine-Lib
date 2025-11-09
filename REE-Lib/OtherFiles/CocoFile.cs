@@ -149,7 +149,7 @@ namespace ReeLib
         public List<string> CollisionMeshPaths { get; } = new();
         public List<CocoTree> Trees { get; } = new();
 
-        private const int Magic = 0x4F434F43;
+        public const int Magic = 0x4F434F43;
 
         public record class ResourceID
         {

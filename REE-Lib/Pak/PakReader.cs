@@ -1,6 +1,7 @@
 namespace ReeLib;
 
 using System;
+using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using ReeLib.Common;
@@ -9,7 +10,7 @@ using ReeLib.Pak;
 /// <summary>
 /// Abstraction of common file operations across PAK files.
 /// </summary>
-public class PakReader
+public partial class PakReader
 {
     /// <summary>
     /// List of PAK files to handle. Should be in chronological order.
@@ -27,7 +28,14 @@ public class PakReader
     /// </summary>
     public Regex? Filter { get; set; }
 
+    public const string UnknownFilePathPrefix = "__unknown/";
+
+    [GeneratedRegex("^__unknown/([a-zA-Z0-9]+)[.$]")]
+    private static partial Regex UnknownFileHashPattern();
+
     public bool EnableConsoleLogging { get; set; } = true;
+
+    public bool IncludeUnknownFilePaths { get; set; } = false;
 
     protected readonly Dictionary<ulong, string> searchedPaths = new();
 
@@ -73,8 +81,15 @@ public class PakReader
     {
         foreach (var file in files) {
             if (Filter != null && !Filter.IsMatch(file)) continue;
+            if (file.StartsWith(PakReader.UnknownFilePathPrefix)) {
+                var hashMatch = UnknownFileHashPattern().Match(file);
+                if (hashMatch.Success && ulong.TryParse(hashMatch.Groups[1].ValueSpan, System.Globalization.NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var hash)) {
+                    searchedPaths.Add(hash, file);
+                }
+            } else {
+                searchedPaths.Add(PakUtils.GetFilepathHash(file), file);
+            }
 
-            searchedPaths.Add(PakUtils.GetFilepathHash(file), file);
         }
     }
 
@@ -152,7 +167,7 @@ public class PakReader
     {
         unpackedFileCount = 0;
 
-        var pak = new PakFile();
+        var pak = new PakFile() { IncludeUnknowns = IncludeUnknownFilePaths };
         foreach (var pakfile in EnumerateTempPaksWithSearchedFiles(pak)) {
             var threads = CalculateChunkCount(pak.Entries.Count);
             var chunks = PartitionPakEntryChunks(pak, threads, (start, end) => new ExtractionChunkContext(pak, start, end, outputDirectory));
@@ -189,7 +204,7 @@ public class PakReader
             var filesize = new FileInfo(pakfile).Length;
             if (filesize <= 16) continue;
 
-            var pak = new PakFile();
+            var pak = new PakFile() { IncludeUnknowns = IncludeUnknownFilePaths };
             pak.filepath = pakfile;
             pak.ReadContents(pakfile, assignEntryPaths ? searchedPaths : null);
 

@@ -8,7 +8,7 @@ namespace ReeLib.Tml
 {
     public class Header : ReadWriteModel, IKeyValueContainer
     {
-        public uint magic = TmlFile.Magic;
+        public uint magic = ClipFile.Magic;
         public ClipVersion version;
         public float totalFrames;
         public int rootNodeCount;
@@ -300,8 +300,6 @@ namespace ReeLib
         public List<Bezier3DKeys> Bezier3DData { get; } = new();
         public List<ClipInfoStruct> ClipInfo { get; } = new();
 
-        public const uint Magic = 0x50494C43;
-
         public TmlFile(FileHandler fileHandler) : base(fileHandler)
         {
         }
@@ -311,7 +309,7 @@ namespace ReeLib
             var handler = FileHandler;
             Header.Read(handler);
 
-            if (Header.magic != Magic)
+            if (Header.magic != ClipFile.Magic)
             {
                 throw new InvalidDataException("Not a valid TML file");
             }

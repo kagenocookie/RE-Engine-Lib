@@ -17,7 +17,7 @@ namespace ReeLib
         public int layerIndex;
         public int[]? MaskIDs;
 
-        private const int Magic = 0x4c494643;
+        public const int Magic = 0x4c494643;
 
         public CfilFile(FileHandler fileHandler) : base(fileHandler)
         {

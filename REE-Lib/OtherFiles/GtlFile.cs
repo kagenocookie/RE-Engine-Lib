@@ -141,7 +141,7 @@ namespace ReeLib
 
         private readonly List<long> DataOffets = new();
 
-        public const int Magic = 0x444e5247;
+        public const int Magic = 0x0A4C5447;
 
         public GtlFile(FileHandler fileHandler) : base(fileHandler)
         {

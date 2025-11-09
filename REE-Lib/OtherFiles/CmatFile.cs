@@ -5,7 +5,7 @@ namespace ReeLib
         public Guid materialGuid;
         public List<Guid> Attributes = [];
 
-        private const int Magic = 0x54414D43;
+        public const int Magic = 0x54414D43;
 
         public CmatFile(FileHandler fileHandler) : base(fileHandler)
         {

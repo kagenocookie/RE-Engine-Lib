@@ -145,7 +145,7 @@ namespace ReeLib
 
         private int GetLayerCount(int version) => version == 1 ? 32 : 64;
 
-        private const int Magic = 0x46454443;
+        public const int Magic = 0x46454443;
 
         public CdefFile(FileHandler fileHandler) : base(fileHandler)
         {

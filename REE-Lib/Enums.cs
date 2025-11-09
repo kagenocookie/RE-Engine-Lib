@@ -271,6 +271,7 @@ namespace ReeLib
         IkHand2,
         /// <summary>.ikmulti</summary>
         IkMultiBone,
+        /// <summary>.iktrain</summary>
         IkTrain,
         /// <summary>.iktrain2</summary>
         IkTrain2,
@@ -307,7 +308,8 @@ namespace ReeLib
         /// <summary>.gcf</summary>
         GUIConfig,
         /// <summary>.rcf</summary>
-        RagdollController, // guess
+        RebeConfig,
+        RagdollController,
         /// <summary>.rtmr</summary>
         RayTraceMaterialRedirect,
         /// <summary>.sss</summary>

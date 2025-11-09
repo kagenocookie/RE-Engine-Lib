@@ -1,21 +1,11 @@
+using ReeLib.Common;
+
 namespace ReeLib
 {
     public class CfilFile : BaseFile
     {
-        public int maskCount;
-        public long uknOffset;
-
-        /// <summary>
-        /// cfil.7+
-        /// </summary>
         public Guid LayerGuid;
-        public Guid[]? MaskGuids;
-
-        /// <summary>
-        /// cfil.3
-        /// </summary>
-        public int layerIndex;
-        public int[]? MaskIDs;
+        public Guid[] MaskGuids = [];
 
         public const int Magic = 0x4c494643;
 
@@ -34,18 +24,22 @@ namespace ReeLib
             var version = handler.FileVersion;
             if (version == 3)
             {
-                layerIndex = handler.Read<byte>();
-                maskCount = handler.Read<byte>();
+                var layerIndex = handler.Read<byte>();
+                LayerGuid = new Guid(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, layerIndex);
+
+                var maskCountRE7 = handler.Read<byte>();
                 handler.Skip(2);
-                MaskIDs = handler.ReadArray<byte>(maskCount).Select(n => (int)n).ToArray();
+                MaskGuids = handler.ReadArray<byte>(maskCountRE7).Select(n => new Guid(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, n)).ToArray();
                 return true;
             }
-            handler.Read(ref maskCount);
-            handler.Skip(8);
+
+            var maskCount = handler.Read<int>();
+            handler.ReadNull(8);
             handler.Read(ref LayerGuid);
-            handler.Skip(16); // always 0
+            handler.ReadNull(16);
             var guidListOffset = handler.Read<long>();
-            handler.Read(ref uknOffset);
+            var endOffset = handler.Read<long>();
+            DataInterpretationException.DebugThrowIf(endOffset != handler.FileSize());
             if (MaskGuids == null || MaskGuids.Length != maskCount)
             {
                 MaskGuids = new Guid[maskCount];
@@ -61,14 +55,20 @@ namespace ReeLib
             var version = handler.FileVersion;
             if (version == 3)
             {
-                maskCount = MaskIDs?.Length ?? 0;
-                handler.Write((byte)layerIndex);
-                handler.Write((byte)maskCount);
+                var maskCountRE7 = MaskGuids.Length;
+
+                var bytes = MemoryUtils.StructureAsBytes(ref LayerGuid);
+                handler.Write(bytes[^1]);
+                handler.Write((byte)maskCountRE7);
                 handler.Skip(2);
-                if (maskCount == 0) {
+                if (maskCountRE7 == 0) {
                     handler.Write<int>(-1);
                 } else {
-                    foreach (var mask in MaskIDs!) handler.Write((byte)mask);
+                    foreach (var mask in MaskGuids) {
+                        var maskTmp = mask;
+                        var tmp = MemoryUtils.StructureAsBytes(ref maskTmp);
+                        handler.Write(tmp[^1]);
+                    }
                     handler.Align(4);
                 }
                 // there's another 16 bytes after but they're all 0
@@ -78,16 +78,20 @@ namespace ReeLib
                 return true;
             }
 
-            maskCount = MaskGuids?.Length ?? 0;
+            var maskCount = MaskGuids?.Length ?? 0;
             handler.Write(ref maskCount);
-            handler.Skip(8);
+            handler.WriteNull(8);
             handler.Write(ref LayerGuid);
-            handler.Skip(16); // always 0
-            // since there's only one cfil header structure and everything else seems to just be 0, guids always start at 64
-            var guidListOffset = 64L;
-            handler.Write(ref guidListOffset);
-            handler.Write(guidListOffset + maskCount * sizeof(long) * 2);
+            handler.WriteNull(16);
+
+            var offsetsStart = handler.Tell();
+            handler.Skip(16);
+
+            handler.Write(offsetsStart, handler.Tell());
             handler.WriteArray(MaskGuids ?? Array.Empty<Guid>());
+
+            handler.Write(offsetsStart + 8, handler.Tell());
+
             return true;
         }
     }

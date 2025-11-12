@@ -150,8 +150,9 @@ namespace ReeLib
 			=> VersionHashLookups.TryGetValue(internalVersion, out var vvv) ? vvv.serializerVersion :
                 VersionHashLookups.TryGetValue(fileVersion, out vvv) ? vvv.serializerVersion : TexSerializerVersion.MHWilds;
 
-		public static string[] GetGameVersionConfigs(GameName game) => versionsPerGame.GetValueOrDefault(game) ?? AllVersionConfigs;
-		public static TexSerializerVersion GetPrimarySerializerVersion(GameName game) => Versions[GetGameVersionConfigs(game)[0]].serializerVersion;
+		public static string[] GetGameVersionConfigs(int texFileVersion) => VersionHashLookups.TryGetValue(texFileVersion, out var vvv) ? [Versions.First(vv => vv.Value == vvv).Key] : [];
+		public static string[] GetGameVersionConfigs(GameIdentifier game) => versionsPerGame.GetValueOrDefault(game) ?? AllVersionConfigs;
+		public static TexSerializerVersion GetPrimarySerializerVersion(GameIdentifier game) => Versions[GetGameVersionConfigs(game)[0]].serializerVersion;
 		public static TexSerializerVersion GetSerializerVersion(string exportConfig) => Versions.TryGetValue(exportConfig, out var cfg) ? cfg.serializerVersion : TexSerializerVersion.Unknown;
 
         public static int GetFileExtension(string exportConfig) => Versions.TryGetValue(exportConfig, out var cfg) ? cfg.fileVersion : 0;

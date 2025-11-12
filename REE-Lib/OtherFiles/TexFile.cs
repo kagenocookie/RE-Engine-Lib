@@ -303,7 +303,7 @@ namespace ReeLib
                 var mip = new MipHeader();
                 mip.offset = handler.Tell();
 
-                int realPitchSize = (int)(!mipIterator.IsCompressed ? mipData.data.Length / mipData.height : mipData.data.Length / mipData.height * 4);
+                int realPitchSize = mipData.pitch;
                 // round up to nearest multiple of 256 because REE does that
                 var paddedPitchSize = (int)(Math.Ceiling(realPitchSize / 256f) * 256f);
                 var pitchPadding = paddedPitchSize - realPitchSize;
@@ -431,6 +431,7 @@ namespace ReeLib
             private byte[]? bytes;
 
             private int CurrentCompressedMipSize => isCompressed ? (int)((w + 3) / 4) * (int)((h + 3) / 4) * blockSize : (int)(w * h * (blockSize / 8));
+            private int CurrentPitch => isCompressed ? (int)((w + 3) / 4) * blockSize : (int)(w * (blockSize / 8));
 
             public TexMipMapIterator(FileHandler handler, List<MipHeader> mips, int maxMipMapLevel, int w, int h, int blockSize, bool compressed)
             {
@@ -457,7 +458,7 @@ namespace ReeLib
                 }
 
                 var size = CurrentCompressedMipSize;
-                int realPitchSize = (int)(!isCompressed ? size / h : size / h * 4);
+                int realPitchSize = CurrentPitch;
 
                 if (bytes == null) {
                     bytes = ArrayPool<byte>.Shared.Rent(size);

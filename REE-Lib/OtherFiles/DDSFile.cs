@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Numerics;
 using System.Text.RegularExpressions;
 using ReeLib.DDS;
 
@@ -292,12 +293,31 @@ namespace ReeLib
             throw new NotImplementedException();
         }
 
+        public static int GetImageSize(this DxgiFormat format, int width, int height)
+        {
+            return format.IsBlockCompressedFormat()
+                ? (int)((width + 3) / 4) * (int)((height + 3) / 4) * format.GetCompressedBlockSize()
+                : (int)(width * height * (format.GetBitsPerPixel() / 8));
+        }
+
+        public static int GetPitch(this DxgiFormat format, int width, int height)
+        {
+            return format.IsBlockCompressedFormat()
+                ? (int)((width + 3) / 4) * format.GetCompressedBlockSize()
+                : (int)(width * (format.GetBitsPerPixel() / 8));
+        }
+
         public static int GetCompressedBlockSize(this DxgiFormat format)
         {
             if (_bcFormats8.Contains(format)) return 8;
             if (_bcFormats16.Contains(format)) return 16;
 
             throw new Exception("DXGI format is not a BC format: " + format);
+        }
+
+        public static int CalculateMipCount(int width, int height)
+        {
+            return BitOperations.Log2(BitOperations.RoundUpToPowerOf2((uint)Math.Max(width, height)));
         }
 
         private static readonly HashSet<DxgiFormat> _astcFormats = Enum.GetValues<DxgiFormat>().Where(v => v.IsASTCFormat()).ToHashSet();
@@ -387,6 +407,7 @@ namespace ReeLib
         {
             public uint width;
             public uint height;
+            public int pitch;
             public Span<byte> data;
 
             public override string ToString() => $"{width}x{height}: {data.Length}b";
@@ -406,6 +427,8 @@ namespace ReeLib
 
             public readonly bool IsCompressed { get; }
             public int CurrentCompressedMipSize => IsCompressed ? (int)((w + 3) / 4) * (int)((h + 3) / 4) * blockSize : (int)(w * h * (blockSize / 8));
+
+            private int CurrentPitch => IsCompressed ? (int)((w + 3) / 4) * blockSize : (int)(w * (blockSize / 8));
 
             private byte[]? bytes;
 
@@ -453,6 +476,7 @@ namespace ReeLib
                 this.bytes ??= ArrayPool<byte>.Shared.Rent(size);
                 data.height = h;
                 data.width = w;
+                data.pitch = CurrentPitch;
 
                 h >>= 1;
                 w >>= 1;

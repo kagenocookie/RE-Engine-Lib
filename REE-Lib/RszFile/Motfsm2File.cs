@@ -192,6 +192,8 @@ namespace ReeLib
         public StructModel<HeaderStruct> Header { get; } = new();
         private int treeDataSize;
         public BhvtFile? BhvtFile { get; private set; }
+        public List<TransitionMap> TransitionMaps { get; } = new();
+        public List<TransitionData> TransitionDatas { get; } = new();
 
         protected override bool DoRead()
         {
@@ -204,20 +206,34 @@ namespace ReeLib
             }
 
             handler.Seek(header.transitionMapOffset);
-            TransitionMap[] transitionMaps = handler.ReadArray<TransitionMap>(header.transitionMapCount);
+            TransitionMaps.ReadStructList(handler, header.transitionMapCount);
 
             handler.Seek(header.transitionDataOffset);
-            List<TransitionData> transitionDatas = new();
+            TransitionDatas.Clear();
             for (int i = 0; i < header.transitionDataCount; i++)
             {
                 TransitionData transitionData = new(Option.Version);
                 transitionData.Read(handler);
-                transitionDatas.Add(transitionData);
+                TransitionDatas.Add(transitionData);
             }
 
             handler.Read(header.treeInfoPtr, ref treeDataSize);
             BhvtFile ??= new(Option, handler.WithOffset(header.treeDataOffset));
             BhvtFile.Read();
+
+            var nodeDict = BhvtFile.Nodes.ToDictionary(n => (ulong)n.ID);
+            var transitionMaps = TransitionMaps.ToDictionary(n => n.transitionId);
+            foreach (var node in BhvtFile.Nodes)
+            {
+                foreach (var state in node.States.States)
+                {
+                    if (state.transitionMapID != 0)
+                    {
+                        state.TransitionData = TransitionDatas[transitionMaps[state.transitionMapID].dataIndex];
+                    }
+                }
+
+            }
 
             return true;
         }

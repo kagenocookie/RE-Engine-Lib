@@ -47,8 +47,8 @@ public class CachedMemoryPakReader : PakReader, IDisposable
                         if (fmt != KnownFileFormats.Unknown)
                         {
                             list[hash] = fmt;
+                            continue;
                         }
-                        continue;
                     }
 
                     if (file.Length >= 8)
@@ -59,8 +59,8 @@ public class CachedMemoryPakReader : PakReader, IDisposable
                         if (fmt != KnownFileFormats.Unknown)
                         {
                             list[hash] = fmt;
+                            continue;
                         }
-                        continue;
                     }
 
                     list[hash] = KnownFileFormats.Unknown;

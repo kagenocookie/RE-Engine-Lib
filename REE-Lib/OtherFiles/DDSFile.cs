@@ -483,7 +483,7 @@ namespace ReeLib
 
                 handler.ReadBytes(bytes, size);
 
-                data.data = bytes.AsSpan().Slice(0, (int)size);
+                data.data = bytes.AsSpan(0, (int)size);
                 return true;
             }
 

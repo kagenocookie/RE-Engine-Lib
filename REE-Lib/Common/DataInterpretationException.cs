@@ -64,5 +64,12 @@ namespace ReeLib
             Span<byte> bytes = stackalloc byte[size];
             for (int i = 0; i < bytes.Length; ++i) DataInterpretationException.ThrowIfNotZero(bytes[i], message);
         }
+
+        [Conditional("DEBUG"), MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void DebugWarnIf([DoesNotReturnIf(true)] bool condition, string message = "Found unexpected data while reading file", [CallerArgumentExpression(nameof(condition))] string conditionText = null!)
+        {
+            if (condition) Log.Warn($"[{conditionText}] {message}");
+        }
+
     }
 }

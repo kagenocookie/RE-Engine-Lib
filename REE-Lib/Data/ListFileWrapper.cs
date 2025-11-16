@@ -167,9 +167,6 @@ public class ListFileWrapper
         if (startIndex >= 0) {
             return folderListCache[folderNormalized] = names = [folderNormalized];
         } else {
-            if (folderNormalized.Length > 0 && !folderNormalized.EndsWith('/')) {
-                folderNormalized += "/";
-            }
             startIndex = ~startIndex;
             if (startIndex > Files.Length) return [];
         }

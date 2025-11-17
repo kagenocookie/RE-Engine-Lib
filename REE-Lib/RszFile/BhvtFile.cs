@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using ReeLib.Bhvt;
 using ReeLib.Motfsm2;
 
@@ -375,12 +376,11 @@ namespace ReeLib.Bhvt
 
     public class NTransition
     {
-        public List<uint> mStartTransitionEvents { get; } = new();
-        public BHVTId mStartState;
-        public BHVTId mStartStateTransition;
-        public uint mStartStateEx;
+        public List<uint> transitionEvents { get; } = new();
+        internal BHVTId startNodeId;
+        internal BHVTId conditionId;
+        internal uint startNodeExId;
 
-        public List<RszInstance> Events { get; } = new();
         public BHVTNode? StartNode { get; set; }
         public RszInstance? Condition { get; set; }
 
@@ -398,48 +398,28 @@ namespace ReeLib.Bhvt
         {
             Transitions.Clear();
             var count = handler.Read<int>();
-            for (int i = 0; i < count; i++)
-            {
-                var state = new NTransition();
-                if (Version >= GameVersion.mhrise)
-                {
-                    var eventCount = handler.Read<int>();
-                    state.mStartTransitionEvents.ReadStructList(handler, eventCount);
-                }
-                else
-                {
-                    // the earlier versions only had one ID, migrate to list so we have a consistent structure
-                    var id = handler.Read<uint>();
-                    state.mStartTransitionEvents.Clear();
-                    if (id != 0) state.mStartTransitionEvents.Add(id);
-                }
-                Transitions.Add(state);
-            }
             if (count == 0) return true;
 
-            uint[,] data;
-            if (Version >= GameVersion.re3)
+            for (int i = 0; i < count; i++)
             {
-                data = new uint[3, count];
-                handler.ReadArray(data);
-                for (int i = 0; i < count; i++)
+                var transition = new NTransition();
+                if (Version >= GameVersion.re3)
                 {
-                    Transitions[i] = new NTransition();
-                    Transitions[i].mStartState = (BHVTId)data[0, i];
-                    Transitions[i].mStartStateTransition = (BHVTId)data[1, i];
-                    Transitions[i].mStartStateEx = data[2, i];
+                    var eventCount = handler.Read<int>();
+                    transition.transitionEvents.ReadStructList(handler, eventCount);
+                    // note: I haven't seen any of the stateNodeIDs be not 0, so I'm not 100% sure what this actually is
+                    DataInterpretationException.ThrowIfNotEqualValues<uint>(CollectionsMarshal.AsSpan(transition.transitionEvents));
                 }
+                Transitions.Add(transition);
             }
-            else
+
+            uint[,] data = new uint[3, count];
+            handler.ReadArray(data);
+            for (int i = 0; i < count; i++)
             {
-                data = new uint[2, count];
-                handler.ReadArray(data);
-                for (int i = 0; i < count; i++)
-                {
-                    Transitions[i] = new NTransition();
-                    Transitions[i].mStartState = (BHVTId)data[0, i];
-                    Transitions[i].mStartStateTransition = (BHVTId)data[1, i];
-                }
+                Transitions[i].startNodeId = (BHVTId)data[0, i];
+                Transitions[i].conditionId = (BHVTId)data[1, i];
+                Transitions[i].startNodeExId = data[2, i];
             }
             return true;
         }
@@ -449,22 +429,18 @@ namespace ReeLib.Bhvt
             handler.Write(Transitions.Count);
             if (Transitions.Count == 0) return true;
             var hasStartEx = Version >= GameVersion.re3;
-            uint[,] data = new uint[hasStartEx ? 3 : 2, Transitions.Count];
+            uint[,] data = new uint[3, Transitions.Count];
             for (int i = 0; i < Transitions.Count; i++)
             {
                 var transition = Transitions[i];
                 if (Version >= GameVersion.re3)
                 {
-                    handler.Write(transition.mStartTransitionEvents.Count == 0 ? 0 : transition.mStartTransitionEvents[0]);
+                    handler.Write(transition.transitionEvents.Count);
+                    transition.transitionEvents.Write(handler);
                 }
-                else
-                {
-                    handler.Write(transition.mStartTransitionEvents.Count);
-                    transition.mStartTransitionEvents.Write(handler);
-                }
-                data[0, i] = (uint)transition.mStartState;
-                data[1, i] = (uint)transition.mStartStateTransition;
-                if (hasStartEx) data[2, i] = transition.mStartStateEx;
+                data[0, i] = (uint)transition.startNodeId;
+                data[1, i] = (uint)transition.conditionId;
+                data[2, i] = (uint)transition.startNodeExId;
             }
             handler.WriteArray(data);
             return true;
@@ -745,6 +721,7 @@ namespace ReeLib
 
         private void SetupReferences()
         {
+            var version = Option.Version;
             var nodeDict = Nodes.ToDictionary(n => (ulong)n.ID);
             var actions = new Dictionary<ulong, RszInstance>();
             foreach (var act in ActionRsz.ObjectList) {
@@ -845,16 +822,32 @@ namespace ReeLib
 
                     foreach (var state in node.States.States)
                     {
-                        if (state.targetNodeID.ID != 0)
-                        {
-                            state.TargetNode = nodeDict[(ulong)state.targetNodeID];
-                        }
-                        DataInterpretationException.DebugThrowIf(state.TargetNode == null);
+                        state.TargetNode = nodeDict[(ulong)state.targetNodeID];
+
                         if (state.TransitionConditionID.HasValue)
                         {
                             state.Condition = state.TransitionConditionID.idType == 64
                                 ? StaticConditionsRsz.ObjectList[state.TransitionConditionID.id]
                                 : ConditionsRsz.ObjectList[state.TransitionConditionID.id];
+                        }
+                    }
+
+                    foreach (var trans in node.Transitions.Transitions)
+                    {
+                        if (trans.startNodeId.HasValue)
+                        {
+                            var startTargetId = version <= GameVersion.dmc5 ? (ulong)trans.startNodeId : ((uint)trans.startNodeId | ((ulong)trans.startNodeExId << 32));
+                            if (!nodeDict.TryGetValue(startTargetId, out var startNode))
+                                throw new InvalidDataException("Could not find transition start node " + trans.startNodeId);
+
+                            trans.StartNode = startNode;
+                        }
+
+                        if (trans.conditionId.HasValue)
+                        {
+                            trans.Condition = trans.conditionId.idType == 64
+                                ? StaticConditionsRsz.ObjectList[trans.conditionId.id]
+                                : ConditionsRsz.ObjectList[trans.conditionId.id];
                         }
                     }
                 }

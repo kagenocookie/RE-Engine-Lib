@@ -232,7 +232,6 @@ namespace ReeLib
                         state.TransitionData = TransitionDatas[transitionMaps[state.transitionMapID].dataIndex];
                     }
                 }
-
             }
 
             return true;

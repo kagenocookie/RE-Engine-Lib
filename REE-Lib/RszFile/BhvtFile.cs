@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using ReeLib.Bhvt;
+using ReeLib.Common;
 using ReeLib.Motfsm2;
 
 
@@ -325,11 +326,14 @@ namespace ReeLib.Bhvt
 
     public class NAllState
     {
-        public uint mAllState;
-        public BHVTId mAllTransition;
-        public uint mAllTransitionID;
-        public uint mAllStateEx;
-        public BHVTId mAllTransitionAttributes;
+        internal NodeID targetNodeId;
+        internal BHVTId transitionConditionId;
+        public uint transitionMapID;
+        public uint mAllTransitionAttributes;
+
+        public BHVTNode? TargetState { get; set; }
+        public TransitionData? TransitionData { get; set; }
+        public RszInstance? Condition { get; set; }
     }
 
 
@@ -345,11 +349,10 @@ namespace ReeLib.Bhvt
             {
                 states[i] = new NAllState
                 {
-                    mAllState = data[0, i],
-                    mAllTransition = (BHVTId)data[1, i],
-                    mAllTransitionID = data[2, i],
-                    mAllStateEx = data[3, i],
-                    mAllTransitionAttributes = (BHVTId)data[4, i],
+                    targetNodeId = new NodeID(data[0, i], data[3, i]),
+                    transitionConditionId = (BHVTId)data[1, i],
+                    transitionMapID = data[2, i],
+                    mAllTransitionAttributes = data[4, i],
                 };
             }
             AllStates = states;
@@ -363,11 +366,11 @@ namespace ReeLib.Bhvt
             for (int i = 0; i < Count; i++)
             {
                 var state = AllStates[i];
-                data[0, i] = state.mAllState;
-                data[1, i] = (uint)state.mAllTransition;
-                data[2, i] = state.mAllTransitionID;
-                data[3, i] = state.mAllStateEx;
-                data[4, i] = (uint)state.mAllTransitionAttributes;
+                data[0, i] = state.targetNodeId.ID;
+                data[1, i] = (uint)state.transitionConditionId;
+                data[2, i] = state.transitionMapID;
+                data[3, i] = state.targetNodeId.exID;
+                data[4, i] = state.mAllTransitionAttributes;
             }
             return data;
         }
@@ -848,6 +851,18 @@ namespace ReeLib
                             trans.Condition = trans.conditionId.idType == 64
                                 ? StaticConditionsRsz.ObjectList[trans.conditionId.id]
                                 : ConditionsRsz.ObjectList[trans.conditionId.id];
+                        }
+                    }
+
+                    foreach (var state in node.AllStates.AllStates)
+                    {
+                        state.TargetState = nodeDict[state.targetNodeId.ID];
+
+                        if (state.transitionConditionId.HasValue)
+                        {
+                            state.Condition = state.transitionConditionId.idType == 64
+                                ? StaticConditionsRsz.ObjectList[state.transitionConditionId.id]
+                                : ConditionsRsz.ObjectList[state.transitionConditionId.id];
                         }
                     }
                 }

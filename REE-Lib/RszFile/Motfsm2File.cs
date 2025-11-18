@@ -232,6 +232,17 @@ namespace ReeLib
                         state.TransitionData = TransitionDatas[transitionMaps[state.transitionMapID].dataIndex];
                     }
                 }
+
+                foreach (var state in node.AllStates.AllStates)
+                {
+                    if (state.transitionMapID != 0)
+                    {
+                        if (transitionMaps.TryGetValue(state.transitionMapID, out var transitionMap)) {
+                            // there's no match sometimes (ID 4012098982 for 2 dmc5 files ¯\_(ツ)_/¯)
+                            state.TransitionData = TransitionDatas[transitionMap.dataIndex];
+                        }
+                    }
+                }
             }
 
             return true;

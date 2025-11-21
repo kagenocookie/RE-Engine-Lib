@@ -1121,6 +1121,12 @@ namespace ReeLib.via
             this.guid = guid;
         }
 
+        public GameObjectRef(GameObjectRef obj)
+        {
+            this.guid = obj.guid;
+            this.target = obj.target;
+        }
+
         public GameObjectRef(Guid guid, IGameObject target)
         {
             this.guid = guid;
@@ -1136,6 +1142,12 @@ namespace ReeLib.via
         public GameObjectRef(PfbGameObject gameObj)
         {
             target = gameObj;
+        }
+
+        public void Set(Guid guid, IGameObject target)
+        {
+            this.guid = guid;
+            this.target = target;
         }
 
         public override string ToString() => $"Ref<{guid} => {target}>";

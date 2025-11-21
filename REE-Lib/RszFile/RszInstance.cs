@@ -518,6 +518,10 @@ namespace ReeLib
                     {
                         Values[i] = ((RszInstance)other.Values[i]).CloneImpl(cached);
                     }
+                    else if (field.type is RszFieldType.GameObjectRef or RszFieldType.Uri)
+                    {
+                        Values[i] = new GameObjectRef((GameObjectRef)other.Values[i]);
+                    }
                     else
                     {
                         Values[i] = CloneValueType(other.Values[i]);
@@ -547,7 +551,7 @@ namespace ReeLib
         }
 
         /// <summary>
-        /// Get a flattened, depth-first list of all child RszInstances.
+        /// Get a flattened, depth-first list of all child RszInstances, including self.
         /// </summary>
         public IEnumerable<RszInstance> GetChildren(Func<RszInstance, bool>? condition = null)
         {

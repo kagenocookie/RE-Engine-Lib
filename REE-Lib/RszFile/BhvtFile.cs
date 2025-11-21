@@ -9,8 +9,8 @@ namespace ReeLib.Bhvt
 {
     public class Header : BaseModel
     {
-        public uint magic;
-        // Skip(4);
+        public uint magic = BhvtFile.Magic;
+        public uint hash;
         public long nodeOffset;
         public long actionOffset;
         public long selectorOffset;
@@ -41,7 +41,7 @@ namespace ReeLib.Bhvt
         protected override bool DoRead(FileHandler handler)
         {
             handler.Read(ref magic);
-            handler.Skip(4);
+            handler.Read(ref hash);
             handler.ReadRange(ref nodeOffset, ref resourcePathsOffset);
             if (Version >= GameVersion.re3)
             {
@@ -56,7 +56,18 @@ namespace ReeLib.Bhvt
 
         protected override bool DoWrite(FileHandler handler)
         {
-            throw new NotImplementedException();
+            handler.Write(ref magic);
+            handler.Write(ref hash);
+            handler.WriteRange(ref nodeOffset, ref resourcePathsOffset);
+            if (Version >= GameVersion.re3)
+            {
+                handler.Write(ref userdataPathsOffset);
+            }
+
+            handler.Write(ref variableOffset);
+            handler.Write(ref baseVariableOffset);
+            handler.Write(ref referencePrefabGameObjectsOffset);
+            return true;
         }
     }
 
@@ -340,28 +351,27 @@ namespace ReeLib.Bhvt
     public class NAllStates : TwoDimensionContainer
     {
         internal override int FieldCount => 5;
-        public NAllState[] AllStates { get; set; } = [];
+        public List<NAllState> AllStates { get; set; } = [];
 
         protected override bool LoadData(uint[,] data)
         {
-            NAllState[] states = new NAllState[Count];
+            AllStates.Clear();
             for (int i = 0; i < Count; i++)
             {
-                states[i] = new NAllState
+                AllStates.Add(new NAllState
                 {
                     targetNodeId = new NodeID(data[0, i], data[3, i]),
                     transitionConditionId = (BHVTId)data[1, i],
                     transitionMapID = data[2, i],
                     mAllTransitionAttributes = data[4, i],
-                };
+                });
             }
-            AllStates = states;
             return true;
         }
 
         protected override uint[,] DumpData()
         {
-            Count = AllStates.Length;
+            Count = AllStates.Count;
             uint[,] data = new uint[FieldCount, Count];
             for (int i = 0; i < Count; i++)
             {
@@ -483,7 +493,8 @@ namespace ReeLib.Bhvt
         internal List<BHVTId> SelectorCallerIDs { get; } = new();
         public BHVTId SelectorCallerConditionID;
         public int Priority;
-        public NodeAttribute Attributes;
+        public NodeAttribute Attributes = NodeAttribute.IsEnabled|NodeAttribute.IsRestartable|NodeAttribute.IsFSMNode;
+        internal int ReferenceTreeIndex;
 
         public NActions Actions { get; } = new();
         public RszInstance? Selector { get; set; }
@@ -500,7 +511,7 @@ namespace ReeLib.Bhvt
         public NStates States { get; } = new();
         public NTransitions Transitions { get; }
         public NAllStates AllStates { get; } = new();
-        public int ReferenceTreeIndex;
+        public UVarFile? ReferenceTree { get; set; }
 
         public int unknownAI;
         public int AI_Path;
@@ -542,7 +553,7 @@ namespace ReeLib.Bhvt
                 }
                 else
                 {
-                    handler.Skip(2);
+                    handler.ReadNull(2);
                 }
 
                 States.Read(handler);
@@ -570,37 +581,110 @@ namespace ReeLib.Bhvt
             Name = handler.ReadWString(namePoolStart + 4 + nameOffset * 2);
         }
 
+        public void WriteName(FileHandler handler)
+        {
+            var item = handler.StringTableAdd(Name, false);
+            nameOffset = (int)(item.TextStart - handler.Tell());
+            handler.Write(Start + Marshal.SizeOf<NodeID>(), nameOffset);
+        }
+
         protected override bool DoWrite(FileHandler handler)
         {
-            throw new NotImplementedException();
+            handler.Write(ref ID);
+            handler.Write(ref nameOffset);
+            handler.Write(ref ParentID);
+            Children.Write(handler);
+            handler.Write(ref SelectorID);
+            handler.Write(SelectorCallerIDs.Count);
+            SelectorCallerIDs.Write(handler);
+            handler.Write(ref SelectorCallerConditionID);
+            Actions.Write(handler);
+            handler.Write(ref Priority);
+
+            bool isAIFile = handler.FilePath != null && handler.FilePath.Contains(".bhvt");
+            if (!isAIFile)
+            {
+                handler.Write(ref Attributes);
+                if (Attributes.HasFlag(NodeAttribute.IsFSMNode))
+                {
+                    handler.Write(ref WorkFlags);
+                    handler.Write(ref mNameHash);
+                    handler.Write(ref mFullnameHash);
+                    Tags.Write(handler);
+                    handler.Write(ref isBranch);
+                    handler.Write(ref isEnd);
+                }
+                else
+                {
+                    handler.WriteNull(2);
+                }
+
+                States.Write(handler);
+                Transitions.Write(handler);
+
+                if (!Attributes.HasFlag(NodeAttribute.HasReferenceTree))
+                {
+                    AllStates.Write(handler);
+                }
+
+                handler.Write(ref ReferenceTreeIndex);
+            }
+            else
+            {
+                handler.Write(ref unknownAI);
+                handler.Write(ref AI_Path);
+            }
+            return true;
         }
     }
 
 
-    public class Zeros : BaseModel
+    public class BhvtObjectIndexTable : BaseModel
     {
-        public int ActionsObjectTableCount;
-        public int StaticActionsObjectTableCount;
+        public int[] ActionsObjectTable = [];
+        public int[] StaticActionsObjectTable = [];
 
         protected override bool DoRead(FileHandler handler)
         {
-            handler.Read(ref ActionsObjectTableCount);
-            if (ActionsObjectTableCount > 0)
-            {
-                uint[] zeroes = handler.ReadArray<uint>(ActionsObjectTableCount);
-            }
-            handler.Read(ref StaticActionsObjectTableCount);
-            if (StaticActionsObjectTableCount > 0)
-            {
-                uint[] zeroes = handler.ReadArray<uint>(StaticActionsObjectTableCount);
-            }
+            var actionsCount = handler.Read<int>();
+            ActionsObjectTable = handler.ReadArray<int>(actionsCount);
+            var staticActionsCount = handler.Read<int>();
+            StaticActionsObjectTable = handler.ReadArray<int>(staticActionsCount);
             return true;
         }
 
         protected override bool DoWrite(FileHandler handler)
         {
-            throw new NotImplementedException();
+            handler.Write(ActionsObjectTable.Length);
+            handler.WriteArray(ActionsObjectTable);
+            handler.Write(StaticActionsObjectTable.Length);
+            handler.WriteArray(StaticActionsObjectTable);
+            return true;
         }
+    }
+
+    public class BhvtGameObjectReference : BaseModel
+    {
+        public Guid guid;
+        public int[] values = [];
+
+        protected override bool DoRead(FileHandler handler)
+        {
+            handler.Read(ref guid);
+            var count = handler.Read<int>();
+            values = handler.ReadArray<int>(count);
+            return true;
+        }
+
+        protected override bool DoWrite(FileHandler handler)
+        {
+            handler.Write(ref guid);
+            handler.Write(values.Length);
+            handler.WriteArray<int>(values);
+            return true;
+        }
+
+        public override string ToString() => guid.ToString();
     }
 }
 
@@ -643,11 +727,13 @@ namespace ReeLib
         public RSZFile StaticTransitionEventRsz { get; } = new(option, fileHandler);
         public RSZFile StaticExpressionTreeConditionsRsz { get; } = new(option, fileHandler);
 
-        public int NodeCount;
         public List<BHVTNode> Nodes { get; } = new();
-        public List<BHVTNode> RootNodes { get; } = new();
+        public BHVTNode RootNode { get; private set; } = new BHVTNode(option.Version) { Name = "root", ParentID = new NodeID(uint.MaxValue, 0) };
         public UVarFile? Variable { get; set; }
         public List<UVarFile> ReferenceTrees { get; } = new();
+        public BhvtObjectIndexTable ActionObjectTable { get; set; } = new ();
+        // only used in fsmv2 files
+        public List<BhvtGameObjectReference> GameObjectReferences { get; set; } = new ();
 
         private const int Condition_IDFieldIndex = 0;
         private const int Action_IDFieldIndex = 1;
@@ -664,17 +750,18 @@ namespace ReeLib
             }
 
             Nodes.Clear();
-            RootNodes.Clear();
 
             handler.Seek(header.nodeOffset);
-            handler.Read(ref NodeCount);
-            for (int i = 0; i < NodeCount; i++)
+            var nodeCount = handler.Read<int>();
+            for (int i = 0; i < nodeCount; i++)
             {
                 BHVTNode node = new(header.Version);
                 if (!node.Read(handler)) return false;
                 node.ReadName(handler, header.stringOffset);
                 Nodes.Add(node);
             }
+
+            ActionObjectTable.Read(handler);
 
             ReadRsz(ActionRsz, header.actionOffset);
             ReadRsz(SelectorRsz, header.selectorOffset);
@@ -718,6 +805,10 @@ namespace ReeLib
                 }
             }
 
+            handler.Seek(header.referencePrefabGameObjectsOffset);
+            var refPfbCount = handler.Read<int>();
+            GameObjectReferences.Read(handler, refPfbCount);
+
             SetupReferences();
             return true;
         }
@@ -734,6 +825,8 @@ namespace ReeLib
                     exId++;
                 }
             }
+
+            var flagPairs = new Dictionary<NodeAttribute, int>();
             foreach (var node in Nodes)
             {
                 foreach (var ch in node.Children.Children)
@@ -750,7 +843,10 @@ namespace ReeLib
                     }
                 }
 
-                if (node.ParentID.IsUnset) RootNodes.Add(node);
+                flagPairs[node.Attributes] = flagPairs.GetValueOrDefault(node.Attributes) + 1;
+                DataInterpretationException.DebugThrowIf(node.ReferenceTreeIndex == -1);
+
+                if (node.ParentID.IsUnset) RootNode = node;
 
                 if (node.SelectorID != -1)
                 {
@@ -772,6 +868,8 @@ namespace ReeLib
                     DataInterpretationException.DebugWarnIf(callerId.idType == 64 && !StaticClasses.Contains(instance.RszClass.name), instance.RszClass.name);
                 }
             }
+
+            // DataInterpretationException.DebugThrowIf(nextRefTree != ReferenceTrees.Count);
 
             var isBhvt = FileHandler.FilePath?.Contains(".bhvt") == true;
             if (isBhvt)
@@ -890,7 +988,80 @@ namespace ReeLib
 
         protected override bool DoWrite()
         {
-            throw new NotImplementedException();
+            FlattenInstances();
+
+            var handler = FileHandler;
+            var header = Header;
+            header.Write(handler);
+            header.nodeOffset = handler.Tell();
+            handler.Write(Nodes.Count);
+            foreach (var node in Nodes)
+            {
+                node.Write(handler);
+            }
+
+            foreach (var node in Nodes) node.WriteName(handler);
+
+            ActionObjectTable.Write(handler);
+
+            WriteRsz(ActionRsz, header.actionOffset = Utils.Align16((int)handler.Tell()));
+            WriteRsz(SelectorRsz, header.selectorOffset = Utils.Align16((int)handler.Tell()));
+            WriteRsz(SelectorCallerRsz, header.selectorCallerOffset = Utils.Align16((int)handler.Tell()));
+            WriteRsz(ConditionsRsz, header.conditionsOffset = Utils.Align16((int)handler.Tell()));
+            WriteRsz(TransitionEventRsz, header.transitionEventOffset = Utils.Align16((int)handler.Tell()));
+            WriteRsz(ExpressionTreeConditionsRsz, header.expressionTreeConditionsOffset = Utils.Align16((int)handler.Tell()));
+            WriteRsz(StaticActionRsz, header.staticActionOffset = Utils.Align16((int)handler.Tell()));
+            WriteRsz(StaticSelectorCallerRsz, header.staticSelectorCallerOffset = Utils.Align16((int)handler.Tell()));
+            WriteRsz(StaticConditionsRsz, header.staticConditionsOffset = Utils.Align16((int)handler.Tell()));
+            WriteRsz(StaticTransitionEventRsz, header.staticTransitionEventOffset = Utils.Align16((int)handler.Tell()));
+            WriteRsz(StaticExpressionTreeConditionsRsz, header.staticExpressionTreeConditionsOffset = Utils.Align16((int)handler.Tell()));
+
+            handler.Align(16);
+            header.referencePrefabGameObjectsOffset = handler.Tell();
+            handler.Write(GameObjectReferences.Count);
+            GameObjectReferences.Write(handler);
+
+            handler.Align(16);
+            header.stringOffset = handler.Tell();
+            handler.Skip(4);
+            handler.StringTableFlush();
+            handler.Write(header.stringOffset, (handler.Tell() - header.stringOffset) / 2);
+
+            header.resourcePathsOffset = handler.Tell();
+            handler.Write(0);
+
+            header.userdataPathsOffset = handler.Tell();
+            handler.Write(0);
+
+            header.variableOffset = handler.Tell();
+            Variable ??= new UVarFile(handler);
+            Variable.WriteTo(handler.WithOffset(handler.Tell()));
+
+            header.baseVariableOffset = handler.Tell();
+            handler.Write(ReferenceTrees.Count);
+            foreach (var tree in ReferenceTrees)
+            {
+                tree.WriteTo(handler.WithOffset(handler.Tell()));
+            }
+
+            header.Write(handler, 0);
+            return true;
+        }
+
+        private void FlattenInstances()
+        {
+            Nodes.Clear();
+            Nodes.Add(RootNode);
+            void RecurseHandleChildren(BHVTNode node)
+            {
+                foreach (var child in node.Children.Children) {
+                    if (child.ChildNode == null) continue;
+
+                    Nodes.Add(child.ChildNode);
+                    RecurseHandleChildren(child.ChildNode);
+                }
+            }
+            RecurseHandleChildren(RootNode);
         }
 
 

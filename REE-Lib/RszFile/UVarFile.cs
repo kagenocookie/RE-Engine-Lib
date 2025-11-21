@@ -615,7 +615,7 @@ namespace ReeLib
             {
                 throw new InvalidDataException($"{handler.FilePath} Not a UVAR file");
             }
-            header.name = handler.ReadWString(header.stringsOffset);
+            header.name = header.stringsOffset > 0 ? handler.ReadWString(header.stringsOffset) : "";
             Variables.Clear();
             EmbeddedUVARs.Clear();
 

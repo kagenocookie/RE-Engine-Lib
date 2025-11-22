@@ -130,6 +130,12 @@ namespace ReeLib.Bhvt
         public byte ukn;
         public byte idType;
 
+        public BHVTId(int id, bool isStatic)
+        {
+            this.id = (ushort)id;
+            this.idType = isStatic ? (byte)64 : (byte)0;
+        }
+
         public bool HasValue => id != ushort.MaxValue;
 
         public static explicit operator BHVTId(uint value)
@@ -168,6 +174,7 @@ namespace ReeLib.Bhvt
         {
             uint[,] data = DumpData();
             handler.Write(Count);
+            if (Count == 0) return true;
             return handler.WriteArray(data);
         }
 
@@ -224,8 +231,8 @@ namespace ReeLib.Bhvt
 
     public class NChild
     {
-        public NodeID ChildId;
-        public BHVTId ConditionID;
+        internal NodeID ChildId;
+        internal BHVTId ConditionID;
 
         public BHVTNode? ChildNode { get; set; }
         public RszInstance? Condition { get; set; }
@@ -272,8 +279,8 @@ namespace ReeLib.Bhvt
     public class NState
     {
         public List<BHVTId> mStates = new();
-        public NodeID targetNodeID;
-        public BHVTId TransitionConditionID;
+        internal NodeID targetNodeID;
+        internal BHVTId transitionConditionID;
         public uint transitionMapID;
         public uint mStatesEx;
 
@@ -306,7 +313,7 @@ namespace ReeLib.Bhvt
             {
                 var state = States[i];
                 state.targetNodeID = new NodeID(data[0, i], data[3, i]);
-                state.TransitionConditionID = (BHVTId)data[1, i];
+                state.transitionConditionID = (BHVTId)data[1, i];
                 state.transitionMapID = data[2, i];
                 state.mStatesEx = data[4, i];
             }
@@ -324,7 +331,7 @@ namespace ReeLib.Bhvt
                 handler.Write(state.mStates.Count);
                 state.mStates.Write(handler);
                 data[0, i] = state.targetNodeID.ID;
-                data[1, i] = (uint)state.TransitionConditionID;
+                data[1, i] = (uint)state.transitionConditionID;
                 data[2, i] = state.transitionMapID;
                 data[3, i] = state.targetNodeID.exID;
                 data[4, i] = state.mStatesEx;
@@ -390,7 +397,7 @@ namespace ReeLib.Bhvt
     public class NTransition
     {
         public List<uint> transitionEvents { get; } = new();
-        internal BHVTId startNodeId;
+        internal uint startNodeId;
         internal BHVTId conditionId;
         internal uint startNodeExId;
 
@@ -430,7 +437,7 @@ namespace ReeLib.Bhvt
             handler.ReadArray(data);
             for (int i = 0; i < count; i++)
             {
-                Transitions[i].startNodeId = (BHVTId)data[0, i];
+                Transitions[i].startNodeId = data[0, i];
                 Transitions[i].conditionId = (BHVTId)data[1, i];
                 Transitions[i].startNodeExId = data[2, i];
             }
@@ -464,6 +471,8 @@ namespace ReeLib.Bhvt
     {
         public uint ID;
         public uint exID;
+
+        public static readonly NodeID Unset = new NodeID(uint.MaxValue, 0);
 
         public NodeID(uint id, uint exID)
         {
@@ -583,8 +592,7 @@ namespace ReeLib.Bhvt
 
         public void WriteName(FileHandler handler)
         {
-            var item = handler.StringTableAdd(Name, false);
-            nameOffset = (int)(item.TextStart - handler.Tell());
+            nameOffset = handler.StringTableAdd(Name, false).TableOffset;
             handler.Write(Start + Marshal.SizeOf<NodeID>(), nameOffset);
         }
 
@@ -610,6 +618,7 @@ namespace ReeLib.Bhvt
                     handler.Write(ref WorkFlags);
                     handler.Write(ref mNameHash);
                     handler.Write(ref mFullnameHash);
+                    handler.Write(Tags.Count);
                     Tags.Write(handler);
                     handler.Write(ref isBranch);
                     handler.Write(ref isEnd);
@@ -729,7 +738,7 @@ namespace ReeLib
 
         public List<BHVTNode> Nodes { get; } = new();
         public BHVTNode RootNode { get; private set; } = new BHVTNode(option.Version) { Name = "root", ParentID = new NodeID(uint.MaxValue, 0) };
-        public UVarFile? Variable { get; set; }
+        public UVarFile Variable { get; } = new UVarFile(fileHandler) { Embedded = true };
         public List<UVarFile> ReferenceTrees { get; } = new();
         public BhvtObjectIndexTable ActionObjectTable { get; set; } = new ();
         // only used in fsmv2 files
@@ -737,6 +746,21 @@ namespace ReeLib
 
         private const int Condition_IDFieldIndex = 0;
         private const int Action_IDFieldIndex = 1;
+
+        private IEnumerable<RSZFile> GetRSZFiles()
+        {
+            yield return ActionRsz;
+            yield return StaticActionRsz;
+            yield return ConditionsRsz;
+            yield return StaticConditionsRsz;
+            yield return SelectorCallerRsz;
+            yield return StaticSelectorCallerRsz;
+            yield return SelectorRsz;
+            yield return TransitionEventRsz;
+            yield return StaticTransitionEventRsz;
+            yield return ExpressionTreeConditionsRsz;
+            yield return StaticExpressionTreeConditionsRsz;
+        }
 
         protected override bool DoRead()
         {
@@ -775,18 +799,8 @@ namespace ReeLib
             ReadRsz(StaticTransitionEventRsz, header.staticTransitionEventOffset);
             ReadRsz(StaticExpressionTreeConditionsRsz, header.staticExpressionTreeConditionsOffset);
 
-            // mNamePool
-            handler.Seek(header.stringOffset);
-            List<string> mNamePool = ReadStringPool();
-
-            // mPathNamePool
-            // handler.Seek(header.resourcePathsOffset);
-            // int numPaths = handler.ReadInt();
-            // List<string> mPathNamePool = ReadStringPool();
-            // var inheritOffset = header.Version >= GameVersion.dd2;
-
             handler.Seek(header.variableOffset);
-            Variable ??= new UVarFile(handler) { Embedded = true };
+            Variable.FileHandler = handler;
             Variable.ReadNoSeek();
 
             handler.Seek(header.baseVariableOffset);
@@ -810,6 +824,74 @@ namespace ReeLib
             GameObjectReferences.Read(handler, refPfbCount);
 
             SetupReferences();
+            return true;
+        }
+
+        protected override bool DoWrite()
+        {
+            FlattenInstances();
+
+            var handler = FileHandler;
+            var header = Header;
+            header.Write(handler);
+            header.nodeOffset = handler.Tell();
+            handler.Write(Nodes.Count);
+            foreach (var node in Nodes)
+            {
+                node.Write(handler);
+            }
+
+            foreach (var node in Nodes) node.WriteName(handler);
+
+            ActionObjectTable.Write(handler);
+
+            WriteRsz(ActionRsz, header.actionOffset = Utils.Align16((int)handler.Tell()));
+            WriteRsz(SelectorRsz, header.selectorOffset = Utils.Align16((int)handler.Tell()));
+            WriteRsz(SelectorCallerRsz, header.selectorCallerOffset = Utils.Align16((int)handler.Tell()));
+            WriteRsz(ConditionsRsz, header.conditionsOffset = Utils.Align16((int)handler.Tell()));
+            WriteRsz(TransitionEventRsz, header.transitionEventOffset = Utils.Align16((int)handler.Tell()));
+            WriteRsz(ExpressionTreeConditionsRsz, header.expressionTreeConditionsOffset = Utils.Align16((int)handler.Tell()));
+            WriteRsz(StaticActionRsz, header.staticActionOffset = Utils.Align16((int)handler.Tell()));
+            WriteRsz(StaticSelectorCallerRsz, header.staticSelectorCallerOffset = Utils.Align16((int)handler.Tell()));
+            WriteRsz(StaticConditionsRsz, header.staticConditionsOffset = Utils.Align16((int)handler.Tell()));
+            WriteRsz(StaticTransitionEventRsz, header.staticTransitionEventOffset = Utils.Align16((int)handler.Tell()));
+            WriteRsz(StaticExpressionTreeConditionsRsz, header.staticExpressionTreeConditionsOffset = Utils.Align16((int)handler.Tell()));
+
+            handler.Align(16);
+            header.referencePrefabGameObjectsOffset = handler.Tell();
+            handler.Write(GameObjectReferences.Count);
+            GameObjectReferences.Write(handler);
+
+            handler.Align(16);
+            header.stringOffset = handler.Tell();
+            handler.Skip(4);
+            handler.StringTableFlush();
+            handler.Write(header.stringOffset, (int)(handler.Tell() - header.stringOffset) / 2);
+
+            header.resourcePathsOffset = handler.Tell();
+            handler.Write(0); // TODO
+
+            header.userdataPathsOffset = handler.Tell();
+            handler.Write(0); // TODO
+
+            header.variableOffset = handler.Tell();
+            Variable.FileHandler = handler;
+            Variable.WriteNoSeek();
+
+            header.baseVariableOffset = handler.Tell();
+            handler.Write(ReferenceTrees.Count);
+            handler.Skip(ReferenceTrees.Count * sizeof(long));
+            for (int i = 0; i < ReferenceTrees.Count; ++i)
+            {
+                handler.Align(16);
+                handler.Write(header.baseVariableOffset + 4 + i * sizeof(long), handler.Tell());
+                var tree = ReferenceTrees[i];
+
+                tree.FileHandler = handler;
+                tree.WriteNoSeek();
+            }
+
+            header.Write(handler, 0);
             return true;
         }
 
@@ -865,7 +947,7 @@ namespace ReeLib
                     var instance = SelectorCallerRsz.ObjectList[callerId.id];
                     node.SelectorCallers.Add(instance);
 
-                    DataInterpretationException.DebugWarnIf(callerId.idType == 64 && !StaticClasses.Contains(instance.RszClass.name), instance.RszClass.name);
+                    DataInterpretationException.DebugWarnIf(callerId.idType != 0, instance.RszClass.name);
                 }
             }
 
@@ -925,17 +1007,17 @@ namespace ReeLib
                     {
                         state.TargetNode = nodeDict[(ulong)state.targetNodeID];
 
-                        if (state.TransitionConditionID.HasValue)
+                        if (state.transitionConditionID.HasValue)
                         {
-                            state.Condition = state.TransitionConditionID.idType == 64
-                                ? StaticConditionsRsz.ObjectList[state.TransitionConditionID.id]
-                                : ConditionsRsz.ObjectList[state.TransitionConditionID.id];
+                            state.Condition = state.transitionConditionID.idType == 64
+                                ? StaticConditionsRsz.ObjectList[state.transitionConditionID.id]
+                                : ConditionsRsz.ObjectList[state.transitionConditionID.id];
                         }
                     }
 
                     foreach (var trans in node.Transitions.Transitions)
                     {
-                        if (trans.startNodeId.HasValue)
+                        if (trans.startNodeId != uint.MaxValue)
                         {
                             var startTargetId = version <= GameVersion.dmc5 ? (ulong)trans.startNodeId : ((uint)trans.startNodeId | ((ulong)trans.startNodeExId << 32));
                             if (!nodeDict.TryGetValue(startTargetId, out var startNode))
@@ -967,89 +1049,9 @@ namespace ReeLib
             }
         }
 
-        private List<string> ReadStringPool()
-        {
-            var handler = FileHandler;
-            List<int> offsets = new();
-            List<string> stringPool = new();
-            int poolSize = handler.ReadInt();
-            long start = handler.Tell();
-            long end = start + poolSize * 2;
-            long current;
-            while ((current = handler.Tell()) < end)
-            {
-                offsets.Add((int)(current - start) / 2);
-                string text = handler.ReadWString(jumpBack: false);
-                stringPool.Add(text);
-                if (text.Length == 0) break;
-            }
-            return stringPool;
-        }
-
-        protected override bool DoWrite()
-        {
-            FlattenInstances();
-
-            var handler = FileHandler;
-            var header = Header;
-            header.Write(handler);
-            header.nodeOffset = handler.Tell();
-            handler.Write(Nodes.Count);
-            foreach (var node in Nodes)
-            {
-                node.Write(handler);
-            }
-
-            foreach (var node in Nodes) node.WriteName(handler);
-
-            ActionObjectTable.Write(handler);
-
-            WriteRsz(ActionRsz, header.actionOffset = Utils.Align16((int)handler.Tell()));
-            WriteRsz(SelectorRsz, header.selectorOffset = Utils.Align16((int)handler.Tell()));
-            WriteRsz(SelectorCallerRsz, header.selectorCallerOffset = Utils.Align16((int)handler.Tell()));
-            WriteRsz(ConditionsRsz, header.conditionsOffset = Utils.Align16((int)handler.Tell()));
-            WriteRsz(TransitionEventRsz, header.transitionEventOffset = Utils.Align16((int)handler.Tell()));
-            WriteRsz(ExpressionTreeConditionsRsz, header.expressionTreeConditionsOffset = Utils.Align16((int)handler.Tell()));
-            WriteRsz(StaticActionRsz, header.staticActionOffset = Utils.Align16((int)handler.Tell()));
-            WriteRsz(StaticSelectorCallerRsz, header.staticSelectorCallerOffset = Utils.Align16((int)handler.Tell()));
-            WriteRsz(StaticConditionsRsz, header.staticConditionsOffset = Utils.Align16((int)handler.Tell()));
-            WriteRsz(StaticTransitionEventRsz, header.staticTransitionEventOffset = Utils.Align16((int)handler.Tell()));
-            WriteRsz(StaticExpressionTreeConditionsRsz, header.staticExpressionTreeConditionsOffset = Utils.Align16((int)handler.Tell()));
-
-            handler.Align(16);
-            header.referencePrefabGameObjectsOffset = handler.Tell();
-            handler.Write(GameObjectReferences.Count);
-            GameObjectReferences.Write(handler);
-
-            handler.Align(16);
-            header.stringOffset = handler.Tell();
-            handler.Skip(4);
-            handler.StringTableFlush();
-            handler.Write(header.stringOffset, (handler.Tell() - header.stringOffset) / 2);
-
-            header.resourcePathsOffset = handler.Tell();
-            handler.Write(0);
-
-            header.userdataPathsOffset = handler.Tell();
-            handler.Write(0);
-
-            header.variableOffset = handler.Tell();
-            Variable ??= new UVarFile(handler);
-            Variable.WriteTo(handler.WithOffset(handler.Tell()));
-
-            header.baseVariableOffset = handler.Tell();
-            handler.Write(ReferenceTrees.Count);
-            foreach (var tree in ReferenceTrees)
-            {
-                tree.WriteTo(handler.WithOffset(handler.Tell()));
-            }
-
-            header.Write(handler, 0);
-            return true;
-        }
-
         private void FlattenInstances()
         {
+            var version = Header.Version;
             Nodes.Clear();
             Nodes.Add(RootNode);
             void RecurseHandleChildren(BHVTNode node)
@@ -1058,10 +1060,121 @@ namespace ReeLib
                     if (child.ChildNode == null) continue;
 
                     Nodes.Add(child.ChildNode);
+                }
+
+                // note: the original files have the nodes in an undefined, random order, probably roughly in creation order
+                // to make editing easier, we just rebuild the tree anew on save, probably shouldn't cause issues
+                foreach (var child in node.Children.Children) {
+                    if (child.ChildNode == null) continue;
+
                     RecurseHandleChildren(child.ChildNode);
                 }
             }
             RecurseHandleChildren(RootNode);
+
+            // TODO ensure we store all RSZ instances back in
+            foreach (var rsz in GetRSZFiles()) rsz.ClearObjects();
+
+            foreach (var node in Nodes)
+            {
+                foreach (var ch in node.Children.Children)
+                {
+                    ch.ChildId = ch.ChildNode?.ID ?? NodeID.Unset;
+                    if (ch.Condition != null)
+                    {
+                        var rsz = StaticClasses.Contains(ch.Condition.RszClass.name) ? StaticConditionsRsz : ConditionsRsz;
+                        rsz.AddToObjectTable(ch.Condition);
+                        ch.ConditionID = new BHVTId(ch.Condition.ObjectTableIndex, rsz == StaticConditionsRsz);
+                    }
+                }
+
+                if (node.Selector == null)
+                {
+                    node.SelectorID = -1;
+                }
+                else
+                {
+                    SelectorRsz.AddToObjectTable(node.Selector);
+                    node.SelectorID = node.Selector.ObjectTableIndex;
+                }
+
+                if (node.SelectorCallerCondition != null)
+                {
+                    var rsz = StaticClasses.Contains(node.SelectorCallerCondition.RszClass.name) ? StaticConditionsRsz : ConditionsRsz;
+                    rsz.AddToObjectTable(node.SelectorCallerCondition);
+                    node.SelectorCallerConditionID = new BHVTId(node.SelectorCallerCondition.ObjectTableIndex, rsz == StaticConditionsRsz);
+                }
+
+                node.SelectorCallerIDs.Clear();
+                foreach (var caller in node.SelectorCallers)
+                {
+                    var rsz = StaticClasses.Contains(caller.RszClass.name) ? StaticSelectorCallerRsz : SelectorCallerRsz;
+                    rsz.AddToObjectTable(caller);
+                    node.SelectorCallerIDs.Add(new BHVTId(caller.ObjectTableIndex, false));
+                }
+
+
+                foreach (var act in node.Actions.Actions)
+                {
+                    if (act.Instance != null)
+                    {
+                        var rsz = StaticClasses.Contains(act.Instance.RszClass.name) ? StaticActionRsz : ActionRsz;
+                        rsz.AddToObjectTable(act.Instance);
+                        act.Action = (uint)act.Instance.Values[Action_IDFieldIndex];
+                    }
+                }
+
+                foreach (var state in node.States.States)
+                {
+                    state.targetNodeID = state.TargetNode?.ID ?? NodeID.Unset;
+                    if (state.TargetNode == null) continue;
+
+                    if (state.Condition != null)
+                    {
+                        var conditionRsz = StaticClasses.Contains(state.Condition.RszClass.name) ? StaticConditionsRsz : ConditionsRsz;
+                        conditionRsz.AddToObjectTable(state.Condition);
+                        state.transitionConditionID = new BHVTId(state.Condition.ObjectTableIndex, StaticClasses.Contains(state.Condition.RszClass.name));
+                    }
+                }
+
+                foreach (var state in node.AllStates.AllStates)
+                {
+                    if (state.TargetState != null)
+                    {
+                        state.targetNodeId = state.TargetState.ID;
+                    }
+
+                    if (state.Condition != null)
+                    {
+                        var conditionRsz = StaticClasses.Contains(state.Condition.RszClass.name) ? StaticConditionsRsz : ConditionsRsz;
+                        conditionRsz.AddToObjectTable(state.Condition);
+                        state.transitionConditionId = new BHVTId(state.Condition.ObjectTableIndex, StaticClasses.Contains(state.Condition.RszClass.name));
+                    }
+                }
+
+                foreach (var trans in node.Transitions.Transitions)
+                {
+                    if (trans.StartNode != null)
+                    {
+                        trans.startNodeId = trans.StartNode.ID.ID;
+                        trans.startNodeExId  = trans.StartNode.ID.exID;
+                    }
+
+                    if (trans.Condition != null)
+                    {
+                        var conditionRsz = StaticClasses.Contains(trans.Condition.RszClass.name) ? StaticConditionsRsz : ConditionsRsz;
+                        conditionRsz.AddToObjectTable(trans.Condition);
+                        trans.conditionId = new BHVTId(trans.Condition.ObjectTableIndex, StaticClasses.Contains(trans.Condition.RszClass.name));
+                    }
+                }
+
+            }
+
+            foreach (var rsz in GetRSZFiles())
+            {
+                rsz.RebuildInstanceList();
+                rsz.RebuildInstanceInfo();
+            }
         }
 
 

@@ -1,13 +1,15 @@
 using ReeLib.Common;
+using ReeLib.InternalAttributes;
 using ReeLib.Motfsm2;
 
 namespace ReeLib.Motfsm2
 {
-    public struct HeaderStruct
+    [RszGenerate, RszAutoReadWrite]
+    public partial class HeaderStruct : BaseModel
     {
         public uint version;
-        public uint magic;
-        public ulong skip;
+        [RszPaddingAfter(8)]
+        public uint magic = Motfsm2File.Magic;
         public long treeDataOffset;
         public long transitionMapOffset;
         public long transitionDataOffset;
@@ -155,7 +157,7 @@ namespace ReeLib.Motfsm2
                 handler.Read(ref contOnLayerNo);
                 handler.Read(ref contOnLayerJointMaskId);
             }
-            handler.Skip(4);
+            handler.ReadNull(4);
             return true;
         }
 
@@ -173,7 +175,7 @@ namespace ReeLib.Motfsm2
                 handler.Write(ref contOnLayerNo);
                 handler.Write(ref contOnLayerJointMaskId);
             }
-            handler.Skip(4);
+            handler.WriteNull(4);
             return true;
         }
 
@@ -189,9 +191,8 @@ namespace ReeLib
         public const uint Magic = 0x3273666d;
         public const string Extension2 = ".motfsm2";
 
-        public StructModel<HeaderStruct> Header { get; } = new();
-        private int treeDataSize;
-        public BhvtFile? BhvtFile { get; private set; }
+        public HeaderStruct Header { get; } = new();
+        public BhvtFile BhvtFile { get; private set; } = new(option, fileHandler);
         public List<TransitionMap> TransitionMaps { get; } = new();
         public List<TransitionData> TransitionDatas { get; } = new();
 
@@ -199,13 +200,14 @@ namespace ReeLib
         {
             var handler = FileHandler;
             if (!Header.Read(handler)) return false;
-            ref var header = ref Header.Data;
+            var header = Header;
             if (header.magic != Magic)
             {
                 throw new InvalidDataException($"{handler.FilePath} Not a motfsm2 file");
             }
 
             handler.Seek(header.transitionMapOffset);
+            TransitionMaps.Clear();
             TransitionMaps.ReadStructList(handler, header.transitionMapCount);
 
             handler.Seek(header.transitionDataOffset);
@@ -217,8 +219,8 @@ namespace ReeLib
                 TransitionDatas.Add(transitionData);
             }
 
-            handler.Read(header.treeInfoPtr, ref treeDataSize);
-            BhvtFile ??= new(Option, handler.WithOffset(header.treeDataOffset));
+            var treeDataSize = handler.Read<int>(header.treeInfoPtr, false);
+            BhvtFile.FileHandler = handler.WithOffset(header.treeDataOffset);
             BhvtFile.Read();
 
             var nodeDict = BhvtFile.Nodes.ToDictionary(n => (ulong)n.ID);
@@ -250,7 +252,35 @@ namespace ReeLib
 
         protected override bool DoWrite()
         {
-            throw new NotImplementedException();
+            var handler = FileHandler;
+            var header = Header;
+
+            header.transitionMapCount = TransitionMaps.Count;
+            header.transitionDataCount = TransitionDatas.Count;
+
+            header.Write(handler);
+
+            handler.Align(16);
+            header.treeDataOffset = handler.Tell();
+            BhvtFile.FileHandler = handler.WithOffset(header.treeDataOffset);
+            BhvtFile.Write();
+
+            var treeSize = handler.Tell() - header.treeDataOffset;
+
+            handler.Align(16);
+            header.treeInfoPtr = handler.Tell();
+            handler.Write(treeSize);
+
+            handler.Align(16);
+            header.transitionMapOffset = handler.Tell();
+            TransitionMaps.Write(handler);
+
+            handler.Align(16);
+            header.transitionDataOffset = handler.Tell();
+            TransitionDatas.Write(handler);
+
+            header.Write(handler, 0);
+            return true;
         }
     }
 }

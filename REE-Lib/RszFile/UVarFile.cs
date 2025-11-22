@@ -509,46 +509,52 @@ namespace ReeLib.UVar
 
     public class HashData : BaseModel
     {
-        public long guidsOffset;
-        public long mapsOffset;
-        public long hashOffset;
-        public long hashMapOffset;
+        public Guid[] Guids { get; set; } = [];
+        public uint[] GuidMap { get; set; } = [];
+        public uint[] NameHashes { get; set; } = [];
+        public uint[] NameHashMap { get; set; } = [];
 
-        public int count;
-
-        public Guid[]? Guids { get; set; }
-        public uint[]? GuidMap { get; set; }
-        public uint[]? NameHashes { get; set; }
-        public uint[]? NameHashMap { get; set; }
+        public int Count
+        {
+            get => Guids.Length;
+            set {
+                if (value != Guids.Length) {
+                    var arr = Guids; Array.Resize(ref arr, value); Guids = arr;
+                    var arr2 = GuidMap; Array.Resize(ref arr2, value); GuidMap = arr2;
+                    arr2 = NameHashes; Array.Resize(ref arr2, value); NameHashes = arr2;
+                    arr2 = NameHashMap; Array.Resize(ref arr2, value); NameHashMap = arr2;
+                }
+            }
+        }
 
         protected override bool DoRead(FileHandler handler)
         {
-            handler.Read(ref guidsOffset);
-            handler.Read(ref mapsOffset);
-            handler.Read(ref hashOffset);
-            handler.Read(ref hashMapOffset);
+            var guidsOffset = handler.Read<long>();
+            var mapsOffset = handler.Read<long>();
+            var hashOffset = handler.Read<long>();
+            var hashMapOffset = handler.Read<long>();
 
             handler.Seek(guidsOffset);
-            Guids = handler.ReadArray<Guid>(count);
+            handler.ReadArray<Guid>(Guids);
 
             handler.Seek(mapsOffset);
-            GuidMap = handler.ReadArray<uint>(count);
+            handler.ReadArray<uint>(GuidMap);
 
             handler.Seek(hashOffset);
-            NameHashes = handler.ReadArray<uint>(count);
+            handler.ReadArray<uint>(NameHashes);
 
             handler.Seek(hashMapOffset);
-            NameHashMap = handler.ReadArray<uint>(count);
+            handler.ReadArray<uint>(NameHashMap);
             return true;
         }
 
         protected override bool DoWrite(FileHandler handler)
         {
-            var count = Guids?.Length ?? 0;
-            guidsOffset = handler.Tell() + 32;
-            mapsOffset = guidsOffset + count * 16;
-            hashOffset = mapsOffset + count * 4;
-            hashMapOffset = hashOffset + count * 4;
+            var count = Guids.Length;
+            var guidsOffset = handler.Tell() + 32;
+            var mapsOffset = guidsOffset + count * 16;
+            var hashOffset = mapsOffset + count * 4;
+            var hashMapOffset = hashOffset + count * 4;
 
             handler.Write(ref guidsOffset);
             handler.Write(ref mapsOffset);
@@ -556,7 +562,7 @@ namespace ReeLib.UVar
             handler.Write(ref hashMapOffset);
 
             handler.Seek(guidsOffset);
-            handler.WriteArray(Guids!);
+            handler.WriteArray(Guids);
 
             handler.Seek(mapsOffset);
             handler.WriteArray(GuidMap!);

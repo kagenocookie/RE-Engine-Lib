@@ -55,7 +55,6 @@ namespace ReeLib
             var start = FileHandler.Tell();
             bool result = DoRead();
             Size = FileHandler.Tell() - start;
-            // Console.WriteLine($"{this} Start: {Start}, Read size: {Size}");
             return result;
         }
 
@@ -64,7 +63,14 @@ namespace ReeLib
             FileHandler.Seek(0);
             bool result = DoWrite();
             Size = FileHandler.Tell();
-            // Console.WriteLine($"{this} Start: {Start}, Write size: {Size}");
+            return result;
+        }
+
+        public bool WriteNoSeek()
+        {
+            var start = FileHandler.Tell();
+            bool result = DoWrite();
+            Size = FileHandler.Tell() - start;
             return result;
         }
 

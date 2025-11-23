@@ -278,12 +278,13 @@ namespace ReeLib.Bhvt
 
     public class NState
     {
-        public List<BHVTId> mStates = new();
+        internal List<BHVTId> eventIDs = new();
         internal NodeID targetNodeID;
         internal BHVTId transitionConditionID;
         public uint transitionMapID;
-        public uint mStatesEx;
+        public uint stateEx;
 
+        public List<RszInstance> TransitionEvents { get; } = new();
         public BHVTNode? TargetNode { get; set; }
         public RszInstance? Condition { get; set; }
         public TransitionData? TransitionData { get; set; }
@@ -304,7 +305,7 @@ namespace ReeLib.Bhvt
             {
                 var subcount = handler.Read<int>();
                 var state = new NState();
-                state.mStates.ReadStructList(handler, subcount);
+                state.eventIDs.ReadStructList(handler, subcount);
                 States.Add(state);
             }
             if (count == 0) return true;
@@ -317,7 +318,7 @@ namespace ReeLib.Bhvt
                 state.targetNodeID = new NodeID(data[0, i], data[3, i]);
                 state.transitionConditionID = (BHVTId)data[1, i];
                 state.transitionMapID = data[2, i];
-                state.mStatesEx = data[4, i];
+                state.stateEx = data[4, i];
             }
             return true;
         }
@@ -330,13 +331,13 @@ namespace ReeLib.Bhvt
             for (int i = 0; i < States.Count; i++)
             {
                 var state = States[i];
-                handler.Write(state.mStates.Count);
-                state.mStates.Write(handler);
+                handler.Write(state.eventIDs.Count);
+                state.eventIDs.Write(handler);
                 data[0, i] = state.targetNodeID.ID;
                 data[1, i] = (uint)state.transitionConditionID;
                 data[2, i] = state.transitionMapID;
                 data[3, i] = state.targetNodeID.exID;
-                data[4, i] = state.mStatesEx;
+                data[4, i] = state.stateEx;
             }
             handler.WriteArray(data);
             return true;
@@ -349,7 +350,7 @@ namespace ReeLib.Bhvt
         internal NodeID targetNodeId;
         internal BHVTId transitionConditionId;
         public uint transitionMapID;
-        public uint mAllTransitionAttributes;
+        public uint transitionAttributes;
 
         public BHVTNode? TargetNode { get; set; }
         public TransitionData? TransitionData { get; set; }
@@ -374,7 +375,7 @@ namespace ReeLib.Bhvt
                     targetNodeId = new NodeID(data[0, i], data[3, i]),
                     transitionConditionId = (BHVTId)data[1, i],
                     transitionMapID = data[2, i],
-                    mAllTransitionAttributes = data[4, i],
+                    transitionAttributes = data[4, i],
                 });
             }
             return true;
@@ -391,7 +392,7 @@ namespace ReeLib.Bhvt
                 data[1, i] = (uint)state.transitionConditionId;
                 data[2, i] = state.transitionMapID;
                 data[3, i] = state.targetNodeId.exID;
-                data[4, i] = state.mAllTransitionAttributes;
+                data[4, i] = state.transitionAttributes;
             }
             return data;
         }
@@ -751,7 +752,7 @@ namespace ReeLib
         private const int Condition_IDFieldIndex = 0;
         private const int Action_IDFieldIndex = 1;
 
-        private IEnumerable<RSZFile> GetRSZFiles()
+        private IEnumerable<RSZFile> GetAutoManagedRSZFiles()
         {
             yield return ActionRsz;
             yield return StaticActionRsz;
@@ -762,8 +763,8 @@ namespace ReeLib
             yield return SelectorRsz;
             yield return TransitionEventRsz;
             yield return StaticTransitionEventRsz;
-            yield return ExpressionTreeConditionsRsz;
-            yield return StaticExpressionTreeConditionsRsz;
+            // yield return ExpressionTreeConditionsRsz;
+            // yield return StaticExpressionTreeConditionsRsz;
         }
 
         protected override bool DoRead()
@@ -778,6 +779,7 @@ namespace ReeLib
             }
 
             Nodes.Clear();
+            GameObjectReferences.Clear();
 
             handler.Seek(header.nodeOffset);
             var nodeCount = handler.Read<int>();
@@ -901,6 +903,8 @@ namespace ReeLib
 
         private void SetupReferences()
         {
+            // DataInterpretationException.DebugWarnIf(TransitionEventRsz.ObjectList.Count > 0, FileHandler.FilePath!, TransitionEventRsz.ObjectList.Count.ToString());
+            // DataInterpretationException.DebugWarnIf(StaticTransitionEventRsz.ObjectList.Count > 0, FileHandler.FilePath!, StaticTransitionEventRsz.ObjectList.Count.ToString());
             var version = Option.Version;
             var nodeDict = Nodes.ToDictionary(n => (ulong)n.ID);
             var actions = new Dictionary<ulong, RszInstance>();
@@ -1019,6 +1023,16 @@ namespace ReeLib
                                 : ConditionsRsz.ObjectList[state.transitionConditionID.id];
                             DataInterpretationException.DebugWarnIf(state.transitionConditionID.idType == 64 != ShouldBeStaticClass(state.Condition.RszClass.name, version), state.Condition.RszClass.name);
                         }
+
+                        state.TransitionEvents.Clear();
+                        foreach (var eventId in state.eventIDs)
+                        {
+                            var evt = eventId.idType == 64
+                                ? StaticTransitionEventRsz.ObjectList[eventId.id]
+                                : TransitionEventRsz.ObjectList[eventId.id];
+                            state.TransitionEvents.Add(evt);
+                            DataInterpretationException.DebugWarnIf(eventId.idType == 64 != ShouldBeStaticClass(evt.RszClass.name, version), evt.RszClass.name);
+                        }
                     }
 
                     foreach (var trans in node.Transitions.Transitions)
@@ -1080,41 +1094,26 @@ namespace ReeLib
             }
             RecurseHandleChildren(RootNode);
 
-            static BHVTId StoreRszObject(RszInstance instance, RSZFile staticRsz, RSZFile nonStaticRsz, GameVersion version)
+            static BHVTId StoreRszObject(RszInstance? instance, RSZFile staticRsz, RSZFile nonStaticRsz, GameVersion version)
             {
+                if (instance == null) return (BHVTId)uint.MaxValue;
                 var rsz = ShouldBeStaticClass(instance.RszClass.name, version) ? staticRsz : nonStaticRsz;
                 rsz.AddToObjectTable(instance);
                 return new BHVTId(instance.ObjectTableIndex, rsz == staticRsz);
             }
 
-            // TODO ensure we store all RSZ instances back in
-            foreach (var rsz in GetRSZFiles()) rsz.ClearObjects();
+            foreach (var rsz in GetAutoManagedRSZFiles()) rsz.ClearObjects();
 
             foreach (var node in Nodes)
             {
                 foreach (var ch in node.Children.Children)
                 {
                     ch.ChildId = ch.ChildNode?.ID ?? NodeID.Unset;
-                    if (ch.Condition != null)
-                    {
-                        ch.ConditionID = StoreRszObject(ch.Condition, StaticConditionsRsz, ConditionsRsz, version);
-                    }
+                    ch.ConditionID = StoreRszObject(ch.Condition, StaticConditionsRsz, ConditionsRsz, version);
                 }
 
-                if (node.Selector == null)
-                {
-                    node.SelectorID = -1;
-                }
-                else
-                {
-                    SelectorRsz.AddToObjectTable(node.Selector);
-                    node.SelectorID = node.Selector.ObjectTableIndex;
-                }
-
-                if (node.SelectorCallerCondition != null)
-                {
-                    node.SelectorCallerConditionID = StoreRszObject(node.SelectorCallerCondition, StaticConditionsRsz, ConditionsRsz, version);
-                }
+                node.SelectorID = (int)(uint)StoreRszObject(node.Selector, null!, SelectorRsz, version);
+                node.SelectorCallerConditionID = StoreRszObject(node.SelectorCallerCondition, StaticConditionsRsz, ConditionsRsz, version);
 
                 node.SelectorCallerIDs.Clear();
                 foreach (var caller in node.SelectorCallers)
@@ -1137,9 +1136,12 @@ namespace ReeLib
                     state.targetNodeID = state.TargetNode?.ID ?? NodeID.Unset;
                     if (state.TargetNode == null) continue;
 
-                    if (state.Condition != null)
+                    state.transitionConditionID = StoreRszObject(state.Condition, StaticConditionsRsz, ConditionsRsz, version);
+
+                    state.eventIDs.Clear();
+                    foreach (var evt in state.TransitionEvents)
                     {
-                        state.transitionConditionID = StoreRszObject(state.Condition, StaticConditionsRsz, ConditionsRsz, version);
+                        state.eventIDs.Add(StoreRszObject(evt, StaticTransitionEventRsz, TransitionEventRsz, version));
                     }
                 }
 
@@ -1150,10 +1152,7 @@ namespace ReeLib
                         state.targetNodeId = state.TargetNode.ID;
                     }
 
-                    if (state.Condition != null)
-                    {
-                        state.transitionConditionId = StoreRszObject(state.Condition, StaticConditionsRsz, ConditionsRsz, version);
-                    }
+                    state.transitionConditionId = StoreRszObject(state.Condition, StaticConditionsRsz, ConditionsRsz, version);
                 }
 
                 foreach (var trans in node.Transitions.Transitions)
@@ -1164,14 +1163,11 @@ namespace ReeLib
                         trans.startNodeExId  = trans.StartNode.ID.exID;
                     }
 
-                    if (trans.Condition != null)
-                    {
-                        trans.conditionId = StoreRszObject(trans.Condition, StaticConditionsRsz, ConditionsRsz, version);
-                    }
+                    trans.conditionId = StoreRszObject(trans.Condition, StaticConditionsRsz, ConditionsRsz, version);
                 }
             }
 
-            foreach (var rsz in GetRSZFiles())
+            foreach (var rsz in GetAutoManagedRSZFiles())
             {
                 rsz.RebuildInstanceList();
                 rsz.RebuildInstanceInfo();
@@ -1634,6 +1630,14 @@ namespace ReeLib
             "offline.escape.enemy.em7000.fsmv2.condition.EsEm7000MFsmCondition_ActionTrigger",
             "offline.fsmv2.enemy.condition.Em4000FsmCondition_ActionTrigger",
 
+            // transition events
+            "app.ropeway.enemy.em0000.fsmv2.transition.Em0000MFsmTransitionEV_WarpState",
+            "app.ropeway.enemy.em5000.fsmv2.transition.Em5000FsmTransitionEV_WarpState",
+            "app.ropeway.enemy.em6000.fsmv2.transition.Em6000MFsmTransitionEV_WarpState",
+            "app.ropeway.enemy.em6200.fsmv2.transition.Em6200MFsmTransitionEV_WarpState",
+            "app.ropeway.enemy.em6300.fsmv2.transition.Em6300FsmTransitionEV_WarpState",
+            "offline.enemy.common.fsmv2.transition.EmCommonMFsmTransitionEV_WarpStateRoot`1<offline.escape.enemy.em9000.ActionStatus.ID>",
+            "offline.enemy.em0000.fsmv2.transition.Em0000MFsmTransitionEV_WarpState",
         ];
     }
 }

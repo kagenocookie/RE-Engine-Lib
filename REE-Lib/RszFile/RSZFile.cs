@@ -42,7 +42,7 @@ namespace ReeLib
         public RSZFile(RszFileOption option, FileHandler fileHandler) : base(option, fileHandler)
         {
             Header.version = option.Version == GameVersion.re7 ? 3u
-                : option.Version == GameVersion.re2 ? 8u
+                : option.Version <= GameVersion.dmc5 ? 8u
                 : 16u;
         }
 

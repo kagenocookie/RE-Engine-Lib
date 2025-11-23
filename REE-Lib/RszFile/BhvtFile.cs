@@ -287,6 +287,8 @@ namespace ReeLib.Bhvt
         public BHVTNode? TargetNode { get; set; }
         public RszInstance? Condition { get; set; }
         public TransitionData? TransitionData { get; set; }
+
+        public override string ToString() => $"{TargetNode?.ToString() ?? nameof(NState)}";
     }
 
 
@@ -349,9 +351,11 @@ namespace ReeLib.Bhvt
         public uint transitionMapID;
         public uint mAllTransitionAttributes;
 
-        public BHVTNode? TargetState { get; set; }
+        public BHVTNode? TargetNode { get; set; }
         public TransitionData? TransitionData { get; set; }
         public RszInstance? Condition { get; set; }
+
+        public override string ToString() => $"{TargetNode?.ToString() ?? nameof(NAllState)}";
     }
 
 
@@ -489,7 +493,7 @@ namespace ReeLib.Bhvt
             return result;
         }
 
-        public override string ToString() => $"{ID} <{exID}>";
+        public override string ToString() => $"{ID} ({exID})";
     }
 
     public class BHVTNode : BaseModel
@@ -525,7 +529,7 @@ namespace ReeLib.Bhvt
         public int unknownAI;
         public int AI_Path;
 
-        public override string ToString() => Name;
+        public override string ToString() => $"[{ID}]  {(string.IsNullOrEmpty(Name) ? "-" : Name)}     <{Attributes} | {WorkFlags}>";
 
         public BHVTNode(GameVersion version)
         {
@@ -921,7 +925,7 @@ namespace ReeLib
                             ? StaticConditionsRsz.ObjectList[ch.ConditionID.id]
                             : ConditionsRsz.ObjectList[ch.ConditionID.id];
 
-                        DataInterpretationException.DebugWarnIf(ch.ConditionID.idType == 64 && !StaticClasses.Contains(ch.Condition.RszClass.name), ch.Condition.RszClass.name);
+                        DataInterpretationException.DebugWarnIf(ch.ConditionID.idType == 64 != ShouldBeStaticClass(ch.Condition.RszClass.name, version), ch.Condition.RszClass.name);
                     }
                 }
 
@@ -939,6 +943,7 @@ namespace ReeLib
                     node.SelectorCallerCondition = node.SelectorCallerConditionID.idType == 64
                             ? StaticConditionsRsz.ObjectList[node.SelectorCallerConditionID.id]
                             : ConditionsRsz.ObjectList[node.SelectorCallerConditionID.id];
+                    DataInterpretationException.DebugWarnIf(node.SelectorCallerConditionID.idType == 64 != ShouldBeStaticClass(node.SelectorCallerCondition.RszClass.name, version), node.SelectorCallerCondition.RszClass.name);
                 }
 
                 foreach (var callerId in node.SelectorCallerIDs)
@@ -967,10 +972,10 @@ namespace ReeLib
                     {
                         if (actionsDict.TryGetValue(act.Action, out var instance)) {
                             act.Instance = instance;
-                            DataInterpretationException.DebugThrowIf(StaticClasses.Contains(instance.RszClass.name));
+                            DataInterpretationException.DebugWarnIf(ShouldBeStaticClass(instance.RszClass.name, version), instance.RszClass.name);
                         } else if (staticActionsDict.TryGetValue(act.Action, out instance)) {
                             act.Instance = instance;
-                            DataInterpretationException.DebugWarnIf(!StaticClasses.Contains(instance.RszClass.name), instance.RszClass.name);
+                            DataInterpretationException.DebugWarnIf(!ShouldBeStaticClass(instance.RszClass.name, version), instance.RszClass.name);
                         } else {
                             throw new InvalidDataException("BHVT file missing action ID " + act.Action);
                         }
@@ -994,11 +999,11 @@ namespace ReeLib
                         if (instance != null && Convert.ToUInt32(instance.Values[Action_IDFieldIndex]) == act.Action) {
                             act.Instance = instance;
                             nextActionIndex++;
-                            DataInterpretationException.DebugThrowIf(StaticClasses.Contains(instance.RszClass.name));
+                            DataInterpretationException.DebugWarnIf(ShouldBeStaticClass(instance.RszClass.name, version), instance.RszClass.name);
                         } else {
                             instance = StaticActionRsz.ObjectList[nextStaticActionIndex++];
                             act.Instance = instance;
-                            DataInterpretationException.DebugThrowIf(!StaticClasses.Contains(instance.RszClass.name));
+                            DataInterpretationException.DebugWarnIf(!ShouldBeStaticClass(instance.RszClass.name, version), instance.RszClass.name);
                         }
                         DataInterpretationException.ThrowIfDifferent(act.Action, Convert.ToUInt32(instance.Values[Action_IDFieldIndex]));
                     }
@@ -1012,6 +1017,7 @@ namespace ReeLib
                             state.Condition = state.transitionConditionID.idType == 64
                                 ? StaticConditionsRsz.ObjectList[state.transitionConditionID.id]
                                 : ConditionsRsz.ObjectList[state.transitionConditionID.id];
+                            DataInterpretationException.DebugWarnIf(state.transitionConditionID.idType == 64 != ShouldBeStaticClass(state.Condition.RszClass.name, version), state.Condition.RszClass.name);
                         }
                     }
 
@@ -1031,18 +1037,20 @@ namespace ReeLib
                             trans.Condition = trans.conditionId.idType == 64
                                 ? StaticConditionsRsz.ObjectList[trans.conditionId.id]
                                 : ConditionsRsz.ObjectList[trans.conditionId.id];
+                            DataInterpretationException.DebugWarnIf(trans.conditionId.idType == 64 != ShouldBeStaticClass(trans.Condition.RszClass.name, version), trans.Condition.RszClass.name);
                         }
                     }
 
                     foreach (var state in node.AllStates.AllStates)
                     {
-                        state.TargetState = nodeDict[state.targetNodeId.ID];
+                        state.TargetNode = nodeDict[state.targetNodeId.ID];
 
                         if (state.transitionConditionId.HasValue)
                         {
                             state.Condition = state.transitionConditionId.idType == 64
                                 ? StaticConditionsRsz.ObjectList[state.transitionConditionId.id]
                                 : ConditionsRsz.ObjectList[state.transitionConditionId.id];
+                            DataInterpretationException.DebugWarnIf(state.transitionConditionId.idType == 64 != ShouldBeStaticClass(state.Condition.RszClass.name, version), state.Condition.RszClass.name);
                         }
                     }
                 }
@@ -1072,6 +1080,13 @@ namespace ReeLib
             }
             RecurseHandleChildren(RootNode);
 
+            static BHVTId StoreRszObject(RszInstance instance, RSZFile staticRsz, RSZFile nonStaticRsz, GameVersion version)
+            {
+                var rsz = ShouldBeStaticClass(instance.RszClass.name, version) ? staticRsz : nonStaticRsz;
+                rsz.AddToObjectTable(instance);
+                return new BHVTId(instance.ObjectTableIndex, rsz == staticRsz);
+            }
+
             // TODO ensure we store all RSZ instances back in
             foreach (var rsz in GetRSZFiles()) rsz.ClearObjects();
 
@@ -1082,9 +1097,7 @@ namespace ReeLib
                     ch.ChildId = ch.ChildNode?.ID ?? NodeID.Unset;
                     if (ch.Condition != null)
                     {
-                        var rsz = StaticClasses.Contains(ch.Condition.RszClass.name) ? StaticConditionsRsz : ConditionsRsz;
-                        rsz.AddToObjectTable(ch.Condition);
-                        ch.ConditionID = new BHVTId(ch.Condition.ObjectTableIndex, rsz == StaticConditionsRsz);
+                        ch.ConditionID = StoreRszObject(ch.Condition, StaticConditionsRsz, ConditionsRsz, version);
                     }
                 }
 
@@ -1100,17 +1113,13 @@ namespace ReeLib
 
                 if (node.SelectorCallerCondition != null)
                 {
-                    var rsz = StaticClasses.Contains(node.SelectorCallerCondition.RszClass.name) ? StaticConditionsRsz : ConditionsRsz;
-                    rsz.AddToObjectTable(node.SelectorCallerCondition);
-                    node.SelectorCallerConditionID = new BHVTId(node.SelectorCallerCondition.ObjectTableIndex, rsz == StaticConditionsRsz);
+                    node.SelectorCallerConditionID = StoreRszObject(node.SelectorCallerCondition, StaticConditionsRsz, ConditionsRsz, version);
                 }
 
                 node.SelectorCallerIDs.Clear();
                 foreach (var caller in node.SelectorCallers)
                 {
-                    var rsz = StaticClasses.Contains(caller.RszClass.name) ? StaticSelectorCallerRsz : SelectorCallerRsz;
-                    rsz.AddToObjectTable(caller);
-                    node.SelectorCallerIDs.Add(new BHVTId(caller.ObjectTableIndex, false));
+                    node.SelectorCallerIDs.Add(StoreRszObject(caller, StaticSelectorCallerRsz, SelectorCallerRsz, version));
                 }
 
 
@@ -1118,8 +1127,7 @@ namespace ReeLib
                 {
                     if (act.Instance != null)
                     {
-                        var rsz = StaticClasses.Contains(act.Instance.RszClass.name) ? StaticActionRsz : ActionRsz;
-                        rsz.AddToObjectTable(act.Instance);
+                        StoreRszObject(act.Instance, StaticActionRsz, ActionRsz, version);
                         act.Action = (uint)act.Instance.Values[Action_IDFieldIndex];
                     }
                 }
@@ -1131,24 +1139,20 @@ namespace ReeLib
 
                     if (state.Condition != null)
                     {
-                        var conditionRsz = StaticClasses.Contains(state.Condition.RszClass.name) ? StaticConditionsRsz : ConditionsRsz;
-                        conditionRsz.AddToObjectTable(state.Condition);
-                        state.transitionConditionID = new BHVTId(state.Condition.ObjectTableIndex, StaticClasses.Contains(state.Condition.RszClass.name));
+                        state.transitionConditionID = StoreRszObject(state.Condition, StaticConditionsRsz, ConditionsRsz, version);
                     }
                 }
 
                 foreach (var state in node.AllStates.AllStates)
                 {
-                    if (state.TargetState != null)
+                    if (state.TargetNode != null)
                     {
-                        state.targetNodeId = state.TargetState.ID;
+                        state.targetNodeId = state.TargetNode.ID;
                     }
 
                     if (state.Condition != null)
                     {
-                        var conditionRsz = StaticClasses.Contains(state.Condition.RszClass.name) ? StaticConditionsRsz : ConditionsRsz;
-                        conditionRsz.AddToObjectTable(state.Condition);
-                        state.transitionConditionId = new BHVTId(state.Condition.ObjectTableIndex, StaticClasses.Contains(state.Condition.RszClass.name));
+                        state.transitionConditionId = StoreRszObject(state.Condition, StaticConditionsRsz, ConditionsRsz, version);
                     }
                 }
 
@@ -1162,12 +1166,9 @@ namespace ReeLib
 
                     if (trans.Condition != null)
                     {
-                        var conditionRsz = StaticClasses.Contains(trans.Condition.RszClass.name) ? StaticConditionsRsz : ConditionsRsz;
-                        conditionRsz.AddToObjectTable(trans.Condition);
-                        trans.conditionId = new BHVTId(trans.Condition.ObjectTableIndex, StaticClasses.Contains(trans.Condition.RszClass.name));
+                        trans.conditionId = StoreRszObject(trans.Condition, StaticConditionsRsz, ConditionsRsz, version);
                     }
                 }
-
             }
 
             foreach (var rsz in GetRSZFiles())
@@ -1177,6 +1178,16 @@ namespace ReeLib
             }
         }
 
+        private static bool ShouldBeStaticClass(string classname, GameVersion game)
+        {
+            if (StaticClasses.Contains(classname)) return true;
+            if (game == GameVersion.dmc5) return Dmc5StaticClasses.Contains(classname);
+            return false;
+        }
+
+        private static string[] Dmc5StaticClasses = [
+            "via.behaviortree.ConditionUserVariable",
+        ];
 
         private static readonly HashSet<string> StaticClasses = [
             "via.behaviortree.action.SetInt",
@@ -1379,7 +1390,17 @@ namespace ReeLib
             "offline.escape.enemy.em3500.behaviortree.action.EsEm3500BtAction_SetVariablesReserveActionID",
 
             // conditions
-            "via.behaviortree.ConditionUserVariable",
+            "via.behaviortree.nodework.ConditionNodeWorkEnd",
+            "via.behaviortree.nodework.ConditionNodeWorkFailed",
+            "via.behaviortree.nodework.ConditionUnderLayerEnd",
+            "via.behaviortree.nodework.ConditionAllActionNodeWorkEnd",
+            "via.behaviortree.nodework.ConditionAllActionNodeWorkFailed",
+            "via.behaviortree.gamepad.ConditionPadLLeftTrigger",
+            "via.behaviortree.gamepad.ConditionPadLRightTrigger",
+            "via.behaviortree.gamepad.ConditionPadLUpTrigger",
+            "via.behaviortree.gamepad.ConditionPadLDownTrigger",
+            "via.motion.Fsm2ConditionMotionEnd",
+
             "app.ropeway.enemy.common.behaviortree.condition.CaseRange",
             "app.ropeway.enemy.common.behaviortree.condition.CheckGroundState",
             "app.ropeway.enemy.common.behaviortree.condition.EmCommonBtCondition_CaseLoiteringTbl",
@@ -1388,6 +1409,93 @@ namespace ReeLib
             "app.ropeway.enemy.common.behaviortree.condition.RegulateThinkCondition",
             "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CanStandup",
             "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_HasDisorder",
+            "app.ropeway.enemy.common.behaviortree.condition.CheckCondition",
+            "app.ropeway.enemy.common.fsmv2.condition.CheckGroundState",
+            "app.ropeway.enemy.common.fsmv2.condition.EmCommonFsmCondition_IsGroundContact",
+            "app.ropeway.enemy.common.fsmv2.condition.EmCommonMFsmCondition_BecameRagdoll",
+            "app.ropeway.enemy.common.fsmv2.condition.EmCommonMFsmCondition_Damaged",
+            "app.ropeway.enemy.common.fsmv2.condition.EmCommonMFsmCondition_IsEventControlFinished",
+            "app.ropeway.enemy.common.fsmv2.condition.EmCommonMFsmCondition_IsEventControlStarted",
+            "app.ropeway.enemy.common.fsmv2.condition.EmCommonMFsmCondition_IsGimmickControlFinished",
+            "app.ropeway.enemy.common.fsmv2.condition.EmCommonMFsmCondition_IsGimmickControlStarted",
+            "app.ropeway.enemy.common.fsmv2.condition.EmCommonMFsmCondition_IsGrappleAction",
+            "app.ropeway.enemy.common.fsmv2.condition.EmCommonMFsmCondition_KillTarget",
+            "app.ropeway.enemy.common.fsmv2.condition.EmCommonMFsmCondition_MotionEndOrBecameRagdoll",
+            "app.ropeway.enemy.common.fsmv2.condition.EnemyActionCategory",
+            "app.ropeway.enemy.common.fsmv2.condition.EnemyFindState",
+            "app.ropeway.enemy.common.fsmv2.condition.EnemyGimmickConfiscateType",
+            "app.ropeway.enemy.common.fsmv2.condition.EnemyLastUsedSupportItemType",
+            "app.ropeway.enemy.common.fsmv2.condition.EnemyMoveEnd",
+            "app.ropeway.enemy.common.fsmv2.condition.EnemyTargetDirection",
+            "app.ropeway.enemy.common.fsmv2.condition.EnemyTargetDistance",
+            "app.ropeway.enemy.common.fsmv2.condition.LastDamageDirection",
+            "app.ropeway.enemy.common.fsmv2.condition.LastDamageFrom",
+            "app.ropeway.enemy.common.fsmv2.condition.LastDamageParts",
+            "app.ropeway.enemy.common.fsmv2.condition.LastDamagePartsCategory",
+            "app.ropeway.enemy.common.fsmv2.condition.Em6200ActionTrigger",
+            "app.ropeway.enemy.common.fsmv2.condition.EmCommonCondition_StairsDirection",
+            "app.ropeway.enemy.common.fsmv2.condition.EmCommonMFsmCondition_CheckRagdollStatus",
+            "app.ropeway.enemy.common.fsmv2.condition.EmCommonMFsmCondition_HasWindowOnConfiscateDoor",
+            "app.ropeway.enemy.common.fsmv2.condition.EmCommonMFsmCondition_IsTiltRagdoll2Right",
+            "app.ropeway.enemy.common.fsmv2.condition.EnemyActionTrigger",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckFootType",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckHandType",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckPivotTurnAngle",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckRoleCaptureType",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckRoleDeadIdleType",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckRoleEatenType",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckRoleIdleType",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckRoleKnockType",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckRoleLoungeType",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckRoleRailingFallType",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_IsHoldHitFromFaceDown",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_IsRisedUpperBody",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_WalkTurn2Right",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_ActionTrigger",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_BrokenStatus",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CanClimbTarget",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckAttentionIdleEnd",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckAttentionWalkEnd",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckFakeDeadAction",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckFallableCliff",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckFallableFence",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckLegType",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckRoleDeadActionType",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckRoleDeadIdle2Standup",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckRoleEatType",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckRoleEventSetActionType",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckRoleKnockSetType",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckSealedWindowAction",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckThroughStep",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_HasDeadPosture",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_IsCustomJackSet",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_IsHoldCleanHit",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_IsHoldHitFromFront",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_IsPivotTurnAngle",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_IsWalkTurnFromTotter",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_LastActionTrigger",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_ReservedKillTarget",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_SkipWalkStart",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_Underwater",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_WalkLoopContinue",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_WindowInType",
+            "app.ropeway.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_WindowSetType",
+            "app.ropeway.enemy.em3000.fsmv2.condition.Em3000FsmCondition_ActionTrigger",
+            "app.ropeway.enemy.em4000.fsmv2.condition.TargetDirection",
+            "app.ropeway.enemy.em4000.fsmv2.condition.TragetDistance",
+            "app.ropeway.enemy.em5000.fsmv2.condition.Em5000FsmCondition_ActionTrigger",
+            "app.ropeway.enemy.em6000.fsmv2.condition.Em6000FsmCondition_ActionTrigger",
+            "app.ropeway.enemy.em7400.fsmv2.condition.Em7400FsmCondition_ActionTrigger",
+            "app.ropeway.enemy.em9000.fsmv2.condition.Em9000FsmCondition_ActionTrigger",
+            "app.ropeway.enemy.common.behaviortree.condition.EnemyActionCanselEnable",
+            "app.ropeway.enemy.common.behaviortree.condition.EnemyFixedActionEnd",
+            "app.ropeway.fsmv2.enemy.condition.Em4000FsmCondition_ActionTrigger",
+            "app.ropeway.fsmv2.enemy.condition.Em6200FsmCondition_ActionTrigger",
+            "app.ropeway.fsmv2.enemy.condition.Em6300FsmCondition_ActionTrigger",
+            "app.ropeway.fsmv2.enemy.condition.Em7000FsmCondition_ActionTrigger",
+            "app.ropeway.fsmv2.enemy.condition.Em7100FsmCondition_ActionTrigger",
+            "app.ropeway.fsmv2.enemy.condition.Em7200FsmCondition_ActionTrigger",
+            "app.ropeway.fsmv2.enemy.condition.Em7300FsmCondition_ActionTrigger",
             "offline.enemy.common.behaviortree.condition.CaseRange",
             "offline.enemy.common.behaviortree.condition.CheckGroundState",
             "offline.enemy.common.behaviortree.condition.EmCommonBtCondition_CaseLoiteringTbl",
@@ -1420,6 +1528,111 @@ namespace ReeLib
             "offline.escape.enemy.em3400.behaviortree.condition.EsEm3400BtCondition_IsNeedTurn",
             "offline.escape.enemy.em3400.behaviortree.condition.EsEm3400BtCondition_IsStateOpenMouth",
             "offline.escape.enemy.em3500.behaviortree.condition.EsEm3500BtCondition_IsMoveTarget",
+            "offline.enemy.common.behaviortree.condition.CheckCondition",
+            "offline.enemy.common.behaviortree.condition.EmCommonBtCondition_IsSameArea",
+            "offline.enemy.common.behaviortree.condition.EnemyActionCanselEnable",
+            "offline.enemy.common.fsmv2.condition.EmCommonCondition_StairsDirection",
+            "offline.enemy.common.fsmv2.condition.EmCommonMFsmCondition_CheckRagdollStatus",
+            "offline.enemy.common.fsmv2.condition.EmCommonMFsmCondition_HasWindowOnConfiscateDoor",
+            "offline.enemy.common.fsmv2.condition.EmCommonMFsmCondition_IsTiltRagdoll2Right",
+            "offline.enemy.common.fsmv2.condition.EnemyActionTrigger",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckFootType",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckHandType",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckPivotTurnAngle",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckRoleDeadIdleType",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckRoleEatenType",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckRoleIdleType",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckRoleKnockSetType",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckRoleKnockType",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckRoleLoungeType",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckRoleRailingFallType",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_IsHoldHitFromFaceDown",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_IsRisedUpperBody",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_WalkTurn2Right",
+            "offline.enemy.common.fsmv2.condition.CheckGroundState",
+            "offline.enemy.common.fsmv2.condition.EmCommonFsmCondition_IsGroundContact",
+            "offline.enemy.common.fsmv2.condition.EmCommonMFsmCondition_BecameRagdoll",
+            "offline.enemy.common.fsmv2.condition.EmCommonMFsmCondition_Damaged",
+            "offline.enemy.common.fsmv2.condition.EmCommonMFsmCondition_IsEventControlFinished",
+            "offline.enemy.common.fsmv2.condition.EmCommonMFsmCondition_IsEventControlStarted",
+            "offline.enemy.common.fsmv2.condition.EmCommonMFsmCondition_IsGimmickControlFinished",
+            "offline.enemy.common.fsmv2.condition.EmCommonMFsmCondition_IsGimmickControlStarted",
+            "offline.enemy.common.fsmv2.condition.EmCommonMFsmCondition_IsGrappleAction",
+            "offline.enemy.common.fsmv2.condition.EmCommonMFsmCondition_KillTarget",
+            "offline.enemy.common.fsmv2.condition.EmCommonMFsmCondition_MotionEndOrBecameRagdoll",
+            "offline.enemy.common.fsmv2.condition.EnemyActionCategory",
+            "offline.enemy.common.fsmv2.condition.EnemyFindState",
+            "offline.enemy.common.fsmv2.condition.EnemyGimmickConfiscateType",
+            "offline.enemy.common.fsmv2.condition.EnemyMoveEnd",
+            "offline.enemy.common.fsmv2.condition.EnemyTargetDirection",
+            "offline.enemy.common.fsmv2.condition.EnemyTargetDistance",
+            "offline.enemy.common.fsmv2.condition.LastDamageDirection",
+            "offline.enemy.common.fsmv2.condition.LastDamageFrom",
+            "offline.enemy.common.fsmv2.condition.LastDamageParts",
+            "offline.enemy.common.fsmv2.condition.LastDamagePartsCategory",
+            "offline.enemy.common.fsmv2.condition.LastDamagePartsSide",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_ActionTrigger",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_BrokenStatus",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CanClimbTarget",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckAttentionIdleEnd",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckAttentionWalkEnd",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckFakeDeadAction",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckFallableCliff",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckFallableFence",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckLegType",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckRoleCaptureType",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckRoleDeadActionType",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckRoleDeadIdle2Standup",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckRoleEatType",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckRoleEventSetActionType",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckSealedWindowAction",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_CheckThroughStep",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_HasDeadPosture",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_IsCustomJackSet",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_IsHoldCleanHit",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_IsHoldFromStretcher",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_IsHoldHitFromFront",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_IsPivotTurnAngle",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_LastActionTrigger",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_ReservedKillTarget",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_SkipWalkStart",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_Underwater",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_WalkLoopContinue",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_WindowInType",
+            "offline.enemy.em0000.fsmv2.condition.Em0000MFsmCondition_WindowSetType",
+            "offline.enemy.em4000.fsmv2.condition.TargetDirection",
+            "offline.enemy.em4000.fsmv2.condition.TragetDistance",
+            "offline.escape.EsMFsmCondition_CustomJackCreepEnd",
+            "offline.escape.EsMFsmCondition_EventCreepEnd",
+            "offline.escape.EsMFsmCondition_EventCreepWaitEnd",
+            "offline.escape.EsMFsmCondition_EventNeedDeadReaction",
+            "offline.escape.EsMFsmCondition_EventWalkEnd",
+            "offline.escape.EsMFsmCondition_FinishJacked",
+            "offline.escape.EsMFsmCondition_HasEventWaitMotion",
+            "offline.escape.EsMFsmCondition_IsEventBrad",
+            "offline.escape.EsMFsmCondition_KnockLoopStart",
+            "offline.escape.EsMFsmCondition_KnockWalkEnd",
+            "offline.escape.EsMFsmCondition_KnockWalkStart",
+            "offline.escape.enemy.em0000.EsMFsmCondition_ChecKRoleCreeping",
+            "offline.escape.enemy.em0000.EsMFsmCondition_ChecKRoleFalling",
+            "offline.escape.enemy.em0000.EsMFsmCondition_CheckEnabledRagdoll",
+            "offline.escape.enemy.em0000.EsMFsmCondition_CheckRevivableDead",
+            "offline.escape.enemy.em0000.EsMFsmCondition_FirstParasite",
+            "offline.escape.enemy.em0000.EsMFsmCondition_ToGatherMode",
+            "offline.escape.enemy.em0000.EsMFsmCondition_WaitAfterWalkFakeDead",
+            "offline.escape.enemy.em3400.fsmv2.condition.EsEm3400MFsmCondition_ActionTrigger",
+            "offline.escape.enemy.em3400.fsmv2.condition.EsEm3400MFsmCondition_TargetAngle",
+            "offline.escape.enemy.em3400.fsmv2.condition.EsEm3400MFsmCondition_TurnDirection",
+            "offline.escape.enemy.em3400.fsmv2.condition.EsEm3400MFsmCondition_TurnHomesteadPosition",
+            "offline.escape.enemy.em3500.fsmv2.condition.EsEm3500MFsmCondition_ActionTrigger",
+            "offline.escape.enemy.em3500.fsmv2.condition.EsEm3500MFsmCondition_CheckBodyDirectionForWall",
+            "offline.escape.enemy.em3500.fsmv2.condition.EsEm3500MFsmCondition_IsFaceDown",
+            "offline.escape.enemy.em3500.fsmv2.condition.EsEm3500MFsmCondition_IsKnockDown",
+            "offline.escape.enemy.em3500.fsmv2.condition.EsEm3500MFsmCondition_IsLive",
+            "offline.escape.enemy.em3500.fsmv2.condition.EsEm3500MFsmCondition_IsOutSightAttack",
+            "offline.escape.enemy.em3500.fsmv2.condition.EsEm3500MFsmCondition_IsSuspend",
+            "offline.escape.enemy.em7000.fsmv2.condition.EsEm7000MFsmCondition_ActionTrigger",
+            "offline.fsmv2.enemy.condition.Em4000FsmCondition_ActionTrigger",
 
         ];
     }

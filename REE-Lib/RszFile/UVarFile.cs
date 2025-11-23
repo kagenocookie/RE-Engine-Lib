@@ -70,49 +70,45 @@ namespace ReeLib.UVar
 
     public class UvarNode : BaseModel
     {
-        public long nameOffset;
-        public long dataOffset;
-        public long uknOffset;
         public short nodeId;
-        public short valueCount;
 
         public string Name { get; set; } = string.Empty;
         public List<NodeParameter> Parameters = new(1);
 
         protected override bool DoRead(FileHandler handler)
         {
-            handler.Read(ref nameOffset);
-            handler.Read(ref dataOffset);
-            handler.Read(ref uknOffset);
+            var nameOffset = handler.Read<long>();
+            var dataOffset = handler.Read<long>();
+            handler.ReadNull(8);
             handler.Read(ref nodeId);
-            handler.Read(ref valueCount);
+            var valueCount = handler.Read<short>();
             handler.ReadNull(4);
             Name = handler.ReadAsciiString(nameOffset);
-            using var jumpBack = handler.SeekJumpBack(dataOffset);
-            Parameters.Read(handler, valueCount);
+            if (valueCount > 0)
+            {
+                using var jumpBack = handler.SeekJumpBack(dataOffset);
+                Parameters.Read(handler, valueCount);
+            }
             return true;
         }
 
         protected override bool DoWrite(FileHandler handler)
         {
-            valueCount = (short)Parameters.Count;
-            handler.Write(ref nameOffset);
-            handler.Write(ref dataOffset);
-            handler.Write(ref uknOffset);
+            handler.WriteNull(24); // nameOffset, dataOffset, 8padding
             handler.Write(ref nodeId);
-            handler.Write(ref valueCount);
+            handler.Write((short)Parameters.Count);
             handler.WriteNull(4);
             return true;
         }
 
         public void FlushData(FileHandler handler)
         {
-            handler.Write(Start, nameOffset = handler.Tell());
+            handler.Write(Start, handler.Tell());
             handler.WriteAsciiString(Name ?? string.Empty);
             handler.Align(16);
-            if (valueCount > 0)
+            if (Parameters.Count > 0)
             {
-                handler.Write(Start + 8, dataOffset = handler.Tell());
+                handler.Write(Start + 8, handler.Tell());
                 Parameters.Write(handler);
             }
             handler.Align(16);
@@ -657,7 +653,7 @@ namespace ReeLib
             var handler = FileHandler;
             var header = Header;
             header.magic = Magic;
-            header.UVARhash = MurMur3HashUtils.GetHash(header.name ?? string.Empty);
+            header.UVARhash = string.IsNullOrEmpty(header.name) ? 0 : MurMur3HashUtils.GetHash(header.name ?? string.Empty);
             header.variableCount = (short)Variables.Count;
             header.embedCount = (short)EmbeddedUVARs.Count;
             header.Write(handler);

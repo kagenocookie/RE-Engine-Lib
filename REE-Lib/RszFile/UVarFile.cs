@@ -75,7 +75,6 @@ namespace ReeLib.UVar
         public long uknOffset;
         public short nodeId;
         public short valueCount;
-        public int uknCount;
 
         public string Name { get; set; } = string.Empty;
         public List<NodeParameter> Parameters = new(1);
@@ -87,7 +86,7 @@ namespace ReeLib.UVar
             handler.Read(ref uknOffset);
             handler.Read(ref nodeId);
             handler.Read(ref valueCount);
-            handler.Read(ref uknCount);
+            handler.ReadNull(4);
             Name = handler.ReadAsciiString(nameOffset);
             using var jumpBack = handler.SeekJumpBack(dataOffset);
             Parameters.Read(handler, valueCount);
@@ -102,7 +101,7 @@ namespace ReeLib.UVar
             handler.Write(ref uknOffset);
             handler.Write(ref nodeId);
             handler.Write(ref valueCount);
-            handler.Write(ref uknCount);
+            handler.WriteNull(4);
             return true;
         }
 
@@ -118,32 +117,35 @@ namespace ReeLib.UVar
             }
             handler.Align(16);
         }
+
+        public override string ToString() => $"[{nodeId}] {Name}";
     }
 
 
     public class UvarExpression : BaseModel
     {
-        public long nodesOffset;
-        public long relationsOffset;
-        public short nodeCount, outputNodeId, unknownCount;
+        public short outputNodeId;
         public List<UvarNode> Nodes { get; set; } = new();
         public List<NodeConnection> Connections { get; set; } = new();
 
         public struct NodeConnection
         {
-            public short nodeId;
+            public short targetId;
             public short inputSlot;
-            public short node2;
+            public short sourceId;
             public short outputSlot;
+
+            public override string ToString() => $"{sourceId} => {targetId}";
         }
 
         protected override bool DoRead(FileHandler handler)
         {
-            handler.Read(ref nodesOffset);
-            handler.Read(ref relationsOffset);
-            handler.Read(ref nodeCount);
+            Connections.Clear();
+            var nodesOffset = handler.Read<long>();
+            var relationsOffset = handler.Read<long>();
+            var nodeCount = handler.Read<short>();
+            var connectionCount = handler.Read<short>();
             handler.Read(ref outputNodeId);
-            handler.Read(ref unknownCount);
             if (nodeCount > 0)
             {
                 if (nodesOffset > 0)
@@ -161,15 +163,9 @@ namespace ReeLib.UVar
                 }
                 if (relationsOffset > 0)
                 {
-                    // TODO not sure how to determine expected size properly - inferred based on node types maybe?
-                    // the extra count field is not it, as it's sometimes lower than the actual number of connections
                     using var _ = handler.SeekJumpBack(relationsOffset);
-                    while (handler.Position < handler.Stream.Length &&
-                        handler.Read<ushort>(handler.Tell()) < Nodes.Count &&
-                        handler.Read<long>(handler.Tell()) != 0
-                    ) {
-                        Connections.Add(handler.Read<NodeConnection>());
-                    }
+                    Connections.ReadStructList(handler, connectionCount);
+                    foreach (var conn in Connections) DataInterpretationException.DebugThrowIf(conn.targetId >= Nodes.Count);
                 }
             }
             return true;
@@ -177,13 +173,13 @@ namespace ReeLib.UVar
 
         protected override bool DoWrite(FileHandler handler)
         {
-            handler.Skip(16); // nodesOffset, relationsOFfset
-            handler.Write(nodeCount = (short)Nodes.Count);
+            handler.Skip(16); // nodesOffset, relationsOffset
+            handler.Write((short)Nodes.Count);
+            handler.Write((short)Connections.Count);
             handler.Write(ref outputNodeId);
-            handler.Write(ref unknownCount);
 
             handler.Align(16);
-            handler.Write(Start, nodesOffset = handler.Tell());
+            handler.Write(Start, handler.Tell());
             Nodes.Write(handler);
 
             foreach (var node in Nodes)
@@ -191,7 +187,7 @@ namespace ReeLib.UVar
                 node.FlushData(handler);
             }
 
-            handler.Write(Start + 8, relationsOffset = handler.Tell());
+            handler.Write(Start + 8, handler.Tell());
             foreach (var relId in Connections)
             {
                 handler.Write(relId);

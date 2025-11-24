@@ -690,6 +690,23 @@ namespace ReeLib
             return sb.ToString();
         }
 
+        public bool IsEqualTo(RszInstance other)
+        {
+            if (other.RszClass != RszClass || other.Values.Length != Values.Length) return false;
+            for (int i = 0; i < Values.Length; i++) {
+                var v1 = Values[i];
+                var v2 = other.Values[i];
+                if (v1 == null || v2 == null) {
+                    if (v1 != v2) return false;
+                } else if (v1 is List<object> list) {
+                    if (!list.SequenceEqual((List<object>)v2)) return false;
+                } else {
+                    if (!v1.Equals(v2)) return false;
+                }
+            }
+            return true;
+        }
+
         /// <summary>
         /// Create a RszInstance and initialize it with default values.
         /// </summary>

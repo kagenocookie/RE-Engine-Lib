@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using ReeLib.Bhvt;
 using ReeLib.Common;
 using ReeLib.Motfsm2;
+using ReeLib.UVar;
 
 
 namespace ReeLib.Bhvt
@@ -731,14 +732,29 @@ namespace ReeLib
         /// List of via.behaviortree.TransitionEvent
         /// </summary>
         public RSZFile TransitionEventRsz { get; } = new(option, fileHandler);
+        /// <summary>
+        /// List of via.behaviortree.Condition referenced from CallbackNodes in embedded UVars
+        /// </summary>
         public RSZFile ExpressionTreeConditionsRsz { get; } = new(option, fileHandler);
         /// <summary>
         /// List of "static" via.behaviortree.Action
         /// </summary>
         public RSZFile StaticActionRsz { get; } = new(option, fileHandler);
+        /// <summary>
+        /// List of "static" via.behaviortree.SelectorCaller
+        /// </summary>
         public RSZFile StaticSelectorCallerRsz { get; } = new(option, fileHandler);
+        /// <summary>
+        /// List of "static" via.behaviortree.Condition
+        /// </summary>
         public RSZFile StaticConditionsRsz { get; } = new(option, fileHandler);
+        /// <summary>
+        /// List of "static" via.behaviortree.TransitionEvent
+        /// </summary>
         public RSZFile StaticTransitionEventRsz { get; } = new(option, fileHandler);
+        /// <summary>
+        /// List of "static" via.behaviortree.Condition referenced from CallbackNodes in embedded UVars
+        /// </summary>
         public RSZFile StaticExpressionTreeConditionsRsz { get; } = new(option, fileHandler);
 
         public List<BHVTNode> Nodes { get; } = new();
@@ -750,7 +766,20 @@ namespace ReeLib
         public List<BhvtGameObjectReference> GameObjectReferences { get; set; } = new ();
 
         private const int Condition_IDFieldIndex = 0;
+        private const int Condition_GuidFieldIndex = 1;
         private const int Action_IDFieldIndex = 1;
+
+        public IEnumerable<Variable> GetAllVariables()
+        {
+            foreach (var vv in Variable.Variables) {
+                yield return vv;
+            }
+            foreach (var refTree in ReferenceTrees) {
+                foreach (var vv in refTree.Variables) {
+                    yield return vv;
+                }
+            }
+        }
 
         private IEnumerable<RSZFile> GetAutoManagedRSZFiles()
         {
@@ -903,8 +932,6 @@ namespace ReeLib
 
         private void SetupReferences()
         {
-            // DataInterpretationException.DebugWarnIf(TransitionEventRsz.ObjectList.Count > 0, FileHandler.FilePath!, TransitionEventRsz.ObjectList.Count.ToString());
-            // DataInterpretationException.DebugWarnIf(StaticTransitionEventRsz.ObjectList.Count > 0, FileHandler.FilePath!, StaticTransitionEventRsz.ObjectList.Count.ToString());
             var version = Option.Version;
             var nodeDict = Nodes.ToDictionary(n => (ulong)n.ID);
             var actions = new Dictionary<ulong, RszInstance>();
@@ -1069,6 +1096,37 @@ namespace ReeLib
                     }
                 }
             }
+
+            var expressionGuids = new Dictionary<Guid, RszInstance>();
+            // there are cases where the same RszInstance is duplicated multiple times (same guid, always same values), which means we can't just .ToDictionary()
+            // should be safe to just deduplicate on read, and store as single instance on save without the dupes since the Guids should be used to match them up anyway
+            foreach (var instance in ExpressionTreeConditionsRsz.ObjectList)
+            {
+                expressionGuids.TryAdd((Guid)instance.Values[Condition_GuidFieldIndex], instance);
+            }
+            foreach (var instance in StaticExpressionTreeConditionsRsz.ObjectList)
+            {
+                expressionGuids.TryAdd((Guid)instance.Values[Condition_GuidFieldIndex], instance);
+            }
+
+            foreach (var vv in GetAllVariables())
+            {
+                if (vv.Expression == null) continue;
+
+                foreach (var node in vv.Expression.Nodes)
+                {
+                    if (node.Name != "CallbackNode") continue;
+
+                    var parameter = node.Parameters.FirstOrDefault(n => n.nameHash == NodeParameter.ParameterNameHash.CallbackGuid);
+                    // some callback nodes don't have a guid parameter, no idea what that means
+                    if (parameter == null) continue;
+
+                    var guid = (Guid)parameter.value!;
+                    if (expressionGuids.TryGetValue(guid, out var instance)) {
+                        parameter.ReferenceObject = instance;
+                    }
+                }
+            }
         }
 
         private void FlattenInstances()
@@ -1164,6 +1222,22 @@ namespace ReeLib
                     }
 
                     trans.conditionId = StoreRszObject(trans.Condition, StaticConditionsRsz, ConditionsRsz, version);
+                }
+            }
+
+            foreach (var vv in GetAllVariables())
+            {
+                if (vv.Expression == null) continue;
+
+                foreach (var node in vv.Expression.Nodes)
+                {
+                    if (node.Name != "CallbackNode") continue;
+
+                    var parameter = node.Parameters.FirstOrDefault(n => n.nameHash == NodeParameter.ParameterNameHash.CallbackGuid);
+                    if (parameter?.ReferenceObject is RszInstance instance && instance.ObjectTableIndex == -1)
+                    {
+                        StoreRszObject(instance, StaticExpressionTreeConditionsRsz, ExpressionTreeConditionsRsz, version);
+                    }
                 }
             }
 

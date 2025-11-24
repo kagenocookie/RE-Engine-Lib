@@ -8,15 +8,68 @@ namespace ReeLib.UVar
 {
     public class NodeParameter : BaseModel
     {
+        /// <summary>
+        /// ASCII hash of the parameter name.
+        /// </summary>
         public uint nameHash;
         public NodeValueType type;
         public object? value;
+
+        /// <summary>
+        /// A nullable reference to a runtime object instance. Used for cases where parameters refer to objects outside of the UVar file (e.g. motfsm2 expression trees)
+        /// </summary>
+        public object? ReferenceObject { get; set; }
+
+        public static string GetParameterName(uint nameHash) => nameHash switch {
+            ParameterNameHash.Operation => nameof(ParameterNameHash.Operation),
+            ParameterNameHash.Value => nameof(ParameterNameHash.Value),
+            ParameterNameHash.CallbackGuid => nameof(ParameterNameHash.CallbackGuid),
+            ParameterNameHash.CallbackID => nameof(ParameterNameHash.CallbackID),
+            ParameterNameHash.CallbackFunctionID => nameof(ParameterNameHash.CallbackFunctionID),
+            ParameterNameHash.VariableID => nameof(ParameterNameHash.VariableID),
+            ParameterNameHash.Count => nameof(ParameterNameHash.Count),
+            ParameterNameHash.Min => nameof(ParameterNameHash.Min),
+            ParameterNameHash.Max => nameof(ParameterNameHash.Max),
+            _ => nameHash.ToString(),
+        };
+
+        public static class ParameterNameHash
+        {
+            /// <summary>LogicNode, CompareNode, CalculateNode</summary>
+            public const uint Operation = 3248822590;
+
+            /// <summary>ValueNode</summary>
+            public const uint Value = 4253840158;
+
+            /// <summary>MultiLogicNode</summary>
+            public const uint Count = 2243404683;
+
+            /// <summary>VariableReferenceNode</summary>
+            public const uint VariableID = 3595450026;
+
+            /// <summary>CallbackNode</summary>
+            public const uint CallbackGuid = 2711667410;
+
+            /// <summary>CallbackNode</summary>
+            public const uint CallbackID = 1916175859;
+
+            /// <summary>CallbackNode</summary>
+            public const uint CallbackFunctionID = 2855057449;
+
+            /// <summary>ClampNode</summary>
+            public const uint Min = 3730297036;
+
+            /// <summary>ClampNode</summary>
+            public const uint Max = 3365636864;
+        }
+
+        public override string ToString() => $"[{GetParameterName(nameHash)}] = {value ?? "NULL"}";
 
         // note: enum is pure guesswork
         public enum NodeValueType : int
         {
             Unknown = 0,
-            UInt32Maybe = 6,
+            UInt32 = 6, // sometimes a classname hash, sometimes an integer looking value (count, flag, enum?)
             Int32 = 7, // can also represent enums for LogicNode (LogicOperatorType enum?)
             Single = 10,
             Guid = 20,
@@ -25,10 +78,11 @@ namespace ReeLib.UVar
         protected override bool DoRead(FileHandler handler)
         {
             handler.Read(ref nameHash);
+            DataInterpretationException.DebugWarnIf(char.IsDigit(GetParameterName(nameHash)[0]), "Unknown Uvar node hash " + nameHash);
             handler.Read(ref type);
             switch (type)
             {
-                case NodeValueType.UInt32Maybe:
+                case NodeValueType.UInt32:
                     value = handler.Read<uint>();
                     break;
                 case NodeValueType.Int32:
@@ -54,7 +108,7 @@ namespace ReeLib.UVar
             handler.Write(ref type);
             switch (type) {
                 case NodeValueType.Int32: handler.Write((int?)value ?? default); break;
-                case NodeValueType.UInt32Maybe: handler.Write((uint?)value ?? default); break;
+                case NodeValueType.UInt32: handler.Write((uint?)value ?? default); break;
                 case NodeValueType.Single: handler.Write((float?)value ?? default); break;
                 case NodeValueType.Guid:
                     handler.Write(handler.Tell() + 8);
@@ -81,13 +135,13 @@ namespace ReeLib.UVar
             var dataOffset = handler.Read<long>();
             handler.ReadNull(8);
             handler.Read(ref nodeId);
-            var valueCount = handler.Read<short>();
+            var paramCount = handler.Read<short>();
             handler.ReadNull(4);
             Name = handler.ReadAsciiString(nameOffset);
-            if (valueCount > 0)
+            if (paramCount > 0)
             {
                 using var jumpBack = handler.SeekJumpBack(dataOffset);
-                Parameters.Read(handler, valueCount);
+                Parameters.Read(handler, paramCount);
             }
             return true;
         }

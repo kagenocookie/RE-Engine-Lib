@@ -792,8 +792,21 @@ namespace ReeLib
             yield return SelectorRsz;
             yield return TransitionEventRsz;
             yield return StaticTransitionEventRsz;
-            // yield return ExpressionTreeConditionsRsz;
-            // yield return StaticExpressionTreeConditionsRsz;
+        }
+
+        private IEnumerable<RSZFile> GetAllRSZFiles()
+        {
+            yield return ActionRsz;
+            yield return StaticActionRsz;
+            yield return ConditionsRsz;
+            yield return StaticConditionsRsz;
+            yield return SelectorCallerRsz;
+            yield return StaticSelectorCallerRsz;
+            yield return SelectorRsz;
+            yield return TransitionEventRsz;
+            yield return StaticTransitionEventRsz;
+            yield return ExpressionTreeConditionsRsz;
+            yield return StaticExpressionTreeConditionsRsz;
         }
 
         protected override bool DoRead()
@@ -903,11 +916,32 @@ namespace ReeLib
             handler.StringTableFlush();
             handler.Write(header.stringOffset, (int)(handler.Tell() - header.stringOffset) / 2);
 
-            header.resourcePathsOffset = handler.Tell();
-            handler.Write(0); // TODO
+            List<ResourceInfo> resourceList = new();
+            foreach (var rsz in GetAllRSZFiles()) RszUtils.ScanRszForResources(resourceList, rsz);
 
-            header.userdataPathsOffset = handler.Tell();
-            handler.Write(0); // TODO
+            header.resourcePathsOffset = handler.Tell();
+            handler.Write(resourceList.Count);
+            handler.Skip(4);
+            var stringStart = handler.Tell();
+            foreach (var resource in resourceList) handler.WriteWString(resource.Path);
+            handler.Write(stringStart - 4, (int)(handler.Tell() - stringStart) / 2);
+
+            if (Option.Version >= GameVersion.re3)
+            {
+                List<UserdataInfo> userdataList = new();
+                foreach (var rsz in GetAllRSZFiles()) RszUtils.AddUserDataFromRsz(userdataList, rsz);
+
+                header.userdataPathsOffset = handler.Tell();
+                handler.Write(userdataList.Count);
+                handler.Skip(4);
+                stringStart = handler.Tell();
+                foreach (var userdata in userdataList)
+                {
+                    handler.WriteWString(Option.RszParser.GetRSZClassName(userdata.typeId));
+                    handler.WriteWString(userdata.Path);
+                }
+                handler.Write(stringStart - 4, (int)(handler.Tell() - stringStart) / 2);
+            }
 
             header.variableOffset = handler.Tell();
             Variable.FileHandler = handler;
@@ -986,8 +1020,6 @@ namespace ReeLib
                     DataInterpretationException.DebugWarnIf(callerId.idType != 0, instance.RszClass.name);
                 }
             }
-
-            // DataInterpretationException.DebugThrowIf(nextRefTree != ReferenceTrees.Count);
 
             var isBhvt = FileHandler.FilePath?.Contains(".bhvt") == true;
             if (isBhvt)

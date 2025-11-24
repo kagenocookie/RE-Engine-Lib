@@ -54,7 +54,7 @@ namespace ReeLib
         public uint typeId;
         public uint CRC;
         public ulong pathOffset;
-        public string? Path { get; set; }
+        public string Path { get; set; } = "";
 
         protected override bool DoRead(FileHandler handler)
         {

@@ -1312,6 +1312,8 @@ namespace ReeLib
                 handler.WriteWString(Text);
             }
         }
+
+        public override string ToString() => Text;
     }
 
 

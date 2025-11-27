@@ -20,23 +20,23 @@ namespace ReeLib.Tml
         public int keyCount;
         public Guid guid;
 
-        public long nodesOffset;
-        public long trackTableOffset;
-        public long nodeGroupsOffset;
-        public long nodesReorderOffset;
-        public long nodeTableOffset;
-        public long propertyOffset;
-        public long keyOffset;
-        public long speedPointOffset;
-        public long hermiteDataOffset;
-        public long bezier3DDataOffset;
-        public long uknOffset;
-        public long clipInfoOffset;
+        internal long nodesOffset;
+        internal long trackTableOffset;
+        internal long nodeGroupsOffset;
+        internal long nodesReorderOffset;
+        internal long nodeTableOffset;
+        internal long propertyOffset;
+        internal long keyOffset;
+        internal long speedPointOffset;
+        internal long hermiteDataOffset;
+        internal long bezier3DDataOffset;
+        internal long uknOffset;
+        internal long clipInfoOffset;
 
-        public long stringsOffset;
-        public long unicodeStringsOffset;
-        public long owordOffset;
-        public long dataOffset;
+        internal long stringsOffset;
+        internal long unicodeStringsOffset;
+        internal long owordOffset;
+        internal long dataOffset;
 
         long IKeyValueContainer.AsciiStringOffset => stringsOffset;
         long IKeyValueContainer.UnicodeStringOffset => unicodeStringsOffset;
@@ -150,8 +150,8 @@ namespace ReeLib.Tml
         public byte uknByte2;
 
         public ulong nameHash;
-        public long nameOffset;
-        public long nodeTagOffset;
+        internal long nameOffset;
+        internal long nodeTagOffset;
         public long childIndex;
         public long propertyIndex;
 
@@ -249,7 +249,7 @@ namespace ReeLib.Tml
         public float frameCount;
         public int ukn2;
         public float frameCount2;
-        public long nameOffset;
+        private long nameOffset;
 
         public string Name = "";
 
@@ -317,6 +317,7 @@ namespace ReeLib
             Tracks.Clear();
             Keys.Clear();
             Nodes.Clear();
+            NodeGroups.Clear();
             RootNodes.Clear();
             Properties.Clear();
             HermiteData.Clear();
@@ -385,7 +386,7 @@ namespace ReeLib
                 Properties.Add(property);
                 if (Header.version <= ClipVersion.RE2_DMC5)
                 {
-                    speedPointCount += (int)property.Info.nameAsciiHash;
+                    speedPointCount += property.Info.speedPointNum;
                 }
             }
 
@@ -412,8 +413,8 @@ namespace ReeLib
                 // I have no idea why it's like this here, re7 being re7 I guess
                 // the struct looks identical so it's _probably_ the same thing as in newer games
                 handler.Seek(Header.speedPointOffset);
-                SpeedPointData.ReadStructList(handler, Properties.Count);
-                DataInterpretationException.DebugThrowIf((Header.hermiteDataOffset - Header.speedPointOffset) / 24 != speedPointCount);
+                SpeedPointData.ReadStructList(handler, Properties.Count * 2);
+                DataInterpretationException.DebugThrowIf((Header.hermiteDataOffset - Header.speedPointOffset) / 24 != Properties.Count * 2);
             }
             else
             {
@@ -584,7 +585,7 @@ namespace ReeLib
 
             Header.dataOffset = handler.Tell();
 
-            Header.Write(handler, 0);
+            Header.Write(handler, Header.Start);
             return true;
         }
     }

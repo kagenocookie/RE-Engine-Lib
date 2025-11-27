@@ -518,6 +518,13 @@ namespace ReeLib
             WriteBytes(buffer, length);
         }
 
+        public void WritePaddingUntil(long endOffset)
+        {
+            var padding = (int)(endOffset - Tell());
+            if (padding > 0) WriteNull(padding);
+            Seek(endOffset);
+        }
+
         public void WriteNull(int count)
         {
             Debug.Assert(count <= zeroes.Length);

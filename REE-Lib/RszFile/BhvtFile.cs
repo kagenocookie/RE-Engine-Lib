@@ -526,12 +526,11 @@ namespace ReeLib.Bhvt
         public NStates States { get; } = new();
         public NTransitions Transitions { get; }
         public NAllStates AllStates { get; } = new();
-        public UVarFile? ReferenceTree { get; set; }
 
         public int unknownAI;
         public int AI_Path;
 
-        public override string ToString() => $"[{ID}]  {(string.IsNullOrEmpty(Name) ? "-" : Name)}     <{Attributes} | {WorkFlags}>";
+        public override string ToString() => $"[{ID}]  {(string.IsNullOrEmpty(Name) ? "-" : Name)}     <{Attributes} | {WorkFlags}> [[{ReferenceTreeIndex}]]";
 
         public BHVTNode(GameVersion version)
         {
@@ -759,7 +758,7 @@ namespace ReeLib
 
         public List<BHVTNode> Nodes { get; } = new();
         public BHVTNode RootNode { get; private set; } = new BHVTNode(option.Version) { Name = "root", ParentID = new NodeID(uint.MaxValue, 0) };
-        public UVarFile Variable { get; } = new UVarFile(fileHandler) { Embedded = true };
+        public UVarFile UserVariables { get; } = new UVarFile(fileHandler) { Embedded = true };
         public List<UVarFile> ReferenceTrees { get; } = new();
         public BhvtObjectIndexTable ActionObjectTable { get; set; } = new ();
         // only used in fsmv2 files
@@ -771,7 +770,7 @@ namespace ReeLib
 
         public IEnumerable<Variable> GetAllVariables()
         {
-            foreach (var vv in Variable.Variables) {
+            foreach (var vv in UserVariables.Variables) {
                 yield return vv;
             }
             foreach (var refTree in ReferenceTrees) {
@@ -848,8 +847,8 @@ namespace ReeLib
             ReadRsz(StaticExpressionTreeConditionsRsz, header.staticExpressionTreeConditionsOffset);
 
             handler.Seek(header.variableOffset);
-            Variable.FileHandler = handler;
-            Variable.ReadNoSeek();
+            UserVariables.FileHandler = handler;
+            UserVariables.ReadNoSeek();
 
             handler.Seek(header.baseVariableOffset);
             int mReferenceTreeCount = handler.ReadInt();
@@ -944,8 +943,8 @@ namespace ReeLib
             }
 
             header.variableOffset = handler.Tell();
-            Variable.FileHandler = handler;
-            Variable.WriteNoSeek();
+            UserVariables.FileHandler = handler;
+            UserVariables.WriteNoSeek();
 
             header.baseVariableOffset = handler.Tell();
             handler.Write(ReferenceTrees.Count);
@@ -995,7 +994,6 @@ namespace ReeLib
                 }
 
                 flagPairs[node.Attributes] = flagPairs.GetValueOrDefault(node.Attributes) + 1;
-                DataInterpretationException.DebugThrowIf(node.ReferenceTreeIndex == -1);
 
                 if (node.ParentID.IsUnset) RootNode = node;
 
@@ -1277,6 +1275,16 @@ namespace ReeLib
             {
                 rsz.RebuildInstanceList();
                 rsz.RebuildInstanceInfo();
+            }
+
+            if (ActionObjectTable.ActionsObjectTable.Length != ActionRsz.ObjectList.Count)
+            {
+                Array.Resize(ref ActionObjectTable.ActionsObjectTable, ActionRsz.ObjectList.Count);
+            }
+
+            if (ActionObjectTable.StaticActionsObjectTable.Length != StaticActionRsz.ObjectList.Count)
+            {
+                Array.Resize(ref ActionObjectTable.StaticActionsObjectTable, StaticActionRsz.ObjectList.Count);
             }
         }
 

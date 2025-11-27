@@ -96,6 +96,9 @@ namespace ReeLib.Clip
                 case PropertyType.Float4:
                 case PropertyType.Vec4:
                     return handler.Read<Vector4>(handler.Read<long>());
+                case PropertyType.Position:
+                    // yes, you read that right. Position seems to be a plain Vec3 except not written with offset
+                    return handler.Read<Vector3>();
                 case PropertyType.Int2: return handler.Read<Int2>(handler.Read<long>());
                 case PropertyType.Int3: return handler.Read<Int3>(handler.Read<long>());
                 case PropertyType.Int4: return handler.Read<Int4>(handler.Read<long>());
@@ -107,6 +110,7 @@ namespace ReeLib.Clip
                 case PropertyType.RangeI: return handler.Read<RangeI>(handler.Read<long>());
                 case PropertyType.Size: return handler.Read<Size>(handler.Read<long>());
                 case PropertyType.Action: return handler.Read<long>();
+                case PropertyType.UserDataAsset: return handler.Read<long>(); // most likely an RSZ ObjectTable index, but which RSZ?
                 default:
                     throw new Exception($"Unsupported PropertyType: {type}");
             }
@@ -175,7 +179,7 @@ namespace ReeLib.Clip
                     if (relativeOffsets)
                     {
                         var stringItem = handler.AsciiStringTableAdd((string)Value, false);
-                        handler.Write(stringItem.TableOffset);
+                        handler.Write((long)stringItem.TableOffset);
                     }
                     else
                     {
@@ -188,7 +192,7 @@ namespace ReeLib.Clip
                     if (relativeOffsets)
                     {
                         var stringItem = handler.StringTableAdd((string)Value, false);
-                        handler.Write(stringItem.TableOffset);
+                        handler.Write((long)stringItem.TableOffset);
                     }
                     else
                     {
@@ -199,7 +203,7 @@ namespace ReeLib.Clip
                     if (relativeOffsets)
                     {
                         var stringItem = handler.StringTableAdd(((Guid)Value).ToString(), false);
-                        handler.Write(stringItem.TableOffset);
+                        handler.Write((long)stringItem.TableOffset);
                     }
                     else
                     {
@@ -237,6 +241,9 @@ namespace ReeLib.Clip
                 case PropertyType.Vec4:
                     WriteOffsetValue((Vector4)Value, handler, relativeOffsets);
                     break;
+                case PropertyType.Position:
+                    handler.Write((Vector3)Value);
+                    break;
                 case PropertyType.Uint2: WriteOffsetValue((Uint2)Value, handler, relativeOffsets); break;
                 case PropertyType.Uint3: WriteOffsetValue((Uint3)Value, handler, relativeOffsets); break;
                 case PropertyType.Uint4: WriteOffsetValue((Uint4)Value, handler, relativeOffsets); break;
@@ -248,10 +255,11 @@ namespace ReeLib.Clip
                 case PropertyType.RangeI: WriteOffsetValue((RangeI)Value, handler, relativeOffsets); break;
                 case PropertyType.Size: WriteOffsetValue((Size)Value, handler, relativeOffsets); break;
                 case PropertyType.Action: handler.Write((long)Value); break;
+                case PropertyType.UserDataAsset: handler.Write((long)Value); break;
                 default:
                     throw new Exception($"Unsupported PropertyType: {type}");
             }
-            handler.Seek(endOffset);
+            handler.WritePaddingUntil(endOffset);
         }
     }
 
@@ -318,6 +326,8 @@ namespace ReeLib.Clip
         AnimationCurve = 0x36,
         KeyFrame = 0x37,
         GameObjectRef = 0x38,
+        Position = 0x39,
+        UserDataAsset = 0x3A,
     }
 
     public static class PropertyTypeUtils
@@ -382,6 +392,8 @@ namespace ReeLib.Clip
                 PropertyType.AnimationCurve => RszFieldType.ukn_type,
                 PropertyType.KeyFrame => RszFieldType.KeyFrame,
                 PropertyType.GameObjectRef => RszFieldType.GameObjectRef,
+                PropertyType.Position => RszFieldType.Vec3,
+                PropertyType.UserDataAsset => RszFieldType.S64,
                 _ => RszFieldType.ukn_type,
             };
         }
@@ -471,8 +483,8 @@ namespace ReeLib.Clip
         public uint nameUtf16Hash;
         public uint nameAsciiHash; // note: used instead as "speed point" count in earlier games
 
-        public long nameOffset;
-        public long dataOffset;
+        internal long nameOffset;
+        internal long dataOffset;
         public long ChildStartIndex;
         public ushort ChildMembershipCount;
         public short arrayIndex;
@@ -480,16 +492,16 @@ namespace ReeLib.Clip
         public PropertyType DataType;
         public byte uknByte00;
         public byte uknByte;
-        public long lastKeyOffset;
-        public long speedPointOffset;
-        public long clipPropertyOffset;
+        internal long lastKeyOffset;
+        internal long speedPointOffset;
+        internal long clipPropertyOffset;
 
         public byte uknCount;
         public ulong RE3hash;
         public ulong uknRE7_2;
         public ulong uknRE7_3;
         public ulong uknRE7_4;
-        public long unicodeNameOffset;
+        internal long unicodeNameOffset;
         public string FunctionName { get; set; } = string.Empty;
 
         public long timelineUkn;
@@ -515,9 +527,15 @@ namespace ReeLib.Clip
             }
             action.Do(ref startFrame);
             action.Do(ref endFrame);
-            action.Do(ref nameUtf16Hash);
-            action.Do(ref nameAsciiHash);
-            DataInterpretationException.DebugThrowIf(Version > ClipVersion.RE7 && Version < ClipVersion.RE8 && nameUtf16Hash != 2);
+            if (Version is ClipVersion.RE2_DMC5 or ClipVersion.RE3) {
+                action.Do(ref nameUtf16Hash);
+                action.Do(ref speedPointNum);
+                action.Null(2);
+                DataInterpretationException.DebugThrowIf(nameUtf16Hash != 2);
+            } else {
+                action.Do(ref nameAsciiHash);
+                action.Do(ref nameUtf16Hash);
+            }
 
             if (Version >= ClipVersion.RE8)
             {
@@ -594,11 +612,7 @@ namespace ReeLib.Clip
 
         protected override bool DoWrite(FileHandler handler)
         {
-            if (Version == ClipVersion.RE7)
-            {
-                nameUtf16Hash = MurMur3HashUtils.GetHash(FunctionName);
-            }
-            else if (Version >= ClipVersion.RE8)
+            if (Version >= ClipVersion.RE8)
             {
                 nameUtf16Hash = MurMur3HashUtils.GetHash(FunctionName);
                 nameAsciiHash = MurMur3HashUtils.GetAsciiHash(FunctionName);
@@ -606,7 +620,6 @@ namespace ReeLib.Clip
             else
             {
                 nameUtf16Hash = 2;
-                // nameAsciiHash = 2; // sometimes 0, sometimes 2 ¯\_(ツ)_/¯
             }
             return base.DoWrite(handler);
         }
@@ -662,6 +675,7 @@ namespace ReeLib.Clip
                     case PropertyType.Nullable:    // 0x31
                     case PropertyType.AnimationCurve:// 0x36
                     case PropertyType.KeyFrame:    // 0x37
+                    case PropertyType.Position:    // 0x39
                         return true;
                     default:
                         return false;

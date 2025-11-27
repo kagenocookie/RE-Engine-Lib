@@ -171,7 +171,7 @@ namespace ReeLib.Motlist
             if (Version > MotlistVersion.RE7) handler.Write(ref motClipOffset);
             handler.Write(ref motNumber);
             handler.Write(ref Switch);
-            if (Version > MotlistVersion.RE8)
+            if (Version >= MotlistVersion.RE8)
             {
                 handler.Write(ref uknData1);
                 handler.Write(ref uknData2);

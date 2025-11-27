@@ -1487,6 +1487,7 @@ namespace ReeLib.Mot
             handler.Read(ref lastTrackIndex);
             handler.Read(ref mainTrackIndex);
             handler.ReadBytes(uknBytes28);
+
             ClipEntry.Read(handler);
             if (ClipEntry.Header.version > ClipVersion.RE7 && ClipEntry.Header.numNodes > 1)
             {
@@ -1505,10 +1506,10 @@ namespace ReeLib.Mot
 
         protected override bool DoWrite(FileHandler handler)
         {
-            handler.Write(0L);
+            handler.WriteNull(8);
             handler.Write(ref clipOffset);
             handler.Write(ref endClipStructsRelocation);
-            handler.Write(0);
+            handler.WriteNull(4);
             handler.Write(ref lastTrackIndex);
             handler.Write(ref mainTrackIndex);
             handler.WriteBytes(uknBytes28);

@@ -1463,7 +1463,7 @@ namespace ReeLib.Mot
         internal long clipOffset;
         internal long endClipStructsRelocation;
         public int lastTrackIndex; // 99.9% of the time equal to last track index
-        public int mainTrackIndex; // always equal to 1
+        public int mainTrackIndex = 1; // always equal to 1 (first non-root track)
         public byte[] uknBytes28 = new byte[28];
         public EmbeddedClip ClipEntry { get; set; } = new();
         public EndClipStruct[]? EndClipStructs { get; set; }

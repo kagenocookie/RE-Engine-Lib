@@ -734,12 +734,13 @@ namespace ReeLib.Clip
             }
             action.Do(ref nameHash);
             action.Do(ref nameOffset);
+            if (Version == ClipVersion.RE2_DMC5) {
+                long offset2 = nameOffset;
+                action.Do(ref offset2);
+                DataInterpretationException.DebugWarnIf(offset2 != nameOffset);
+            }
             action.Do(ref childNodeIndex);
             action.Do(ref firstPropIdx);
-            if (Version == ClipVersion.RE2_DMC5)
-            {
-                action.Do(ref firstPropIdx);  // need check
-            }
             return true;
         }
 

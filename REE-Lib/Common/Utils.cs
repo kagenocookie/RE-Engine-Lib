@@ -1,6 +1,6 @@
+using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace ReeLib.Common
@@ -143,7 +143,7 @@ namespace ReeLib.Common
         }
 
         /// <summary>
-        /// Makes a deep clone of the target object. NOTE: probably doesn't handle arrays/lists correctly yet.
+        /// Makes a deep clone of the target object.
         /// </summary>
         [return: NotNullIfNotNull(nameof(target))]
         public static T? DeepClone<T>(this object? target)
@@ -152,17 +152,19 @@ namespace ReeLib.Common
         }
 
         /// <summary>
-        /// Makes a deep clone of the target object. NOTE: probably doesn't handle arrays/lists correctly yet.
+        /// Makes a deep clone of the target object.
         /// </summary>
         [return: NotNullIfNotNull(nameof(target))]
         public static object? DeepClone(this object? target)
         {
             if (target == null) return null;
-            return typeof(DeepCloneUtil<>).MakeGenericType(target.GetType()).GetMethod("Clone")!.Invoke(null, [target])!;
+            var type = target.GetType();
+            if (type.IsValueType) return target;
+            return typeof(DeepCloneUtil<>).MakeGenericType(type).GetMethod("Clone")!.Invoke(null, [target])!;
         }
 
         /// <summary>
-        /// Makes a deep clone of the target object. NOTE: probably doesn't handle arrays/lists correctly yet.
+        /// Makes a deep clone of the target object.
         /// </summary>
         public static T DeepCloneGeneric<T>(this T target) where T : class
         {
@@ -172,31 +174,46 @@ namespace ReeLib.Common
 
     public static class DeepCloneUtil<T> where T : class
     {
-        private static readonly MethodInfo CloneMethod = typeof(Object).GetMethod("MemberwiseClone", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        private static readonly MethodInfo MemberwiseCloneMethod = typeof(Object).GetMethod("MemberwiseClone", BindingFlags.NonPublic | BindingFlags.Instance)!;
 
         private static FieldInfo[]? _classFields;
         private static FieldInfo[]? _cloneableFields;
 
         /// <summary>
-        /// Makes a deep clone of the target object. NOTE: probably doesn't handle arrays/lists correctly yet.
+        /// Makes a deep clone of the source object.
         /// </summary>
-        public static T Clone(T target)
+        public static T Clone(T source)
         {
+            if (source is IList list) {
+                var count = list.Count;
+                if (typeof(T).IsArray) {
+                    var newArray = Array.CreateInstance(typeof(T).GetElementType()!, count)! as IList;
+                    for (int i = 0; i < count; ++i) newArray[i] = list[i].DeepClone();
+                    return (T)newArray;
+                } else {
+                    var newList = (IList)Activator.CreateInstance<T>();
+                    for (int i = 0; i < count; ++i) newList.Add(list[i].DeepClone());
+                    return (T)newList;
+                }
+            }
+
+            var clone = (T)MemberwiseCloneMethod.Invoke(source, Array.Empty<object?>())!;
+
             if (_classFields == null) {
+                // note to self: we shouldn't need to also clone properties here since backing fields already get picked up with GetFields
                 var allFields = typeof(T).GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
                 var fields = allFields.Where(fi => fi.FieldType.IsClass && fi.FieldType != typeof(string));
                 _classFields = fields.Where(f => !f.FieldType.IsAssignableTo(typeof(ICloneable))).ToArray();
                 _cloneableFields = fields.Where(f => f.FieldType.IsAssignableTo(typeof(ICloneable))).ToArray();
             }
 
-            var clone = (T)CloneMethod.Invoke(target, Array.Empty<object?>())!;
             foreach (var plain in _classFields) {
-                plain.SetValue(clone, plain.GetValue(target).DeepClone());
-            }
-            foreach (var plain in _cloneableFields!) {
-                plain.SetValue(clone, ((ICloneable)plain.GetValue(target)!).Clone());
+                plain.SetValue(clone, plain.GetValue(source).DeepClone());
             }
 
+            foreach (var plain in _cloneableFields!) {
+                plain.SetValue(clone, ((ICloneable)plain.GetValue(source)!).Clone());
+            }
             return clone;
         }
     }

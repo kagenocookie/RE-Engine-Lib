@@ -156,7 +156,7 @@ namespace ReeLib
     }
 
 
-    public abstract class BaseModel : IModel, ICloneable
+    public abstract class BaseModel : IModel
     {
         public long Start { get; set; }
         public long Size { get; protected set; }
@@ -186,6 +186,8 @@ namespace ReeLib
 
         public virtual object Clone()
         {
+            // model itself is not marked as implementing ICloneable because it isn't reliable
+            // since we don't require subclasses to provide a valid clone implementation
             return MemberwiseClone();
         }
     }

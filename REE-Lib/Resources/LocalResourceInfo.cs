@@ -238,7 +238,7 @@ public class LocalResources
                 _ => $"rsz_patch{i}.json",
             };
             var localFile = Path.Combine(DataPath, localFilename);
-            if (!SaveRSZTemplateFile(data, url, localFile)) {
+            if (!SaveRSZTemplateFile(data, url, localFile, false)) {
                 Log.Error("Failed to save RSZ patch file from URL " + url);
                 return false;
             }
@@ -248,7 +248,7 @@ public class LocalResources
         return true;
     }
 
-    internal static bool SaveRSZTemplateFile(Stream file, string source, string outputPath)
+    internal static bool SaveRSZTemplateFile(Stream file, string source, string outputPath, bool forceFixAttempt)
     {
         var jsondoc = JsonSerializer.Deserialize<JsonObject>(file);
         if (jsondoc == null) {
@@ -256,7 +256,7 @@ public class LocalResources
             return false;
         }
 
-        var isReasy = source.Contains("reasy", StringComparison.OrdinalIgnoreCase) || jsondoc.ContainsKey("metadata");
+        var isReasy = forceFixAttempt || source.Contains("reasy", StringComparison.OrdinalIgnoreCase) || jsondoc.ContainsKey("metadata");
 
         if (!isReasy) {
             Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
@@ -265,7 +265,7 @@ public class LocalResources
             return true;
         }
 
-        Log.Info("Detected REasy sourced rsz dump json file. Attempting to clean up for REE Lib use...");
+        Log.Info("Detected possibly invalid rsz dump json file. Attempting to clean up for REE Lib use...");
 
         jsondoc.Remove("metadata");
         foreach (var prop in jsondoc) {

@@ -63,7 +63,7 @@ namespace ReeLib
                 var fixedFilepath = jsonPath.Replace(".json", "_reelib_fixed.json");
                 if (!File.Exists(fixedFilepath) || new FileInfo(jsonPath).LastWriteTimeUtc > new FileInfo(fixedFilepath).LastWriteTimeUtc) {
                     fileStream.Seek(0, SeekOrigin.Begin);
-                    if (!LocalResources.SaveRSZTemplateFile(fileStream, jsonPath, fixedFilepath)) {
+                    if (!LocalResources.SaveRSZTemplateFile(fileStream, jsonPath, fixedFilepath, true)) {
                         throw;
                     }
                 }

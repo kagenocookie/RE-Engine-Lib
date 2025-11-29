@@ -65,7 +65,18 @@ public class GameConfig
         }
     }
 
-    public string? GuessIl2cppDumpPath() => Il2cppDumpPath ?? (string.IsNullOrEmpty(GamePath) ? null : Path.Combine(Path.GetDirectoryName(GamePath) ?? string.Empty, "il2cpp_dump.json"));
+    public string? GuessIl2cppDumpPath()
+    {
+        if (Il2cppDumpPath != null) return Il2cppDumpPath;
+        if (string.IsNullOrEmpty(GamePath)) {
+            return null;
+        }
+        var basepath = GamePath;
+        if (basepath.EndsWith(".exe")) {
+            basepath = Path.GetDirectoryName(basepath)!;
+        }
+        return Path.Combine(basepath, "il2cpp_dump.json");
+    }
 
     /// <summary>
     /// Create a new config from the public remote game resource repository.

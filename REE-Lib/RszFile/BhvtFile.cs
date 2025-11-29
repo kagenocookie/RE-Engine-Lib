@@ -1081,8 +1081,17 @@ namespace ReeLib
                             var ex = 1;
                             while (!actions.Remove((ulong)act.Action | ((ulong)ex << 32), out matched!)) {
                                 ex++;
+                                // base game files always have an action match but modded files might not
+                                // game still loads those fine so add a failsafe here
+                                if (ex >= 50)
+                                {
+                                    Log.Warn($"could not find action {act.Action} for node {Nodes.IndexOf(node)} {node}");
+                                    break;
+                                }
                             }
                         }
+                        if (matched == null) continue;
+
                         act.Instance = matched;
                         DataInterpretationException.DebugWarnIf((ActionRsz.ObjectList.Contains(matched)) == ShouldBeStaticClass(matched.RszClass.name, version), "Wrong static BHVT action");
                     }

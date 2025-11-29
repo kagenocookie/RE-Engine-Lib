@@ -332,7 +332,7 @@ namespace ReeLib.Clip
 
     public static class PropertyTypeUtils
     {
-        public static RszFieldType ToRszFieldType(PropertyType type)
+        public static RszFieldType ToRszFieldType(this PropertyType type)
         {
             return type switch
             {
@@ -349,7 +349,7 @@ namespace ReeLib.Clip
                 // PropertyType.F64_invalid => RszFieldType.F32,
                 PropertyType.Str8 => RszFieldType.String,
                 PropertyType.Str16 => RszFieldType.String,
-                PropertyType.Enum => RszFieldType.Enum,
+                PropertyType.Enum => RszFieldType.String,
                 PropertyType.Quaternion => RszFieldType.Quaternion,
                 PropertyType.Array => RszFieldType.ukn_type,
                 PropertyType.NativeArray => RszFieldType.ukn_type,
@@ -367,7 +367,7 @@ namespace ReeLib.Clip
                 PropertyType.RangeI => RszFieldType.RangeI,
                 PropertyType.Point => RszFieldType.Point,
                 PropertyType.Size => RszFieldType.Size,
-                PropertyType.Asset => RszFieldType.ukn_type,
+                PropertyType.Asset => RszFieldType.String,
                 PropertyType.Action => RszFieldType.Action,
                 PropertyType.Guid => RszFieldType.Guid,
                 PropertyType.Uint2 => RszFieldType.Uint2,
@@ -379,7 +379,7 @@ namespace ReeLib.Clip
                 PropertyType.OBB => RszFieldType.OBB,
                 PropertyType.Mat4 => RszFieldType.Mat4,
                 PropertyType.Rect => RszFieldType.Rect,
-                PropertyType.PathPoint3D => RszFieldType.ukn_type,
+                PropertyType.PathPoint3D => RszFieldType.Vec3,
                 PropertyType.Plane => RszFieldType.Plane,
                 PropertyType.Sphere => RszFieldType.Sphere,
                 PropertyType.Capsule => RszFieldType.Capsule,
@@ -428,6 +428,29 @@ namespace ReeLib.Clip
         public Key(ClipVersion version)
         {
             Version = version;
+        }
+
+        public void ResetValue()
+        {
+            var rszType = PropertyType.ToRszFieldType();
+            if (rszType == RszFieldType.String)
+            {
+                if (Value is not string) Value = "";
+                return;
+            }
+
+            var expectedType = RszInstance.RszFieldTypeToCSharpType(rszType);
+            if (Value?.GetType() == expectedType) return;
+
+            try
+            {
+                // try and maintain the original value when possible
+                Value = Convert.ChangeType(Value, expectedType)!;
+            }
+            catch
+            {
+                Value = Activator.CreateInstance(expectedType)!;
+            }
         }
 
         protected override bool DoRead(FileHandler handler)

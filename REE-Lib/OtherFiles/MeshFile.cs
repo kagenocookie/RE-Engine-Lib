@@ -526,6 +526,7 @@ namespace ReeLib.Mesh
 				handler.Write(ref faceBufferOffset);
 				if (Version == MeshSerializerVersion.RE_RT) handler.WriteNull(8);
 				handler.Write(ref totalBufferSize);
+				faceVertBufferHeaderSize = IntegerFaces != null ? IntegerFaces.Length * 4 : Faces!.Length * 2;
 				handler.Write(ref faceVertBufferHeaderSize);
 			}
 			handler.Write(ref elementCount);

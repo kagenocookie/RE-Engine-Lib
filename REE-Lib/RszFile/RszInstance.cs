@@ -699,7 +699,16 @@ namespace ReeLib
                 if (v1 == null || v2 == null) {
                     if (v1 != v2) return false;
                 } else if (v1 is List<object> list) {
-                    if (!list.SequenceEqual((List<object>)v2)) return false;
+                    if (list.Count > 0 && list[0] is RszInstance) {
+                        var otherList = (List<object>)v2;
+                        if (list.Count != otherList.Count || list.Where((a, k) => ((RszInstance)a).IsEqualTo((RszInstance)otherList[k])).Any()) {
+                            return false;
+                        }
+                    } else if (!list.SequenceEqual((List<object>)v2)) {
+                        return false;
+                    }
+                } else if (v1 is RszInstance rsz1) {
+                    if (!rsz1.IsEqualTo((RszInstance)v2)) return false;
                 } else {
                     if (!v1.Equals(v2)) return false;
                 }

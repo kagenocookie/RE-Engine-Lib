@@ -986,10 +986,10 @@ namespace ReeLib
             var version = Option.Version;
             var nodeDict = Nodes.ToDictionary(n => (ulong)n.ID);
             var actions = new Dictionary<ulong, RszInstance>();
-            foreach (var act in ActionRsz.ObjectList) {
-                var id = Convert.ToUInt32(act.Values[Action_IDFieldIndex]);
+            foreach (var act in ActionRsz.ObjectList.Concat(StaticActionRsz.ObjectList)) {
+                var id = Convert.ToUInt64(act.Values[Action_IDFieldIndex]);
                 var exId = 0u;
-                while (!actions.TryAdd((ulong)id | ((ulong)exId << 32), act)) {
+                while (!actions.TryAdd(id | ((ulong)exId << 32), act)) {
                     exId++;
                 }
             }
@@ -1068,28 +1068,23 @@ namespace ReeLib
             }
             else
             {
-                int nextActionIndex = 0;
-                int nextStaticActionIndex = 0;
                 foreach (var node in Nodes)
                 {
-                    // match up the actions by order and not by hash/ID
-                    // there are many cases of files with "duplicated" IDs that would otherwise get lost (likely due to motion banks)
-                    // the exID also isn't indicative because it's sometimes > 0 while there's only one action with the given ID
-                    // the motfsm2 bhvt serializer seems to be consistent about the order so probably the best solution
-
                     foreach (var act in node.Actions.Actions)
                     {
-                        var instance = nextActionIndex < ActionRsz.ObjectList.Count ? ActionRsz.ObjectList[nextActionIndex] : null;
-                        if (instance != null && Convert.ToUInt32(instance.Values[Action_IDFieldIndex]) == act.Action) {
-                            act.Instance = instance;
-                            nextActionIndex++;
-                            DataInterpretationException.DebugWarnIf(ShouldBeStaticClass(instance.RszClass.name, version), instance.RszClass.name);
-                        } else {
-                            instance = StaticActionRsz.ObjectList[nextStaticActionIndex++];
-                            act.Instance = instance;
-                            DataInterpretationException.DebugWarnIf(!ShouldBeStaticClass(instance.RszClass.name, version), instance.RszClass.name);
+                        // the object values aren't always identical so matching the right single instance matters
+                        // the exID isn't 100% indicative because it's sometimes > 0 while there's only one action with the given ID
+                        // so idk what that actually represents here, attributes?
+                        RszInstance matched;
+                        if (act.Action == 0) matched = actions[0];
+                        else if (!actions.Remove(act.Action, out matched!)) {
+                            var ex = 1;
+                            while (!actions.Remove((ulong)act.Action | ((ulong)ex << 32), out matched!)) {
+                                ex++;
+                            }
                         }
-                        DataInterpretationException.ThrowIfDifferent(act.Action, Convert.ToUInt32(instance.Values[Action_IDFieldIndex]));
+                        act.Instance = matched;
+                        DataInterpretationException.DebugWarnIf((ActionRsz.ObjectList.Contains(matched)) == ShouldBeStaticClass(matched.RszClass.name, version), "Wrong static BHVT action");
                     }
 
                     foreach (var state in node.States.States)
@@ -1213,7 +1208,10 @@ namespace ReeLib
                 return new BHVTId(instance.ObjectTableIndex, rsz == staticRsz);
             }
 
-            foreach (var rsz in GetAutoManagedRSZFiles()) rsz.ClearObjects();
+            // note: not doing a full clear of the rsz object lists because the game seems to fail at loading in when we do that for Actions (dmc5 pl0000.motfsm2)
+            // it mainly happens if we both do a node list reshuffle _and_ regenerate the full actions rsz object lists, not otherwise
+            // not sure what exactly is going on there but the only downside now is that we might leave extra rsz instances stored in, not a big deal
+            // foreach (var rsz in GetAutoManagedRSZFiles()) rsz.ClearObjects();
 
             foreach (var node in Nodes)
             {

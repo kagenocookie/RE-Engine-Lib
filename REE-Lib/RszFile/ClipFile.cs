@@ -520,7 +520,6 @@ namespace ReeLib.Clip
         internal long clipPropertyOffset;
 
         public byte uknCount;
-        public ulong RE3hash;
         public ulong uknRE7_2;
         public ulong uknRE7_3;
         public ulong uknRE7_4;
@@ -550,12 +549,24 @@ namespace ReeLib.Clip
             }
             action.Do(ref startFrame);
             action.Do(ref endFrame);
-            if (Version is ClipVersion.RE2_DMC5 or ClipVersion.RE3) {
-                action.Do(ref nameUtf16Hash);
+            if (Version is ClipVersion.RE2_DMC5 or ClipVersion.RE3)
+            {
+                int two = 2;
+                action.Do(ref two);
                 action.Do(ref speedPointNum);
                 action.Null(2);
-                DataInterpretationException.DebugThrowIf(nameUtf16Hash != 2);
-            } else {
+                DataInterpretationException.DebugThrowIf(two != 2);
+            }
+            else if (Version == ClipVersion.RE7)
+            {
+                int two = 2, speedPoints = speedPointNum;
+                action.Do(ref two);
+                action.Do(ref speedPoints);
+                speedPointNum = (short)speedPoints;
+                DataInterpretationException.DebugThrowIf(two != 2 || speedPoints != 2);
+            }
+            else
+            {
                 action.Do(ref nameAsciiHash);
                 action.Do(ref nameUtf16Hash);
             }
@@ -582,7 +593,7 @@ namespace ReeLib.Clip
                     action.Do(ref clipPropertyOffset);
                 }
             }
-            else
+            else // Version <= RE3
             {
                 if (Version > ClipVersion.RE7)
                 {
@@ -592,7 +603,10 @@ namespace ReeLib.Clip
                 }
 
                 if (Version == ClipVersion.RE3)
-                    action.Do(ref RE3hash);
+                {
+                    action.Do(ref nameAsciiHash);
+                    action.Do(ref nameUtf16Hash);
+                }
                 else if (Version > ClipVersion.RE7)
                     action.Null(8);
                 else
@@ -601,8 +615,7 @@ namespace ReeLib.Clip
                     action.Null(16);
                 }
                 action.Do(ref nameOffset);
-                action.Do(ref unicodeNameOffset);  // used by re2/dmc5/re3, otherwise 0
-                DataInterpretationException.DebugThrowIf(Version > ClipVersion.RE3 && unicodeNameOffset != 0);
+                action.Do(ref unicodeNameOffset);
                 if (Version == ClipVersion.RE7)
                 {
                     action.Do(ref uknRE7_3);
@@ -635,15 +648,8 @@ namespace ReeLib.Clip
 
         protected override bool DoWrite(FileHandler handler)
         {
-            if (Version >= ClipVersion.RE8)
-            {
-                nameUtf16Hash = MurMur3HashUtils.GetHash(FunctionName);
-                nameAsciiHash = MurMur3HashUtils.GetAsciiHash(FunctionName);
-            }
-            else
-            {
-                nameUtf16Hash = 2;
-            }
+            nameUtf16Hash = MurMur3HashUtils.GetHash(FunctionName);
+            nameAsciiHash = MurMur3HashUtils.GetAsciiHash(FunctionName);
             return base.DoWrite(handler);
         }
 
@@ -1221,7 +1227,7 @@ namespace ReeLib.Clip
                     Properties.Add(property);
                     if (Header.version <= ClipVersion.RE2_DMC5)
                     {
-                        speedPointCount += (int)property.Info.nameAsciiHash;
+                        speedPointCount += (int)property.Info.speedPointNum;
                     }
                 }
             }
@@ -1362,6 +1368,8 @@ namespace ReeLib.Clip
             }
 
             clipHeader.speedPointOffset = handler.Tell();
+            SpeedPointData.Write(handler);
+
             clipHeader.hermiteDataOffset = handler.Tell();
             HermiteData.Write(handler);
 

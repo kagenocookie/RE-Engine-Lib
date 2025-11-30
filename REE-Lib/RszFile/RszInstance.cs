@@ -483,6 +483,36 @@ namespace ReeLib
         }
 
         /// <summary>
+        /// Copies the values for all fields that are shared by this and a given other RszInstance object. Reference type fields are ignored (RszInstance or Struct).
+        /// The matching is done based on field type so the consistency depends on how correct the RSZ template is. Wrong fields may get matched up sometimes.
+        /// Intended for changing instance types from one to another shared subclass.
+        /// </summary>
+        /// <returns>The last copied field index or -1 if none.</returns>
+        public int CopyCommonValueFieldsFrom(RszInstance source)
+        {
+            int lastCopiedIndex = -1;
+            for (int i = 0; i < Fields.Length && i < source.Fields.Length; ++i)
+            {
+                var field = Fields[i];
+                var sourceField = source.Fields[i];
+
+                if (sourceField.type != field.type) break;
+                if (field.IsReference) continue;
+
+                if (field.IsGameObjectRef)
+                {
+                    Values[i] = new GameObjectRef((GameObjectRef)source.Values[i]);
+                }
+                else
+                {
+                    Values[i] = source.Values[i];
+                }
+                lastCopiedIndex = i;
+            }
+            return lastCopiedIndex;
+        }
+
+        /// <summary>
         /// Deep clone the values from another RszInstance into this object.
         /// </summary>
         public bool CopyValuesFrom(RszInstance other, bool cached = false)

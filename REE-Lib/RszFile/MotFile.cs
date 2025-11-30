@@ -190,7 +190,7 @@ namespace ReeLib.Mot
             if (MotVersion == MotVersion.RE2_DMC5)
             {
                 handler.Read(ref uknFloat);
-                DataInterpretationException.ThrowIfNotZero(handler.Read<int>()); // padding
+                handler.ReadNull(4);
             }
 
             if (MotVersion <= MotVersion.RE2_DMC5)

@@ -843,7 +843,7 @@ namespace ReeLib.Clip
 
         internal long namesOffset;
         internal long unicodeNamesOffset;
-        internal long endClipStructsOffset1;
+        internal long endClipStructsOffset1; // seems like a "string data end offset"
         internal long endClipStructsOffset2;
 
         internal int UnknownOffsetsCount => version switch
@@ -1006,7 +1006,6 @@ namespace ReeLib.Clip
         {
             // TODO figure out why there's two sets of property infos
             // I'm thinking it might be a "start" values and "end" / "after" values
-            handler.Align(16);
             var count1 = handler.ReadInt();
             var count2 = handler.ReadInt(); // for versions with a single prop list, this is just padding
             var offset1 = handler.Read<long>();
@@ -1049,7 +1048,6 @@ namespace ReeLib.Clip
 
         protected override bool DoWrite(FileHandler handler)
         {
-            handler.Align(16);
             handler.Write(Props1.Count);
             handler.Write(Props2.Count);
             long offset1;
@@ -1307,9 +1305,9 @@ namespace ReeLib.Clip
             }
 
             ExtraPropertyData.Version = Header.version;
-            if (Version != ClipVersion.RE7 && clipHeader.endClipStructsOffset1 > 0 && clipHeader.endClipStructsOffset2 == clipHeader.endClipStructsOffset1 + 8)
+            if (Version != ClipVersion.RE7 && clipHeader.endClipStructsOffset2 > 0)
             {
-                handler.Seek(clipHeader.endClipStructsOffset1);
+                handler.Seek(clipHeader.endClipStructsOffset2);
                 // TODO figure out what and why this section exists
                 ExtraPropertyData.Read(handler);
             }
@@ -1385,9 +1383,10 @@ namespace ReeLib.Clip
             clipHeader.unicodeNamesOffset = handler.Tell();
             handler.StringTableFlush();
 
+            handler.Align(8);
+            clipHeader.endClipStructsOffset1 = handler.Tell();
             handler.Align(16);
-            clipHeader.endClipStructsOffset1 = handler.Tell() - 8;
-            clipHeader.endClipStructsOffset2 = clipHeader.endClipStructsOffset1 + 8;
+            clipHeader.endClipStructsOffset2 = handler.Tell();
             if (Version != ClipVersion.RE7)
             {
                 ExtraPropertyData.Write(handler);

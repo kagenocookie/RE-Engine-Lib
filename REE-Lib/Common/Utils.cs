@@ -159,7 +159,7 @@ namespace ReeLib.Common
         {
             if (target == null) return null;
             var type = target.GetType();
-            if (type.IsValueType) return target;
+            if (type.IsValueType || type == typeof(string)) return target;
             return typeof(DeepCloneUtil<>).MakeGenericType(type).GetMethod("Clone")!.Invoke(null, [target])!;
         }
 
@@ -212,7 +212,7 @@ namespace ReeLib.Common
             }
 
             foreach (var plain in _cloneableFields!) {
-                plain.SetValue(clone, ((ICloneable)plain.GetValue(source)!).Clone());
+                plain.SetValue(clone, ((ICloneable?)plain.GetValue(source))?.Clone());
             }
             return clone;
         }

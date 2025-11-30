@@ -1401,23 +1401,36 @@ namespace ReeLib.Clip
             var pendingProps = new List<Property>(Properties.Count);
             var expectedcount = Properties.Count;
             Properties.Clear();
-            // TODO handle Key flattening as well
+            ClipKeys.Clear();
             foreach (var track in Tracks)
             {
                 track.propCount = track.Properties.Count;
                 if (track.Properties.Count == 0)
                 {
                     track.firstPropIdx = 0;
-                    track.propCount = 0;
                     continue;
                 }
 
                 track.firstPropIdx = Properties.Count;
-                static void InsertProperties(List<Property> allProps, List<Property> props)
+                static void InsertProperties(List<Property> allProps, List<Key> allKeys, List<Property> props)
                 {
                     allProps.AddRange(props);
                     foreach (var prop in props)
                     {
+                        if (!prop.IsPropertyContainer)
+                        {
+                            prop.Keys ??= new();
+                            prop.Info.ChildMembershipCount = (ushort)prop.Keys.Count;
+                            if (prop.Keys.Count == 0)
+                            {
+                                prop.Info.ChildStartIndex = 0;
+                                continue;
+                            }
+                            prop.Info.ChildStartIndex = allKeys.Count;
+                            allKeys.AddRange(prop.Keys);
+                            continue;
+                        }
+
                         if (!(prop.ChildProperties?.Count > 0))
                         {
                             if (prop.Info.DataType is PropertyType.NativeArray or PropertyType.NativeClass or PropertyType.Class or PropertyType.Struct or PropertyType.Array)
@@ -1430,10 +1443,10 @@ namespace ReeLib.Clip
 
                         prop.Info.ChildStartIndex = allProps.Count;
                         prop.Info.ChildMembershipCount = (ushort)prop.ChildProperties.Count;
-                        InsertProperties(allProps, prop.ChildProperties);
+                        InsertProperties(allProps, allKeys, prop.ChildProperties);
                     }
                 }
-                InsertProperties(Properties, track.Properties);
+                InsertProperties(Properties, ClipKeys, track.Properties);
             }
         }
 

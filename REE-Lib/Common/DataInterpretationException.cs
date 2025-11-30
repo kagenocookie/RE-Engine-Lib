@@ -68,7 +68,10 @@ namespace ReeLib
         [Conditional("DEBUG"), MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void DebugWarnIf([DoesNotReturnIf(true)] bool condition, string message = "Found unexpected data while reading file", [CallerArgumentExpression(nameof(condition))] string conditionText = null!)
         {
-            if (condition) Log.Warn($"[{conditionText}] {message}");
+            if (condition)
+            {
+                Log.Warn($"[{conditionText}] {message}");
+            }
         }
 
     }

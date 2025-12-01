@@ -68,7 +68,7 @@ namespace ReeLib.Mot
                  ?.Then(ref motPropertyTracksOffset)
                  ?.Null(8)
                  ?.Then(ref clipFileOffset)
-                 ?.HandleOffsetWString(ref jointMapPath)
+                 ?.HandleOffsetWString(ref jointMapPath, true)
                  ?.Then(ref motEndClipDataOffset)
                  ?.Then(version >= MotVersion.MHR_DEMO, ref motEndClipFrameValuesOffset)
                  ?.Then(ref propertyTreeOffset)

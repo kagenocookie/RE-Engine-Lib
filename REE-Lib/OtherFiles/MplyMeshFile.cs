@@ -113,7 +113,7 @@ namespace ReeLib.MplyMesh
                 action.Do(ref streamingChunkOffset);
             }
 
-            action.HandleOffsetWString(ref sdfPath);
+            action.HandleOffsetWString(ref sdfPath, true);
             return true;
         }
     }

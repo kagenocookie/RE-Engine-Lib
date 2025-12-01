@@ -1398,8 +1398,6 @@ namespace ReeLib.Clip
 
         private void ReFlattenProperties(ClipHeader clipHeader)
         {
-            var pendingProps = new List<Property>(Properties.Count);
-            var expectedcount = Properties.Count;
             Properties.Clear();
             ClipKeys.Clear();
             foreach (var track in Tracks)

@@ -56,12 +56,11 @@ namespace ReeLib.Rcol
                 action.Do(ref numGroups);
                 if (version >= 25) {
                     action.Do(ref numUserData);
-                    action.Do(ref uknCount);
                     numShapes = 0;
                 } else {
                     action.Do(ref numShapes);
-                    action.Do(ref numUserData);
                 }
+                action.Do(ref uknCount);
                 action.Do(ref numRequestSets);
                 action.Do(ref maxRequestSetId);
             }
@@ -708,9 +707,8 @@ namespace ReeLib
             header.numRequestSets = RequestSets.Count;
             header.numGroups = Groups.Count;
             header.numIgnoreTags = IgnoreTags?.Count ?? 0;
-            // uknCount value seems meaningless (rcol.25+), putting something in just in case
+            // uknCount value seems meaningless, putting something in just in case
             if (header.uknCount == 0) header.uknCount = Groups.Count;
-            header.numUserData = 0;
             header.numShapes = 0;
             header.maxRequestSetId = RequestSets.Count == 0 ? uint.MaxValue : (uint)RequestSets.Max(s => s.Info.ID);
 
@@ -746,6 +744,7 @@ namespace ReeLib
 
             // the field is used as an array size for rcol.2 so it needs to be +1 from the highest one
             if (handler.FileVersion == 2) header.maxRequestSetId++;
+            else if (handler.FileVersion <= 10 && header.numRequestSets == 0) header.maxRequestSetId = uint.MaxValue;
 
             handler.Align(16);
             header.numIgnoreTags = IgnoreTags?.Count ?? 0;
@@ -781,24 +780,12 @@ namespace ReeLib
                 }
             }
 
-            handler.StringTableFlush();
             handler.OffsetContentTableFlush();
+            handler.StringTableFlush();
 
             if (handler.FileVersion >= 25)
             {
                 header.numUserData = RequestSets.Sum(s => s.ShapeUserdata.Count);
-            }
-            else if (handler.FileVersion > 2)
-            {
-                int minIndex = int.MaxValue;
-                int maxIndex = int.MinValue;
-                foreach (var g in Groups) {
-                    foreach (var s in g.Shapes) {
-                        minIndex = Math.Min(s.Info.UserDataIndex, minIndex);
-                        maxIndex = Math.Max(s.Info.UserDataIndex, maxIndex);
-                    }
-                }
-                header.numUserData = maxIndex - minIndex;
             }
 
             header.magic = Magic;

@@ -421,6 +421,8 @@ namespace ReeLib
         OodleNetworkRuntimeData,
         /// <summary>.rcfg</summary>
         RenderConfigAsset,
+        /// <summary>.wcc, .wcja, .wcjr, .wcv, .wcta, .wcsa, .wcbk, .wcrb, .wcst, .wtot, .wtos, .wcms, .wcmo, .wcp, .wcgp, .wcggp, .wcss, .wcsw, .wcswn, .wcmsw, .wgs, .wms, .wpi, .wss</summary>
+        WwiseAudioRSZ,
 
         /// <remarks>Deprecated in favor of <see cref="EffectCollision"/></remarks>
         fxct,

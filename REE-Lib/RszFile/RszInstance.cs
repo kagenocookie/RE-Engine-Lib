@@ -193,7 +193,7 @@ namespace ReeLib
             return false;
         }
 
-        public object ReadNormalField(FileHandler handler, RszField field)
+        public static object ReadNormalField(FileHandler handler, RszField field)
         {
             switch (field.type) {
                 case RszFieldType.String or RszFieldType.Resource:

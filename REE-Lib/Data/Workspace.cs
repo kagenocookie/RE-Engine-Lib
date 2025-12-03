@@ -223,7 +223,7 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
         filepath = PrependBasePath(filepath);
 
         bool didAttempt = false;
-        if (((sourceTypes & FileSourceType.Loose) != 0 || AllowUseLooseFiles) && CanUseLooseFiles) {
+        if ((sourceTypes & FileSourceType.Loose) != 0 && AllowUseLooseFiles && CanUseLooseFiles) {
             didAttempt = true;
             var loosePath = Path.Combine(config.GamePath, filepath);
             if (File.Exists(loosePath)) {

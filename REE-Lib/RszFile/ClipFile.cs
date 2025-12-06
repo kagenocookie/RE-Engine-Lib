@@ -717,8 +717,8 @@ namespace ReeLib.Clip
 
     public class CTrack : ReadWriteModel
     {
-        public int nodeCount;
-        public int propCount;
+        internal int nodeCount;
+        internal int propCount;
         public float Start_Frame;
         public float End_Frame;
         public Guid guid1;
@@ -731,6 +731,9 @@ namespace ReeLib.Clip
         internal long childNodeIndex;
         internal long firstPropIdx;
 
+        /// <summary>
+        /// For embedded clips, there is always exactly 1 root track and all other tracks are a child of that one track, no multi level nesting
+        /// </summary>
         public List<CTrack> ChildTracks { get; } = new();
         public List<Property> Properties { get; } = new();
 
@@ -750,6 +753,8 @@ namespace ReeLib.Clip
                 action.Do(ref Unsafe.As<int, short>(ref propCount));
                 action.Do(ref nodeType);
                 action.Null(3);
+                action.Do(ref nameHash);
+                action.Do(ref nameOffset);
             }
             else
             {
@@ -759,14 +764,22 @@ namespace ReeLib.Clip
                 action.Do(ref End_Frame);
                 action.Do(ref guid1);
                 action.Do(ref guid2);
-                action.Null(8);
-            }
-            action.Do(ref nameHash);
-            action.Do(ref nameOffset);
-            if (Version == ClipVersion.RE2_DMC5) {
-                long offset2 = nameOffset;
-                action.Do(ref offset2);
-                DataInterpretationException.DebugWarnIf(offset2 != nameOffset);
+                if (Version == ClipVersion.RE3) {
+                    action.Null(8);
+                    action.Do(ref nameHash);
+                    action.Do(ref nameOffset);
+                } else {
+                    if (Version == ClipVersion.RE7) {
+                        action.Null(8);
+                        action.Do(ref nameOffset);
+                    } else {
+                        action.Null(16);
+                        action.Do(ref nameOffset);
+                    }
+                    long offset2 = nameOffset;
+                    action.Do(ref offset2);
+                    DataInterpretationException.DebugWarnIf(offset2 != nameOffset);
+                }
             }
             action.Do(ref childNodeIndex);
             action.Do(ref firstPropIdx);
@@ -843,8 +856,8 @@ namespace ReeLib.Clip
 
         internal long namesOffset;
         internal long unicodeNamesOffset;
-        internal long endClipStructsOffset1; // seems like a "string data end offset"
-        internal long endClipStructsOffset2;
+        internal long stringsEndOffset;
+        internal long endClipStructsOffset;
 
         internal int UnknownOffsetsCount => version switch
         {
@@ -887,8 +900,8 @@ namespace ReeLib.Clip
             DataInterpretationException.ThrowIfNotEqualValues<long>(unknownOffsets);
             handler.Read(ref namesOffset);
             handler.Read(ref unicodeNamesOffset);
-            handler.Read(ref endClipStructsOffset1);
-            handler.Read(ref endClipStructsOffset2);
+            handler.Read(ref stringsEndOffset);
+            handler.Read(ref endClipStructsOffset);
             return true;
         }
 
@@ -919,8 +932,8 @@ namespace ReeLib.Clip
             handler.WriteArray(unknownOffsets!);
             handler.Write(ref namesOffset);
             handler.Write(ref unicodeNamesOffset);
-            handler.Write(ref endClipStructsOffset1);
-            handler.Write(ref endClipStructsOffset2);
+            handler.Write(ref stringsEndOffset);
+            handler.Write(ref endClipStructsOffset);
             return true;
         }
     }
@@ -1305,9 +1318,9 @@ namespace ReeLib.Clip
             }
 
             ExtraPropertyData.Version = Header.version;
-            if (Version != ClipVersion.RE7 && clipHeader.endClipStructsOffset2 > 0)
+            if (Version != ClipVersion.RE7 && clipHeader.endClipStructsOffset > 0)
             {
-                handler.Seek(clipHeader.endClipStructsOffset2);
+                handler.Seek(clipHeader.endClipStructsOffset);
                 // TODO figure out what and why this section exists
                 ExtraPropertyData.Read(handler);
             }
@@ -1320,6 +1333,9 @@ namespace ReeLib.Clip
 
                 if (track.nodeCount != 0)
                     track.ChildTracks.AddRange(Tracks.Slice((int)track.childNodeIndex, track.nodeCount));
+
+                DataInterpretationException.DebugThrowIf(track == Tracks[0] && track.ChildTracks.Any(ct => ct.ChildTracks.Count != 0));
+                DataInterpretationException.DebugThrowIf(track != Tracks[0] && !Tracks[0].ChildTracks.Contains(track));
             }
 
             return true;
@@ -1384,9 +1400,9 @@ namespace ReeLib.Clip
             handler.StringTableFlush();
 
             handler.Align(8);
-            clipHeader.endClipStructsOffset1 = handler.Tell();
+            clipHeader.stringsEndOffset = handler.Tell();
             handler.Align(16);
-            clipHeader.endClipStructsOffset2 = handler.Tell();
+            clipHeader.endClipStructsOffset = handler.Tell();
             if (Version != ClipVersion.RE7)
             {
                 ExtraPropertyData.Write(handler);
@@ -1403,9 +1419,13 @@ namespace ReeLib.Clip
             foreach (var track in Tracks)
             {
                 track.propCount = track.Properties.Count;
-                if (track.Properties.Count == 0)
+                if (track.propCount == 0)
                 {
                     track.firstPropIdx = 0;
+                    if (track == Tracks[0])
+                    {
+                        track.nodeCount = Tracks.Count - 1;
+                    }
                     continue;
                 }
 

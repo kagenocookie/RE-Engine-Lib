@@ -28,7 +28,6 @@ namespace ReeLib.Mot
     {
         public MotVersion version;
         public uint magic = MotFile.Magic;
-        public uint ukn00;
         public uint motSize;
         internal long boneHeaderOffsetStart; // BoneBaseDataPointer
         internal long boneClipHeaderOffset; // BoneDataPointer
@@ -48,7 +47,7 @@ namespace ReeLib.Mot
         public ushort boneClipCount;
         public byte clipCount;
         public byte motEndClipCount;
-        public ushort uknExtraCount; // seems to always be either 0 or 1; natives/stm/animation/ch/ch00/motlist/ch00_001_comnm.motlist.751 - count 1, extra offset 0
+        public ushort uknExtra; // seems to always be either 0 or 1; natives/stm/animation/ch/ch00/motlist/ch00_001_comnm.motlist.751 - count 1, extra offset 0
         public ushort FrameRate;
         public ushort animatedPropertyCount;
 
@@ -61,13 +60,14 @@ namespace ReeLib.Mot
         {
             action.Then(ref version)
                  ?.Then(ref magic)
-                 ?.Then(ref ukn00)
+                 ?.Null(4)
                  ?.Then(ref motSize)
                  ?.Then(ref boneHeaderOffsetStart)
                  ?.Then(ref boneClipHeaderOffset)
                  ?.Then(ref motPropertyTracksOffset)
                  ?.Null(8)
                  ?.Then(ref clipFileOffset)
+                 // TODO standalone mots _usually_ have some sort of offset data here instead
                  ?.HandleOffsetWString(ref jointMapPath, true)
                  ?.Then(ref motEndClipDataOffset)
                  ?.Then(version >= MotVersion.MHR_DEMO, ref motEndClipFrameValuesOffset)
@@ -81,10 +81,14 @@ namespace ReeLib.Mot
                  ?.Then(ref boneClipCount)
                  ?.Then(ref clipCount)
                  ?.Then(ref motEndClipCount)
-                 ?.Then(version >= MotVersion.RE8, ref uknExtraCount)
+                 ?.Then(version >= MotVersion.RE8, ref uknExtra)
                  ?.Then(ref FrameRate)
-                 ?.Then(ref animatedPropertyCount)
-                 ?.Null(2);
+                 ?.Then(ref animatedPropertyCount);
+            if (version < MotVersion.RE8) {
+                action.Then(ref uknExtra);
+            } else {
+                action.Null(2);
+            }
 
             return true;
         }
@@ -92,7 +96,6 @@ namespace ReeLib.Mot
         public void CopyValuesFrom(MotHeader source)
         {
             version = source.version;
-            ukn00 = source.ukn00;
             motSize = source.motSize;
             FrameRate = source.FrameRate;
             frameCount = source.frameCount;
@@ -102,7 +105,7 @@ namespace ReeLib.Mot
             boneCount = source.boneCount;
             boneClipCount = source.boneClipCount;
             motEndClipCount = source.motEndClipCount;
-            uknExtraCount = source.uknExtraCount;
+            uknExtra = source.uknExtra;
             animatedPropertyCount = source.animatedPropertyCount;
             jointMapPath = source.jointMapPath;
             if (string.IsNullOrEmpty(motName)) {

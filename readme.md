@@ -78,12 +78,15 @@ All file readers follow a similar pattern - just create the file and call `.Read
 
 ## License
 
-REE-Lib is under MIT license. See LICENSE for more detail. Some of the original code that is based on RszTool is also under MIT license.
+REE-Lib is under MIT license. See LICENSE for more details. Some of the original code that is based on RszTool is also under MIT license.
 
 ## Credits
-- chenstack - Base RszTool file handling code and several file loaders
-- alphaZomega, praydog, NSACloud, and other modders - File structure research
-- [Ekey/REE.PAK.Tool](https://github.com/Ekey/REE.PAK.Tool) - PAK file decryption algorithms
+- [chenstack](https://github.com/czastack/RszTool) - Base RszTool file handling code and several file loaders
+- [Ekey](https://github.com/Ekey/REE.PAK.Tool) - PAK file decryption algorithms
+- [alphaZomega](https://github.com/alphazolam) - RE_RSZ and many other file templates
+- [praydog](https://github.com/praydog/) - RSZ file structure research
+- [NSACloud](https://github.com/NSACloud) - RE Mesh editor, MPLY mesh research, EFX structs
+- [Battlezone](https://github.com/seifhassine) - Updated RSZ JSON files
 
 ## Disclaimer
 This project is in no way affiliated or connected to RE ENGINE, Capcom, or any of their affiliates. All trademarks are the property of their respective owners.

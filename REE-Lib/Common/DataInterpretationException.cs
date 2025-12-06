@@ -18,9 +18,9 @@ namespace ReeLib
         }
 
         [Conditional("DEBUG"), MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void DebugThrowIf([DoesNotReturnIf(true)] bool condition, string message = "Found unexpected data while reading file")
+        public static void DebugThrowIf([DoesNotReturnIf(true)] bool condition, string message = "Found unexpected data while reading file", [CallerArgumentExpression(nameof(condition))] string conditionText = null!)
         {
-            if (condition) throw new DataInterpretationException(message);
+            if (condition) throw new DataInterpretationException($"[{conditionText}] {message}");
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

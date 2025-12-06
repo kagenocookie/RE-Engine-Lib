@@ -1123,11 +1123,12 @@ namespace ReeLib
                     {
                         if (trans.startNodeId != uint.MaxValue)
                         {
-                            var startTargetId = version <= GameVersion.dmc5 ? (ulong)trans.startNodeId : ((uint)trans.startNodeId | ((ulong)trans.startNodeExId << 32));
-                            if (!nodeDict.TryGetValue(startTargetId, out var startNode))
-                                throw new InvalidDataException("Could not find transition start node " + trans.startNodeId);
-
-                            trans.StartNode = startNode;
+                            DataInterpretationException.DebugThrowIf(node.Children.Children.Count(ch => ch.ChildId.ID == trans.startNodeId) != 1);
+                            trans.StartNode = node.Children.Children.FirstOrDefault(ch => ch.ChildId.ID == trans.startNodeId)?.ChildNode;
+                            if (trans.StartNode == null)
+                            {
+                                throw new InvalidDataException("Could not find transition start node " + trans.startNodeId + " among children of node " + node);
+                            }
                         }
 
                         if (trans.conditionId.HasValue)

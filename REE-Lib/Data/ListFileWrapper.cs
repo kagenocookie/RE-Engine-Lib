@@ -164,6 +164,10 @@ public class ListFileWrapper
 
         var cacheKey = folderNormalized;
         var startIndex = Array.BinarySearch(Files, folderNormalized);
+        if (startIndex < 0 && folderNormalized.Length > 0 && !folderNormalized.EndsWith('/')) {
+            folderNormalized += "/";
+            startIndex = Array.BinarySearch(Files, folderNormalized);
+        }
         if (startIndex >= 0) {
             return folderListCache[folderNormalized] = names = [folderNormalized];
         } else {

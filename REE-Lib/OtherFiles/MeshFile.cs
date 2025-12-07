@@ -1202,7 +1202,7 @@ namespace ReeLib.Mesh
         {
         	lodCount = LODs.Count;
 			uvCount = Math.Sign(Buffer.UV0.Length) + Math.Sign(Buffer.UV1.Length);
-			totalMeshCount = (short)LODs[0].MeshGroups.Sum(mg => mg.Submeshes.Count);
+			totalMeshCount = (short)(lodCount == 0 ? 0 : LODs[0].MeshGroups.Sum(mg => mg.Submeshes.Count));
 
 			handler.Write((byte)lodCount);
 			handler.Write((byte)materialCount);

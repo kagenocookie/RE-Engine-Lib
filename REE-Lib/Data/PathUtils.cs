@@ -122,7 +122,7 @@ public static class PathUtils
 
     public static bool IsNativePath(this string path)
     {
-        return path.StartsWith("natives/");
+        return path.StartsWith("natives/") && ParseFileFormat(path).version != -1;
     }
 
     /// <summary>

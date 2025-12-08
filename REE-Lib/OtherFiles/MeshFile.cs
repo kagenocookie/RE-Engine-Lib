@@ -1658,7 +1658,8 @@ namespace ReeLib
 			{ "RE2/3 RT", new (21041600, 2109108288, MeshSerializerVersion.RE_RT, [GameName.re2rt, GameName.re3rt]) },
 			{ "RE7RT", new (21041600, 220128762, MeshSerializerVersion.RE_RT, [GameName.re7rt]) },
 
-			{ "MHRISE", new (21041600, 2109148288, MeshSerializerVersion.RE_RT, [GameName.mhrise]) },
+			{ "MHRISE 21061800", new (21061800, 2109148288, MeshSerializerVersion.RE_RT, [GameName.mhrise]) },
+			{ "MHRISE", new (21091000, 2109148288, MeshSerializerVersion.RE_RT, [GameName.mhrise]) },
 			{ "RE8", new (2020091500, 2101050001, MeshSerializerVersion.RE8, [GameName.re8]) },
 
 			{ "RE4", new (220822879, 221108797, MeshSerializerVersion.RE4, [GameName.re4]) },
@@ -1680,8 +1681,16 @@ namespace ReeLib
 		private static readonly Dictionary<ulong, MeshVersionConfig> VersionHashLookups = Versions.ToDictionary(v => (((ulong)v.Value.internalVersion << 32) | (ulong)v.Value.fileVersion), kv => kv.Value);
 
 		internal static MeshSerializerVersion GetSerializerVersion(uint internalVersion, uint fileVersion)
+        {
+            if (VersionHashLookups.TryGetValue((ulong)internalVersion << 32 | fileVersion, out var vvv)) return vvv.serializerVersion;
+			var maybeGame = Versions.FirstOrDefault(vv => vv.Value.internalVersion == internalVersion);
+			if (maybeGame.Key == null) maybeGame = Versions.FirstOrDefault(vv => vv.Value.fileVersion == fileVersion);
+			if (maybeGame.Key != null) {
+                return maybeGame.Value.serializerVersion;
+            }
 			// on match failure, assume latest format for anything unknown - in case of newer games
-			=> VersionHashLookups.TryGetValue((ulong)internalVersion << 32 | fileVersion, out var vvv) ? vvv.serializerVersion : MeshSerializerVersion.MHWILDS;
+			return MeshSerializerVersion.MHWILDS;
+        }
 
 		public static string[] GetGameVersionConfigs(GameName game) => versionsPerGame.GetValueOrDefault(game) ?? AllVersionConfigs;
 		public static MeshSerializerVersion GetPrimarySerializerVersion(GameName game) => Versions[GetGameVersionConfigs(game)[0]].serializerVersion;

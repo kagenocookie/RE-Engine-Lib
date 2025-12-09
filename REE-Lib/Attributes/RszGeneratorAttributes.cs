@@ -50,6 +50,10 @@ namespace ReeLib.InternalAttributes
     public sealed class RszInlineWStringAttribute : System.Attribute
     {
         public object[] SizeProvider { get; }
+        /// <summary>
+        /// Store the string size as double what it actually is. Intended for UTF-16 strings that want the byte size instead of real string character count.
+        /// </summary>
+        public bool ByteSize { get; init; }
 
         public RszInlineWStringAttribute(params object[] sizeProvider)
         {

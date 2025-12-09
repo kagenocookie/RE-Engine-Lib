@@ -403,7 +403,7 @@ public class ReeLibGenerator : IIncrementalGenerator
                 ctx.Indent().AppendLine($"if ({name} == 0) {name} = global::ReeLib.Common.MurMur3HashUtils.GetUTF8Hash({str3});");
             }
             if (EvaluateExpressionString(ctx, field.GetAttribute("RszStringLengthField")?.ArgumentList?.Arguments.FirstOrDefault()?.Expression) is string str4) {
-                ctx.Indent().AppendLine($"{name} = {str4}?.Length ?? 0;");
+                ctx.Indent().AppendLine($"{name} = string.IsNullOrEmpty({str4}) ? 1 : ({str4}.Length + 1);");
             }
             if (EvaluateExpressionString(ctx, field.GetAttribute("RszArraySizeField")?.ArgumentList?.Arguments.FirstOrDefault()?.Expression) is string str5) {
                 var targetField = ctx.context.ClassDecl.GetFields().FirstOrDefault(f => f.GetFieldName() == str5);
@@ -471,17 +471,25 @@ public class ReeLibGenerator : IIncrementalGenerator
 
             var size = EvaluateAttributeExpressionList(ctx, mainAttr.GetPositionalArguments());
             if (!string.IsNullOrEmpty(size)) size = $"(int)({size})";
+            var useWStrByteSize = mainAttr?.GetOptionalArguments()?.Any(opt => opt.GetText().ToString().Contains("ByteSize")) == true;
 
             if (handle == HandleType.Write) {
                 ctx.Indent().AppendLine($"{name} ??= string.Empty;");
                 if (string.IsNullOrEmpty(size)) {
-                    ctx.Indent().AppendLine($"handler.Write<int>({name}.Length);");
+                    if (useWStrByteSize) {
+                        ctx.Indent().AppendLine($"handler.Write<int>(({name}.Length + 1) * 2);");
+                    } else {
+                        ctx.Indent().AppendLine($"handler.Write<int>({name}.Length + 1);");
+                    }
                 }
                 ctx.Indent().AppendLine($"handler.Write{stringType}({name});");
             } else if (handle == HandleType.Read) {
                 if (string.IsNullOrEmpty(size)) {
                     ctx.Indent().AppendLine($"var len_{name} = handler.Read<int>();");
-                    ctx.Indent().AppendLine($"{name} = handler.Read{stringType}(-1, len_{name}, false);");
+                    if (useWStrByteSize)
+                        ctx.Indent().AppendLine($"{name} = handler.Read{stringType}(-1, len_{name} / 2, false);");
+                    else
+                        ctx.Indent().AppendLine($"{name} = handler.Read{stringType}(-1, len_{name}, false);");
                 } else {
                     ctx.Indent().AppendLine($"{name} = handler.Read{stringType}(-1, {size}, false);");
                 }

@@ -100,7 +100,7 @@ public partial class EFXAttributeParentOptions : EFXAttribute, IBoneRelationAttr
 	public uint unkn7;
 	public float unkn8;
 
-	[RszInlineWString] public string? boneName;
+	[RszInlineWString(ByteSize = true)] public string? boneName;
 
     public string? ParentBone { get; set; }
 

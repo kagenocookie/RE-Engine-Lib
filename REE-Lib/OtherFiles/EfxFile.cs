@@ -315,8 +315,8 @@ namespace ReeLib.Efx
                 var attr = EFXAttribute.Create(Version, type, seqNum);
                 attr.Version = Version;
                 attr.Read(handler);
-                if (expectedSize != -1 && expectedSize != attr.Start + attr.Size) {
-                    throw new Exception("EFX attribute was not properly read");
+                if (expectedSize != -1 && expectedSize != attr.Size + 4) {
+                    throw new DataInterpretationException("EFX attribute was not properly read");
                 }
                 Attributes.Add(attr);
             }
@@ -332,8 +332,13 @@ namespace ReeLib.Efx
             handler.Write(Attributes.Count);
             foreach (var attr in Attributes) {
                 handler.Write(Version.ToAttributeTypeID(attr.type));
+                var sizeOffset = handler.Tell();
+                if (Version >= EfxVersion.MHWilds) handler.Skip(sizeof(int));
                 handler.Write(attr.unknSeqNum);
                 attr.Write(handler);
+                if (Version >= EfxVersion.MHWilds) {
+                    handler.Write(sizeOffset, (int)(attr.Size + 4));
+                }
             }
             return true;
         }
@@ -505,7 +510,7 @@ namespace ReeLib.Efx
                 handler.Write(ref value_ukn6);
                 if (type is 110 or 144 or 183 or 184 or 202 or 194 or 215) {
                     filePath ??= "";
-                    handler.Write(filePath.Length);
+                    handler.Write(filePath.Length + 1);
                     handler.WriteWString(filePath);
                 }
             }
@@ -665,7 +670,9 @@ namespace ReeLib
             BoneRelations.Clear();
             Actions.Clear();
             Entries.Clear();
+            Bones.Clear();
             UvarGroups.Clear();
+            _effectGroups?.Clear();
         }
 
         protected override bool DoRead()
@@ -910,7 +917,7 @@ namespace ReeLib
             if (Header.Version > EfxVersion.DMC5) {
                 foreach (var bone in Bones) {
                     var pair = new EFXBoneNameValuePair() {
-                        nameHash = MurMur3HashUtils.GetAsciiHash(bone.name),
+                        nameHash = MurMur3HashUtils.GetHash(bone.name),
                         value = bone.value,
                     };
                     handler.Write(ref pair);
@@ -947,7 +954,7 @@ namespace ReeLib
                 {
                     handler.Write(0);
                 }
-                if (UvarGroups.Count >= 1)
+                if (UvarGroups.Count >= 2)
                 {
                     handler.Write(UvarGroups[1].uvarType);
                     UvarGroups[1].Write(handler);

@@ -1218,10 +1218,7 @@ namespace ReeLib
                 return new BHVTId(instance.ObjectTableIndex, rsz == staticRsz);
             }
 
-            // note: not doing a full clear of the rsz object lists because the game seems to fail at loading in when we do that for Actions (dmc5 pl0000.motfsm2)
-            // it mainly happens if we both do a node list reshuffle _and_ regenerate the full actions rsz object lists, not otherwise
-            // not sure what exactly is going on there but the only downside now is that we might leave extra rsz instances stored in, not a big deal
-            // foreach (var rsz in GetAutoManagedRSZFiles()) rsz.ClearObjects();
+            foreach (var rsz in GetAutoManagedRSZFiles()) rsz.ClearObjects();
 
             foreach (var node in Nodes)
             {

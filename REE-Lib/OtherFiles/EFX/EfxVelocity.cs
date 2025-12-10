@@ -1,4 +1,5 @@
 using System.Numerics;
+using ReeLib.Efx.Enums;
 using ReeLib.Efx.Structs.Common;
 using ReeLib.InternalAttributes;
 
@@ -69,47 +70,28 @@ public partial class EFXAttributeVelocity2DExpression : EFXAttribute, IExpressio
 public partial class EFXAttributeVelocity3D : EFXAttribute
 {
 	public EFXAttributeVelocity3D() : base(EfxAttributeType.Velocity3D) { }
+    //TODO FIX Check this works on older games
 
 	[RszVersion(EfxVersion.RE2)]
-	public uint unkn1;
-	public float unkn2_0;
-	public float unkn2_1;
-	public float unkn2_2;
-	public float unkn2_3;
-	public float unkn2_4;
-	public float unkn2_5;
-	public float unkn2_6;
-	public float unkn2_7;
-	public float unkn2_8;
-	public float unkn2_9;
-	[RszVersion(EfxVersion.RE4, EndAt = nameof(unkn2_11))]
-	public uint unkn2_10;
-	public uint unkn2_11;
-	public float unkn2_12;
-	public float unkn2_13;
-	public float unkn2_14;
-	public float unkn2_15;
-	public float re4_unkn0;
-	public float re4_unkn1;
+	public uint Flags;
+	public via.Range DirectionVectorX;
+    public via.Range DirectionVectorY;
+    public via.Range DirectionVectorZ;
+    public via.Range Speed;
+    public via.Range SpeedCoef;
+    [RszVersion(EfxVersion.RE4)]
+    public via.RangeI SpeedDelayFrame;
 
-    public uint unkn3;
-	public float unkn4_0;
-	[RszVersion(EfxVersion.RE2)]
-	public float unkn4_1;
+    public Vector3 Offset;
+    public Vector3 Size;
+    public VelocityType VelocityType;
+    public via.Range GravityRate;
+    [RszVersion(EfxVersion.RE4)]
+    public via.RangeI GravityDelayFrame;
 
-    [RszVersion(EfxVersion.RE4, EndAt = nameof(re4_unkn3))]
-	public uint re4_unkn2;
-	public uint re4_unkn3;
-
-	public float unkn4_2;
-	[RszVersion(EfxVersion.RE2, EndAt = nameof(unkn4_5))]
-	public float unkn4_3;
-	public float unkn4_4;
-	public float unkn4_5;
-
-	[RszVersion(EfxVersion.RE8, EndAt = nameof(sb_unkn1))]
-	public float sb_unkn0;
-	public float sb_unkn1;
+    public via.Range InheritRate;
+    public via.Range InheritDistance;
+    public via.Range Spread;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Velocity3DDelayFrame, EfxVersion.RE4)]
 public partial class EFXAttributeVelocity3DDelayFrame : EFXAttribute
@@ -203,26 +185,18 @@ public partial class EFXAttributeAngularVelocity3D : EFXAttribute
 {
 	public EFXAttributeAngularVelocity3D() : base(EfxAttributeType.AngularVelocity3D) { }
 
-	public uint unkn1_0;
-	public uint unkn1_1;
-	public float unkn1_2;
-	public float unkn1_3;
-	public float unkn1_4;
-	public float unkn1_5;
-	public float unkn1_6;
-	public float unkn1_7;
-	public float unkn1_8;
-	public float unkn1_9;
-	public float unkn1_10;
-	public float unkn1_11;
-	public float unkn1_12;
-	public float unkn1_13;
-	public float unkn1_14;
-	public float unkn1_15;
-	public float unkn1_16;
-	public float unkn1_17;
-	public float unkn1_18;
-	public float unkn1_19;
+	public uint Flags;
+	public RotationOrder RotationOrder;
+	public via.Range Radius;
+	public via.Range AddRadius;
+	public float AddRadiusCoef;
+	public via.Range RotationAxisX;
+    public via.Range RotationAxisY;
+    public via.Range RotationAxisZ;
+    public via.Range AddRotationAxisX;
+    public via.Range AddRotationAxisY;
+    public via.Range AddRotationAxisZ;
+    public float AddRotationCoef;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.AngularVelocity3DDelayFrame, EfxVersion.RERT, EfxVersion.RE4)]

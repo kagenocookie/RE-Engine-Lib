@@ -1,3 +1,4 @@
+using ReeLib.Efx.Enums;
 using ReeLib.Efx.Structs.Common;
 using ReeLib.InternalAttributes;
 
@@ -8,37 +9,31 @@ public partial class EFXAttributeTypePolygon : EFXAttribute
 {
 	public EFXAttributeTypePolygon() : base(EfxAttributeType.TypePolygon) { }
 
-	public uint mFlags;
-	public via.Color color0;
-	public via.Color color1;
-    public float unkn2;
+	public uint Flags;
+	public via.Color Color;
+	public via.Color ColorRange;
+    public float ColorRate;
+    public float Intensity;
 
-	public float unkn3;
-	public float unkn4_0;
-	[RszVersion(EfxVersion.RE4, EndAt = nameof(re4_unkn1))]
-	public float re4_unkn0;
-	public uint re4_unkn1;
-	public uint unkn4_1;
-    public float unkn4_3;
-	public float unkn4_4;
-	public float unkn4_5;
-	public float unkn4_6;
-	public float unkn4_7;
-	public float unkn4_8;
-	public float unkn4_9;
-	public float unkn4_10;
-	public float unkn4_11;
-	public float unkn4_12;
-	public float unkn4_13;
-	public float unkn4_14;
-	public float unkn4_15;
-	public float unkn4_16;
+	public float EdgeBlendRange;
+    
+    [RszVersion(EfxVersion.RE4, EndAt = nameof(Flags2))]
+    public float AlphaRate;
+	public uint Flags2;
+	public RotationOrder RotationOrder;
+    public via.Range RotationX;
+    public via.Range RotationY;
+    public via.Range RotationZ;
+    public via.Range SizeScalar;
+    public via.Range Width;
+    public via.Range Height;
+    public via.Range Offset;
     [RszVersion('<', EfxVersion.RE4)]
-	public float unkn4_17;
+	public float AlphaRateLegacy;
     [RszVersion(EfxVersion.RERT)]
-	public float sb_unkn0;
+	public float ShadowMultiplier;
     [RszVersion(EfxVersion.RE4)]
-	public uint re4_unkn2;
+	public AxisXYZ OrientDirectionUpVector;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypePolygonClip, EfxVersion.DMC5)]
@@ -98,26 +93,19 @@ public partial class EFXAttributeTypePolygonMaterial : EFXAttribute
 {
 	public EFXAttributeTypePolygonMaterial() : base(EfxAttributeType.TypePolygonMaterial) { }
 
-	public uint unkn1;
-	public via.Color unkn2;
-	public via.Color unkn3;
-	public int unkn4;
-	public float unkn5;
-	public UndeterminedFieldType unkn6;
-	public float unkn7;
-	public float unkn8;
-	public float unkn9;
-	public UndeterminedFieldType unkn10;
-	public float unkn11;
-	public UndeterminedFieldType unkn12;
-	public float unkn13;
-	public UndeterminedFieldType unkn14;
-	public float unkn15;
-	public UndeterminedFieldType unkn16;
-	public UndeterminedFieldType unkn17;
-	public float unkn18;
+	public uint Flags;
+	public via.Color Color;
+	public via.Color ColorRange;
+	public RotationOrder RotationOrder;
+    public via.Range RotationX;
+    public via.Range RotationY;
+    public via.Range RotationZ;
+    public via.Range SizeScalar;
+    public via.Range Width;
+    public via.Range Height;
+    public via.Range Offset;
 
-	[RszConstructorParams(nameof(Version)), RszSwitch(
+    [RszConstructorParams(nameof(Version)), RszSwitch(
 		nameof(Version), ">=", EfxVersion.DD2, typeof(EfxMaterialStructV2),
 		typeof(EfxMaterialStructV1)
 	)]
@@ -129,32 +117,31 @@ public partial class EFXAttributeTypePolygonTrail : EFXAttribute
 {
 	public EFXAttributeTypePolygonTrail() : base(EfxAttributeType.TypePolygonTrail) { }
 
-	public uint unkn1;
-	public via.Color color1;
-	public via.Color color2;
-	public float unkn4;
+	public uint Flags;
+	public via.Color Color;
+	public via.Color ColorRange;
+	public float ColorRate;
 
-	public float unkn5;
-	public float unkn6;
-	public float unkn7;
+	public float Intensity;
+	public float EdgeBlendRate;
+	public float AlphaRate;
     [RszVersion(EfxVersion.RE4)]
 	public uint re4_unkn;
     [RszVersion(EfxVersion.RERT)]
 	public float sb_unkn0;
 
-	public uint unkn8;
-	public float unkn9;
-	public float unkn10;
-	public float unkn11;
-	public uint unkn12;
-	public uint unkn13;
-	public uint unkn14;
-	public uint unkn15;
-	public via.Color color3;
-	public via.Color color4;
-    public via.Color color5;
-	public float unkn19;
-	public float unkn20;
+	public AxisXYZ Axis;
+	public via.Range Length;
+	public float StretchDistance;
+	public uint NumTrailDivision;
+	public uint NumVerticalDivision;
+	public uint NumSplineDivision;
+	public uint IntervalFrame;
+	public via.Color HeadColor;
+	public via.Color Place1;
+    public via.Color Place2;
+	public float Place1Ratio;
+	public float Place2Ratio;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypePolygonTrailMaterial, EfxVersion.DD2)]
@@ -162,24 +149,23 @@ public partial class EFXAttributeTypePolygonTrailMaterial : EFXAttribute
 {
 	public EFXAttributeTypePolygonTrailMaterial() : base(EfxAttributeType.TypePolygonTrailMaterial) { }
 
-    public uint unkn0;
-    public via.Color unkn1;
-    public via.Color unkn2;
-    public uint unkn3;
-    public float unkn4;
-    public UndeterminedFieldType unkn5;
-    public float unkn6;
-    public uint unkn7;
-    public uint unkn8;
-    public uint unkn9;
-    public uint unkn10;
-    public via.Color unkn12;
-    public via.Color unkn13;
-    public via.Color unkn14;
-    public float unkn15;
-    public float unkn16;
+    public uint Flags;
+    public via.Color Color;
+    public via.Color ColorRange;
+    public AxisXYZ Axis;
+    public via.Range Length;
+    public float StretchDistance;
+    public uint NumTrailDivision;
+    public uint NumVerticalDivision;
+    public uint NumSplineDivision;
+    public uint IntervalFrame;
+    public via.Color HeadColor;
+    public via.Color Place1;
+    public via.Color Place2;
+    public float Place1Ratio;
+    public float Place2Ratio;
 
-	[RszConstructorParams(nameof(Version)), RszSwitch(
+    [RszConstructorParams(nameof(Version)), RszSwitch(
 		nameof(Version), ">=", EfxVersion.DD2, typeof(EfxMaterialStructV2),
 		typeof(EfxMaterialStructV1)
 	)]
@@ -216,6 +202,27 @@ public partial class EFXAttributeTypeGpuPolygon : EFXAttribute
 {
 	public EFXAttributeTypeGpuPolygon() : base(EfxAttributeType.TypeGpuPolygon) { }
 
+
+    //TODO Fix this for older games
+    public uint BlendFlags;
+    public via.Color Color;
+    public via.Color ColorRange;
+    public float ColorRate;
+    public float Intensity;
+    public float EdgeBlendRate;
+    public float AlphaRate;
+    public uint Flags;
+    public uint ParticleNum;
+    
+    public via.Range RotationX;
+    public via.Range RotationY;
+    public via.Range RotationZ;
+    public via.Range SizeScalar;
+    public via.Range Width;
+    public via.Range Height;
+    public AxisXYZ OrientDirectionUpVector;
+
+    /*
     public uint unkn0;
 	[RszVersionExact(EfxVersion.RE3, EfxVersion.RE8, EfxVersion.RERT)]
 	public uint unkn1;
@@ -244,6 +251,7 @@ public partial class EFXAttributeTypeGpuPolygon : EFXAttribute
     public float unkn20;
 	[RszVersion(EfxVersion.DD2)] public float dd2_unkn1;
 	[RszVersion(EfxVersion.RE4)] public uint re_unkn3;
+    */
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuPolygonExpression, EfxVersion.DD2)]

@@ -1,5 +1,7 @@
 using ReeLib.Efx.Structs.Common;
+using ReeLib.Efx.Enums;
 using ReeLib.InternalAttributes;
+using System.Numerics;
 
 namespace ReeLib.Efx.Structs.Main;
 
@@ -8,22 +10,20 @@ public partial class EFXAttributeTypeBillboard2D : ReeLib.Efx.EFXAttribute
 {
     public EFXAttributeTypeBillboard2D() : base(EfxAttributeType.TypeBillboard2D) { }
 
-    public uint unkn0;
-    public via.Color unkn1;
-    public via.Color unkn2;
-    public float unkn3;
-    public float unkn4;
-    public float unkn5;
-    public float unkn6;
-    public float unkn7;
-    public float unkn8;
-    public float unkn9;
-    public float unkn10;
-    public float unkn11;
-    public float unkn12;
-    public float unkn13;
-    public float unkn14;
-    public uint unkn15;
+    public uint Flags;
+    public via.Color Color;
+    public via.Color ColorRange;
+    public float ColorRate;
+    public float Intensity;
+    public float EdgeBlendRange;
+    public float AlphaRate;
+
+    public via.Range Rotation;
+    public via.Range SizeScalar;
+    public via.Range SizeX;
+    public via.Range SizeY;
+    public Repeat Repeat;
+    
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeBillboard2DExpression, EfxVersion.RE7, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
@@ -65,30 +65,29 @@ public partial class EFXAttributeTypeBillboard3D : EFXAttribute
 {
 	public EFXAttributeTypeBillboard3D() : base(EfxAttributeType.TypeBillboard3D) { }
 
-	public uint unkn1;
-	public via.Color color0;
-	public via.Color color1;
-	public float unknOpacityValue;
+	public uint Flags;
+	public via.Color Color;
+	public via.Color ColorRange;
+	public float ColorRate;
+    public float Intensity;
+    public float AlphaRate;
+    public float EdgeBlendRange;
+    
 
-	public float ColorRate; // 1
-	public float AlphaRate;
-	public float Rotation;
-	public float RotationVariation;
-	public float SizeScaler;
-	public float SizeScalerVariation;
-	public float SizeX;
-	public float SizeXVariation;
-	public float SizeY;
-	public float SizeYVariation; // 10
+	public via.Range Rotation;
+    public via.Range SizeScalar;
+    public via.Range SizeX;
+    public via.Range SizeY;
 
-    public float unkn13;
-	[RszVersion(EfxVersion.RERT)]
-	public float sb_unkn0;
+    ShadowType ShadowType;
+    [RszVersion(EfxVersion.RERT,EndAt = nameof(Reserved))]
+    public bool ParticleIgnoreScale;
+    public bool EnableGroupColor;
+    public bool OcclusionByParticleShadow;
+    public bool Reserved;
 
-	public uint unkn14;
-    [RszVersion(EfxVersion.RE2, EndAt = nameof(unkn16))]
-    public float unkn15;
-	public float unkn16;
+    [RszVersion(EfxVersion.RE2)]
+    public via.Range Offset;
 
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeBillboard3DExpression, EfxVersion.DMC5, EfxVersion.RE4)]
@@ -149,21 +148,16 @@ public partial class EFXAttributeTypeBillboard3DMaterial : EFXAttribute
 {
 	public EFXAttributeTypeBillboard3DMaterial() : base(EfxAttributeType.TypeBillboard3DMaterial) { }
 
-	public uint ukn0;
-	public via.Color ukn1;
-	public via.Color ukn2;
-	public float ukn3;
-	public float ukn4;
-	public float ukn5;
-	public float ukn6;
-	public float ukn7;
-	public float ukn8;
-	public float ukn9;
-	public float ukn10;
-	public float ukn11;
-	public float ukn12;
+	public uint Flags;
+	public via.Color Color;
+	public via.Color ColorRange;
+    public via.Range Rotation;
+    public via.Range SizeScalar;
+    public via.Range SizeX;
+    public via.Range SizeY;
+    public via.Range Offset;
 
-	[RszConstructorParams(nameof(Version)), RszSwitch(
+    [RszConstructorParams(nameof(Version)), RszSwitch(
 		nameof(Version), ">=", EfxVersion.DD2, typeof(EfxMaterialStructV2),
 		typeof(EfxMaterialStructV1)
 	)]
@@ -219,83 +213,45 @@ public partial class EFXAttributeTypeNodeBillboard : EFXAttribute
 {
 	public EFXAttributeTypeNodeBillboard() : base(EfxAttributeType.TypeNodeBillboard) { }
 
-	public uint unkn1_0;
-	public uint unkn1_1;
-	public uint unkn1_2;
-	[RszVersion(EfxVersion.RE2)]
-	public uint unkn1_3;
-	public float unkn1_4;
-	public float unkn1_5;
-	public float unkn1_6;
-	public float unkn1_7;
-	public float unkn1_8;
-	public float unkn1_9;
+    //TODO FIX for old games
+    public uint Flags;
+    public uint BlendType;
+    public NodeBillboardType Type;
+    public uint MaxParticles;
 
-	public via.Color color1;
-	[RszVersion(EfxVersion.RE2)]
-	public via.Color color2;
-	public float unkn2_1;
-	[RszVersion(EfxVersion.RE2, EndAt = nameof(re2_unkn1_2))]
-	public float re2_unkn1_1;
-	public float re2_unkn1_2;
-	public float unkn2_2;
-	public float unkn2_3;
-	public float unkn2_4;
-	public float unkn2_5;
-	public float unkn2_6;
-	public float unkn2_7;
+    public Vector3 Area0Position;
+    public Vector3 Area0Size;
+    public via.Color Area0Color;
+    public via.Color Area0BlendColor;
+    public Vector3 Area0BlendParam;
 
-	public via.Color color3;
-	[RszVersion(EfxVersion.RE2)]
-	public via.Color color4;
-	public float unkn3_1;
-	[RszVersion(EfxVersion.RE2, EndAt = nameof(re2_unkn2_2))]
-	public float re2_unkn2_1;
-	public float re2_unkn2_2;
-	public float unkn3_2;
-	public float unkn3_3;
-	public float unkn3_4;
-	public float unkn3_5;
-	public float unkn3_6;
-	public float unkn3_7;
 
-	public via.Color color5;
-	[RszVersion(EfxVersion.RE2)]
-	public via.Color color6;
-	public float unkn4_1;
-	[RszVersion(EfxVersion.RE2, EndAt = nameof(re2_unkn3_2))]
-	public float re2_unkn3_1;
-	public float re2_unkn3_2;
-	public float unkn4_2;
-	public float unkn4_3;
-	public float unkn4_4;
-	public float unkn4_5;
-	public float unkn4_6;
-	public float unkn4_7;
+    public Vector3 Area1Position;
+    public Vector3 Area1Size;
+    public via.Color Area1Color;
+    public via.Color Area1BlendColor;
+    public Vector3 Area1BlendParam;
 
-	public via.Color color7;
-	[RszVersion(EfxVersion.RE2)]
-	public via.Color color8;
-	public float unkn5_1;
-	[RszVersion(EfxVersion.RE2, EndAt = nameof(re2_unkn4_2))]
-	public float re2_unkn4_1;
-	public float re2_unkn4_2;
-	public float unkn5_2;
-	public float unkn5_3;
-	public float unkn5_4;
-	public float unkn5_5;
+    public Vector3 Area2Position;
+    public Vector3 Area2Size;
+    public via.Color Area2Color;
+    public via.Color Area2BlendColor;
+    public Vector3 Area2BlendParam;
 
-	public uint unkn1_52;
-	public float unkn1_53;
-	public float unkn1_54;
-	public float unkn1_55;
-	public float unkn1_56;
-	public uint unkn1_57;
-	public uint unkn1_58;
-	[RszVersion(EfxVersion.RERT, EndAt = nameof(unkn1_60))]
-	public uint unkn1_59;
-	public uint unkn1_60;
-	public float unkn1_61;
+    public Vector3 Area3Position;
+    public Vector3 Area3Size;
+    public via.Color Area3Color;
+    public via.Color Area3BlendColor;
+    public Vector3 Area3BlendParam;
+
+    public via.Range ParticleRotation;
+    public via.Range ParticleSize;
+    public uint Stretch;
+    public via.Range StretchSize;
+    public via.Range Speed;
+    public via.RangeI IntervalFrame;
+    public via.RangeI LoopCount;
+    public float alphaRate;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeNodeBillboardExpression, EfxVersion.DMC5, EfxVersion.RERT, EfxVersion.RE4)]
@@ -401,6 +357,24 @@ public partial class EFXAttributeTypeGpuBillboard : EFXAttribute
 {
 	public EFXAttributeTypeGpuBillboard() : base(EfxAttributeType.TypeGpuBillboard) { }
 
+    public uint BlendFlags;
+
+    public via.Color Color;
+    public via.Color ColorRange;
+    public float ColorRate;
+    public float Intensity;
+    public float EdgeBlendRange;
+    public float AlphaRate;
+
+    public uint ParticleNum;
+    public uint Flags;
+    public via.Range Rotation;
+    public via.Range SizeScalar;
+    public via.Range SizeX;
+    public via.Range SizeY;
+    public Vector2 Offset;
+    //TODO Fix for older versions
+    /*
     [RszVersion('<', EfxVersion.RE4)]
 	public uint instanceCount;
 	public uint unkn2;
@@ -431,6 +405,7 @@ public partial class EFXAttributeTypeGpuBillboard : EFXAttribute
 	public float sb_unkn3;
 	public float sb_unkn4;
 	public float sb_unkn5;
+    */
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuBillboardExpression, EfxVersion.DMC5, EfxVersion.RE4)]

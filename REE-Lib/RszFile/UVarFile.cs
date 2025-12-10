@@ -15,6 +15,17 @@ namespace ReeLib.UVar
         public NodeValueType type;
         public object? value;
 
+        public NodeParameter()
+        {
+        }
+
+        public NodeParameter(uint nameHash, NodeValueType type)
+        {
+            this.nameHash = nameHash;
+            this.type = type;
+            ResetValue();
+        }
+
         /// <summary>
         /// A nullable reference to a runtime object instance. Used for cases where parameters refer to objects outside of the UVar file (e.g. motfsm2 expression trees)
         /// </summary>
@@ -46,8 +57,6 @@ namespace ReeLib.UVar
             public const uint Max = 3365636864;
         }
 
-        public override string ToString() => $"[{GetParameterName(nameHash)}] = {value ?? "NULL"}";
-
         public enum NodeValueType : int
         {
             Unknown = 0,
@@ -56,6 +65,19 @@ namespace ReeLib.UVar
             Single = 10,
             Guid = 20,
         }
+
+        public void ResetValue()
+        {
+            value = type switch {
+                NodeValueType.Int32 => 0,
+                NodeValueType.UInt32 => 0u,
+                NodeValueType.Single => 0f,
+                NodeValueType.Guid => new Guid(),
+                _ => 0,
+            };
+        }
+
+        public override string ToString() => $"[{GetParameterName(nameHash)}] = {value ?? "NULL"}";
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -146,6 +168,7 @@ namespace ReeLib.UVar
         public record class NodeParameterInfo(uint nameHash, NodeParameter.NodeValueType valueType)
         {
             public string Name => NodeParameter.GetParameterName(nameHash);
+            public NodeParameter Instantiate() => new NodeParameter(nameHash, valueType);
         }
 
         private record class NodeTypeInfo(string[] inputs, params NodeParameterInfo[] parameters);
@@ -178,8 +201,21 @@ namespace ReeLib.UVar
                 new NodeParameterInfo(NodeParameter.ParameterNameHash.CallbackFunctionID, NodeParameter.NodeValueType.Int32)
             ) },
         };
+        public static readonly string[] NodeTypes = NodeInfos.Keys.ToArray();
 
         public static NodeParameterInfo[] GetParametersForNode(string nodeType) => NodeInfos.GetValueOrDefault(nodeType)?.parameters ?? [];
+        public static UvarNode Create(string type)
+        {
+            if (!NodeInfos.TryGetValue(type, out var info)) {
+                throw new Exception("Unknown UVAR node type " + type);
+            }
+
+            var node = new UvarNode() {
+                Name = type,
+                Parameters = info.parameters.Select(p => p.Instantiate()).ToList()
+            };
+            return node;
+        }
 
         protected override bool DoRead(FileHandler handler)
         {

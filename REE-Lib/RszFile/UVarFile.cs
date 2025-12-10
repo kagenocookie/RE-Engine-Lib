@@ -35,42 +35,24 @@ namespace ReeLib.UVar
 
         public static class ParameterNameHash
         {
-            /// <summary>LogicNode, CompareNode, CalculateNode</summary>
             public const uint Operation = 3248822590;
-
-            /// <summary>ValueNode</summary>
             public const uint Value = 4253840158;
-
-            /// <summary>MultiLogicNode</summary>
             public const uint Count = 2243404683;
-
-            /// <summary>VariableReferenceNode</summary>
             public const uint VariableID = 3595450026;
-
-            /// <summary>CallbackNode</summary>
             public const uint CallbackGuid = 2711667410;
-
-            /// <summary>CallbackNode</summary>
             public const uint CallbackID = 1916175859;
-
-            /// <summary>CallbackNode</summary>
             public const uint CallbackFunctionID = 2855057449;
-
-            /// <summary>ClampNode</summary>
             public const uint Min = 3730297036;
-
-            /// <summary>ClampNode</summary>
             public const uint Max = 3365636864;
         }
 
         public override string ToString() => $"[{GetParameterName(nameHash)}] = {value ?? "NULL"}";
 
-        // note: enum is pure guesswork
         public enum NodeValueType : int
         {
             Unknown = 0,
-            UInt32 = 6, // sometimes a classname hash, sometimes an integer looking value (count, flag, enum?)
-            Int32 = 7, // can also represent enums for LogicNode (LogicOperatorType enum?)
+            UInt32 = 6,
+            Int32 = 7,
             Single = 10,
             Guid = 20,
         }
@@ -91,7 +73,7 @@ namespace ReeLib.UVar
                 case NodeValueType.Single:
                     value = handler.Read<float>();
                     break;
-                case NodeValueType.Guid: // VariableReferenceNode
+                case NodeValueType.Guid:
                     handler.Seek(handler.Read<long>());
                     value = handler.Read<Guid>();
                     break;
@@ -129,6 +111,76 @@ namespace ReeLib.UVar
         public string Name { get; set; } = string.Empty;
         public List<NodeParameter> Parameters = new(1);
 
+        public NodeParameterInfo[] AllowedParameters => GetParametersForNode(Name);
+
+        public NodeParameter? GetParameter(uint paramHash)
+        {
+            foreach (var p in Parameters) {
+                if (p.nameHash == paramHash) return p;
+            }
+            return null;
+        }
+
+        public NodeParameterInfo? GetParameterInfo(uint paramHash)
+        {
+            foreach (var p in AllowedParameters) {
+                if (p.nameHash == paramHash) return p;
+            }
+            return null;
+        }
+
+        public string[] GetNodeInputs()
+        {
+            if (Name == "MultiLogicNode") {
+                var count = GetParameter(NodeParameter.ParameterNameHash.Count)?.value;
+                if (count is not uint n || n < 0) n = 0u;
+                if (!NumberedInputLists.TryGetValue(n, out var list)) {
+                    NumberedInputLists[n] = list = Enumerable.Range(0, (int)n).Select(num => "Arg" + num).ToArray();
+                }
+                return list;
+            }
+            return NodeInfos.GetValueOrDefault(Name)?.inputs ?? [];
+        }
+        private static readonly Dictionary<uint, string[]> NumberedInputLists = new();
+
+        public record class NodeParameterInfo(uint nameHash, NodeParameter.NodeValueType valueType)
+        {
+            public string Name => NodeParameter.GetParameterName(nameHash);
+        }
+
+        private record class NodeTypeInfo(string[] inputs, params NodeParameterInfo[] parameters);
+        private static readonly Dictionary<string, NodeTypeInfo> NodeInfos = new()
+        {
+            { "VariableReferenceNode", new NodeTypeInfo([],
+                new NodeParameterInfo(NodeParameter.ParameterNameHash.VariableID, NodeParameter.NodeValueType.Guid)) },
+            { "ValueNode", new NodeTypeInfo([],
+                new NodeParameterInfo(NodeParameter.ParameterNameHash.Value, NodeParameter.NodeValueType.Single)) },
+            { "NotNode", new NodeTypeInfo(["Input"]) },
+            { "AbsNode", new NodeTypeInfo(["Input"]) },
+            { "CompareNode", new NodeTypeInfo(["Arg1", "Arg2"],
+                new NodeParameterInfo(NodeParameter.ParameterNameHash.Operation, NodeParameter.NodeValueType.Int32)) },
+            { "LogicNode", new NodeTypeInfo(["Arg1", "Arg2"],
+                new NodeParameterInfo(NodeParameter.ParameterNameHash.Operation, NodeParameter.NodeValueType.Int32)) },
+            { "MultiLogicNode", new NodeTypeInfo([],
+                new NodeParameterInfo(NodeParameter.ParameterNameHash.Count, NodeParameter.NodeValueType.UInt32),
+                new NodeParameterInfo(NodeParameter.ParameterNameHash.Operation, NodeParameter.NodeValueType.Int32)
+            ) },
+            { "CalculateNode", new NodeTypeInfo(["Arg1", "Arg2"],
+                new NodeParameterInfo(NodeParameter.ParameterNameHash.Operation, NodeParameter.NodeValueType.Int32)) },
+            { "ClampNode", new NodeTypeInfo(["Value"],
+                new NodeParameterInfo(NodeParameter.ParameterNameHash.Min, NodeParameter.NodeValueType.Single),
+                new NodeParameterInfo(NodeParameter.ParameterNameHash.Max, NodeParameter.NodeValueType.Single)
+            ) },
+            { "LerpNode", new NodeTypeInfo(["Value", "Start", "End"]) },
+            { "CallbackNode", new NodeTypeInfo([],
+                new NodeParameterInfo(NodeParameter.ParameterNameHash.CallbackGuid, NodeParameter.NodeValueType.Guid),
+                new NodeParameterInfo(NodeParameter.ParameterNameHash.CallbackID, NodeParameter.NodeValueType.UInt32),
+                new NodeParameterInfo(NodeParameter.ParameterNameHash.CallbackFunctionID, NodeParameter.NodeValueType.Int32)
+            ) },
+        };
+
+        public static NodeParameterInfo[] GetParametersForNode(string nodeType) => NodeInfos.GetValueOrDefault(nodeType)?.parameters ?? [];
+
         protected override bool DoRead(FileHandler handler)
         {
             var nameOffset = handler.Read<long>();
@@ -143,6 +195,8 @@ namespace ReeLib.UVar
                 using var jumpBack = handler.SeekJumpBack(dataOffset);
                 Parameters.Read(handler, paramCount);
             }
+            DataInterpretationException.DebugWarnIf(!NodeInfos.ContainsKey(Name), Name);
+            DataInterpretationException.DebugWarnIf(Parameters.Any(p => GetParameterInfo(p.nameHash)?.valueType != p.type) == true, Name);
             return true;
         }
 
@@ -215,7 +269,6 @@ namespace ReeLib.UVar
                 {
                     using var _ = handler.SeekJumpBack(relationsOffset);
                     Connections.ReadStructList(handler, connectionCount);
-                    foreach (var conn in Connections) DataInterpretationException.DebugThrowIf(conn.targetId >= Nodes.Count);
                 }
             }
             return true;
@@ -451,11 +504,6 @@ namespace ReeLib.UVar
             if (expressionOffset > 0) {
                 Expression ??= new();
                 Expression.Read(handler, expressionOffset);
-            }
-            if (expressionOffset > 0) {
-                Expression = new UvarExpression();
-                using var _ = handler.SeekJumpBack(expressionOffset);
-                Expression.Read(handler);
             }
             handler.Seek(pos);
             return true;

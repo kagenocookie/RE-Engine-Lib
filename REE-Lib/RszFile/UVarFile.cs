@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
 using ReeLib.Common;
 using ReeLib.UVar;
@@ -30,6 +31,11 @@ namespace ReeLib.UVar
         /// A nullable reference to a runtime object instance. Used for cases where parameters refer to objects outside of the UVar file (e.g. motfsm2 expression trees)
         /// </summary>
         public object? ReferenceObject { get; set; }
+
+        public override NodeParameter Clone()
+        {
+            return new NodeParameter() { nameHash = nameHash, type = type, value = value };
+        }
 
         public static string GetParameterName(uint nameHash) => nameHash switch {
             ParameterNameHash.Operation => nameof(ParameterNameHash.Operation),
@@ -132,6 +138,15 @@ namespace ReeLib.UVar
 
         public string Name { get; set; } = string.Empty;
         public List<NodeParameter> Parameters = new(1);
+
+        public override UvarNode Clone()
+        {
+            return new UvarNode() {
+                nodeId = nodeId,
+                Name = Name,
+                Parameters = Parameters.Select(p => p.Clone()).ToList()
+            };
+        }
 
         public NodeParameterInfo[] AllowedParameters => GetParametersForNode(Name);
 

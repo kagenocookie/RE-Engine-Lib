@@ -164,10 +164,10 @@ namespace ReeLib.Mot
     {
         public ushort boneIndex;
         public TrackFlag trackFlags;
-        public byte uknIndex = byte.MaxValue; // <= re2: always 0, dd2: always 255
-        public uint boneHash;  // MurMur3
-        public float uknFloat;  // always 1.0?
-        public long trackHeaderOffset; // keysPointer
+        public byte uknIndex = byte.MaxValue; // <= re2: always 0, dd2: always 255, other: varying
+        public uint boneHash;
+        public float uknFloat = 1f; // usually 1, but not always
+        public long trackHeaderOffset;
         public string? boneName;
 
         /// <summary>
@@ -2476,6 +2476,10 @@ namespace ReeLib
 
                     clip.ClipHeader.boneIndex = (ushort)bone.Index;
                     clip.ClipHeader.boneName ??= bone.Name;
+                    if (Header.version <= MotVersion.RE2_DMC5)
+                    {
+                        clip.ClipHeader.uknIndex = 0;
+                    }
                 }
             }
 

@@ -14,6 +14,7 @@ namespace ReeLib
         RE4 = 34,
         DD2 = 35,
         MHWilds = 41,
+        Pragmata = 43,
     }
 
     public class GuiFile : BaseFile

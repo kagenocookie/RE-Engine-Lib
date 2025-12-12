@@ -189,7 +189,6 @@ namespace ReeLib
     public class Motfsm2File(RszFileOption option, FileHandler fileHandler) : BaseRszFile(option, fileHandler)
     {
         public const uint Magic = 0x3273666d;
-        public const string Extension2 = ".motfsm2";
 
         public HeaderStruct Header { get; } = new();
         public BhvtFile BhvtFile { get; private set; } = new(option, fileHandler);

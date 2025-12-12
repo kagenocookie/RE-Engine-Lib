@@ -125,7 +125,9 @@ namespace ReeLib
         gtrick,
         apollo,
         drdr,
+        oni2,
         mhwilds,
+        pragmata,
     }
 
 

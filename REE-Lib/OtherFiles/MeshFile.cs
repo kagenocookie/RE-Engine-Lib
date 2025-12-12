@@ -19,7 +19,9 @@ namespace ReeLib.Mesh
 		SF6,
 		DD2_Old,
 		DD2,
+		Onimusha,
 		MHWILDS,
+		Pragmata,
 	}
 
 	[Flags]
@@ -128,7 +130,7 @@ namespace ReeLib.Mesh
 				action.Do(ref blendShapeIndicesOffset);
 				action.Do(ref nameOffsetsOffset);
 			}
-			else if (FormatVersion >= MeshSerializerVersion.RE4 && FormatVersion < MeshSerializerVersion.MHWILDS)
+			else if (FormatVersion >= MeshSerializerVersion.RE4 && FormatVersion < MeshSerializerVersion.Onimusha)
 			{
 				action.Do(ref flags);
 				action.Do(ref uknCount);
@@ -164,7 +166,7 @@ namespace ReeLib.Mesh
 				action.Do(ref verticesOffset);
 				action.Do(ref sf6unkn4);
 			}
-			else if (FormatVersion >= MeshSerializerVersion.MHWILDS)
+			else if (FormatVersion >= MeshSerializerVersion.Onimusha)
 			{
 				action.Do(ref wilds_unkn1);
 				action.Do(ref nameCount);
@@ -803,7 +805,7 @@ namespace ReeLib.Mesh
         {
 			action.Do(ref materialIndex);
 			action.Do(ref bufferIndex);
-			action.Do(Version >= MeshSerializerVersion.MHWILDS, ref ukn1);
+			action.Do(Version >= MeshSerializerVersion.Onimusha, ref ukn1);
 			action.Do(ref indicesCount);
 			action.Do(ref facesIndexOffset);
 			action.Do(ref vertsIndexOffset);
@@ -1658,8 +1660,8 @@ namespace ReeLib
 			{ "RE2/3 RT", new (21041600, 2109108288, MeshSerializerVersion.RE_RT, [GameName.re2rt, GameName.re3rt]) },
 			{ "RE7RT", new (21041600, 220128762, MeshSerializerVersion.RE_RT, [GameName.re7rt]) },
 
-			{ "MHRISE 21061800", new (21061800, 2109148288, MeshSerializerVersion.RE_RT, [GameName.mhrise]) },
-			{ "MHRISE", new (21091000, 2109148288, MeshSerializerVersion.RE_RT, [GameName.mhrise]) },
+			{ "MHRise 21061800", new (21061800, 2109148288, MeshSerializerVersion.RE_RT, [GameName.mhrise]) },
+			{ "MHRise", new (21091000, 2109148288, MeshSerializerVersion.RE_RT, [GameName.mhrise]) },
 			{ "RE8", new (2020091500, 2101050001, MeshSerializerVersion.RE8, [GameName.re8]) },
 
 			{ "RE4", new (220822879, 221108797, MeshSerializerVersion.RE4, [GameName.re4]) },
@@ -1667,7 +1669,9 @@ namespace ReeLib
 			{ "DD2", new (230517984, 240423143, MeshSerializerVersion.DD2, [GameName.dd2]) },
 			{ "DD2 old", new (230517984, 231011879, MeshSerializerVersion.DD2_Old, [GameName.dd2]) },
 
-			{ "MHWILDS", new (240704828, 241111606, MeshSerializerVersion.MHWILDS, [GameName.mhwilds]) }, // currently unsupported
+			{ "ONI2", new (240704828, 240827123, MeshSerializerVersion.Onimusha, [GameName.oni2]) },
+			{ "MHWilds", new (240704828, 241111606, MeshSerializerVersion.MHWILDS, [GameName.mhwilds]) },
+			{ "Pragmata", new (250925211, 250707828, MeshSerializerVersion.Pragmata, [GameName.pragmata]) },
 		};
 
 		public static readonly string[] AllVersionConfigs = Versions.OrderBy(kv => kv.Value.serializerVersion).Select(kv => kv.Key).ToArray();

@@ -5,8 +5,8 @@ namespace ReeLib.Tex
 	public enum TexSerializerVersion
 	{
 		Unknown,
-		RE7_8,
-        MHRise_28,
+		RE7,
+        MHRise,
         MHWilds,
 	}
 
@@ -44,7 +44,7 @@ namespace ReeLib.Tex
             action.Do(ref height);
             action.Do(ref depth);
             var Version = TexFile.GetSerializerVersion(version, action.Handler.FileVersion);
-            if (Version >= TexSerializerVersion.MHRise_28) {
+            if (Version >= TexSerializerVersion.MHRise) {
                 // TODO some tex have 0 imageCount but still contain data (re4 debugsplatindex.tex.143221013) and mip header size 17
                 action.Do(ref imageCount);
                 action.Do(ref mipHeaderSize);
@@ -57,7 +57,7 @@ namespace ReeLib.Tex
             action.Do(ref swizzleControl);
             action.Do(ref cubemapMarker);
             action.Do(ref flags);
-            if (Version >= TexSerializerVersion.MHRise_28) {
+            if (Version >= TexSerializerVersion.MHRise) {
                 action.Do(ref swizzleHeightDepth);
                 action.Do(ref swizzleWidth);
                 action.Do(ref null1);
@@ -117,22 +117,24 @@ namespace ReeLib
 
         private static readonly Dictionary<string, TexVersionConfig> Versions = new()
 		{
-			{ "RE7", new (8, TexSerializerVersion.RE7_8, [GameName.re7]) },
-			{ "RE2", new (10, TexSerializerVersion.RE7_8, [GameName.re2]) },
-			{ "DMC5", new (11, TexSerializerVersion.RE7_8, [GameName.dmc5]) },
-			{ "RE3", new (190820018, TexSerializerVersion.RE7_8, [GameName.re3]) },
+			{ "RE7", new (8, TexSerializerVersion.RE7, [GameName.re7]) },
+			{ "RE2", new (10, TexSerializerVersion.RE7, [GameName.re2]) },
+			{ "DMC5", new (11, TexSerializerVersion.RE7, [GameName.dmc5]) },
+			{ "RE3", new (190820018, TexSerializerVersion.RE7, [GameName.re3]) },
 
-			{ "MHRISE", new (28, TexSerializerVersion.MHRise_28, [GameName.mhrise]) },
-			{ "RE8", new (30, TexSerializerVersion.MHRise_28, [GameName.re8]) },
-			{ "RE2/3 RT", new (34, TexSerializerVersion.MHRise_28, [GameName.re2rt, GameName.re3rt]) },
-			{ "RE7RT", new (35, TexSerializerVersion.MHRise_28, [GameName.re7rt]) },
+			{ "MHRISE", new (28, TexSerializerVersion.MHRise, [GameName.mhrise]) },
+			{ "RE8", new (30, TexSerializerVersion.MHRise, [GameName.re8]) },
+			{ "RE2/3 RT", new (34, TexSerializerVersion.MHRise, [GameName.re2rt, GameName.re3rt]) },
+			{ "RE7RT", new (35, TexSerializerVersion.MHRise, [GameName.re7rt]) },
 
-			{ "RE4 / SF6", new (143221013, TexSerializerVersion.MHRise_28, [GameName.re4, GameName.sf6]) },
+			{ "RE4 / SF6", new (143221013, TexSerializerVersion.MHRise, [GameName.re4, GameName.sf6]) },
 
-			{ "DD2", new (760230703, TexSerializerVersion.MHRise_28, [GameName.dd2]) },
+			{ "DD2", new (760230703, TexSerializerVersion.MHRise, [GameName.dd2]) },
 
-			{ "DR", new (240606151, TexSerializerVersion.MHRise_28, [GameName.drdr]) },
+			{ "DR", new (240606151, TexSerializerVersion.MHRise, [GameName.drdr]) },
+			{ "ONI2", new (240701001, TexSerializerVersion.MHRise, [GameName.oni2]) },
 			{ "MHWILDS", new (241106027, TexSerializerVersion.MHWilds, [GameName.mhwilds]) }, // TODO support tex gdeflate
+			{ "PRAGMATA", new (250813143, TexSerializerVersion.MHRise, [GameName.pragmata]) },
 		};
 
 		public static readonly string[] AllVersionConfigs = Versions.OrderBy(kv => kv.Value.serializerVersion).Select(kv => kv.Key).ToArray();
@@ -156,6 +158,16 @@ namespace ReeLib
 		public static TexSerializerVersion GetSerializerVersion(string exportConfig) => Versions.TryGetValue(exportConfig, out var cfg) ? cfg.serializerVersion : TexSerializerVersion.Unknown;
 
         public static int GetFileExtension(string exportConfig) => Versions.TryGetValue(exportConfig, out var cfg) ? cfg.fileVersion : 0;
+
+        /// <summary>
+        /// Whether this tex file's current file version expects the texture data to be GDeflate compressed.
+        /// </summary>
+        public bool MustBeCompressed => CurrentSerializerVersion == TexSerializerVersion.MHWilds;
+
+        /// <summary>
+        /// Whether this tex file's texture data is currently GDeflate compressed.
+        /// </summary>
+        public bool IsCompressed => MustBeCompressed && TotalTextureDataLength > FileHandler.FileSize();
 
         public TexFile(FileHandler fileHandler) : base(fileHandler)
         {
@@ -207,8 +219,7 @@ namespace ReeLib
                 Mips.Add(mip);
             }
 
-            var serializerVersion = CurrentSerializerVersion;
-            if (serializerVersion >= TexSerializerVersion.MHWilds && Mips.Count > 0)
+            if (MustBeCompressed && Mips.Count > 0)
             {
                 handler.Seek(Mips[0].offset);
                 var compressedSize = (int)(handler.FileSize() - handler.Tell());

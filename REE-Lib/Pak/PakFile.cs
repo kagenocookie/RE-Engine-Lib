@@ -38,6 +38,8 @@ namespace ReeLib.Pak
     {
         EncryptEntryList = 8,
         ExtraInteger = 16,
+        UknPragmata = 32,
+        Pragmata = EncryptEntryList|UknPragmata,
         All = EncryptEntryList|ExtraInteger,
     }
 
@@ -248,6 +250,7 @@ namespace ReeLib
         {
             (4, 0),
             (4, 1),
+            (4, 2),
             (2, 0)
         };
 
@@ -279,7 +282,7 @@ namespace ReeLib
                 throw new InvalidDataException($"Unsupported PAK version {Header.majorVersion}.{Header.minorVersion}");
             }
 
-            if (Header.featureFlags != 0 && Header.featureFlags != PakFeatureFlags.EncryptEntryList && Header.featureFlags != PakFeatureFlags.All)
+            if (Header.featureFlags != 0 && Header.featureFlags != PakFeatureFlags.EncryptEntryList && Header.featureFlags != PakFeatureFlags.All && Header.featureFlags != PakFeatureFlags.Pragmata)
             {
                 throw new InvalidDataException($"Unsupported PAK encryption type {Header.featureFlags}");
             }

@@ -18,6 +18,7 @@ namespace ReeLib.Motlist
         RE4 = 663,
         DD2 = 751,
         MHWILDS = 992,
+        Pragmata = 1057,
     }
 
     public static class MotlistExtensions

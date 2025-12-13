@@ -87,7 +87,7 @@ public partial class PakReader
                     searchedPaths.Add(hash, file);
                 }
             } else {
-                searchedPaths.Add(PakUtils.GetFilepathHash(file), file);
+                searchedPaths.TryAdd(PakUtils.GetFilepathHash(file), file);
             }
 
         }

@@ -158,7 +158,7 @@ namespace ReeLib.Clip
                     handler.Write((ushort)Value);
                     break;
                 case PropertyType.S32:
-                    handler.Write((int)Value);
+                    handler.Write((long)(int)Value);
                     break;
                 case PropertyType.U32:
                     handler.Write((uint)Value);
@@ -414,6 +414,7 @@ namespace ReeLib.Clip
         public InterpolationType interpolation;
         public bool instanceValue;
         public uint unknown; // might be some sort of frame length?
+        public ulong hermiteDataIndex;
         public object Value { get; set; } = null!;
 
         public PropertyType PropertyType { get; set; }
@@ -485,12 +486,21 @@ namespace ReeLib.Clip
             handler.Seek(Start + 16);
             PropertyType = property.Info.DataType;
             Value = PropertyType.Read(handler, offsets);
+            handler.Seek(Start + 24);
+            handler.Read(ref hermiteDataIndex);
+            if (Version < ClipVersion.RE3) {
+                handler.ReadNull(8);
+            }
         }
 
         public void WriteValue(FileHandler handler)
         {
             handler.Seek(Start + 16);
             PropertyType.Write(Value, handler, true);
+            handler.Write(ref hermiteDataIndex);
+            if (Version < ClipVersion.RE3) {
+                handler.WriteNull(8);
+            }
         }
 
         public override string ToString() => $"[Frame {frame}]: {Value}";
@@ -807,6 +817,7 @@ namespace ReeLib.Clip
             else
             {
                 Name = handler.ReadAsciiString(asciiOffset + nameOffset);
+                DataInterpretationException.DebugWarnIf(handler.ReadWString(unicodeOffset + nameOffset * 2) != Name);
             }
         }
 
@@ -820,7 +831,9 @@ namespace ReeLib.Clip
             else
             {
                 var stringItem = handler.AsciiStringTableAdd(Name, false);
+                var stringItemUnicode = handler.StringTableAdd(Name, false);
                 nameOffset = stringItem.TableOffset;
+                DataInterpretationException.DebugWarnIf(stringItemUnicode.TableOffset != nameOffset);
             }
         }
 

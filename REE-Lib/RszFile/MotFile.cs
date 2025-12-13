@@ -195,6 +195,7 @@ namespace ReeLib.Mot
             {
                 handler.Read(ref uknFloat);
                 handler.ReadNull(4);
+                DataInterpretationException.DebugWarnIf(uknFloat <= 0 || uknFloat > 1);
             }
 
             if (MotVersion <= MotVersion.RE2_DMC5)
@@ -372,7 +373,8 @@ namespace ReeLib.Mot
                     if (TranslationCompressionType is Vector3Decompression.LoadVector3s5BitB or Vector3Decompression.LoadVector3s10BitB)
                         return 6;
 
-                    if (TranslationCompressionType is Vector3Decompression.LoadVector3sXAxis16Bit or Vector3Decompression.LoadVector3sYAxis16Bit or Vector3Decompression.LoadVector3sZAxis16Bit)
+                    if (TranslationCompressionType is Vector3Decompression.LoadVector3sXAxis16Bit or Vector3Decompression.LoadVector3sYAxis16Bit or Vector3Decompression.LoadVector3sZAxis16Bit
+                        or Vector3Decompression.LoadVector3sXAxis or Vector3Decompression.LoadVector3sYAxis or Vector3Decompression.LoadVector3sZAxis)
                         return 4;
                 }
                 if (TrackType == TrackValueType.Float)
@@ -883,9 +885,9 @@ namespace ReeLib.Mot
                     case Vector3Decompression.LoadVector3s21BitB:
                         {
                             var data =
-                                ((int)MathF.Round((translation.X - unpackData[3]) / unpackData[0]) & 0x1F_FFFF) << 00 |
-                                ((int)MathF.Round((translation.Y - unpackData[4]) / unpackData[1]) & 0x1F_FFFF) << 21 |
-                                ((int)MathF.Round((translation.Z - unpackData[5]) / unpackData[2]) & 0x1F_FFFF) << 42;
+                                ((ulong)MathF.Round((translation.X - unpackData[3]) / unpackData[0] * 0x1F_FFFF) << 00) |
+                                ((ulong)MathF.Round((translation.Y - unpackData[4]) / unpackData[1] * 0x1F_FFFF) << 21) |
+                                ((ulong)MathF.Round((translation.Z - unpackData[5]) / unpackData[2] * 0x1F_FFFF) << 42);
                             handler.Write((ulong)data);
                             break;
                         }
@@ -1810,9 +1812,10 @@ namespace ReeLib.Mot
             handler.WriteNull(8);
 
             var nodesOffset = handler.Tell() + Nodes.Count * 32;
-            var dataOffset = nodesOffset + Nodes.Sum(n => n.SimpleValues.Count * 16 + n.MultiValues.Count * 24);
+            var dataOffset = nodesOffset + Nodes.Sum(n => n.SimpleValues.Count * 16 + n.MultiValues.Count * 24 + (n.MultiValues.Count % 2 == 0 ? 0 : 8));
             foreach (var inner in Nodes)
             {
+                nodesOffset = Utils.Align16((int)nodesOffset);
                 var start = handler.Tell();
                 handler.Write(nodesOffset);
                 handler.Skip(8);
@@ -1822,6 +1825,7 @@ namespace ReeLib.Mot
                 handler.Write(ref inner.nameHash2);
                 var nodeEnd = handler.Tell();
                 handler.Seek(nodesOffset);
+                dataOffset = Utils.Align16((int)dataOffset);
                 foreach (var left in inner.SimpleValues)
                 {
                     WriteValue(handler, ref dataOffset, left.valueType, left.valueCount, left.value);
@@ -1835,6 +1839,7 @@ namespace ReeLib.Mot
                 handler.Write(start + 8, nodesOffset);
                 foreach (var multi in inner.MultiValues)
                 {
+                    dataOffset = Utils.Align16((int)dataOffset);
                     if (multi.valueCount > 0)
                     {
                         WriteValue(handler, ref dataOffset, (byte)multi.valueType, (byte)multi.valueCount, multi.value);
@@ -1853,6 +1858,8 @@ namespace ReeLib.Mot
             }
 
             handler.Seek(dataOffset);
+            handler.Align(4);
+            handler.StringTableFlush();
             handler.Align(16);
             handler.Write(8, handler.Tell());
             HashMapping.Write(handler);
@@ -1964,7 +1971,6 @@ namespace ReeLib.Mot
                 default:
                     throw new NotImplementedException("Unsupported mot property tree value type " + valueType);
             }
-            handler.Align(16);
             dataOffset = handler.Tell();
         }
     }
@@ -2102,6 +2108,7 @@ namespace ReeLib
                 clip.ClipHeader.Write(handler);
             }
 
+            handler.Align(16);
             foreach (var clip in BoneClips)
             {
                 clip.ClipHeader.trackHeaderOffset = handler.Tell();

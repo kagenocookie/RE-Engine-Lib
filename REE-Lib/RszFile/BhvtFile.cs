@@ -1073,7 +1073,8 @@ namespace ReeLib
                     foreach (var act in node.Actions.Actions)
                     {
                         // the object values aren't always identical so matching the right single instance matters
-                        // the exID isn't 100% indicative because it's sometimes > 0 while there's only one action with the given ID
+                        // maybe the ID should be treated as pointing to a list instead of a single instance? though wouldn't make sense for how the object indexes line up in vanilla files
+                        // the exID isn't indicative either because it's sometimes > 0 while there's only one action with the given ID, or greater than action count
                         // so idk what that actually represents here, attributes?
                         RszInstance matched;
                         if (act.Action == 0) matched = actions[0];

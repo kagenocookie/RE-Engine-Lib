@@ -28,33 +28,15 @@ namespace ReeLib
 
         public UserFile(RszFileOption option, FileHandler fileHandler) : base(option, fileHandler)
         {
-            if (fileHandler.FilePath != null)
-            {
-                RszUtils.CheckFileExtension(fileHandler.FilePath, Extension, GetVersionExt());
-            }
             RSZ = new RSZFile(option, fileHandler);
         }
 
         public UserFile(RszFileOption option, FileHandler fileHandler, RSZFile rszFile) : base(option, fileHandler)
         {
-            if (fileHandler.FilePath != null)
-            {
-                RszUtils.CheckFileExtension(fileHandler.FilePath, Extension, GetVersionExt());
-            }
             RSZ = rszFile;
         }
 
         public const uint Magic = 0x525355;
-        public const string Extension = "user";
-
-        public int GetVersionExt()
-        {
-            return Option.GameName switch
-            {
-                GameName.mhwilds => 3,
-                _ => 2
-            };
-        }
 
         public override RSZFile? GetRSZ() => RSZ;
 

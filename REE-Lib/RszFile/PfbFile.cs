@@ -164,35 +164,9 @@ namespace ReeLib
         public PfbFile(RszFileOption option, FileHandler fileHandler) : base(option, fileHandler)
         {
             RSZ = new RSZFile(option, fileHandler);
-            if (fileHandler.FilePath != null)
-            {
-                RszUtils.CheckFileExtension(fileHandler.FilePath, Extension2, GetVersionExt());
-            }
         }
 
         public const uint Magic = 0x424650;
-        public const string Extension2 = "pfb";
-
-        public int GetVersionExt()
-        {
-            return Option.GameName switch
-            {
-                GameName.re2 => 16,
-                GameName.re2rt => 17,
-                GameName.re3 => 17,
-                GameName.re3rt => 17,
-                GameName.re4 => 17,
-                GameName.re8 => 17,
-                GameName.re7 => 16,
-                GameName.re7rt => 17,
-                GameName.dmc5 =>16,
-                GameName.mhrise => 17,
-                GameName.sf6 => 17,
-                GameName.dd2 => 17,
-                GameName.mhwilds => 18,
-                _ => 0
-            };
-        }
 
         public override RSZFile? GetRSZ() => RSZ;
 

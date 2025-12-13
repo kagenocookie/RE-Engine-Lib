@@ -9,7 +9,7 @@ using ReeLib.Il2cpp;
 
 public static class FileExtensionTools
 {
-    public static void ExtractAllFileExtensionCacheData(IEnumerable<GameIdentifier> games)
+    public static void ExtractAllFileExtensionCacheData(IEnumerable<GameIdentifier> games, Func<GameIdentifier, string?>? listFileProvider = null)
     {
         Dictionary<string, FileExtensionCache> dict = new();
         foreach (var item in games) {
@@ -17,6 +17,10 @@ public static class FileExtensionTools
 
             Log.Info("Handling file extensions for game " + item);
             var config = GameConfig.CreateFromRepository(item.ToString());
+            var listOverride = listFileProvider?.Invoke(item);
+            if (listOverride != null && File.Exists(listOverride)) {
+                config.Resources.LocalPaths.FileList = listOverride;
+            }
             var env = new Workspace(config);
             if (env.ListFile == null) {
                 Log.Info("No file list available for game " + item);

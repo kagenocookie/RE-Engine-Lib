@@ -100,35 +100,5 @@ namespace ReeLib
             resourcesInfos.Clear();
             ScanRszForResources(resourcesInfos, rsz);
         }
-
-        public static void GetFileExtension(ReadOnlySpan<char> path, out ReadOnlySpan<char> extension, out ReadOnlySpan<char> version)
-        {
-            version = Path.GetExtension(path);
-            extension = Path.GetExtension(path[0..^version.Length]);
-        }
-
-        public static int GetFileExtensionVersion(ReadOnlySpan<char> path)
-        {
-            var versionStr = Path.GetExtension(path);
-            if (!versionStr.IsEmpty)
-            {
-                versionStr = versionStr[1..];
-            }
-            return int.TryParse(versionStr, out var version) ? version : 0;
-        }
-
-        public static void CheckFileExtension(ReadOnlySpan<char> path, string extension, int version)
-        {
-            var realExtension = PathUtils.GetFilenameExtensionWithoutSuffixes(path);
-            var realVersion = PathUtils.ParseFileFormat(path).version;
-            if (!realExtension.SequenceEqual(extension))
-            {
-                Log.Error($"extension should be {extension}, got {realExtension}");
-            }
-            if (version != 0 && realVersion != version)
-            {
-                Log.Error($"extension should be {version}, got {realVersion}");
-            }
-        }
     }
 }

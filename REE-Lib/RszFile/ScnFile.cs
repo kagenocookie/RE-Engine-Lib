@@ -343,35 +343,9 @@ namespace ReeLib
         public ScnFile(RszFileOption option, FileHandler fileHandler) : base(option, fileHandler)
         {
             RSZ = new RSZFile(option, fileHandler);
-            if (fileHandler.FilePath != null)
-            {
-                RszUtils.CheckFileExtension(fileHandler.FilePath, Extension2, GetVersionExt());
-            }
         }
 
         public const uint Magic = 0x4e4353;
-        public const string Extension2 = "scn";
-
-        public int GetVersionExt()
-        {
-            return Option.GameName switch
-            {
-                GameName.re2 => 19,
-                GameName.re2rt => 20,
-                GameName.re3 => 20,
-                GameName.re3rt => 20,
-                GameName.re4 => 20,
-                GameName.re8 => 20,
-                GameName.re7 => 18,
-                GameName.re7rt => 20,
-                GameName.dmc5 => 19,
-                GameName.mhrise => 20,
-                GameName.sf6 => 20,
-                GameName.dd2 => 20,
-                GameName.mhwilds => 21,
-                _ => 0
-            };
-        }
 
         public override RSZFile? GetRSZ() => RSZ;
 

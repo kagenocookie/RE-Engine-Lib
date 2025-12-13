@@ -75,9 +75,20 @@ public abstract class EnumDescriptor
     public abstract void SetDisplayLabels(IEnumerable<KeyValuePair<JsonElement, string>> labels);
     public abstract void SetDisplayLabel(string label, string name);
     public abstract void SetDisplayLabels(IEnumerable<KeyValuePair<string, string>> labels);
+
+    protected static readonly Dictionary<Type, ulong> MaskBitsDict = new Dictionary<Type, ulong>() {
+        { typeof(long), ulong.MaxValue },
+        { typeof(ulong), ulong.MaxValue },
+        { typeof(int), uint.MaxValue },
+        { typeof(uint), uint.MaxValue },
+        { typeof(ushort), ushort.MaxValue },
+        { typeof(short), ushort.MaxValue },
+        { typeof(byte), byte.MaxValue },
+        { typeof(sbyte), byte.MaxValue },
+    };
 }
 
-public sealed class EnumDescriptor<T> : EnumDescriptor where T : struct, IBinaryInteger<T>, IBitwiseOperators<T, T, T>
+public sealed class EnumDescriptor<T> : EnumDescriptor where T : struct, IBinaryInteger<T>, IBitwiseOperators<T, T, T>, IMinMaxValue<T>, ISubtractionOperators<T, T, T>
 {
     public readonly Dictionary<T, string> ValueToLabels = new();
     public readonly Dictionary<T, string> ValueToDisplayLabels = new();
@@ -86,8 +97,8 @@ public sealed class EnumDescriptor<T> : EnumDescriptor where T : struct, IBinary
 
     // need to use Convert.ChangeType because we aren't always getting the same type (e.g. rsz says uint, enum say int)
     public override bool HasFlag(object number, object flag) => ((T)Convert.ChangeType(number, typeof(T)) & (T)flag) != T.Zero;
-    public override object AddFlag(object number, object flag) => Convert.ChangeType( ((T)Convert.ChangeType(number, typeof(T)) | (T)flag), number.GetType());
-    public override object RemoveFlag(object number, object flag) => Convert.ChangeType( ((T)Convert.ChangeType(number, typeof(T)) & (~(T)flag)), number.GetType());
+    public override object AddFlag(object number, object flag) => Convert.ChangeType(((T)Convert.ChangeType(number, typeof(T)) | (T)flag), number.GetType());
+    public override object RemoveFlag(object number, object flag) => Convert.ChangeType(((T)Convert.ChangeType(number, typeof(T)) & (~(T)flag)), number.GetType());
 
     public override Type BackingType => typeof(T);
     public override IEnumerable<EnumCacheItem> CacheItems => ValueToLabels
@@ -95,6 +106,8 @@ public sealed class EnumDescriptor<T> : EnumDescriptor where T : struct, IBinary
 
     public static readonly EnumDescriptor<T> Default = new();
     private static readonly object DefaultValue = default(T);
+
+    private static ulong MaskBits => MaskBitsDict[typeof(T)];
 
     public override string GetLabel(object value) => ValueToLabels.TryGetValue((T)value, out var val) ? val : string.Empty;
     public override string GetDisplayLabel(object value) => ValueToDisplayLabels.TryGetValue((T)value, out var val) ? val : ValueToLabels.TryGetValue((T)value, out val) ? val : string.Empty;
@@ -201,35 +214,61 @@ public sealed class EnumDescriptor<T> : EnumDescriptor where T : struct, IBinary
         _displayLabelsArray = null;
     }
 
+    private static T CreateSafeSignedConverter(JsonElement e)
+    {
+        try {
+            return (T)Convert.ChangeType(e.GetInt64(), typeof(T));
+        } catch {
+            // need to separately handle some cases - raw REF il2cpp dump always prints as unsigned, whereas we're storing them with correct sign in the cache
+            // starting with pragmata, some S32 enums even get dumped as U64 so we need to also hack the extra bits away
+            try {
+                return (T)Convert.ChangeType((long)((ulong)e.GetInt64() & MaskBits), typeof(T));
+            } catch {
+                var val = e.GetUInt64() & MaskBits;
+                if (val.CompareTo(Convert.ToUInt64(T.MaxValue)) > 0) {
+                    var valueBits = unchecked(MaskBits >> 1);
+                    return (T)Convert.ChangeType(val & valueBits, typeof(T)) | T.MinValue;
+                } else {
+                    return (T)Convert.ChangeType((long)val, typeof(T));
+                }
+            }
+        }
+    }
+
+    private static T CreateSafeUnsignedConverter(JsonElement e)
+    {
+        return (T)Convert.ChangeType(e.GetUInt64() & MaskBits, typeof(T));
+    }
+
     private static void CreateConverter()
     {
-        // nasty; maybe add individual enum descriptor types eventually
+#if DEBUG
+        if (typeof(T) == typeof(System.Int64) || typeof(T) == typeof(System.Int32) || typeof(T) == typeof(System.Int16) || typeof(T) == typeof(System.SByte))
+            converter = CreateSafeSignedConverter;
+        else
+            converter = CreateSafeUnsignedConverter;
+#else
+        // for release builds prioritize performance, assume the il2cpp cache is already set up and usable, so there's no extra hacks needed
         if (typeof(T) == typeof(System.Int64)) {
-            converter = static (e) => {
-                // need to handle both cases - raw il2cpp dump always prints as unsigned, whereas we're storing them with correct sign in the cache
-                try {
-                    return (T)(object)(long)e.GetInt64();
-                } catch {
-                    return (T)(object)(long)e.GetUInt64();
-                }
-            };
+            converter = static (e) => (T)(object)(long)e.GetInt64();
         } else if (typeof(T) == typeof(System.UInt64)) {
-            converter = static (e) => (T)(object)e.GetUInt64();
+            converter = static (e) => (T)(object)(ulong)e.GetUInt64();
         } else if (typeof(T) == typeof(System.Int32)) {
             converter = static (e) => (T)(object)(int)e.GetInt64();
         } else if (typeof(T) == typeof(System.UInt32)) {
-            converter = static (e) => (T)(object)e.GetUInt32();
+            converter = static (e) => (T)(object)(uint)e.GetUInt32();
         } else if (typeof(T) == typeof(System.Int16)) {
             converter = static (e) => (T)(object)(short)e.GetInt32();
         } else if (typeof(T) == typeof(System.UInt16)) {
-            converter = static (e) => (T)(object)e.GetUInt16();
+            converter = static (e) => (T)(object)(ushort)e.GetUInt16();
         } else if (typeof(T) == typeof(System.SByte)) {
             converter = static (e) => (T)(object)(sbyte)e.GetInt32();
         } else if (typeof(T) == typeof(System.Byte)) {
-            converter = static (e) => (T)(object)e.GetByte();
+            converter = static (e) => (T)(object)(byte)e.GetInt32();
         } else {
             converter = static (e) => default(T);
         }
+#endif
     }
 
     public override void ClearDisplayLabels()

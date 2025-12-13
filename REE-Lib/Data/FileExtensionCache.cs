@@ -53,6 +53,7 @@ public sealed partial class FileExtensionCache
 
     public void HandleFilepath(string filepath)
     {
+        filepath = filepath.ToLowerInvariant();
         var isLocalized = false;
         string? locale = null;
         var hasStm = false;

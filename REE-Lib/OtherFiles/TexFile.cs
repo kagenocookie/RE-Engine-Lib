@@ -162,7 +162,7 @@ namespace ReeLib
         /// <summary>
         /// Whether this tex file's current file version expects the texture data to be GDeflate compressed.
         /// </summary>
-        public bool MustBeCompressed => CurrentSerializerVersion == TexSerializerVersion.MHWilds;
+        public bool MustBeCompressed => CurrentSerializerVersion >= TexSerializerVersion.MHWilds;
 
         /// <summary>
         /// Whether this tex file's texture data is currently GDeflate compressed.

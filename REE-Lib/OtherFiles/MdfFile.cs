@@ -18,6 +18,8 @@ namespace ReeLib.Mdf
         public uint matNameHash; // 2
         // tdbVersion == 49, RE7
         public ulong uknRE7;
+        public ulong pragmataUkn;
+
         public int paramsSize; // 3
         public int paramCount; // 4
         public int texCount; // 5
@@ -91,6 +93,7 @@ namespace ReeLib.Mdf
             if (Version >= 32) handler.Read(ref ukn);
             handler.Read(ref alphaFlags);
             if (Version >= 32) handler.Read(ref ukn1);
+            if (Version >= 51) handler.Read(ref pragmataUkn);
             handler.Read(ref paramHeaderOffset);
             handler.Read(ref texHeaderOffset);
             if (Version >= 19)
@@ -126,6 +129,7 @@ namespace ReeLib.Mdf
             if (Version >= 32) handler.Write(ref ukn);
             handler.Write(ref alphaFlags);
             if (Version >= 32) handler.Write(ref ukn1);
+            if (Version >= 51) handler.Write(ref pragmataUkn);
             handler.Write(ref paramHeaderOffset);
             handler.Write(ref texHeaderOffset);
             if (Version >= 19)
@@ -452,6 +456,7 @@ namespace ReeLib
                     data.Read(handler);
                     matData.GpuBuffers.Add((name, data));
                 }
+                DataInterpretationException.DebugThrowIf(matData.Header.texIDsOffset > 0, "TODO Handle tex IDs");
                 handler.Seek(tell);
             }
 

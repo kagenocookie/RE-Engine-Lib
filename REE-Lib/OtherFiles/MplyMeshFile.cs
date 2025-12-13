@@ -225,8 +225,8 @@ namespace ReeLib.MplyMesh
             }
             if (quantizeOffset > 0)
             {
-                handler.Seek(headersOffset);
-                for (int i = 0; i < ClusterEntries.Length; ++i)
+                handler.Seek(quantizeOffset);
+                for (int i = 0; i < LODs.Count; ++i)
                 {
                     foreach (var chunk in LODs[i].Chunks) handler.Read(ref chunk.Header.quantize);
                 }
@@ -315,6 +315,7 @@ namespace ReeLib.MplyMesh
         public override string ToString() => $"{x}, {y}";
     }
 
+    [Flags]
     public enum MplyChunkFlags : uint
     {
         UniformNormal = 1 << 0,
@@ -405,23 +406,66 @@ namespace ReeLib.MplyMesh
 
         private float PositionScaling {
             get {
-                var scale = 4f;
-                if ((flags & MplyChunkFlags.PositionScaling2) != 0) scale *= 2;
-                if ((flags & MplyChunkFlags.PositionScaling4) != 0) scale *= 4;
-                if ((flags & MplyChunkFlags.PositionScaling16) != 0) scale *= 16;
-                if ((flags & MplyChunkFlags.PositionScaling256) != 0) scale *= 256;
+                if (Bvh.Version == MeshSerializerVersion.DD2)
+                {
+                    var scale = 4f;
+                    if ((flags & MplyChunkFlags.PositionScaling2) != 0) scale *= 2;
+                    if ((flags & MplyChunkFlags.PositionScaling4) != 0) scale *= 4;
+                    if ((flags & MplyChunkFlags.PositionScaling16) != 0) scale *= 16;
+                    if ((flags & MplyChunkFlags.PositionScaling256) != 0) scale *= 256;
 
-                if ((flags & MplyChunkFlags.PositionDescaling2) != 0) scale *= (1f / 2);
-                if ((flags & MplyChunkFlags.PositionDescaling4) != 0) scale *= (1f / 4);
-                if ((flags & MplyChunkFlags.PositionDescaling64) != 0) scale *= (1f / 64);
-                if ((flags & MplyChunkFlags.PositionDescaling512) != 0) scale *= (1f / 512);
+                    if ((flags & MplyChunkFlags.PositionDescaling2) != 0) scale *= (1f / 2);
+                    if ((flags & MplyChunkFlags.PositionDescaling4) != 0) scale *= (1f / 4);
+                    if ((flags & MplyChunkFlags.PositionDescaling64) != 0) scale *= (1f / 64);
+                    if ((flags & MplyChunkFlags.PositionDescaling512) != 0) scale *= (1f / 512);
+                    return scale;
+                }
+                else
+                {
+                    var scale = 2f;
+                    if ((flags & MplyChunkFlags.PositionDescaling2) != 0) {
+                        if ((flags & MplyChunkFlags.PositionScaling2) != 0) scale *= 2;
+                        if ((flags & MplyChunkFlags.PositionScaling4) != 0) scale *= 4;
+                        if ((flags & MplyChunkFlags.PositionScaling16) != 0) scale *= 8;
+                        if ((flags & MplyChunkFlags.PositionScaling256) != 0) scale *= 256;
+                    } else {
+                        if ((flags & MplyChunkFlags.PositionScaling2) != 0) scale *= 0.5f;
+                        if ((flags & MplyChunkFlags.PositionScaling4) != 0) scale *= 0.25f;
+                        if ((flags & MplyChunkFlags.PositionScaling16) != 0) scale *= 0.125f;
+                        if ((flags & MplyChunkFlags.PositionScaling256) != 0) scale *= 0.0625f;
+                    }
+
+                    // return scale;
+                    throw new NotImplementedException("New MPLY meshes not yet supported");
+                }
+            }
+        }
+
+        private float CenterScaling {
+            get {
+                if (Bvh.Version == MeshSerializerVersion.DD2) return 1f;
+                var scale = 1f;
+
+                if ((flags & MplyChunkFlags.UseScalingMaybe) != 0) {
+                    if ((flags & MplyChunkFlags.Scale2) != 0) scale *= 2;
+                    if ((flags & MplyChunkFlags.Scale4) != 0) scale *= 4;
+                    if ((flags & MplyChunkFlags.Scale8) != 0) scale *= 8;
+                    if ((flags & MplyChunkFlags.Scale256) != 0) scale *= 256;
+                } else {
+                    scale = 0.5f;
+                    if ((flags & MplyChunkFlags.Scale2) != 0) scale *= 0.5f;
+                    if ((flags & MplyChunkFlags.Scale4) != 0) scale *= 0.25f;
+                    if ((flags & MplyChunkFlags.Scale8) != 0) scale *= 0.125f;
+                    if ((flags & MplyChunkFlags.Scale256) != 0) scale *= 0.0625f;
+                }
+
                 return scale;
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Vector3 DecodePosition(Vector3 vertPos)
-            => (vertPos - new Vector3(0.5f)) * PositionScaling + center
+            => (vertPos - new Vector3(0.5f)) * PositionScaling + center * CenterScaling
         ;
 
         public Vector3 GetPosition(int index)

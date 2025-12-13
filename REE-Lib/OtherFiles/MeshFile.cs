@@ -448,6 +448,11 @@ namespace ReeLib.Mesh
 		public int bufferUkn1;
 		public int bufferUkn2;
 
+		public int pragmataUkn1;
+		public int pragmataUkn2;
+		public int pragmataUkn3;
+		public int pragmataUkn4;
+
 		public MeshBufferHeaderList Headers = new();
 
 		public Vector3[] Positions = [];
@@ -495,21 +500,34 @@ namespace ReeLib.Mesh
 			}
 			handler.Read(ref elementCount);
 			handler.Read(ref totalElementCount);
-			handler.Read(ref uknSize1);
-			handler.Read(ref uknSize2);
-			handler.Read(ref blendShapeOffset);
-			if (Version >= MeshSerializerVersion.RE4)
+			if (Version >= MeshSerializerVersion.Pragmata)
 			{
 				handler.Read(ref shapekeyWeightBufferSize);
 				handler.Read(ref bufferIndex);
 				handler.Read(ref bufferUkn1);
 				handler.Read(ref bufferUkn2);
 			}
+			handler.Read(ref uknSize1);
+			handler.Read(ref uknSize2);
+			handler.Read(ref blendShapeOffset);
+			if (Version >= MeshSerializerVersion.RE4 && Version < MeshSerializerVersion.Pragmata)
+			{
+				handler.Read(ref shapekeyWeightBufferSize);
+				handler.Read(ref bufferIndex);
+				handler.Read(ref bufferUkn1);
+				handler.Read(ref bufferUkn2);
+			}
+			if (Version >= MeshSerializerVersion.Pragmata) {
+				handler.Read(ref pragmataUkn1);
+				handler.Read(ref pragmataUkn2);
+				handler.Read(ref pragmataUkn3);
+				handler.Read(ref pragmataUkn4);
+			}
 
-			using var _ = handler.SeekJumpBack(elementHeadersOffset);
-			handler.Seek(elementHeadersOffset);
-			Headers.Read(handler, elementCount);
-			// TODO earlier games can have totalElementCount > elementCount as an alternative to streaming buffers
+			using (var _ = handler.SeekJumpBack(elementHeadersOffset)) {
+				Headers.Read(handler, elementCount);
+				// TODO earlier games can have totalElementCount > elementCount as an alternative to streaming buffers
+			}
 			return true;
         }
 
@@ -536,12 +554,18 @@ namespace ReeLib.Mesh
 			handler.Write(ref uknSize1);
 			handler.Write(ref uknSize2);
 			handler.Write(ref blendShapeOffset);
-			if (Version >= MeshSerializerVersion.RE_RT)
+			if (Version >= MeshSerializerVersion.RE4 && Version < MeshSerializerVersion.Pragmata)
 			{
 				handler.Write(ref shapekeyWeightBufferSize);
 				handler.Write(ref bufferIndex);
 				handler.Write(ref bufferUkn1);
 				handler.Write(ref bufferUkn2);
+			}
+			if (Version >= MeshSerializerVersion.Pragmata) {
+				handler.Write(ref pragmataUkn1);
+				handler.Write(ref pragmataUkn2);
+				handler.Write(ref pragmataUkn3);
+				handler.Write(ref pragmataUkn4);
 			}
             return true;
         }
@@ -1139,6 +1163,7 @@ namespace ReeLib.Mesh
 		private int ExpectedSkinWeightCount => Version switch {
 			MeshSerializerVersion.SF6 => 9,
 			MeshSerializerVersion.MHWILDS => 25,
+			MeshSerializerVersion.Pragmata => 27,
 			<= MeshSerializerVersion.DMC5 => 1,
 			_ => 18,
         };
@@ -1173,7 +1198,7 @@ namespace ReeLib.Mesh
 			materialCount = handler.Read<byte>();
 			uvCount = handler.Read<byte>();
 			skinWeightCount = handler.Read<byte>();
-			DataInterpretationException.DebugThrowIf(skinWeightCount != ExpectedSkinWeightCount);
+			// DataInterpretationException.DebugThrowIf(skinWeightCount != ExpectedSkinWeightCount);
 			handler.Read(ref totalMeshCount);
 			handler.Read(ref integerFaces);
 			handler.ReadNull(1);
@@ -1671,7 +1696,7 @@ namespace ReeLib
 
 			{ "ONI2", new (240704828, 240827123, MeshSerializerVersion.Onimusha, [GameName.oni2]) },
 			{ "MHWilds", new (240704828, 241111606, MeshSerializerVersion.MHWILDS, [GameName.mhwilds]) },
-			{ "Pragmata", new (250925211, 250707828, MeshSerializerVersion.Pragmata, [GameName.pragmata]) },
+			{ "Pragmata", new (250707828, 250925211, MeshSerializerVersion.Pragmata, [GameName.pragmata]) },
 		};
 
 		public static readonly string[] AllVersionConfigs = Versions.OrderBy(kv => kv.Value.serializerVersion).Select(kv => kv.Key).ToArray();

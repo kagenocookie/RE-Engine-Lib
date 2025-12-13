@@ -227,7 +227,6 @@ namespace ReeLib.Rcol
         protected override bool DoRead(FileHandler handler)
         {
             Shapes.Clear();
-            // var pos = handler.Tell(); TODO
             if (Info.NumShapes > 0)
             {
                 handler.Seek(Info.ShapesOffset);
@@ -237,7 +236,6 @@ namespace ReeLib.Rcol
             if (Info.NumExtraShapes > 0) {
                 ExtraShapes.Read(handler, Info.NumExtraShapes);
             }
-            // handler.Seek(pos); TODO
             return true;
         }
 
@@ -332,6 +330,10 @@ namespace ReeLib.Rcol
                 action.HandleOffsetWString(ref secondaryJointNameStr);
                 action.Do(ref PrimaryJointNameHash);
                 action.Do(ref SecondaryJointNameHash);
+                if (action.Handler.FileVersion >= 28)
+                {
+                    action.Null(16);
+                }
             }
             else if (action.Handler.FileVersion > 2)
             {

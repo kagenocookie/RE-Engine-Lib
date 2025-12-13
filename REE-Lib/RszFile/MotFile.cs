@@ -1788,7 +1788,7 @@ namespace ReeLib.Mot
                     if (child.valueCount > 0)
                     {
                         var pos = handler.Tell();
-                        child.value = ReadValue(handler, valueOffs, (byte)child.valueType, (byte)child.valueCount);
+                        child.value = ReadValue(handler, valueOffs, (byte)child.valueType, child.valueCount);
                         handler.Seek(pos);
                     }
                     node.MultiValues.Add(child);
@@ -1842,7 +1842,7 @@ namespace ReeLib.Mot
                     dataOffset = Utils.Align16((int)dataOffset);
                     if (multi.valueCount > 0)
                     {
-                        WriteValue(handler, ref dataOffset, (byte)multi.valueType, (byte)multi.valueCount, multi.value);
+                        WriteValue(handler, ref dataOffset, (byte)multi.valueType, multi.valueCount, multi.value);
                     }
                     else
                     {
@@ -1866,7 +1866,7 @@ namespace ReeLib.Mot
             return true;
         }
 
-        private static object ReadValue(FileHandler handler, long offsetOrConstant, byte valueType, byte valueCount)
+        private static object ReadValue(FileHandler handler, long offsetOrConstant, byte valueType, int valueCount)
         {
             if (valueCount == 0)
             {
@@ -1918,7 +1918,7 @@ namespace ReeLib.Mot
             }
         }
 
-        private static void WriteValue(FileHandler handler, ref long dataOffset, byte valueType, byte valueCount, object? value)
+        private static void WriteValue(FileHandler handler, ref long dataOffset, byte valueType, int valueCount, object? value)
         {
             if (valueCount == 0)
             {

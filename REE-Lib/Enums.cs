@@ -398,7 +398,7 @@ namespace ReeLib
         /// <summary>.fpolygon</summary>
         FreePolygon,
         /// <summary>.sts</summary>
-        Strands,
+        ShaderTimer,
         /// <summary>.htex</summary>
         HeightTexture,
         /// <summary>.ncf</summary>
@@ -425,6 +425,24 @@ namespace ReeLib
         RenderConfigAsset,
         /// <summary>.wcc, .wcja, .wcjr, .wcv, .wcta, .wcsa, .wcbk, .wcrb, .wcst, .wtot, .wtos, .wcms, .wcmo, .wcp, .wcgp, .wcggp, .wcss, .wcsw, .wcswn, .wcmsw, .wgs, .wms, .wpi, .wss</summary>
         WwiseAudioRSZ,
+        /// <summary>.refskel</summary>
+        RefSkeleton,
+        /// <summary>.svx</summary>
+        SoundVoxel,
+        /// <summary>.strands</summary>
+        Strands,
+        /// <summary>.stdlod</summary>
+        StrandsLod,
+        /// <summary>.sbd</summary>
+        StrandsBinding,
+        /// <summary>.gpus</summary>
+        GpuStrandsDynamics,
+        /// <summary>.tean</summary>
+        TextAnimation,
+        /// <summary>.svgn</summary>
+        SVG,
+        /// <summary>.slqg</summary>
+        SoundStreamingLQG,
 
         /// <remarks>Deprecated in favor of <see cref="EffectCollision"/></remarks>
         fxct,

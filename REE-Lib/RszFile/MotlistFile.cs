@@ -61,6 +61,7 @@ namespace ReeLib.Motlist
         public int uknValue; // dmc5
         public long pointersOffset;
         public long motionIndicesOffset;
+        public long uknOffset;
         public int numMots;
 
         public string MotListName { get; set; } = string.Empty;
@@ -79,6 +80,10 @@ namespace ReeLib.Motlist
             {
                 var offset = handler.Read<long>();
                 BaseMotListPath = offset > 0 ? handler.ReadWString(offset) : null;
+            }
+            if (version >= MotlistVersion.MHWILDS)
+            {
+                handler.Read(ref uknOffset);
             }
             handler.Read(ref numMots);
             return true;
@@ -103,6 +108,10 @@ namespace ReeLib.Motlist
                 {
                     handler.WriteNull(8);
                 }
+            }
+            if (version >= MotlistVersion.MHWILDS)
+            {
+                handler.Write(ref uknOffset);
             }
             handler.Write(ref numMots);
             // handler.Skip(2);
@@ -277,6 +286,11 @@ namespace ReeLib
                 {
                     handler.Seek(motIndex.motClipOffset);
                     var headerOffsets = handler.ReadArray<long>(motIndex.extraClipCount);
+                    if (Header.version >= MotlistVersion.Pragmata) {
+                        // TODO
+                        Log.Warn("New mot extra clips not yet supported, skipping...");
+                        continue;
+                    }
                     foreach (var off in headerOffsets) {
                         handler.Seek(off);
                         var clip = new MotClip();

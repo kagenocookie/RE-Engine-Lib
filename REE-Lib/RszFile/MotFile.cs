@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Numerics;
 using ReeLib.Clip;
 using ReeLib.Common;
@@ -258,13 +257,37 @@ namespace ReeLib.Mot
         LoadVector3s21BitA,
         LoadVector3sXAxis,
         LoadVector3sYAxis,
+        LoadVector3sXAxisB,
+        LoadVector3sYAxisB,
+        LoadVector3sZAxisB,
         LoadVector3sZAxis,
         LoadVector3sXAxis16Bit,
         LoadVector3sYAxis16Bit,
         LoadVector3sZAxis16Bit,
+        LoadVector3sUknXAxisPragmata,
+        LoadVector3sUknYAxisPragmata,
+        LoadVector3sUknZAxisPragmata,
+        LoadVector3sXAxis2BytePragmata,
+        LoadVector3sYAxis2BytePragmata,
+        LoadVector3sZAxis2BytePragmata,
+        LoadVector3sXAxis3BytePragmata,
+        LoadVector3sYAxis3BytePragmata,
+        LoadVector3sZAxis3BytePragmata,
+        LoadVector3sXAxis4BytePragmata,
+        LoadVector3sYAxis4BytePragmata,
+        LoadVector3sZAxis4BytePragmata,
+        LoadVector3sXAxis6BytePragmata,
+        LoadVector3sYAxis6BytePragmata,
+        LoadVector3sZAxis6BytePragmata,
+        LoadVector3s13BitPragmataX,
+        LoadVector3s13BitPragmataY,
+        LoadVector3s13BitPragmataZ,
         LoadVector3s5BitB,
         LoadVector3s10BitB,
+        LoadVector3s15BitUnpadded,
+        LoadVector3s18Bit,
         LoadVector3s21BitB,
+        LoadVector3s24Bit,
         LoadVector3sXYZAxis16Bit,
         LoadVector3sXYZAxis,
     }
@@ -370,13 +393,23 @@ namespace ReeLib.Mot
                 }
                 if (TrackType == TrackValueType.Vector3)
                 {
-                    if (TranslationCompressionType is Vector3Decompression.LoadVector3s5BitB or Vector3Decompression.LoadVector3s10BitB)
+                    if (TranslationCompressionType is Vector3Decompression.LoadVector3s5BitB or Vector3Decompression.LoadVector3s10BitB or Vector3Decompression.LoadVector3s15BitUnpadded or Vector3Decompression.LoadVector3s24Bit or Vector3Decompression.LoadVector3s18Bit)
                         return 6;
 
                     if (TranslationCompressionType is Vector3Decompression.LoadVector3sXAxis16Bit or Vector3Decompression.LoadVector3sYAxis16Bit or Vector3Decompression.LoadVector3sZAxis16Bit
                         or Vector3Decompression.LoadVector3sXAxis or Vector3Decompression.LoadVector3sYAxis or Vector3Decompression.LoadVector3sZAxis)
                         return 4;
+                    if (TranslationCompressionType is Vector3Decompression.LoadVector3sUknZAxisPragmata)
+                        return 3;
+
+                    if (TranslationCompressionType is
+                        Vector3Decompression.LoadVector3sXAxis4BytePragmata or Vector3Decompression.LoadVector3sYAxis4BytePragmata or Vector3Decompression.LoadVector3sZAxis4BytePragmata or
+                        Vector3Decompression.LoadVector3sXAxis3BytePragmata or Vector3Decompression.LoadVector3sYAxis3BytePragmata or Vector3Decompression.LoadVector3sZAxis3BytePragmata or
+                        Vector3Decompression.LoadVector3sXAxis2BytePragmata or Vector3Decompression.LoadVector3sYAxis2BytePragmata or Vector3Decompression.LoadVector3sZAxis2BytePragmata
+                    )
+                        return 5;
                 }
+
                 if (TrackType == TrackValueType.Float)
                 {
                     if (FloatCompressionType is FloatDecompression.LoadFloats8Bit)
@@ -612,15 +645,39 @@ namespace ReeLib.Mot
             { 0x20000, Vector3Decompression.LoadVector3s5BitB },
             { 0x30000, Vector3Decompression.LoadVector3s5BitB },
             { 0x40000, Vector3Decompression.LoadVector3s10BitB },
+            { 0x50000, Vector3Decompression.LoadVector3s15BitUnpadded },
+            { 0x60000, Vector3Decompression.LoadVector3s24Bit },
             { 0x80000, Vector3Decompression.LoadVector3s21BitB },
             { 0x21000, Vector3Decompression.LoadVector3sXAxis16Bit },
             { 0x22000, Vector3Decompression.LoadVector3sYAxis16Bit },
             { 0x23000, Vector3Decompression.LoadVector3sZAxis16Bit },
             { 0x24000, Vector3Decompression.LoadVector3sXYZAxis16Bit },
+            { 0x25000, Vector3Decompression.LoadVector3sXAxis2BytePragmata },
+            { 0x26000, Vector3Decompression.LoadVector3sYAxis2BytePragmata },
+            { 0x27000, Vector3Decompression.LoadVector3sZAxis2BytePragmata },
             { 0x41000, Vector3Decompression.LoadVector3sXAxis },
             { 0x42000, Vector3Decompression.LoadVector3sYAxis },
+            { 0x31000, Vector3Decompression.LoadVector3sXAxisB },
+            { 0x32000, Vector3Decompression.LoadVector3sYAxisB },
+            { 0x33000, Vector3Decompression.LoadVector3sZAxisB },
+            { 0x35000, Vector3Decompression.LoadVector3sXAxis3BytePragmata }, // TODO
+            { 0x36000, Vector3Decompression.LoadVector3sYAxis3BytePragmata }, // TODO
+            { 0x37000, Vector3Decompression.LoadVector3sZAxis3BytePragmata }, // TODO
             { 0x43000, Vector3Decompression.LoadVector3sZAxis },
             { 0x44000, Vector3Decompression.LoadVector3sXYZAxis },
+            { 0x45000, Vector3Decompression.LoadVector3sXAxis4BytePragmata },
+            { 0x46000, Vector3Decompression.LoadVector3sYAxis4BytePragmata },
+            { 0x47000, Vector3Decompression.LoadVector3sZAxis4BytePragmata },
+            { 0x55000, Vector3Decompression.LoadVector3s13BitPragmataX },
+            { 0x56000, Vector3Decompression.LoadVector3s13BitPragmataY },
+            { 0x57000, Vector3Decompression.LoadVector3s13BitPragmataZ },
+            // { 0x66000, Vector3Decompression.LoadVector3sXAxis6BytePragmata }, // TODO
+            { 0x66000, Vector3Decompression.LoadVector3sYAxis6BytePragmata }, // TODO which is X/Y/Z
+            { 0x67000, Vector3Decompression.LoadVector3sZAxis6BytePragmata }, // TODO which is X/Y/Z
+            { 0x85000, Vector3Decompression.LoadVector3sUknXAxisPragmata },
+            { 0x86000, Vector3Decompression.LoadVector3sUknYAxisPragmata },
+            { 0x87000, Vector3Decompression.LoadVector3sUknZAxisPragmata },
+            { 0x70000, Vector3Decompression.LoadVector3s18Bit },
         };
 
         private static Dictionary<uint, QuaternionDecompression> RotationDictDmc5 = new() {
@@ -724,6 +781,15 @@ namespace ReeLib.Mot
                             translation.Z = (unpackData[2] * ((data >> 10) & 0b11111) / 0b11111) + unpackData[5];
                             break;
                         }
+                    case Vector3Decompression.LoadVector3s15BitUnpadded:
+                        {
+                            var data = handler.Read<ushort>();
+                            translation.X = (unpackData[0] * ((data >> 00) & 0b11111) / 0b11111) + unpackData[3];
+                            translation.Y = (unpackData[1] * ((data >> 05) & 0b11111) / 0b11111) + unpackData[4];
+                            translation.Z = (unpackData[2] * ((data >> 10) & 0b11111) / 0b11111) + unpackData[5];
+                            handler.Seek(-1);
+                            break;
+                        }
                     case Vector3Decompression.LoadScalesXYZ:
                         translation.X = translation.Y = translation.Z = handler.Read<float>();
                         break;
@@ -759,7 +825,28 @@ namespace ReeLib.Mot
                             translation.Z = (unpackData[2] * ((data >> 42) & 0x1F_FFFF) * (1f / 0x1F_FFFF)) + unpackData[5];
                             break;
                         }
+                    case Vector3Decompression.LoadVector3s24Bit:
+                        {
+                            Span<ushort> bytes = stackalloc ushort[3];
+                            handler.ReadSpan(bytes);
+                            translation.X = (unpackData[0] * (bytes[0] & 0xFFFF) * (1f / 0xFFFF)) + unpackData[3];
+                            translation.Y = (unpackData[1] * (bytes[1] & 0xFFFF) * (1f / 0xFFFF)) + unpackData[4];
+                            translation.Z = (unpackData[2] * (bytes[2] & 0xFFFF) * (1f / 0xFFFF)) + unpackData[5];
+                            break;
+                        }
+                    case Vector3Decompression.LoadVector3sXAxis3BytePragmata: // TODO verify
+                    case Vector3Decompression.LoadVector3sYAxis3BytePragmata: // TODO verify
+                    case Vector3Decompression.LoadVector3sZAxis3BytePragmata: // TODO verify
+                        {
+                            Span<byte> bytes = stackalloc byte[3];
+                            handler.ReadSpan(bytes);
+                            translation.X = (unpackData[0] * (bytes[0]) * (1f / 0xFF)) + unpackData[4];
+                            translation.Y = (unpackData[1] * (bytes[1]) * (1f / 0xFF)) + unpackData[4];
+                            translation.Z = (unpackData[2] * (bytes[2]) * (1f / 0xFF)) + unpackData[4];
+                            break;
+                        }
                     case Vector3Decompression.LoadVector3sXAxis:
+                    case Vector3Decompression.LoadVector3sXAxisB:
                         {
                             translation.X = handler.Read<float>();
                             translation.Y = unpackData[1];
@@ -767,6 +854,7 @@ namespace ReeLib.Mot
                             break;
                         }
                     case Vector3Decompression.LoadVector3sYAxis:
+                    case Vector3Decompression.LoadVector3sYAxisB:
                         {
                             translation.X = unpackData[0];
                             translation.Y = handler.Read<float>();
@@ -774,6 +862,7 @@ namespace ReeLib.Mot
                             break;
                         }
                     case Vector3Decompression.LoadVector3sZAxis:
+                    case Vector3Decompression.LoadVector3sZAxisB:
                         {
                             translation.X = unpackData[0];
                             translation.Y = unpackData[1];
@@ -781,6 +870,7 @@ namespace ReeLib.Mot
                             break;
                         }
                     case Vector3Decompression.LoadVector3sXAxis16Bit:
+                    case Vector3Decompression.LoadVector3sXAxis2BytePragmata: // TODO verify
                         {
                             var data = handler.Read<ushort>();
                             translation.X = unpackData[0] * (data * (1f / 0xFFFF)) + unpackData[1];
@@ -789,6 +879,7 @@ namespace ReeLib.Mot
                             break;
                         }
                     case Vector3Decompression.LoadVector3sYAxis16Bit:
+                    case Vector3Decompression.LoadVector3sYAxis2BytePragmata: // TODO verify
                         {
                             var data = handler.Read<ushort>();
                             translation.X = unpackData[1];
@@ -797,6 +888,7 @@ namespace ReeLib.Mot
                             break;
                         }
                     case Vector3Decompression.LoadVector3sZAxis16Bit:
+                    case Vector3Decompression.LoadVector3sZAxis2BytePragmata: // TODO verify
                         {
                             var data = handler.Read<ushort>();
                             translation.X = unpackData[1];
@@ -810,11 +902,89 @@ namespace ReeLib.Mot
                             translation.X = translation.Y = translation.Z = unpackData[0] * (data * (1f / 0xFFFF)) + unpackData[3];
                             break;
                         }
+                    case Vector3Decompression.LoadVector3sXAxis6BytePragmata: // TODO
+                    case Vector3Decompression.LoadVector3sYAxis6BytePragmata: // TODO
+                    case Vector3Decompression.LoadVector3sZAxis6BytePragmata: // TODO
+                        {
+                            Span<ushort> bytes = stackalloc ushort[3];
+                            handler.ReadSpan(bytes);
+                            translation.X = (unpackData[0] * (bytes[0] & 0xFFFF) * (1f / 0xFFFF)) + unpackData[3];
+                            translation.Y = (unpackData[1] * (bytes[1] & 0xFFFF) * (1f / 0xFFFF)) + unpackData[4];
+                            translation.Z = (unpackData[2] * (bytes[2] & 0xFFFF) * (1f / 0xFFFF)) + unpackData[4];
+                            break;
+                        }
+                    case Vector3Decompression.LoadVector3sUknXAxisPragmata: // TODO
+                    case Vector3Decompression.LoadVector3sUknYAxisPragmata:
+                    case Vector3Decompression.LoadVector3sUknZAxisPragmata:
+                        {
+                            // TODO figure out how this one works - there's only 3 unpack datas
+                            var data = handler.Read<ulong>();
+                            translation.X = (unpackData[0] * ((data >> 00) & 0x1F_FFFF) * (1f / 0x1F_FFFF));
+                            translation.Y = (unpackData[1] * ((data >> 21) & 0x1F_FFFF) * (1f / 0x1F_FFFF));
+                            translation.Z = (unpackData[2] * ((data >> 42) & 0x1F_FFFF) * (1f / 0x1F_FFFF));
+                            break;
+                        }
+                    case Vector3Decompression.LoadVector3sXAxis4BytePragmata:
+                        {
+                            // TODO figure out
+                            var data = handler.Read<uint>();
+                            translation.X = unpackData[0] * (((data >> 00) & 0b1111111111) * (1f / 0b1111111111)) + unpackData[3];
+                            translation.Y = unpackData[1] * (((data >> 10) & 0b1111111111) * (1f / 0b1111111111)) + unpackData[4];
+                            translation.Z = unpackData[2] * (((data >> 20) & 0b1111111111) * (1f / 0b1111111111)) + unpackData[4];
+                            break;
+                        }
+                    case Vector3Decompression.LoadVector3sYAxis4BytePragmata:
+                        {
+                            // TODO figure out
+                            var data = handler.Read<uint>();
+                            translation.X = unpackData[0] * (((data >> 00) & 0b1111111111) * (1f / 0b1111111111)) + unpackData[4];
+                            translation.Y = unpackData[1] * (((data >> 10) & 0b1111111111) * (1f / 0b1111111111)) + unpackData[3];
+                            translation.Z = unpackData[2] * (((data >> 20) & 0b1111111111) * (1f / 0b1111111111)) + unpackData[4];
+                            break;
+                        }
+                    case Vector3Decompression.LoadVector3sZAxis4BytePragmata:
+                        {
+                            // TODO figure out
+                            var data = handler.Read<uint>();
+                            translation.X = unpackData[0] * (((data >> 00) & 0b1111111111) * (1f / 0b1111111111)) + unpackData[4];
+                            translation.Y = unpackData[1] * (((data >> 10) & 0b1111111111) * (1f / 0b1111111111)) + unpackData[4];
+                            translation.Z = unpackData[2] * (((data >> 20) & 0b1111111111) * (1f / 0b1111111111)) + unpackData[3];
+                            break;
+                        }
+                    case Vector3Decompression.LoadVector3s13BitPragmataX: // TODO
+                    case Vector3Decompression.LoadVector3s13BitPragmataY: // TODO
+                    case Vector3Decompression.LoadVector3s13BitPragmataZ: // TODO
+                        {
+                            // TODO figure out unpack data
+                            var data = handler.ReadBytes(5);
+                            ulong val = 0;
+                            for (int j = 0; j < 5; j++)
+                            {
+                                val = data[j] | (val << 8);
+                            }
+                            translation.X = (unpackData[0] * ((val >> 00) & 0x1FFF) / (float)0x1FFF) + unpackData[3];
+                            translation.Y = (unpackData[1] * ((val >> 13) & 0x1FFF) / (float)0x1FFF) + unpackData[4];
+                            translation.Z = (unpackData[2] * ((val >> 26) & 0x1FFF) / (float)0x1FFF) + unpackData[4];
+                            break;
+                        }
+                    case Vector3Decompression.LoadVector3s18Bit:
+                        {
+                            var data = handler.ReadBytes(7);
+                            ulong val = 0;
+                            for (int j = 0; j < 7; j++)
+                            {
+                                val = data[j] | (val << 8);
+                            }
+                            translation.X = (unpackData[0] * ((val >> 00) & 0x3FFFF) / (float)0x3FFFF) + unpackData[3];
+                            translation.Y = (unpackData[1] * ((val >> 18) & 0x3FFFF) / (float)0x3FFFF) + unpackData[4];
+                            translation.Z = (unpackData[2] * ((val >> 36) & 0x3FFFF) / (float)0x3FFFF) + unpackData[5];
+                            break;
+                        }
                     case Vector3Decompression.LoadVector3sXYZAxis:
                         translation.X = translation.Y = translation.Z = handler.Read<float>();
                         break;
                     default:
-                        throw new InvalidOperationException($"Invalid type {type}");
+                        throw new InvalidOperationException($"Unknown Vector3 compression type {type} ({Compression.ToString("X")})");
                 }
                 translations[i] = translation;
             }
@@ -891,12 +1061,20 @@ namespace ReeLib.Mot
                             handler.Write((ulong)data);
                             break;
                         }
+                    case Vector3Decompression.LoadVector3s24Bit:
+                        {
+                            handler.Write((ushort)MathF.Round((translation.X - unpackData[3]) / unpackData[0] * 0xFFFF));
+                            handler.Write((ushort)MathF.Round((translation.Y - unpackData[4]) / unpackData[1] * 0xFFFF));
+                            handler.Write((ushort)MathF.Round((translation.Z - unpackData[5]) / unpackData[2] * 0xFFFF));
+                            break;
+                        }
                     case Vector3Decompression.LoadVector3sXAxis:
                         {
                             handler.Write(translation.X);
                             break;
                         }
                     case Vector3Decompression.LoadVector3sYAxis:
+                    case Vector3Decompression.LoadVector3sYAxisB:
                         {
                             handler.Write(translation.Y);
                             break;
@@ -936,7 +1114,7 @@ namespace ReeLib.Mot
                             break;
                         }
                     default:
-                        throw new InvalidOperationException($"Invalid type {type}");
+                        throw new InvalidOperationException($"Unknown Vector3 compression type {type} ({Compression.ToString("X")})");
                 }
             }
         }
@@ -1072,7 +1250,7 @@ namespace ReeLib.Mot
                         quaternion.W = ComputeQuaternionW(quaternion);
                         break;
                     default:
-                        throw new InvalidOperationException($"Invalid type {type}");
+                        throw new InvalidOperationException($"Unknown Quaternion compression type {type} ({Compression.ToString("X")})");
                 }
                 if (type != QuaternionDecompression.LoadQuaternionsFull)
                 {
@@ -1206,7 +1384,7 @@ namespace ReeLib.Mot
                         handler.Write(quaternion.Z);
                         break;
                     default:
-                        throw new InvalidOperationException($"Invalid type {type}");
+                        throw new InvalidOperationException($"Unknown Quaternion compression type {type} ({Compression.ToString("X")})");
                 }
             }
         }
@@ -1253,7 +1431,7 @@ namespace ReeLib.Mot
                         handler.Write((byte)MathF.Round((value - unpackData[1]) / unpackData[0] * 0xFF));
                         break;
                     default:
-                        throw new InvalidOperationException($"Invalid type {type}");
+                        throw new InvalidOperationException($"Unknown float compression type {type} ({Compression.ToString("X")})");
                 }
             }
         }
@@ -1320,28 +1498,17 @@ namespace ReeLib.Mot
                     case Vector3Decompression.LoadVector3s5BitA:
                     case Vector3Decompression.LoadVector3s10BitA:
                     case Vector3Decompression.LoadVector3s21BitA:
-                        // Debug.Assert(MathF.Abs(unpackData[0] - scale.X) < 0.001f);
-                        // Debug.Assert(MathF.Abs(unpackData[1] - scale.Y) < 0.001f);
-                        // Debug.Assert(MathF.Abs(unpackData[2] - scale.Z) < 0.001f);
+                    case Vector3Decompression.LoadVector3s5BitB:
+                    case Vector3Decompression.LoadVector3s10BitB:
+                    case Vector3Decompression.LoadVector3s21BitB:
+                    case Vector3Decompression.LoadVector3s15BitUnpadded:
+                    case Vector3Decompression.LoadVector3s24Bit:
                         unpackData[0] = scale.X;
                         unpackData[1] = scale.Y;
                         unpackData[2] = scale.Z;
                         unpackData[4] = min.X;
                         unpackData[5] = min.Y;
                         unpackData[6] = min.Z;
-                        break;
-                    case Vector3Decompression.LoadVector3s5BitB:
-                    case Vector3Decompression.LoadVector3s10BitB:
-                    case Vector3Decompression.LoadVector3s21BitB:
-                        // Debug.Assert(MathF.Abs(unpackData[0] - scale.X) < 0.001f);
-                        // Debug.Assert(MathF.Abs(unpackData[1] - scale.Y) < 0.001f);
-                        // Debug.Assert(MathF.Abs(unpackData[2] - scale.Z) < 0.001f);
-                        unpackData[0] = scale.X;
-                        unpackData[1] = scale.Y;
-                        unpackData[2] = scale.Z;
-                        unpackData[3] = min.X;
-                        unpackData[4] = min.Y;
-                        unpackData[5] = min.Z;
                         break;
                     case Vector3Decompression.LoadVector3sXAxis16Bit:
                     case Vector3Decompression.LoadVector3sYAxis16Bit:
@@ -1351,12 +1518,18 @@ namespace ReeLib.Mot
                             Vector3Decompression.LoadVector3sZAxis16Bit => scale.Z,
                             _ => scale.X,
                         };
-                        // Debug.Assert(MathF.Abs(unpackData[1] - min.X) < 0.001f);
-                        // Debug.Assert(MathF.Abs(unpackData[2] - min.Y) < 0.001f);
-                        // Debug.Assert(MathF.Abs(unpackData[3] - min.Z) < 0.001f);
                         unpackData[1] = min.X;
                         unpackData[2] = min.Y;
                         unpackData[3] = min.Z;
+                        break;
+                    case Vector3Decompression.LoadVector3sUknZAxisPragmata:
+                        // TODO verify
+                        // Debug.Assert(MathF.Abs(unpackData[0] - min.X) < 0.001f);
+                        // Debug.Assert(MathF.Abs(unpackData[1] - min.Y) < 0.001f);
+                        // Debug.Assert(MathF.Abs(unpackData[2] - min.Z) < 0.001f);
+                        unpackData[0] = scale.X;
+                        unpackData[1] = scale.Y;
+                        unpackData[2] = scale.Z;
                         break;
                 }
             }

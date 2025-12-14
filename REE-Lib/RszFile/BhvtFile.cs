@@ -200,6 +200,8 @@ namespace ReeLib.Bhvt
         internal override int FieldCount => 2;
         public List<NAction> Actions { get; set; } = [];
 
+        public List<NAction> CloneActions() => Actions.Select(a => new NAction() { Action = a.Action, ActionEx = a.ActionEx, Instance = a.Instance }).ToList();
+
         protected override bool LoadData(uint[,] data)
         {
             Actions.Clear();
@@ -247,6 +249,16 @@ namespace ReeLib.Bhvt
         internal override int FieldCount => 3;
         public List<NChild> Children { get; } = [];
 
+        internal List<NChild> CloneChildren()
+        {
+            return Children.Select(c => new NChild() {
+                ChildId = c.ChildId,
+                Condition = c.Condition,
+                ConditionID = c.ConditionID,
+                ChildNode = c.ChildNode?.Clone()
+            }).ToList();
+        }
+
         protected override bool LoadData(uint[,] data)
         {
             Children.Clear();
@@ -291,8 +303,23 @@ namespace ReeLib.Bhvt
         public TransitionData? TransitionData { get; set; }
 
         public override string ToString() => $"{TargetNode?.ToString() ?? nameof(NState)}";
-    }
 
+        public NState Clone()
+        {
+            var state = new NState()
+            {
+                targetNodeID = targetNodeID,
+                transitionConditionID = transitionConditionID,
+                transitionMapID = transitionMapID,
+                stateEx = stateEx,
+                Condition = Condition,
+                TargetNode = TargetNode,
+                TransitionData = TransitionData,
+            };
+            state.TransitionEvents.AddRange(TransitionEvents);
+            return state;
+        }
+    }
 
     public class NStates : BaseModel
     {
@@ -348,8 +375,8 @@ namespace ReeLib.Bhvt
 
     public class NAllState
     {
-        internal NodeID targetNodeId;
-        internal BHVTId transitionConditionId;
+        internal NodeID targetNodeID;
+        internal BHVTId transitionConditionID;
         public uint transitionMapID;
         public uint transitionAttributes;
 
@@ -358,6 +385,21 @@ namespace ReeLib.Bhvt
         public RszInstance? Condition { get; set; }
 
         public override string ToString() => $"{TargetNode?.ToString() ?? nameof(NAllState)}";
+
+        public NAllState Clone()
+        {
+            var state = new NAllState()
+            {
+                targetNodeID = targetNodeID,
+                transitionConditionID = transitionConditionID,
+                transitionMapID = transitionMapID,
+                transitionAttributes = transitionAttributes,
+                Condition = Condition,
+                TargetNode = TargetNode,
+                TransitionData = TransitionData,
+            };
+            return state;
+        }
     }
 
 
@@ -373,8 +415,8 @@ namespace ReeLib.Bhvt
             {
                 AllStates.Add(new NAllState
                 {
-                    targetNodeId = new NodeID(data[0, i], data[3, i]),
-                    transitionConditionId = (BHVTId)data[1, i],
+                    targetNodeID = new NodeID(data[0, i], data[3, i]),
+                    transitionConditionID = (BHVTId)data[1, i],
                     transitionMapID = data[2, i],
                     transitionAttributes = data[4, i],
                 });
@@ -389,10 +431,10 @@ namespace ReeLib.Bhvt
             for (int i = 0; i < Count; i++)
             {
                 var state = AllStates[i];
-                data[0, i] = state.targetNodeId.ID;
-                data[1, i] = (uint)state.transitionConditionId;
+                data[0, i] = state.targetNodeID.ID;
+                data[1, i] = (uint)state.transitionConditionID;
                 data[2, i] = state.transitionMapID;
-                data[3, i] = state.targetNodeId.exID;
+                data[3, i] = state.targetNodeID.exID;
                 data[4, i] = state.transitionAttributes;
             }
             return data;
@@ -516,6 +558,9 @@ namespace ReeLib.Bhvt
         public RszInstance? SelectorCallerCondition { get; set; }
         public List<RszInstance> SelectorCallers { get; } = new();
         public NChilds Children { get; } = new();
+
+        public IEnumerable<BHVTNode> AllChildNodes => Children.Children
+            .SelectMany(c => c.ChildNode == null ? [] : new []{ c.ChildNode }.Concat(c.ChildNode.AllChildNodes));
 
         public WorkFlags WorkFlags;
         public uint mNameHash;
@@ -650,6 +695,73 @@ namespace ReeLib.Bhvt
                 handler.Write(ref AI_Path);
             }
             return true;
+        }
+
+        /// <summary>
+        /// Ensures this and all child nodes have unique IDs within the file. Will create new nodes for all child nodes, but keep references to any nodes not in hierarchy.
+        /// </summary>
+        public void MakeUnique(BhvtFile parentFile)
+        {
+            var allChildren = AllChildNodes.Append(this).ToList().ToHashSet();
+            var newChildren = new Dictionary<NodeID, BHVTNode>();
+
+            // ensure unique ID range
+            var defaultId = (uint)Random.Shared.Next();
+            while (Enumerable.Range((int)defaultId, allChildren.Count).Any(id => parentFile.Nodes.Any(n => n.ID.ID == (uint)id))) {
+                defaultId = (uint)Random.Shared.Next();
+            }
+
+            foreach (var child in allChildren) {
+                var prevId = child.ID;
+                child.ID = new NodeID(defaultId++, child.ID.exID);
+                newChildren[prevId] = child;
+            }
+
+            foreach (var child in allChildren) {
+                foreach (var state in child.States.States) {
+                    if (newChildren.TryGetValue(state.targetNodeID, out var newNode)) {
+                        state.targetNodeID = newNode.ID;
+                        state.TargetNode = newNode;
+                    }
+                }
+
+                foreach (var state in child.AllStates.AllStates) {
+                    if (newChildren.TryGetValue(state.targetNodeID, out var newNode)) {
+                        state.targetNodeID = newNode.ID;
+                        state.TargetNode = newNode;
+                    }
+                }
+            }
+        }
+
+        public override BHVTNode Clone()
+        {
+            var node = new BHVTNode(Transitions.Version)
+            {
+                Selector = Selector,
+                SelectorID = SelectorID,
+                Name = Name,
+                Priority = Priority,
+                Attributes = Attributes,
+                WorkFlags = WorkFlags,
+                mNameHash = mNameHash,
+                mFullnameHash = mFullnameHash,
+                isBranch = isBranch,
+                isEnd = isEnd,
+                ReferenceTree = ReferenceTree,
+                unknownAI = unknownAI,
+                SelectorCallerCondition = SelectorCallerCondition,
+                SelectorCallerConditionID = SelectorCallerConditionID,
+                AI_Path = AI_Path,
+            };
+            node.Tags.AddRange(Tags);
+            node.SelectorCallerIDs.AddRange(SelectorCallerIDs);
+            node.SelectorCallers.AddRange(SelectorCallers);
+            node.Actions.Actions.AddRange(Actions.CloneActions());
+            node.States.States.AddRange(States.States.Select(s => s.Clone()));
+            node.AllStates.AllStates.AddRange(AllStates.AllStates.Select(s => s.Clone()));
+            node.Children.Children.AddRange(Children.CloneChildren());
+            return node;
         }
     }
 
@@ -1143,14 +1255,14 @@ namespace ReeLib
 
                     foreach (var state in node.AllStates.AllStates)
                     {
-                        state.TargetNode = nodeDict[state.targetNodeId.ID];
+                        state.TargetNode = nodeDict[state.targetNodeID.ID];
 
-                        if (state.transitionConditionId.HasValue)
+                        if (state.transitionConditionID.HasValue)
                         {
-                            state.Condition = state.transitionConditionId.idType == 64
-                                ? StaticConditionsRsz.ObjectList[state.transitionConditionId.id]
-                                : ConditionsRsz.ObjectList[state.transitionConditionId.id];
-                            DataInterpretationException.DebugWarnIf(state.transitionConditionId.idType == 64 != ShouldBeStaticClass(state.Condition.RszClass.name, version), state.Condition.RszClass.name);
+                            state.Condition = state.transitionConditionID.idType == 64
+                                ? StaticConditionsRsz.ObjectList[state.transitionConditionID.id]
+                                : ConditionsRsz.ObjectList[state.transitionConditionID.id];
+                            DataInterpretationException.DebugWarnIf(state.transitionConditionID.idType == 64 != ShouldBeStaticClass(state.Condition.RszClass.name, version), state.Condition.RszClass.name);
                         }
                     }
                 }
@@ -1211,6 +1323,16 @@ namespace ReeLib
             }
             RecurseHandleChildren(RootNode);
 
+            var uniqueIds = new HashSet<NodeID>();
+            foreach (var node in Nodes)
+            {
+                while (!uniqueIds.Add(node.ID)) {
+                    var newId = new NodeID((uint)Random.Shared.Next(), node.ID.exID);
+                    Log.Warn($"Found duplicate node ID in node {node}. This is not supported. Giving it a new ID {newId}");
+                    node.ID = newId;
+                }
+            }
+
             static BHVTId StoreRszObject(RszInstance? instance, RSZFile staticRsz, RSZFile nonStaticRsz, GameVersion version)
             {
                 if (instance == null) return (BHVTId)uint.MaxValue;
@@ -1265,10 +1387,10 @@ namespace ReeLib
                 {
                     if (state.TargetNode != null)
                     {
-                        state.targetNodeId = state.TargetNode.ID;
+                        state.targetNodeID = state.TargetNode.ID;
                     }
 
-                    state.transitionConditionId = StoreRszObject(state.Condition, StaticConditionsRsz, ConditionsRsz, version);
+                    state.transitionConditionID = StoreRszObject(state.Condition, StaticConditionsRsz, ConditionsRsz, version);
                 }
 
                 foreach (var trans in node.Transitions.Transitions)

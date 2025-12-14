@@ -20,10 +20,12 @@ namespace ReeLib.Motfsm2
     }
 
 
-    public struct TransitionMap
+    public struct TransitionMap : IComparable<TransitionMap>
     {
         public uint transitionId;
         public int dataIndex;
+
+        public int CompareTo(TransitionMap other) => (transitionId, dataIndex).CompareTo((other.transitionId, other.dataIndex));
 
         public readonly override string ToString() => $"[{transitionId}] {dataIndex}";
     }
@@ -194,6 +196,26 @@ namespace ReeLib
         public BhvtFile BhvtFile { get; private set; } = new(option, fileHandler);
         public List<TransitionMap> TransitionMaps { get; } = new();
         public List<TransitionData> TransitionDatas { get; } = new();
+
+        public void ChangeTransitionMapping(uint sourceId, uint transitionDataId)
+        {
+            var dataIndex = TransitionDatas.FindIndex(d => d.id == transitionDataId);
+            if (dataIndex == -1) {
+                Log.Error("Attempted to change to unknown transition ID " + transitionDataId);
+                return;
+            }
+            var newMap = new TransitionMap() { transitionId = sourceId, dataIndex = dataIndex };
+            for (int i = 0; i < TransitionMaps.Count; i++) {
+                var map = TransitionMaps[i];
+                if (map.transitionId == sourceId) {
+                    TransitionMaps[i] = newMap;
+                    return;
+                }
+            }
+
+            TransitionMaps.Add(newMap);
+            TransitionMaps.Sort();
+        }
 
         protected override bool DoRead()
         {

@@ -5,13 +5,7 @@ using ReeLib.Mdf;
 
 namespace ReeLib.Mdf
 {
-    public struct MdfHeaderStruct {
-        public uint magic;
-        public short mdfVersion;
-        public short matCount;
-    }
-
-    public class MatHeader : BaseModel
+    public class MaterialHeader : BaseModel
     {
         public long matNameOffset; // 1
         public string matName = string.Empty;
@@ -143,7 +137,7 @@ namespace ReeLib.Mdf
             return true;
         }
 
-        public override MatHeader Clone() => (MatHeader)base.Clone();
+        public override MaterialHeader Clone() => (MaterialHeader)base.Clone();
     }
 
     [Flags]
@@ -248,13 +242,13 @@ namespace ReeLib.Mdf
         public uint hash;
         public uint asciiHash;
         public int componentCount;
-        public int paramRelOffset;
-        // fileData end
-        // MatHeader.paramsOffset + paramRelOffset
-        public long paramAbsOffset;
-        // for padding
-        public int gapSize;
+
         public Vector4 parameter;
+
+        internal int paramRelOffset;
+        internal long paramAbsOffset;
+        // for padding
+        internal int gapSize;
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -305,65 +299,69 @@ namespace ReeLib.Mdf
         public override string ToString() => $"{paramName}: {parameter}";
     }
 
-    public class GpbfHeader : BaseModel
+    public class GpuBufferEntry : BaseModel
     {
-        public long nameOffset;
         public string name = string.Empty;
-        public uint utf16Hash;
-        public uint asciiHash;
+        public string path = string.Empty;
 
-        public GpbfHeader()
+        public GpuBufferEntry()
         {
         }
 
-        public GpbfHeader(string name)
+        public GpuBufferEntry(string name, string path)
         {
             this.name = name;
-            asciiHash = MurMur3HashUtils.GetAsciiHash(name);
-            utf16Hash = MurMur3HashUtils.GetHash(name);
+            this.path = path;
         }
 
         protected override bool DoRead(FileHandler handler)
         {
-            handler.Read(ref nameOffset);
-            name = handler.ReadWString(nameOffset);
-            handler.Read(ref utf16Hash);
-            handler.Read(ref asciiHash);
+            name = handler.ReadOffsetWString();
+            handler.Read<int>(); // utf16Hash
+            handler.Read<int>(); // asciiHash
+            path = handler.ReadOffsetWString();
+            handler.ReadNull(4);
+            var one = handler.Read<int>();
+            DataInterpretationException.DebugThrowIf(one != 1);
             return true;
         }
 
         protected override bool DoWrite(FileHandler handler)
         {
-            nameOffset = handler.Tell();
-            handler.WriteOffsetWString(name ?? string.Empty);
-            handler.Write(ref utf16Hash);
-            handler.Write(ref asciiHash);
+            handler.WriteOffsetWString(name);
+            handler.Write(MurMur3HashUtils.GetHash(name));
+            handler.Write(MurMur3HashUtils.GetAsciiHash(name));
+            handler.WriteOffsetWString(path);
+            handler.Write(0);
+            handler.Write(1);
             return true;
         }
 
         public override string ToString() => $"{name}";
+
+        public int CompareTo(GpuBufferEntry? other) => name.CompareTo(other?.name);
     }
 
-    public class MatData
+    public class MaterialData
     {
-        public MatData() { }
-        public MatData(MatHeader matHeader)
+        public MaterialData() { }
+        public MaterialData(MaterialHeader matHeader)
         {
             Header = matHeader;
         }
 
-        public MatHeader Header = new();
+        public MaterialHeader Header = new();
         public List<TexHeader> Textures = new();
         public List<ParamHeader> Parameters = new();
-        public List<(GpbfHeader name, GpbfHeader data)> GpuBuffers = new();
+        public List<GpuBufferEntry> GpuBuffers = new();
 
         public override string ToString() => Header.matName + " :  " + Path.GetFileName(Header.mmtrPath);
 
-        public MatData Clone()
+        public MaterialData Clone()
         {
-            return new MatData(Header.Clone()) {
+            return new MaterialData(Header.Clone()) {
                 Textures = Textures.Select(tex => tex.Clone()).ToList(),
-                GpuBuffers = GpuBuffers.Select(gpbf => (new GpbfHeader(gpbf.name.name), new GpbfHeader(gpbf.data.name))).ToList(),
+                GpuBuffers = GpuBuffers.Select(gpbf => new GpuBufferEntry(gpbf.name, gpbf.path)).ToList(),
                 Parameters = Parameters.Select(tex => tex.Clone()).ToList(),
             };
         }
@@ -380,8 +378,9 @@ namespace ReeLib
         {
         }
 
-        public StructModel<MdfHeaderStruct> Header = new();
-        public List<MatData> Materials = new();
+        public short version;
+        public long uknValue;
+        public List<MaterialData> Materials = new();
 
         public const uint Magic = 0x46444d;
         public const string Extension = ".mdf2";
@@ -391,16 +390,18 @@ namespace ReeLib
             Materials.Clear();
 
             var handler = FileHandler;
-            if (!Header.Read(handler)) return false;
-            if (Header.Data.magic != Magic)
+            if (handler.Read<int>() != Magic)
             {
                 throw new InvalidDataException($"{handler.FilePath} Not a MDF file");
             }
+            handler.Read(ref version);
+            var matCount = handler.Read<short>();
+            handler.Read(ref uknValue);
+            DataInterpretationException.DebugWarnIf(uknValue > 1);
 
-            handler.Align(16);
-            for (int i = 0; i < Header.Data.matCount; i++)
+            for (int i = 0; i < matCount; i++)
             {
-                MatData matData = new();
+                MaterialData matData = new();
                 matData.Header.Read(handler);
                 Materials.Add(matData);
             }
@@ -450,11 +451,9 @@ namespace ReeLib
                 var tell = handler.Tell();
                 handler.Seek(matData.Header.gpbfOffset);
                 for (int i = 0; i < matData.Header.gpbfNameCount; ++i) {
-                    var name = new GpbfHeader();
-                    var data = new GpbfHeader();
-                    name.Read(handler);
-                    data.Read(handler);
-                    matData.GpuBuffers.Add((name, data));
+                    var gpbf = new GpuBufferEntry();
+                    gpbf.Read(handler);
+                    matData.GpuBuffers.Add(gpbf);
                 }
                 DataInterpretationException.DebugThrowIf(matData.Header.texIDsOffset > 0, "TODO Handle tex IDs");
                 handler.Seek(tell);
@@ -468,9 +467,11 @@ namespace ReeLib
             FileHandler handler = FileHandler;
             handler.Clear();
             handler.Seek(0);
-            Header.Write(handler);
+            handler.Write(Magic);
+            handler.Write((short)version);
+            handler.Write((short)Materials.Count);
+            handler.Write(uknValue);
 
-            handler.Align(16);
             foreach (var matData in Materials)
             {
                 matData.Header.Write(handler);
@@ -494,10 +495,7 @@ namespace ReeLib
             {
                 matData.Header.gpbfOffset = handler.Tell();
                 matData.Header.gpbfNameCount = matData.Header.gpbfDataCount = matData.GpuBuffers.Count;
-                foreach (var gpbf in matData.GpuBuffers) {
-                    gpbf.name.Write(handler);
-                    gpbf.data.Write(handler);
-                }
+                matData.GpuBuffers.Write(handler);
             }
 
             handler.StringTableWriteStrings();

@@ -1270,8 +1270,8 @@ namespace ReeLib.Mesh
 	{
 		public int vertIndex;
 		public int vertOffset;
-		[RszPaddingAfter(4)]
 		public int vertCount;
+		public int ukn;
 	}
 
     public class BlendShapeTarget : BaseModel
@@ -1306,7 +1306,7 @@ namespace ReeLib.Mesh
 			handler.Write(ref blendShapeNum);
 			handler.Write(ref ukn);
 			handler.Write<byte>((byte)Submeshes.Count);
-			handler.WriteNull(1);
+			handler.Write(ref ukn2);
 			handler.Write(Submeshes[0].Start);
 			return true;
         }
@@ -1943,8 +1943,15 @@ namespace ReeLib
 			if (header.normalRecalcOffset > 0 && MeshData != null)
 			{
 				handler.Seek(header.normalRecalcOffset);
-				NormalRecalcData = new NormalRecalcData() { lods = MeshData.LODs, Version = header.FormatVersion };
-				NormalRecalcData.Read(handler);
+				if (header.FormatVersion >= MeshSerializerVersion.Pragmata)
+				{
+					// TODO skipping normal recalc for now
+				}
+				else
+				{
+					NormalRecalcData = new NormalRecalcData() { lods = MeshData.LODs, Version = header.FormatVersion };
+					NormalRecalcData.Read(handler);
+				}
 			}
 
 			if (header.blendShapeIndicesOffset > 0 && BlendShapes != null)

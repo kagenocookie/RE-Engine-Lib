@@ -278,7 +278,7 @@ namespace ReeLib.Mesh
 			for (int i = 0; i < boneWeights.Length; ++i) boneWeights[i] /= sum;
 		}
 
-		private static int GetIndexCount(MeshSerializerVersion version) => version == MeshSerializerVersion.SF6 ? 6 : 8;
+		private static int GetIndexCount(MeshSerializerVersion version) => version is MeshSerializerVersion.SF6 or MeshSerializerVersion.Pragmata ? 6 : 8;
 
 		public void ChangeVersion(MeshSerializerVersion version)
 		{
@@ -299,7 +299,7 @@ namespace ReeLib.Mesh
 
         internal void Read(FileHandler handler, MeshSerializerVersion version)
 		{
-			if (version == MeshSerializerVersion.SF6) {
+			if (version is MeshSerializerVersion.SF6 or MeshSerializerVersion.Pragmata) {
 				var b1 = handler.Read<uint>();
 				var b2 = handler.Read<uint>();
 				boneIndices = new int[6];
@@ -319,7 +319,7 @@ namespace ReeLib.Mesh
 
         internal void Write(FileHandler handler, MeshSerializerVersion version)
 		{
-			if (version == MeshSerializerVersion.SF6)
+			if (version is MeshSerializerVersion.SF6 or MeshSerializerVersion.Pragmata)
 			{
 				var n1 = boneIndices[0] & (boneIndices[1] << 10) & (boneIndices[2] << 20);
 				var n2 = boneIndices[3] & (boneIndices[4] << 10) & (boneIndices[5] << 20);

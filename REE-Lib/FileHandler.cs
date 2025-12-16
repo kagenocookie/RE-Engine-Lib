@@ -986,7 +986,7 @@ namespace ReeLib
         /// <summary>读取数组</summary>
         public bool ReadSpan<T>(Span<T> span) where T : unmanaged
         {
-            Stream.Write(MemoryMarshal.AsBytes(span));
+            Stream.Read(MemoryMarshal.AsBytes(span));
             return true;
         }
 

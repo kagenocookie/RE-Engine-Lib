@@ -684,6 +684,7 @@ namespace ReeLib
             Strings.Read(handler);
 
             Clear();
+            handler.Seek(Strings.Start + Header.stringTableLength);
 
             for (int i = 0; i < Header.expressionParameterCount; ++i) {
                 var param = new EFXExpressionParameter();

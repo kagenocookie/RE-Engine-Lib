@@ -63,6 +63,7 @@ namespace ReeLib.Motlist
         public long motionIndicesOffset;
         public long uknOffset;
         public int numMots;
+        public short uknNum;
 
         public string MotListName { get; set; } = string.Empty;
         public string? BaseMotListPath { get; set; }
@@ -84,8 +85,13 @@ namespace ReeLib.Motlist
             if (version >= MotlistVersion.MHWILDS)
             {
                 handler.Read(ref uknOffset);
+                DataInterpretationException.DebugWarnIf(uknOffset > 0);
             }
             handler.Read(ref numMots);
+            if (version >= MotlistVersion.MHR)
+            {
+                handler.Read(ref uknNum);
+            }
             return true;
         }
 
@@ -114,7 +120,10 @@ namespace ReeLib.Motlist
                 handler.Write(ref uknOffset);
             }
             handler.Write(ref numMots);
-            // handler.Skip(2);
+            if (version >= MotlistVersion.MHR)
+            {
+                handler.Write(ref uknNum);
+            }
             handler.StringTableFlush();
             return true;
         }

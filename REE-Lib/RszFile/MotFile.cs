@@ -2054,6 +2054,7 @@ namespace ReeLib.Mot
             ClipEntry.Version = clipVer;
             foreach (var track in ClipEntry.Tracks) track.Version = clipVer;
             foreach (var track in ClipEntry.Properties) track.Info.Version = clipVer;
+            foreach (var key in ClipEntry.ClipKeys) key.Version = clipVer;
             ClipEntry.ExtraPropertyData.Version = clipVer;
         }
 
@@ -3003,10 +3004,8 @@ namespace ReeLib
                 }
             }
 
-            if (source.Header.version != Header.version)
-            {
-                ChangeVersion(Header.version);
-            }
+            // ensure all versions match
+            ChangeVersion(Header.version);
 
             Header.CopyValuesFrom(source.Header);
         }

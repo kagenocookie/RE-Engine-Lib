@@ -297,15 +297,16 @@ namespace ReeLib
                 {
                     handler.Seek(motIndex.motClipOffset);
                     var headerOffsets = handler.ReadArray<long>(motIndex.extraClipCount);
-                    if (Header.version >= MotlistVersion.Pragmata) {
-                        // TODO
-                        Log.Warn("New mot extra clips not yet supported, skipping...");
-                        continue;
-                    }
-                    foreach (var off in headerOffsets) {
+                    foreach (var off in headerOffsets)
+                    {
                         handler.Seek(off);
+                        var motclipHandler = handler;
+                        if (Header.version >= MotlistVersion.MHWILDS)
+                        {
+                            motclipHandler = handler.WithOffset(handler.Tell());
+                        }
                         var clip = new MotClip();
-                        clip.Read(handler);
+                        clip.Read(motclipHandler);
                         motIndex.MotClips.Add(clip);
                     }
                 }
@@ -382,11 +383,16 @@ namespace ReeLib
                     for (int i = 0; i < motIndex.MotClips.Count; ++i)
                     {
                         handler.Write(motIndex.motClipOffset + i * 8, handler.Tell());
-                        motIndex.MotClips[i].Write(handler);
+                        var motclipHandler = handler;
+                        if (header.version >= MotlistVersion.MHWILDS)
+                        {
+                            motclipHandler = handler.WithOffset(handler.Tell());
+                        }
+                        motIndex.MotClips[i].Write(motclipHandler);
                     }
 
                     handler.Write(motIndex.Start, motIndex.motClipOffset);
-                    motIndex.Write(handler, motIndex.Start);
+                    motIndex.Rewrite(handler);
                 }
             }
             header.Write(handler, 0);

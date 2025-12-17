@@ -253,8 +253,8 @@ namespace ReeLib.Mot
     {
         UnknownType,
         LoadVector3sFull,
-        LoadVector3sXYZAxis16Bit,
         LoadVector3sXYZAxis,
+        LoadVector3sXYZAxis16Bit,
         LoadScalesXYZ,
         LoadVector3s5BitA,
         LoadVector3s10BitA,
@@ -275,24 +275,24 @@ namespace ReeLib.Mot
         LoadVector3sXAxis24Bit,
         LoadVector3sYAxis24Bit,
         LoadVector3sZAxis24Bit,
-        LoadVector3sYZAxis,
         LoadVector3sXYAxis,
+        LoadVector3sYZAxis,
         LoadVector3sZXAxis,
+        LoadVector3sXYAxis8Bit,
         LoadVector3sYZAxis8Bit,
         LoadVector3sXZAxis8Bit,
-        LoadVector3sXYAxis8Bit,
+        LoadVector3sXYAxis12Bit,
         LoadVector3sYZAxis12Bit,
         LoadVector3sXZAxis12Bit,
-        LoadVector3sXYAxis12Bit,
         LoadVector3sXYAxis16Bit,
-        LoadVector3sXZAxis16Bit,
         LoadVector3sYZAxis16Bit,
+        LoadVector3sXZAxis16Bit,
         LoadVector3sXYAxis20Bit,
         LoadVector3sYZAxis20Bit,
         LoadVector3sZXAxis20Bit,
-        LoadVector3sZXAxis24Bit,
-        LoadVector3sYZAxis24Bit,
         LoadVector3sXYAxis24Bit,
+        LoadVector3sYZAxis24Bit,
+        LoadVector3sZXAxis24Bit,
     }
 
     public enum FrameIndexSize
@@ -336,6 +336,9 @@ namespace ReeLib.Mot
         LoadQuaternionsXAxis16Bit,
         LoadQuaternionsYAxis16Bit,
         LoadQuaternionsZAxis16Bit,
+        LoadQuaternionsXAxis24Bit,
+        LoadQuaternionsYAxis24Bit,
+        LoadQuaternionsZAxis24Bit,
         LoadQuaternionsXAxis,
         LoadQuaternionsYAxis,
         LoadQuaternionsZAxis,
@@ -389,7 +392,8 @@ namespace ReeLib.Mot
                 if (!RequiresUnpackData) return 0;
                 if (TrackType == TrackValueType.Quaternion)
                 {
-                    if (RotationCompressionType is QuaternionDecompression.LoadQuaternionsXAxis16Bit or QuaternionDecompression.LoadQuaternionsYAxis16Bit or QuaternionDecompression.LoadQuaternionsZAxis16Bit)
+                    if (RotationCompressionType is QuaternionDecompression.LoadQuaternionsXAxis16Bit or QuaternionDecompression.LoadQuaternionsYAxis16Bit or QuaternionDecompression.LoadQuaternionsZAxis16Bit
+                        or QuaternionDecompression.LoadQuaternionsXAxis24Bit or QuaternionDecompression.LoadQuaternionsYAxis24Bit or QuaternionDecompression.LoadQuaternionsZAxis24Bit)
                         return 2;
 
                     return 8;
@@ -635,27 +639,21 @@ namespace ReeLib.Mot
         private static Dictionary<uint, Vector3Decompression> TranslationDictDmc5 = new() {
             { 0x00000, Vector3Decompression.LoadVector3sFull },
             { 0x20000, Vector3Decompression.LoadVector3s5BitA },
-            { 0x30000, Vector3Decompression.LoadVector3s10BitA },
-            { 0x40000, Vector3Decompression.LoadVector3s10BitA },
-            { 0x70000, Vector3Decompression.LoadVector3s21BitA },
-            { 0x31000, Vector3Decompression.LoadVector3sXAxis },
-            { 0x32000, Vector3Decompression.LoadVector3sYAxis },
-            { 0x33000, Vector3Decompression.LoadVector3sZAxis },
             { 0x21000, Vector3Decompression.LoadVector3sXAxis16Bit },
             { 0x22000, Vector3Decompression.LoadVector3sYAxis16Bit },
             { 0x23000, Vector3Decompression.LoadVector3sZAxis16Bit },
-            { 0x34000, Vector3Decompression.LoadScalesXYZ },
             { 0x24000, Vector3Decompression.LoadVector3sXYZAxis16Bit },
+            { 0x30000, Vector3Decompression.LoadVector3s10BitA },
+            { 0x31000, Vector3Decompression.LoadVector3sXAxis },
+            { 0x32000, Vector3Decompression.LoadVector3sYAxis },
+            { 0x33000, Vector3Decompression.LoadVector3sZAxis },
+            { 0x34000, Vector3Decompression.LoadScalesXYZ },
+            { 0x70000, Vector3Decompression.LoadVector3s21BitA },
         };
 
         private static Dictionary<uint, Vector3Decompression> TranslationDict = new() {
             { 0x00000, Vector3Decompression.LoadVector3sFull },
-            { 0x20000, Vector3Decompression.LoadVector3s5BitB },
-            { 0x30000, Vector3Decompression.LoadVector3s8BitB },
-            { 0x40000, Vector3Decompression.LoadVector3s10BitB },
-            { 0x50000, Vector3Decompression.LoadVector3s13Bit },
-            { 0x60000, Vector3Decompression.LoadVector3s16Bit },
-            { 0x80000, Vector3Decompression.LoadVector3s21BitB },
+            { 0x20000, Vector3Decompression.LoadVector3s5BitB },  // 16 bits per value
             { 0x21000, Vector3Decompression.LoadVector3sXAxis16Bit },
             { 0x22000, Vector3Decompression.LoadVector3sYAxis16Bit },
             { 0x23000, Vector3Decompression.LoadVector3sZAxis16Bit },
@@ -663,75 +661,73 @@ namespace ReeLib.Mot
             { 0x25000, Vector3Decompression.LoadVector3sXYAxis8Bit },
             { 0x26000, Vector3Decompression.LoadVector3sXZAxis8Bit },
             { 0x27000, Vector3Decompression.LoadVector3sYZAxis8Bit },
-            { 0x41000, Vector3Decompression.LoadVector3sXAxis },
-            { 0x42000, Vector3Decompression.LoadVector3sYAxis },
+            { 0x30000, Vector3Decompression.LoadVector3s8BitB }, // 24 bits per value
             { 0x31000, Vector3Decompression.LoadVector3sXAxis24Bit },
             { 0x32000, Vector3Decompression.LoadVector3sYAxis24Bit },
             { 0x33000, Vector3Decompression.LoadVector3sZAxis24Bit },
             { 0x35000, Vector3Decompression.LoadVector3sYZAxis12Bit },
             { 0x36000, Vector3Decompression.LoadVector3sXZAxis12Bit },
             { 0x37000, Vector3Decompression.LoadVector3sXYAxis12Bit },
+            { 0x40000, Vector3Decompression.LoadVector3s10BitB }, // 32 bits per value
+            { 0x41000, Vector3Decompression.LoadVector3sXAxis },
+            { 0x42000, Vector3Decompression.LoadVector3sYAxis },
             { 0x43000, Vector3Decompression.LoadVector3sZAxis },
             { 0x44000, Vector3Decompression.LoadVector3sXYZAxis },
             { 0x45000, Vector3Decompression.LoadVector3sXYAxis16Bit },
             { 0x46000, Vector3Decompression.LoadVector3sXZAxis16Bit },
             { 0x47000, Vector3Decompression.LoadVector3sYZAxis16Bit },
+            { 0x50000, Vector3Decompression.LoadVector3s13Bit }, // 40 bits per value
             { 0x55000, Vector3Decompression.LoadVector3sXYAxis20Bit },
             { 0x56000, Vector3Decompression.LoadVector3sYZAxis20Bit },
             { 0x57000, Vector3Decompression.LoadVector3sZXAxis20Bit },
+            { 0x60000, Vector3Decompression.LoadVector3s16Bit }, // 48 bits per value
             { 0x65000, Vector3Decompression.LoadVector3sXYAxis24Bit },
             { 0x66000, Vector3Decompression.LoadVector3sYZAxis24Bit },
             { 0x67000, Vector3Decompression.LoadVector3sZXAxis24Bit },
+            { 0x70000, Vector3Decompression.LoadVector3s18Bit }, // 56 bits per value
+            { 0x80000, Vector3Decompression.LoadVector3s21BitB }, // 64 bits per value
             { 0x85000, Vector3Decompression.LoadVector3sXYAxis },
             { 0x86000, Vector3Decompression.LoadVector3sYZAxis },
             { 0x87000, Vector3Decompression.LoadVector3sZXAxis },
-            { 0x70000, Vector3Decompression.LoadVector3s18Bit },
         };
 
         private static Dictionary<uint, QuaternionDecompression> RotationDictDmc5 = new() {
             { 0x00000, QuaternionDecompression.LoadQuaternionsFull },
-            { 0xB0000, QuaternionDecompression.LoadQuaternions3Component },
-            { 0xC0000, QuaternionDecompression.LoadQuaternions3Component },
-            { 0x30000, QuaternionDecompression.LoadQuaternions10Bit },
-            { 0x40000, QuaternionDecompression.LoadQuaternions10Bit },
-            { 0x50000, QuaternionDecompression.LoadQuaternions16Bit },
-            { 0x70000, QuaternionDecompression.LoadQuaternions21Bit },
             { 0x21000, QuaternionDecompression.LoadQuaternionsXAxis16Bit },
             { 0x22000, QuaternionDecompression.LoadQuaternionsYAxis16Bit },
             { 0x23000, QuaternionDecompression.LoadQuaternionsZAxis16Bit },
+            { 0x30000, QuaternionDecompression.LoadQuaternions10Bit },
             { 0x31000, QuaternionDecompression.LoadQuaternionsXAxis },
-            { 0x41000, QuaternionDecompression.LoadQuaternionsXAxis },
             { 0x32000, QuaternionDecompression.LoadQuaternionsYAxis },
-            { 0x42000, QuaternionDecompression.LoadQuaternionsYAxis },
             { 0x33000, QuaternionDecompression.LoadQuaternionsZAxis },
-            { 0x43000, QuaternionDecompression.LoadQuaternionsZAxis },
+            { 0x70000, QuaternionDecompression.LoadQuaternions21Bit },
+            { 0xB0000, QuaternionDecompression.LoadQuaternions3Component },
         };
 
         private static Dictionary<uint, QuaternionDecompression> RotationDict = new() {
             { 0x00000, QuaternionDecompression.LoadQuaternionsFull },
-            { 0xB0000, QuaternionDecompression.LoadQuaternions3Component },
-            { 0xC0000, QuaternionDecompression.LoadQuaternions3Component },
-            { 0x20000, QuaternionDecompression.LoadQuaternions5Bit },
-            { 0x30000, QuaternionDecompression.LoadQuaternions8Bit },
-            { 0x40000, QuaternionDecompression.LoadQuaternions10Bit },
-            { 0x50000, QuaternionDecompression.LoadQuaternions13Bit },
-            { 0x60000, QuaternionDecompression.LoadQuaternions16Bit },
-            { 0x70000, QuaternionDecompression.LoadQuaternions18Bit },
-            { 0x80000, QuaternionDecompression.LoadQuaternions21Bit },
+            { 0x20000, QuaternionDecompression.LoadQuaternions5Bit }, // 16 bits
             { 0x21000, QuaternionDecompression.LoadQuaternionsXAxis16Bit },
             { 0x22000, QuaternionDecompression.LoadQuaternionsYAxis16Bit },
             { 0x23000, QuaternionDecompression.LoadQuaternionsZAxis16Bit },
-            { 0x31000, QuaternionDecompression.LoadQuaternionsXAxis },
+            { 0x30000, QuaternionDecompression.LoadQuaternions8Bit }, // 24 bits
+            { 0x31000, QuaternionDecompression.LoadQuaternionsXAxis24Bit },
+            { 0x32000, QuaternionDecompression.LoadQuaternionsYAxis24Bit },
+            { 0x33000, QuaternionDecompression.LoadQuaternionsZAxis24Bit },
+            { 0x40000, QuaternionDecompression.LoadQuaternions10Bit }, // 32 bits
             { 0x41000, QuaternionDecompression.LoadQuaternionsXAxis },
-            { 0x32000, QuaternionDecompression.LoadQuaternionsYAxis },
             { 0x42000, QuaternionDecompression.LoadQuaternionsYAxis },
-            { 0x33000, QuaternionDecompression.LoadQuaternionsZAxis },
             { 0x43000, QuaternionDecompression.LoadQuaternionsZAxis },
+            { 0x50000, QuaternionDecompression.LoadQuaternions13Bit }, // 40 bits
+            { 0x60000, QuaternionDecompression.LoadQuaternions16Bit }, // 48 bits
+            { 0x70000, QuaternionDecompression.LoadQuaternions18Bit }, // 56 bits
+            { 0x80000, QuaternionDecompression.LoadQuaternions21Bit }, // 64 bits
+            { 0xC0000, QuaternionDecompression.LoadQuaternions3Component }, // 96 bit
         };
 
         private static Dictionary<uint, FloatDecompression> FloatDict = new() {
             { 0x00000, FloatDecompression.LoadFloatsFull },
-            { 0x10000, FloatDecompression.LoadFloats8Bit }, // RE4
+            { 0x10000, FloatDecompression.LoadFloats8Bit },
         };
 
         public Vector3Decompression TranslationCompressionType
@@ -1519,6 +1515,33 @@ namespace ReeLib.Mot
                         quaternion.Z = unpackData[0] * ((float)handler.Read<ushort>() * (1f / 0xFFFF)) + unpackData[1];
                         quaternion.W = ComputeQuaternionW(quaternion);
                         break;
+                    case QuaternionDecompression.LoadQuaternionsXAxis24Bit:
+                        {
+                            var val = ReadBytesAsUInt32(handler, 3);
+                            quaternion.X = unpackData[0] * ((float)val * (1f / 0xFFFFFF)) + unpackData[1];
+                            quaternion.Y = 0.0f;
+                            quaternion.Z = 0.0f;
+                            quaternion.W = ComputeQuaternionW(quaternion);
+                            break;
+                        }
+                    case QuaternionDecompression.LoadQuaternionsYAxis24Bit:
+                        {
+                            var val = ReadBytesAsUInt32(handler, 3);
+                            quaternion.X = 0.0f;
+                            quaternion.Y = unpackData[0] * ((float)val * (1f / 0xFFFFFF)) + unpackData[1];
+                            quaternion.Z = 0.0f;
+                            quaternion.W = ComputeQuaternionW(quaternion);
+                            break;
+                        }
+                    case QuaternionDecompression.LoadQuaternionsZAxis24Bit:
+                        {
+                            var val = ReadBytesAsUInt32(handler, 3);
+                            quaternion.X = 0.0f;
+                            quaternion.Y = 0.0f;
+                            quaternion.Z = unpackData[0] * ((float)val * (1f / 0xFFFFFF)) + unpackData[1];
+                            quaternion.W = ComputeQuaternionW(quaternion);
+                            break;
+                        }
                     case QuaternionDecompression.LoadQuaternionsXAxis:
                         quaternion.X = handler.Read<float>();
                         quaternion.Y = 0.0f;
@@ -1672,6 +1695,21 @@ namespace ReeLib.Mot
                             handler.Write(data);
                             break;
                         }
+                    case QuaternionDecompression.LoadQuaternionsXAxis24Bit:
+                        {
+                            WriteUnit64AsBytes(handler, (uint)MathF.Round((quaternion.X - unpackData[1]) / unpackData[0] * 0xFFFFFF), 3);
+                            break;
+                        }
+                    case QuaternionDecompression.LoadQuaternionsYAxis24Bit:
+                        {
+                            WriteUnit64AsBytes(handler, (uint)MathF.Round((quaternion.Y - unpackData[1]) / unpackData[0] * 0xFFFFFF), 3);
+                            break;
+                        }
+                    case QuaternionDecompression.LoadQuaternionsZAxis24Bit:
+                        {
+                            WriteUnit64AsBytes(handler, (uint)MathF.Round((quaternion.Z - unpackData[1]) / unpackData[0] * 0xFFFFFF), 3);
+                            break;
+                        }
                     case QuaternionDecompression.LoadQuaternionsXAxis:
                         handler.Write(quaternion.X);
                         break;
@@ -1771,14 +1809,21 @@ namespace ReeLib.Mot
                     case QuaternionDecompression.LoadQuaternionsXAxis16Bit:
                     case QuaternionDecompression.LoadQuaternionsYAxis16Bit:
                     case QuaternionDecompression.LoadQuaternionsZAxis16Bit:
+                    case QuaternionDecompression.LoadQuaternionsXAxis24Bit:
+                    case QuaternionDecompression.LoadQuaternionsYAxis24Bit:
+                    case QuaternionDecompression.LoadQuaternionsZAxis24Bit:
                         unpackData[0] = RotationCompressionType switch {
                             QuaternionDecompression.LoadQuaternionsYAxis16Bit => scale.Y,
                             QuaternionDecompression.LoadQuaternionsZAxis16Bit => scale.Z,
+                            QuaternionDecompression.LoadQuaternionsYAxis24Bit => scale.Y,
+                            QuaternionDecompression.LoadQuaternionsZAxis24Bit => scale.Z,
                             _ => scale.X,
                         };
                         unpackData[1] = RotationCompressionType switch {
                             QuaternionDecompression.LoadQuaternionsYAxis16Bit => min.Y,
                             QuaternionDecompression.LoadQuaternionsZAxis16Bit => min.Z,
+                            QuaternionDecompression.LoadQuaternionsYAxis24Bit => min.Y,
+                            QuaternionDecompression.LoadQuaternionsZAxis24Bit => min.Z,
                             _ => min.X,
                         };
                         break;

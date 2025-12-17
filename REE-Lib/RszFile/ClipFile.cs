@@ -485,6 +485,7 @@ namespace ReeLib.Clip
             handler.Write(ref flags);
             handler.WriteNull(2);
             handler.Write(ref unknown);
+
             handler.Seek(Start + 16);
             PropertyType.Write(Value, handler, true);
             handler.Write(ref hermiteDataIndex);

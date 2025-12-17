@@ -223,6 +223,17 @@ namespace ReeLib
             return null;
         }
 
+        public string[] FindDanglingMotFiles()
+        {
+            var set = MotFiles.ToHashSet();
+            foreach (var mot in Motions)
+            {
+                if (mot.MotFile != null) set.Remove(mot.MotFile);
+            }
+
+            return set.Select(m => m.Name).ToArray();
+        }
+
         protected override bool DoRead()
         {
             MotFiles.Clear();

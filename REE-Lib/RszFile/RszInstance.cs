@@ -52,6 +52,14 @@ namespace ReeLib
             RSZUserData = userData;
         }
 
+        public RszInstance(RszClass rszClass, IRSZUserDataInfo userData)
+        {
+            RszClass = rszClass;
+            Values = [];
+            Index = -1;
+            RSZUserData = userData;
+        }
+
         private RszInstance()
         {
             RszClass = RszClass.Empty;

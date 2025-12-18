@@ -128,9 +128,9 @@ namespace ReeLib.Common
             var path = val?.AsObject()["path"]?.GetValue<string>() ?? string.Empty;
 
             if (env.IsEmbeddedInstanceInfoUserdata || env.IsEmbeddedUserdata) {
-                return new RszInstance(userClass, -1, new RSZUserDataInfo_TDB_LE_67() { jsonPathHash = MurMur3HashUtils.GetHash(path) });
+                return new RszInstance(userClass, new RSZUserDataInfo_TDB_LE_67() { jsonPathHash = MurMur3HashUtils.GetHash(path) });
             } else {
-                return new RszInstance(userClass, -1, new RSZUserDataInfo() { Path = path });
+                return new RszInstance(userClass, new RSZUserDataInfo() { Path = path });
             }
         }
 

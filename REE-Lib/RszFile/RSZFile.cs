@@ -186,7 +186,10 @@ namespace ReeLib
                     handler.Align(16);
                     var item = (RSZUserDataInfo_TDB_LE_67)RSZUserDataInfoList[i];
                     item.RSZOffset = handler.Tell();
-                    var embeddedRSZ = EmbeddedRSZFileList[i];
+                    var embeddedRSZ = item.EmbeddedRSZ ?? EmbeddedRSZFileList[i];
+                    if (!EmbeddedRSZFileList.Contains(embeddedRSZ)) {
+                        EmbeddedRSZFileList.Add(embeddedRSZ);
+                    }
                     embeddedRSZ.WriteTo(handler.WithOffset(item.RSZOffset), false);
                     // rewrite
                     item.dataSize = (uint)embeddedRSZ.Size;

@@ -1796,9 +1796,6 @@ namespace ReeLib.Mot
                     case QuaternionDecompression.LoadQuaternions16Bit:
                     case QuaternionDecompression.LoadQuaternions18Bit:
                     case QuaternionDecompression.LoadQuaternions21Bit:
-                        Debug.Assert(MathF.Abs(unpackData[0] - scale.X) < 0.001f);
-                        Debug.Assert(MathF.Abs(unpackData[1] - scale.Y) < 0.001f);
-                        Debug.Assert(MathF.Abs(unpackData[2] - scale.Z) < 0.001f);
                         unpackData[0] = scale.X;
                         unpackData[1] = scale.Y;
                         unpackData[2] = scale.Z;
@@ -3036,12 +3033,20 @@ namespace ReeLib
                     var bone = GetBoneByHash(clip.ClipHeader.boneHash);
                     if (bone == null)
                     {
-                        // TODO maybe try and find a closest parent bone instead and only fall back to root if not found
-                        bone = fallbackBone;
+                        // maintain received bone hashes in case any of them are actually important bones
+                        clip.ClipHeader.OriginalName ??= clip.ClipHeader.boneName;
+                        if (!string.IsNullOrEmpty(clip.ClipHeader.boneName) && MurMur3HashUtils.GetHash(clip.ClipHeader.boneName) != clip.ClipHeader.boneHash)
+                        {
+                            // clear the name because it's not the right name and we don't want to overwrite the hash
+                            clip.ClipHeader.boneName = null;
+                        }
+                    }
+                    else
+                    {
+                        clip.ClipHeader.boneIndex = (ushort)bone.Index;
+                        clip.ClipHeader.boneName ??= bone.Name;
                     }
 
-                    clip.ClipHeader.boneIndex = (ushort)bone.Index;
-                    clip.ClipHeader.boneName ??= bone.Name;
                     if (Header.version <= MotVersion.RE2_DMC5)
                     {
                         clip.ClipHeader.uknIndex = 0;

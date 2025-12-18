@@ -293,7 +293,7 @@ namespace ReeLib
         public List<TimelineNode> RootNodes { get; } = new();
         public List<TimelineNode> Nodes { get; } = new();
         public List<Property> Properties { get; } = new();
-        public List<Key> Keys { get; } = new();
+        public List<NormalKey> Keys { get; } = new();
 
         public List<SpeedPointData> SpeedPointData { get; } = new();
         public List<HermiteInterpolationData> HermiteData { get; } = new();
@@ -395,7 +395,7 @@ namespace ReeLib
             handler.Seek(Header.keyOffset);
             for (int i = 0; i < Header.keyCount; i++)
             {
-                Key key = new(Header.version);
+                NormalKey key = new(Header.version);
                 key.Read(handler);
                 Keys.Add(key);
                 if (key.interpolation == InterpolationType.Hermite) hermiteKeys++;
@@ -463,7 +463,7 @@ namespace ReeLib
                     property.Keys ??= new();
                     for (long i = property.Info.ChildStartIndex; i < property.Info.ChildMembershipCount + property.Info.ChildStartIndex; i++)
                     {
-                        Key key = Keys[(int)i];
+                        NormalKey key = Keys[(int)i];
                         property.Keys.Add(key);
                         key.ReadValue(handler, property, Header);
                     }

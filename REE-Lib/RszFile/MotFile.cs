@@ -2947,7 +2947,7 @@ namespace ReeLib
         {
             if (BoneHeaders == null)
             {
-                throw new Exception("Bone headers missing");
+                throw new Exception("Bone headers missing for mot file " + Name);
             }
 
             var header = Header;

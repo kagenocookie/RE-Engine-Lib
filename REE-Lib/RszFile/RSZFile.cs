@@ -297,6 +297,14 @@ namespace ReeLib
                     }
                 }
             }
+
+            if (EmbeddedRSZFileList != null)
+            {
+                foreach (var innerRsz in EmbeddedRSZFileList)
+                {
+                    innerRsz.RebuildInstanceList();
+                }
+            }
         }
 
         /// <summary>
@@ -416,6 +424,15 @@ namespace ReeLib
                 }
                 ObjectList = newObjectList;
             }
+
+            if (EmbeddedRSZFileList != null)
+            {
+                foreach (var innerRsz in EmbeddedRSZFileList)
+                {
+                    innerRsz.RebuildInstanceInfo(rebuildInstances, rebuildObjectTable);
+                }
+            }
+
             StructChanged = false;
         }
 

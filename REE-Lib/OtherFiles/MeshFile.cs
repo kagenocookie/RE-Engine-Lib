@@ -278,28 +278,19 @@ namespace ReeLib.Mesh
 			for (int i = 0; i < boneWeights.Length; ++i) boneWeights[i] /= sum;
 		}
 
-		private static int GetIndexCount(MeshSerializerVersion version) => version is MeshSerializerVersion.SF6 or MeshSerializerVersion.Pragmata ? 6 : 8;
+		private static int GetIndexCount(MeshSerializerVersion version) => version is MeshSerializerVersion.SF6 or MeshSerializerVersion.MHWILDS or MeshSerializerVersion.Pragmata ? 6 : 8;
 
 		public void ChangeVersion(MeshSerializerVersion version)
 		{
-			if (GetIndexCount(version) != boneIndices.Length) {
-				UpdateArrays(version);
+			var expectedCount = GetIndexCount(version);
+			if (expectedCount != boneIndices.Length) {
+				Array.Resize(ref boneIndices, expectedCount);
 			}
 		}
 
-        private void UpdateArrays(MeshSerializerVersion version)
-        {
-			var previous = boneIndices;
-            boneIndices = new int[GetIndexCount(version)];
-			if (previous.Length > 0)
-			{
-				Array.Copy(previous, boneIndices, Math.Min(previous.Length, boneIndices.Length));
-			}
-        }
-
         internal void Read(FileHandler handler, MeshSerializerVersion version)
 		{
-			if (version is MeshSerializerVersion.SF6 or MeshSerializerVersion.Pragmata) {
+			if (version is MeshSerializerVersion.SF6 or MeshSerializerVersion.MHWILDS or MeshSerializerVersion.Pragmata) {
 				var b1 = handler.Read<uint>();
 				var b2 = handler.Read<uint>();
 				boneIndices = new int[6];
@@ -319,10 +310,10 @@ namespace ReeLib.Mesh
 
         internal void Write(FileHandler handler, MeshSerializerVersion version)
 		{
-			if (version is MeshSerializerVersion.SF6 or MeshSerializerVersion.Pragmata)
+			if (version is MeshSerializerVersion.SF6 or MeshSerializerVersion.MHWILDS or MeshSerializerVersion.Pragmata)
 			{
-				var n1 = boneIndices[0] & (boneIndices[1] << 10) & (boneIndices[2] << 20);
-				var n2 = boneIndices[3] & (boneIndices[4] << 10) & (boneIndices[5] << 20);
+				var n1 = boneIndices[0] | (boneIndices[1] << 10) | (boneIndices[2] << 20);
+				var n2 = boneIndices[3] | (boneIndices[4] << 10) | (boneIndices[5] << 20);
 				handler.Write(n1);
 				handler.Write(n2);
 			}
@@ -478,6 +469,12 @@ namespace ReeLib.Mesh
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Vector3 GetBiTangent(int index) => MathF.Sign(BiTangentSigns[index]) * Vector3.Cross(Normals[index], Tangents[index]);
+
+		public void ChangeVersion(MeshSerializerVersion version)
+		{
+			Version = version;
+			foreach (var vw in Weights) vw.ChangeVersion(version);
+		}
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -1036,32 +1033,11 @@ namespace ReeLib.Mesh
         }
     }
 
-    public class ShadowMesh(MeshBuffer Buffer) : BaseModel
+    public class ShadowMesh(MeshBuffer buffer) : MeshData(buffer)
     {
-        public int lodCount;
-		public int materialCount;
-		public int uvCount;
-		public int skinWeightCount = 18;
-		public int totalMeshCount;
-
-		public List<MeshLOD> LODs { get; } = new();
-
-		internal MeshSerializerVersion Version;
 		internal MeshData? mainMesh;
 
-		public void ChangeVersion(MeshSerializerVersion version)
-		{
-			Version = version;
-			if (version == MeshSerializerVersion.SF6) skinWeightCount = 9;
-			else if (version <= MeshSerializerVersion.DMC5) skinWeightCount = 1;
-			else skinWeightCount = 18;
-
-			foreach (var lod in LODs)
-			{
-				lod.Version = version;
-				foreach (var mg in lod.MeshGroups) mg.ChangeVersion(version);
-			}
-		}
+		private readonly MeshBuffer Buffer = buffer;
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -1070,7 +1046,8 @@ namespace ReeLib.Mesh
 			materialCount = handler.Read<byte>();
 			uvCount = handler.Read<byte>();
 			skinWeightCount = handler.Read<byte>();
-			totalMeshCount = handler.Read<int>();
+			totalMeshCount = handler.Read<short>();
+			handler.ReadNull(2);
 
 			if (Version <= MeshSerializerVersion.DMC5)
 			{
@@ -1109,7 +1086,7 @@ namespace ReeLib.Mesh
         {
         	lodCount = LODs.Count;
 			uvCount = Math.Sign(Buffer.UV0.Length) + Math.Sign(Buffer.UV1.Length);
-			totalMeshCount = LODs[0].MeshGroups.Sum(mg => mg.Submeshes.Count);
+			totalMeshCount = (short)LODs[0].MeshGroups.Sum(mg => mg.Submeshes.Count);
 			// materialCount also includes other (shadow) mesh materials as well, don't recalculate it here
 
 			handler.Write((byte)lodCount);
@@ -1746,10 +1723,10 @@ namespace ReeLib
 			MeshData?.ChangeVersion(config.serializerVersion);
 			ShadowMesh?.ChangeVersion(config.serializerVersion);
 			OccluderMesh?.ChangeVersion(config.serializerVersion);
-			if (MeshBuffer != null) MeshBuffer.Version = config.serializerVersion;
+			if (MeshBuffer != null) MeshBuffer.ChangeVersion(config.serializerVersion);
 			if (StreamingBuffers != null)
 			{
-				foreach (var buf in StreamingBuffers) buf.Version = config.serializerVersion;
+				foreach (var buf in StreamingBuffers) buf.ChangeVersion(config.serializerVersion);
 			}
 			if (BlendShapes != null) BlendShapes.Version = config.serializerVersion;
 			FileHandler.FileVersion = (int)config.fileVersion;

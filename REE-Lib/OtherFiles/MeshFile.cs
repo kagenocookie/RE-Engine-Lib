@@ -1094,6 +1094,7 @@ namespace ReeLib.Mesh
 			handler.Write((byte)uvCount);
 			handler.Write((byte)skinWeightCount);
 			handler.Write(ref totalMeshCount);
+			handler.WriteNull(2);
 			if (Version <= MeshSerializerVersion.DMC5)
 			{
 				handler.WriteNull(8);
@@ -1923,6 +1924,7 @@ namespace ReeLib
 				if (header.FormatVersion >= MeshSerializerVersion.Pragmata)
 				{
 					// TODO skipping normal recalc for now
+					Log.Warn("Skipping normal recalc data");
 				}
 				else
 				{

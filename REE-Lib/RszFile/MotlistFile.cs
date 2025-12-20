@@ -2,6 +2,7 @@ using ReeLib.Clip;
 using ReeLib.Common;
 using ReeLib.Mot;
 using ReeLib.Motlist;
+using ReeLib.MotTree;
 
 namespace ReeLib.Motlist
 {
@@ -36,6 +37,21 @@ namespace ReeLib.Motlist
             MotlistVersion.DD2 => MotVersion.DD2,
             MotlistVersion.MHWILDS => MotVersion.MHWILDS,
             _ => MotVersion.MHWILDS,
+        };
+
+        public static MotTreeVersion GetMotTreeVersion(this MotlistVersion motlist) => motlist switch {
+            MotlistVersion.RE7 => MotTreeVersion.RE2,
+            MotlistVersion.RE2_DMC5 => MotTreeVersion.RE2,
+            MotlistVersion.RE3 => MotTreeVersion.RE3,
+            MotlistVersion.MHR_DEMO => MotTreeVersion.RE8,
+            MotlistVersion.RE8 => MotTreeVersion.RE8,
+            MotlistVersion.RE_RT => MotTreeVersion.RE_RT,
+            MotlistVersion.MHR => MotTreeVersion.RE8,
+            MotlistVersion.SF6 => MotTreeVersion.RE4,
+            MotlistVersion.RE4 => MotTreeVersion.RE4,
+            MotlistVersion.DD2 => MotTreeVersion.DD2,
+            MotlistVersion.MHWILDS => MotTreeVersion.DD2,
+            _ => MotTreeVersion.DD2,
         };
 
         public static ClipVersion GetClipVersion(this MotVersion ver) => ver switch {

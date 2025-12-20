@@ -98,7 +98,7 @@ namespace ReeLib.Motlist
                 var offset = handler.Read<long>();
                 BaseMotListPath = offset > 0 ? handler.ReadWString(offset) : null;
             }
-            if (version >= MotlistVersion.MHWILDS)
+            if (version >= MotlistVersion.Pragmata)
             {
                 handler.Read(ref uknOffset);
                 DataInterpretationException.DebugWarnIf(uknOffset > 0);
@@ -131,7 +131,7 @@ namespace ReeLib.Motlist
                     handler.WriteNull(8);
                 }
             }
-            if (version >= MotlistVersion.MHWILDS)
+            if (version >= MotlistVersion.Pragmata)
             {
                 handler.Write(ref uknOffset);
             }

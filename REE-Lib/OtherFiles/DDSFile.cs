@@ -293,8 +293,10 @@ namespace ReeLib
             throw new NotImplementedException();
         }
 
-        public static int GetImageSize(this DxgiFormat format, int width, int height)
+        public static int GetImageSize(this DxgiFormat format, int width, int height, int miplevel = 0)
         {
+            width = Math.Max(1, width >> miplevel);
+            height = Math.Max(1, height >> miplevel);
             return format.IsBlockCompressedFormat()
                 ? (int)((width + 3) / 4) * (int)((height + 3) / 4) * format.GetCompressedBlockSize()
                 : (int)(width * height * (format.GetBitsPerPixel() / 8));

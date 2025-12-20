@@ -101,7 +101,14 @@ namespace ReeLib
         public Header Header = new();
         public List<MipHeader> Mips { get; } = new();
 
+        public delegate bool DecompressionCallback(int level, Memory<byte> compressedBytes, Memory<byte> decompressedBytes);
+        public delegate int CompressionCallback(Memory<byte> uncompressedBytes, int level, FileHandler outputStream);
+
+        private List<CompressedMipHeader> CompressedHeaders { get; } = new();
+
         internal int TotalTextureDataLength => Mips.Count == 0 ? 0 : (int)(Mips[^1].offset + Mips[^1].size - Mips[0].offset);
+        internal long CompressedDataStartOffset => Mips.Count == 0 ? 0 : Mips[0].offset + CompressedHeaders.Count * 8;
+        internal int TotalCompressedSize => CompressedHeaders.Count == 0 ? 0 : CompressedHeaders[^1].offset + CompressedHeaders[^1].size;
 
         public TexSerializerVersion CurrentSerializerVersion =>
             VersionHashLookups.TryGetValue(FileHandler.FileVersion, out var config) || VersionHashLookups.TryGetValue(Header.version, out config)
@@ -113,6 +120,7 @@ namespace ReeLib
             ? Versions.FirstOrDefault(kv => kv.Value == config).Key
 			: null;
 
+        public record struct CompressedMipHeader(int size, int offset);
 		private readonly record struct TexVersionConfig(int fileVersion, TexSerializerVersion serializerVersion, GameName[] games);
 
         private static readonly Dictionary<string, TexVersionConfig> Versions = new()
@@ -134,7 +142,7 @@ namespace ReeLib
 			{ "DR", new (240606151, TexSerializerVersion.MHRise, [GameName.drdr]) },
 			{ "ONI2", new (240701001, TexSerializerVersion.MHRise, [GameName.oni2]) },
 			{ "MHWILDS", new (241106027, TexSerializerVersion.MHWilds, [GameName.mhwilds]) }, // TODO support tex gdeflate
-			{ "PRAGMATA", new (250813143, TexSerializerVersion.MHRise, [GameName.pragmata]) },
+			{ "PRAGMATA", new (250813143, TexSerializerVersion.MHWilds, [GameName.pragmata]) },
 		};
 
 		public static readonly string[] AllVersionConfigs = Versions.OrderBy(kv => kv.Value.serializerVersion).Select(kv => kv.Key).ToArray();
@@ -167,7 +175,7 @@ namespace ReeLib
         /// <summary>
         /// Whether this tex file's texture data is currently GDeflate compressed.
         /// </summary>
-        public bool IsCompressed => MustBeCompressed && TotalTextureDataLength > FileHandler.FileSize();
+        public bool IsCompressed => MustBeCompressed && CompressedHeaders.Count > 0;
 
         public TexFile(FileHandler fileHandler) : base(fileHandler)
         {
@@ -222,16 +230,12 @@ namespace ReeLib
             if (MustBeCompressed && Mips.Count > 0)
             {
                 handler.Seek(Mips[0].offset);
-                var compressedSize = (int)(handler.FileSize() - handler.Tell());
-                var decompressedSize = TotalTextureDataLength;
-                var compressedBytes = ArrayPool<byte>.Shared.Rent(compressedSize);
-                handler.ReadArray(compressedBytes);
-                handler.Seek(Mips[0].offset);
-                // TODO gdeflate contents and write back
-                // using var gdeflateStream = GDeflate.Decompress(compressedBytes, compressedSize);
-                // gdeflateStream.CopyTo(handler.Stream);
-
-                ArrayPool<byte>.Shared.Return(compressedBytes);
+                int compressedHeaderCount = Header.mipCount * Header.imageCount;
+                CompressedHeaders.Clear();
+                for (int i = 0; i < compressedHeaderCount; ++i)
+                {
+                    CompressedHeaders.Add(handler.Read<CompressedMipHeader>());
+                }
             }
 
             return true;
@@ -282,6 +286,109 @@ namespace ReeLib
                 targetMip++;
             }
             return targetMip;
+        }
+
+        /// <summary>
+        /// Attempts to decompress a GDeflate compresed texture file with the given decompression callback.
+        /// </summary>
+        public void DecompressGDeflate(DecompressionCallback decompress)
+        {
+            if (Mips.Count == 0 || CompressedHeaders.Count == 0) return;
+
+            var handler = FileHandler;
+
+            var compressedSize = TotalCompressedSize;
+            var decompressedSize = TotalTextureDataLength;
+
+            var compressedBytes = ArrayPool<byte>.Shared.Rent(compressedSize);
+            var decompressedBytes = ArrayPool<byte>.Shared.Rent(decompressedSize);
+
+            try
+            {
+                handler.Seek(CompressedDataStartOffset);
+                handler.ReadArray(compressedBytes, 0, compressedSize);
+
+                for (int i = 0; i < CompressedHeaders.Count; i++)
+                {
+                    var mip = Mips[i];
+                    var cmip = CompressedHeaders[i];
+                    var cBytes = new Memory<byte>(compressedBytes, cmip.offset, cmip.size);
+                    var decBytes = new Memory<byte>(decompressedBytes, (int)(mip.offset - Mips[0].offset), mip.size);
+                    if (cBytes.Length < 2) continue;
+                    var magic = cBytes.Span[0] | ((int)cBytes.Span[1] << 8);
+                    if (magic != 0xFB04) {
+                        // not all levels are actually compressed
+                        cBytes.CopyTo(decBytes);
+                        continue;
+                    }
+
+                    if (!decompress.Invoke(i, cBytes, decBytes)) {
+                        return;
+                    }
+                }
+
+                handler.Seek(Mips[0].offset);
+                handler.WriteBytes(decompressedBytes, decompressedSize);
+                // file is no longer compressed, compressed headers are meaningless
+                CompressedHeaders.Clear();
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(compressedBytes);
+                ArrayPool<byte>.Shared.Return(decompressedBytes);
+            }
+        }
+
+        /// <summary>
+        /// Attempts to GDeflate compress the current texture into a new file stream.
+        /// </summary>
+        public Stream? CompressGDeflate(CompressionCallback compress, Stream? targetStream = null)
+        {
+            if (Mips.Count == 0) return targetStream;
+
+            targetStream ??= new MemoryStream();
+            var outHandler = new FileHandler(targetStream);
+            outHandler.Seek(0);
+
+            var handler = FileHandler;
+            var uncompressedBytes = ArrayPool<byte>.Shared.Rent(Mips[0].size);
+            var compressedHeaders = new List<CompressedMipHeader>();
+
+            try
+            {
+                Header.Write(outHandler);
+                handler.Seek(Mips[0].offset);
+                Mips.Write(outHandler);
+                outHandler.Seek(Mips[0].offset);
+
+                var compressedMipOffset = outHandler.Tell();
+                outHandler.Skip(Mips.Count * 8);
+
+                int offset = 0;
+                for (int i = 0; i < Mips.Count; i++)
+                {
+                    var mip = Mips[i];
+                    handler.Seek(mip.offset);
+                    handler.ReadArray(uncompressedBytes, 0, mip.size);
+
+                    var mipBytes = new Memory<byte>(uncompressedBytes, 0, mip.size);
+                    var size = compress.Invoke(mipBytes, i, outHandler);
+                    if (size == 0) {
+                        size = mip.size;
+                        outHandler.WriteBytes(uncompressedBytes, size);
+                    }
+                    compressedHeaders.Add(new CompressedMipHeader(size, offset));
+                    offset += size;
+                }
+
+                outHandler.Seek(compressedMipOffset);
+                foreach (var c in compressedHeaders) outHandler.Write(c);
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(uncompressedBytes);
+            }
+            return targetStream;
         }
 
         public void LoadDataFromDDS(DDSFile source)

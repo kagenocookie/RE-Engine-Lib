@@ -4,7 +4,7 @@ using ReeLib.Motfsm2;
 
 namespace ReeLib.Motfsm2
 {
-    [RszGenerate, RszAutoReadWrite]
+    [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(int)), RszAssignVersion]
     public partial class HeaderStruct : BaseModel
     {
         public uint version;
@@ -13,6 +13,7 @@ namespace ReeLib.Motfsm2
         public long treeDataOffset;
         public long transitionMapOffset;
         public long transitionDataOffset;
+        [RszVersion(45)] public long uknOffset;
         public long treeInfoPtr;
         public int transitionMapCount;
         public int transitionDataCount;
@@ -76,6 +77,7 @@ namespace ReeLib.Motfsm2
         public uint id;
         public uint data;
         public float exitFrame;
+        public uint pragmataId; // rsz index maybe?
         public float startFrame;
         public float interpolationFrame;
         // > dmc5
@@ -83,13 +85,6 @@ namespace ReeLib.Motfsm2
         public float contOnLayerTimeout;
         public ushort contOnLayerNo;
         public ushort contOnLayerJointMaskId;
-
-        public GameVersion Version { get; set; }
-
-        public TransitionData(GameVersion version)
-        {
-            Version = version;
-        }
 
         public EndType EndType
         {
@@ -150,9 +145,13 @@ namespace ReeLib.Motfsm2
             handler.Read(ref id);
             handler.Read(ref data);
             handler.Read(ref exitFrame);
+            if (handler.FileVersion >= 45) // pragmata
+            {
+                handler.Read(ref pragmataId);
+            }
             handler.Read(ref startFrame);
             handler.Read(ref interpolationFrame);
-            if (Version > GameVersion.dmc5)
+            if (handler.FileVersion > 31) // dmc5
             {
                 handler.Read(ref contOnLayerSpeed);
                 handler.Read(ref contOnLayerTimeout);
@@ -168,9 +167,13 @@ namespace ReeLib.Motfsm2
             handler.Write(ref id);
             handler.Write(ref data);
             handler.Write(ref exitFrame);
+            if (handler.FileVersion >= 45)
+            {
+                handler.Write(ref pragmataId);
+            }
             handler.Write(ref startFrame);
             handler.Write(ref interpolationFrame);
-            if (Version > GameVersion.dmc5)
+            if (handler.FileVersion > 31)
             {
                 handler.Write(ref contOnLayerSpeed);
                 handler.Write(ref contOnLayerTimeout);
@@ -226,6 +229,7 @@ namespace ReeLib
             {
                 throw new InvalidDataException($"{handler.FilePath} Not a motfsm2 file");
             }
+            DataInterpretationException.DebugThrowIf(header.uknOffset != 0);
 
             handler.Seek(header.transitionMapOffset);
             TransitionMaps.Clear();
@@ -235,7 +239,7 @@ namespace ReeLib
             TransitionDatas.Clear();
             for (int i = 0; i < header.transitionDataCount; i++)
             {
-                TransitionData transitionData = new(Option.Version);
+                TransitionData transitionData = new();
                 transitionData.Read(handler);
                 TransitionDatas.Add(transitionData);
             }

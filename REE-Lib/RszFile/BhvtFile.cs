@@ -43,6 +43,7 @@ namespace ReeLib.Bhvt
         {
             handler.Read(ref magic);
             handler.Read(ref hash);
+            if (Version >= GameVersion.pragmata) handler.ReadNull(4);
             handler.ReadRange(ref nodeOffset, ref resourcePathsOffset);
             if (Version >= GameVersion.re3)
             {
@@ -59,6 +60,7 @@ namespace ReeLib.Bhvt
         {
             handler.Write(ref magic);
             handler.Write(ref hash);
+            if (Version >= GameVersion.pragmata) handler.WriteNull(4);
             handler.WriteRange(ref nodeOffset, ref resourcePathsOffset);
             if (Version >= GameVersion.re3)
             {

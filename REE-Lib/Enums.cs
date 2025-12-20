@@ -150,6 +150,7 @@ namespace ReeLib
         gtrick,
         apollo,
         drdr,
+        pragmata,
     }
 
     public enum KnownFileFormats

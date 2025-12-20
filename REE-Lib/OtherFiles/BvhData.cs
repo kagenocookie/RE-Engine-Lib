@@ -29,6 +29,7 @@ namespace ReeLib.Bvh
         [RszVersion(3017, EndAt = nameof(boxesOffset))]
         public long spheresOffset;
         public long capsulesOffset;
+        [RszPaddingAfter(8, nameof(Version), ">=", 29030)]
         public long boxesOffset;
     }
 

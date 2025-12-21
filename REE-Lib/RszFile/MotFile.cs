@@ -42,7 +42,7 @@ namespace ReeLib.Mot
 
         // public long namesOffset;
         public float frameCount;
-        public float blending = -1; // Set to 0 to enable repeating
+        public float blending = -1;
         public float startFrame;
         public float endFrame;
         public ushort boneCount;

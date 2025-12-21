@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using ReeLib.Common;
 using ReeLib.Mesh;
 using ReeLib.via;
 
@@ -288,6 +289,8 @@ namespace ReeLib.MplyMesh
         public byte X;
         public byte Y;
         public byte Z;
+
+        public readonly Vector3 AsVector3 => new Vector3(X * (1f / 0xff), Y * (1f / 0xff), Z * (1f / 0xff));
     }
 
     public struct Pos10bit3
@@ -323,6 +326,48 @@ namespace ReeLib.MplyMesh
         UniformUV1 = 1 << 2,
         UniformUV2 = 1 << 3,
         UniformColor = 1 << 4,
+        Unknown5 = 1 << 5,
+        HasVertexWeights = 1 << 6,
+        UniformVertexWeights = 1 << 7,
+
+        HasVertexColor = 1 << 8,
+        HasUV1 = 1 << 9,
+        HasUV2 = 1 << 10,
+        HasVertexWeightsNot = 1 << 11,
+        Use32BitPos = 1 << 12,
+        Use24BitPos = 1 << 13,
+        Unknown14 = 1 << 14,
+        Unknown15 = 1 << 15,
+
+        PositionScaling2 = 1 << 16,
+        PositionScaling4 = 1 << 17,
+        PositionScaling16 = 1 << 18,
+        PositionScaling64 = 1 << 19,
+
+        PositionDescaling4 = 1 << 20,
+        PositionDescaling64 = 1 << 21,
+        PositionDescaling512 = 1 << 22,
+        PositionDescaling2 = 1 << 23,
+
+        Descale2 = 1 << 24,
+        Descale4 = 1 << 25,
+        Descale16 = 1 << 26,
+        Descale64 = 1 << 27,
+
+        Unkn28 = 1 << 28,
+        Unkn29 = 1 << 29,
+        Unkn30 = 1 << 30,
+        Unkn31 = 1u << 31,
+    }
+
+    [Flags]
+    public enum MplyChunkFlagsDD2 : uint
+    {
+        UniformNormal = 1 << 0,
+        UniformUV0 = 1 << 1,
+        UniformUV1 = 1 << 2,
+        UniformUV2 = 1 << 3,
+        UniformColor = 1 << 4,
         UniformVertexWeights = 1 << 5,
         NoTangents = 1 << 6,
         Unknown7 = 1 << 7,
@@ -346,16 +391,15 @@ namespace ReeLib.MplyMesh
         PositionDescaling512 = 1 << 22,
         PositionDescaling2 = 1 << 23,
 
-        // note: these don't seem to be doing anything (dd2)
-        Scale2 = 1 << 24,
-        Scale4 = 1 << 25,
-        Scale8 = 1 << 26,
-        Scale256 = 1 << 27,
+        Unknown24 = 1 << 24,
+        Unknown25 = 1 << 25,
+        Unknown26 = 1 << 26,
+        Unknown27 = 1 << 27,
 
         KillPerf = 1 << 28,
-        Unkn21 = 1 << 29,
-        Unkn22 = 1 << 30,
-        UseScalingMaybe = 1u << 31,
+        Unknown29 = 1 << 29,
+        Unknown30 = 1 << 30,
+        Unknown31 = 1u << 31,
     }
 
     public class MeshletChunk : BaseModel
@@ -370,7 +414,8 @@ namespace ReeLib.MplyMesh
 
         public CompressedAABB relativeAABB;
 
-        public MplyChunkFlags flags;
+        private MplyChunkFlags flags;
+        private MplyChunkFlagsDD2 FlagsDD2 => (MplyChunkFlagsDD2)flags;
 
         public Byte3[] faces = [];
         public byte[] PositionsBuffer = [];
@@ -387,8 +432,15 @@ namespace ReeLib.MplyMesh
             Bvh = bvh;
         }
 
-        private int PositionSize => (flags & MplyChunkFlags.Use32BitPos) != 0 ? 4 : 6;
-        private int NormalSize => (flags & MplyChunkFlags.NoTangents) != 0 ? 4 : 8;
+        private int PositionSize
+        {
+            get {
+                if ((flags & MplyChunkFlags.Use24BitPos) != 0) return 3;
+                if ((flags & MplyChunkFlags.Use32BitPos) != 0) return 4;
+                return 6;
+            }
+        }
+        private int NormalSize => Bvh.Version == MeshSerializerVersion.DD2 && (FlagsDD2 & MplyChunkFlagsDD2.NoTangents) != 0 ? 4 : 8;
 
         public bool HasTangents => NormalSize == 8;
 
@@ -402,62 +454,56 @@ namespace ReeLib.MplyMesh
             public ushort scaleY;
             public ushort offsetZ;
             public ushort scaleZ;
+
+            public readonly Vector3 Offset => new Vector3(offsetX, offsetY, offsetZ) * (1f / ushort.MaxValue) - new Vector3(0.5f);
+            public readonly Vector3 Scale => new Vector3(scaleX, scaleY, scaleZ) * (1f / ushort.MaxValue) - new Vector3(0.5f);
         }
 
-        private float PositionScaling {
+        private float ScalingDD2 {
             get {
-                if (Bvh.Version == MeshSerializerVersion.DD2)
-                {
-                    var scale = 4f;
-                    if ((flags & MplyChunkFlags.PositionScaling2) != 0) scale *= 2;
-                    if ((flags & MplyChunkFlags.PositionScaling4) != 0) scale *= 4;
-                    if ((flags & MplyChunkFlags.PositionScaling16) != 0) scale *= 16;
-                    if ((flags & MplyChunkFlags.PositionScaling256) != 0) scale *= 256;
+                var scale = 4f;
+                if ((flags & MplyChunkFlags.PositionScaling2) != 0) scale *= 2;
+                if ((flags & MplyChunkFlags.PositionScaling4) != 0) scale *= 4;
+                if ((flags & MplyChunkFlags.PositionScaling16) != 0) scale *= 16;
+                if ((flags & MplyChunkFlags.PositionScaling64) != 0) scale *= 256;
 
-                    if ((flags & MplyChunkFlags.PositionDescaling2) != 0) scale *= (1f / 2);
-                    if ((flags & MplyChunkFlags.PositionDescaling4) != 0) scale *= (1f / 4);
-                    if ((flags & MplyChunkFlags.PositionDescaling64) != 0) scale *= (1f / 64);
-                    if ((flags & MplyChunkFlags.PositionDescaling512) != 0) scale *= (1f / 512);
-                    return scale;
-                }
-                else
-                {
-                    var scale = 2f;
-                    if ((flags & MplyChunkFlags.PositionDescaling2) != 0) {
-                        if ((flags & MplyChunkFlags.PositionScaling2) != 0) scale *= 2;
-                        if ((flags & MplyChunkFlags.PositionScaling4) != 0) scale *= 4;
-                        if ((flags & MplyChunkFlags.PositionScaling16) != 0) scale *= 8;
-                        if ((flags & MplyChunkFlags.PositionScaling256) != 0) scale *= 256;
-                    } else {
-                        if ((flags & MplyChunkFlags.PositionScaling2) != 0) scale *= 0.5f;
-                        if ((flags & MplyChunkFlags.PositionScaling4) != 0) scale *= 0.25f;
-                        if ((flags & MplyChunkFlags.PositionScaling16) != 0) scale *= 0.125f;
-                        if ((flags & MplyChunkFlags.PositionScaling256) != 0) scale *= 0.0625f;
-                    }
-
-                    // return scale;
-                    throw new NotImplementedException("New MPLY meshes not yet supported");
-                }
+                if ((flags & MplyChunkFlags.PositionDescaling2) != 0) scale *= (1f / 2);
+                if ((flags & MplyChunkFlags.PositionDescaling4) != 0) scale *= (1f / 4);
+                if ((flags & MplyChunkFlags.PositionDescaling64) != 0) scale *= (1f / 64);
+                if ((flags & MplyChunkFlags.PositionDescaling512) != 0) scale *= (1f / 512);
+                return scale;
             }
         }
 
-        private float CenterScaling {
+        private float ScalingPragmata {
             get {
-                if (Bvh.Version == MeshSerializerVersion.DD2) return 1f;
+                var scale = 8f;
+                // TODO figure out what's wrong with compressed positions, ignoring for now to make the meshes look less broken
+                if ((flags & MplyChunkFlags.Use32BitPos) != 0 || (flags & MplyChunkFlags.Use24BitPos) != 0) scale = 0;
+                // if ((flags & MplyChunkFlags.Use32BitPos) == 0 && (flags & MplyChunkFlags.Use24BitPos) == 0) scale = 0;
+
+                if ((flags & MplyChunkFlags.PositionDescaling2) != 0) scale *= 2;
+                if ((flags & MplyChunkFlags.PositionDescaling4) != 0) scale *= 4;
+                if ((flags & MplyChunkFlags.PositionDescaling64) != 0) scale *= 64;
+                if ((flags & MplyChunkFlags.PositionDescaling512) != 0) scale *= 512;
+
+                return scale;
+            }
+        }
+
+        private float OffsetScaling {
+            get {
                 var scale = 1f;
 
-                if ((flags & MplyChunkFlags.UseScalingMaybe) != 0) {
-                    if ((flags & MplyChunkFlags.Scale2) != 0) scale *= 2;
-                    if ((flags & MplyChunkFlags.Scale4) != 0) scale *= 4;
-                    if ((flags & MplyChunkFlags.Scale8) != 0) scale *= 8;
-                    if ((flags & MplyChunkFlags.Scale256) != 0) scale *= 256;
-                } else {
-                    scale = 0.5f;
-                    if ((flags & MplyChunkFlags.Scale2) != 0) scale *= 0.5f;
-                    if ((flags & MplyChunkFlags.Scale4) != 0) scale *= 0.25f;
-                    if ((flags & MplyChunkFlags.Scale8) != 0) scale *= 0.125f;
-                    if ((flags & MplyChunkFlags.Scale256) != 0) scale *= 0.0625f;
-                }
+                if ((flags & MplyChunkFlags.PositionScaling2) != 0) scale *= 2;
+                if ((flags & MplyChunkFlags.PositionScaling4) != 0) scale *= 4;
+                if ((flags & MplyChunkFlags.PositionScaling16) != 0) scale *= 16;
+                if ((flags & MplyChunkFlags.PositionScaling64) != 0) scale *= 64;
+
+                if ((flags & MplyChunkFlags.Descale2) != 0) scale *= (1f / 2);
+                if ((flags & MplyChunkFlags.Descale4) != 0) scale *= (1f / 4);
+                if ((flags & MplyChunkFlags.Descale16) != 0) scale *= (1f / 16);
+                if ((flags & MplyChunkFlags.Descale64) != 0) scale *= (1f / 64);
 
                 return scale;
             }
@@ -465,12 +511,21 @@ namespace ReeLib.MplyMesh
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Vector3 DecodePosition(Vector3 vertPos)
-            => (vertPos - new Vector3(0.5f)) * PositionScaling + center * CenterScaling
+            => Bvh.Version == MeshSerializerVersion.DD2
+                ? (vertPos - new Vector3(0.5f)) * ScalingDD2 + center
+                : (vertPos - new Vector3(0.5f) + relativeAABB.Offset * OffsetScaling) * ScalingPragmata
         ;
 
         public Vector3 GetPosition(int index)
         {
-            if (PositionSize == 4)
+            if (PositionSize == 3)
+            {
+                // vector conversion is incorrect, unknown. test case: pragmata demo sm21_022_00.mesh.250925211
+                var data = MemoryMarshal.Cast<byte, Byte3>(PositionsBuffer);
+                var item = data[index];
+                return DecodePosition(item.AsVector3);
+            }
+            else if (PositionSize == 4)
             {
                 var data = MemoryMarshal.Cast<byte, Pos10bit3>(PositionsBuffer);
                 var item = data[index];
@@ -553,6 +608,10 @@ namespace ReeLib.MplyMesh
 
             handler.Read(ref relativeAABB);
             handler.Read(ref flags);
+            // Log.Info("flags " + flags);
+            var hasUnknStruct = Bvh.Version == MeshSerializerVersion.DD2 && FlagsDD2.HasFlag(MplyChunkFlagsDD2.HasUnknStruct);
+            var hasWeights = Bvh.Version == MeshSerializerVersion.DD2 ? FlagsDD2.HasFlag(MplyChunkFlagsDD2.HasVertexWeights) : flags.HasFlag(MplyChunkFlags.HasVertexWeights);
+            var hasUniformWeights = Bvh.Version == MeshSerializerVersion.DD2 ? FlagsDD2.HasFlag(MplyChunkFlagsDD2.UniformVertexWeights) : flags.HasFlag(MplyChunkFlags.UniformVertexWeights);
 
             faces = handler.ReadArray<Byte3>(faceCount);
             handler.Align(4);
@@ -569,7 +628,7 @@ namespace ReeLib.MplyMesh
                 NormalsBuffer = handler.ReadArray<byte>(NormalSize * vertCount);
             }
 
-            if (flags.HasFlag(MplyChunkFlags.HasUnknStruct))
+            if (hasUnknStruct)
             {
                 uknFixedSizeData = handler.ReadArray<short>(6);
             }
@@ -588,8 +647,8 @@ namespace ReeLib.MplyMesh
                 UV2Buffer = handler.ReadArray<HFloat2>(count);
             }
 
-            if (flags.HasFlag(MplyChunkFlags.HasVertexWeights)) {
-                var count = flags.HasFlag(MplyChunkFlags.UniformVertexWeights) ? 1 : vertCount;
+            if (hasWeights) {
+                var count = hasUniformWeights ? 1 : vertCount;
                 WeightsBuffer = new VertexBoneWeights[count];
                 for (int i = 0; i < count; ++i)
                 {
@@ -645,11 +704,11 @@ namespace ReeLib.MplyMesh
 
             for (int i = 0; i < count; ++i)
             {
-                // DataInterpretationException.DebugThrowIf(i > 0 && handler.Position != offsets[i] + handler.Offset);
                 handler.Seek(offsets[i]);
                 var sub = Chunks[i];
                 sub.Read(handler);
                 Chunks.Add(sub);
+                DataInterpretationException.DebugThrowIf(i < count - 1 && handler.Position != offsets[i + 1] + handler.Offset);
             }
 
             return true;

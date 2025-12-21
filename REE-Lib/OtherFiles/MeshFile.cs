@@ -244,6 +244,7 @@ namespace ReeLib.Mesh
 		UV1 = 3,
 		BoneWeights = 4,
 		Colors = 5,
+		BoneWeights2 = 7,
 	}
 
 	public struct MeshBufferItemHeader
@@ -278,7 +279,7 @@ namespace ReeLib.Mesh
 			for (int i = 0; i < boneWeights.Length; ++i) boneWeights[i] /= sum;
 		}
 
-		private static int GetIndexCount(MeshSerializerVersion version) => version is MeshSerializerVersion.SF6 or MeshSerializerVersion.MHWILDS or MeshSerializerVersion.Pragmata ? 6 : 8;
+		internal static int GetIndexCount(MeshSerializerVersion version) => version is MeshSerializerVersion.SF6 or MeshSerializerVersion.MHWILDS or MeshSerializerVersion.Pragmata ? 6 : 8;
 
 		public void ChangeVersion(MeshSerializerVersion version)
 		{
@@ -370,6 +371,10 @@ namespace ReeLib.Mesh
 				headers.Add(new MeshBufferItemHeader() { type = VertexBufferType.Colors, offset = offset, size = 4 });
 				offset = headers.Last().CalculateNextOffset(buffer.Colors.Length);
 			}
+			if (buffer.ExtraWeights?.Length > 0) {
+				headers.Add(new MeshBufferItemHeader() { type = VertexBufferType.BoneWeights2, offset = offset, size = 16 });
+				offset = headers.Last().CalculateNextOffset(buffer.ExtraWeights.Length);
+			}
 			BufferHeaders = headers.ToArray();
 		}
     }
@@ -439,11 +444,6 @@ namespace ReeLib.Mesh
 		public int bufferUkn1;
 		public int bufferUkn2;
 
-		public int pragmataUkn1;
-		public int pragmataUkn2;
-		public int pragmataUkn3;
-		public int pragmataUkn4;
-
 		public MeshBufferHeaderList Headers = new();
 
 		public Vector3[] Positions = [];
@@ -454,6 +454,7 @@ namespace ReeLib.Mesh
 		public Vector2[] UV1 = [];
 		public Color[] Colors = [];
 		public VertexBoneWeights[] Weights = [];
+		public VertexBoneWeights[]? ExtraWeights;
 		public ushort[]? Faces;
 		public int[]? IntegerFaces;
 
@@ -497,28 +498,18 @@ namespace ReeLib.Mesh
 			}
 			handler.Read(ref elementCount);
 			handler.Read(ref totalElementCount);
-			if (Version >= MeshSerializerVersion.Pragmata)
-			{
-				handler.Read(ref shapekeyWeightBufferSize);
-				handler.Read(ref bufferIndex);
-				handler.Read(ref bufferUkn1);
-				handler.Read(ref bufferUkn2);
+			if (Version >= MeshSerializerVersion.Pragmata) {
+				handler.ReadNull(16);
 			}
 			handler.Read(ref uknSize1);
 			handler.Read(ref uknSize2);
 			handler.Read(ref blendShapeOffset);
-			if (Version >= MeshSerializerVersion.RE4 && Version < MeshSerializerVersion.Pragmata)
+			if (Version >= MeshSerializerVersion.RE4)
 			{
 				handler.Read(ref shapekeyWeightBufferSize);
 				handler.Read(ref bufferIndex);
 				handler.Read(ref bufferUkn1);
 				handler.Read(ref bufferUkn2);
-			}
-			if (Version >= MeshSerializerVersion.Pragmata) {
-				handler.Read(ref pragmataUkn1);
-				handler.Read(ref pragmataUkn2);
-				handler.Read(ref pragmataUkn3);
-				handler.Read(ref pragmataUkn4);
 			}
 
 			using (var _ = handler.SeekJumpBack(elementHeadersOffset)) {
@@ -548,27 +539,25 @@ namespace ReeLib.Mesh
 			}
 			handler.Write(ref elementCount);
 			handler.Write(ref totalElementCount);
+			if (Version >= MeshSerializerVersion.Pragmata) {
+				handler.WriteNull(16);
+			}
 			handler.Write(ref uknSize1);
 			handler.Write(ref uknSize2);
 			handler.Write(ref blendShapeOffset);
-			if (Version >= MeshSerializerVersion.RE4 && Version < MeshSerializerVersion.Pragmata)
+			if (Version >= MeshSerializerVersion.RE4)
 			{
 				handler.Write(ref shapekeyWeightBufferSize);
 				handler.Write(ref bufferIndex);
 				handler.Write(ref bufferUkn1);
 				handler.Write(ref bufferUkn2);
 			}
-			if (Version >= MeshSerializerVersion.Pragmata) {
-				handler.Write(ref pragmataUkn1);
-				handler.Write(ref pragmataUkn2);
-				handler.Write(ref pragmataUkn3);
-				handler.Write(ref pragmataUkn4);
-			}
             return true;
         }
 
 		public void WriteElementHeaders(FileHandler handler)
 		{
+			handler.Align(16);
 			elementHeadersOffset = handler.Tell();
 			Headers.RegenerateHeaders(this);
 			handler.WriteArray(Headers.BufferHeaders);
@@ -631,6 +620,17 @@ namespace ReeLib.Mesh
 							Weights[k] = new();
 							Weights[k].Read(handler, Version);
 						}
+						break;
+					case VertexBufferType.BoneWeights2:
+						ExtraWeights = new VertexBoneWeights[count];
+						for (int k = 0; k < count; ++k)
+						{
+							ExtraWeights[k] = new();
+							ExtraWeights[k].Read(handler, Version);
+						}
+						break;
+					default:
+						Log.Warn($"Found unsupported mesh buffer type {buffer.type} ({(int)buffer.type})");
 						break;
 				}
 			}
@@ -724,6 +724,12 @@ namespace ReeLib.Mesh
 							Weights[k].Write(handler, Version);
 						}
 						break;
+					case VertexBufferType.BoneWeights2:
+						for (int k = 0; k < count; ++k)
+						{
+							ExtraWeights![k].Write(handler, Version);
+						}
+						break;
 				}
 			}
 
@@ -801,6 +807,7 @@ namespace ReeLib.Mesh
 		public Span<Vector2> UV1 => Buffer.UV1.AsSpan(vertsIndexOffset, vertCount);
 		public Span<Color> Colors => Buffer.Colors.AsSpan(vertsIndexOffset, vertCount);
 		public Span<VertexBoneWeights> Weights => Buffer.Weights.AsSpan(vertsIndexOffset, vertCount);
+		public Span<VertexBoneWeights> ExtraWeights => Buffer.ExtraWeights.AsSpan(vertsIndexOffset, vertCount);
 		public Span<VertexBoneWeights> ShapeKeyWeights => Buffer.ShapeKeyWeights.AsSpan(vertsIndexOffset, vertCount);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1650,7 +1657,7 @@ namespace ReeLib
 			? Versions.FirstOrDefault(kv => kv.Value == config).Key
 			: null;
 
-		private readonly record struct MeshVersionConfig(uint internalVersion, uint fileVersion, MeshSerializerVersion serializerVersion, GameName[] games);
+		private readonly record struct MeshVersionConfig(uint internalVersion, uint fileVersion, MeshSerializerVersion serializerVersion, GameName[] games, bool extraWeightBuffer = false);
 
         private static readonly Dictionary<string, MeshVersionConfig> Versions = new()
 		{
@@ -1673,8 +1680,8 @@ namespace ReeLib
 			{ "DD2 old", new (230517984, 231011879, MeshSerializerVersion.DD2_Old, [GameName.dd2]) },
 
 			{ "ONI2", new (240704828, 240827123, MeshSerializerVersion.Onimusha, [GameName.oni2]) },
-			{ "MHWilds", new (240704828, 241111606, MeshSerializerVersion.MHWILDS, [GameName.mhwilds]) },
-			{ "Pragmata", new (250707828, 250925211, MeshSerializerVersion.Pragmata, [GameName.pragmata]) },
+			{ "MHWilds", new (240704828, 241111606, MeshSerializerVersion.MHWILDS, [GameName.mhwilds], extraWeightBuffer: true) },
+			{ "Pragmata", new (250707828, 250925211, MeshSerializerVersion.Pragmata, [GameName.pragmata], extraWeightBuffer: true) },
 		};
 
 		public static readonly string[] AllVersionConfigs = Versions.OrderBy(kv => kv.Value.serializerVersion).Select(kv => kv.Key).ToArray();
@@ -1702,6 +1709,13 @@ namespace ReeLib
 		public static string[] GetGameVersionConfigs(GameName game) => versionsPerGame.GetValueOrDefault(game) ?? AllVersionConfigs;
 		public static MeshSerializerVersion GetPrimarySerializerVersion(GameName game) => Versions[GetGameVersionConfigs(game)[0]].serializerVersion;
 		public static MeshSerializerVersion GetSerializerVersion(string exportConfig) => Versions.TryGetValue(exportConfig, out var cfg) ? cfg.serializerVersion : MeshSerializerVersion.Unknown;
+
+		public static int GetWeightLimit(string exportConfig)
+		{
+			var cfg = Versions.GetValueOrDefault(exportConfig);
+			var extra = cfg.extraWeightBuffer;
+			return VertexBoneWeights.GetIndexCount(cfg.serializerVersion) * (cfg.extraWeightBuffer ? 2 : 1);
+		}
 
         public static uint GetFileExtension(string exportConfig) => Versions.TryGetValue(exportConfig, out var cfg) ? cfg.fileVersion : 0;
 

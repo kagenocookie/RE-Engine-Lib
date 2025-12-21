@@ -175,7 +175,6 @@ public class TypeCache
     }
 
     private static readonly Dictionary<string, KnownFileFormats> resourceNameEnumMap = new() {
-        { "MeshMaterial", KnownFileFormats.MaterialDefinition },
         { "RenderTargetTexture", KnownFileFormats.RenderTexture },
         { "FSMv2Tree", KnownFileFormats.Fsm2 },
         { "AIMapBase", KnownFileFormats.AIMap },

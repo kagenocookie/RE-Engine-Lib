@@ -167,7 +167,9 @@ namespace ReeLib
         /// <summary>.user</summary>
         UserData,
         /// <summary>.mdf2</summary>
-        MaterialDefinition,
+        MeshMaterial,
+        /// <remarks>Deprecated in favor of <see cref="MeshMaterial"/></remarks>
+        MaterialDefinition = MeshMaterial,
         /// <summary>.rcol</summary>
         RequestSetCollider,
         /// <summary>.uvar</summary>

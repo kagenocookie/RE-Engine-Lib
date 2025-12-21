@@ -235,7 +235,7 @@ public class CachedMemoryPakReader : PakReader, IDisposable
             CHFFile.Magic => KnownFileFormats.CollisionHeightField,
             JmapFile.Magic => KnownFileFormats.JointMap,
             McolFile.Magic => KnownFileFormats.CollisionMesh,
-            MdfFile.Magic => KnownFileFormats.MaterialDefinition,
+            MdfFile.Magic => KnownFileFormats.MeshMaterial,
             MeshFile.Magic => KnownFileFormats.Mesh,
             MeshFile.MagicMply => KnownFileFormats.Mesh,
             MsgFile.Magic => KnownFileFormats.Message,

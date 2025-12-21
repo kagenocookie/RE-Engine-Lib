@@ -17,6 +17,7 @@ namespace ReeLib.MotTree
         RE_RT = 13,
         RE4 = 19,
         DD2 = 20,
+        Pragmata = 22,
     }
 
     public enum MotionTreeParamType

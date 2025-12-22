@@ -2096,7 +2096,7 @@ namespace ReeLib.Mot
             ClipEntry.Version = clipVer;
             foreach (var track in ClipEntry.Tracks) track.Version = clipVer;
             foreach (var track in ClipEntry.Properties) track.Info.Version = clipVer;
-            foreach (var key in ClipEntry.ClipKeys) key.Version = clipVer;
+            foreach (var key in ClipEntry.NormalKeys) key.Version = clipVer;
             ClipEntry.ExtraPropertyData.Version = clipVer;
         }
 

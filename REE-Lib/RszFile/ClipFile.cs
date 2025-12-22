@@ -439,9 +439,9 @@ namespace ReeLib.Clip
             Version = version;
         }
 
-        public virtual void ReadValue(FileHandler handler, Property property, IKeyValueContainer offsets)
+        public virtual void ReadValue(FileHandler handler, PropertyType type, IKeyValueContainer offsets)
         {
-            PropertyType = property.Info.DataType;
+            PropertyType = type;
         }
 
         public virtual void ResetValue()
@@ -512,13 +512,13 @@ namespace ReeLib.Clip
             return true;
         }
 
-        protected void ReadValueOnly(FileHandler handler, Property property, IKeyValueContainer offsets)
+        protected void ReadValueOnly(FileHandler handler, PropertyType type, IKeyValueContainer offsets)
         {
-            PropertyType = property.Info.DataType;
-            Value = PropertyType.Read(handler, offsets);
+            PropertyType = type;
+            Value = type.Read(handler, offsets);
         }
 
-        public override void ReadValue(FileHandler handler, Property property, IKeyValueContainer offsets)
+        public override void ReadValue(FileHandler handler, PropertyType property, IKeyValueContainer offsets)
         {
             handler.Seek(Start + (Version < ClipVersion.Pragmata ? 16 : 8));
             ReadValueOnly(handler, property, offsets);
@@ -574,24 +574,25 @@ namespace ReeLib.Clip
         public override string ToString() => $"[Frame {frame}|BoolKey]: {value}";
     }
 
-    public class ActionKey(ClipVersion version) : NormalKey(version)
+    public class ActionKey(ClipVersion version) : KeyBase(version)
     {
+        public uint value;
+
         protected override bool DoRead(FileHandler handler)
         {
-            throw new NotImplementedException();
-            // handler.Read(ref frame);
-            // handler.Read(ref interpolation);
-            // handler.Read(ref flags);
-            // Value = handler.Read<short>() != 0;
-            // return true;
+            handler.Read(ref frame);
+            handler.Read(ref value);
+            return true;
         }
 
         protected override bool DoWrite(FileHandler handler)
         {
-            throw new NotImplementedException();
+            handler.Write(ref frame);
+            handler.Write(ref value);
+            return true;
         }
 
-        public override string ToString() => $"[Frame {frame}|ActionKey]: {Value}";
+        public override string ToString() => $"[Frame {frame}|ActionKey]: {value}";
     }
 
     public class NoHermiteKey(ClipVersion version) : KeyBase(version)
@@ -630,11 +631,11 @@ namespace ReeLib.Clip
             return true;
         }
 
-        public override void ReadValue(FileHandler handler, Property property, IKeyValueContainer offsets)
+        public override void ReadValue(FileHandler handler, PropertyType type, IKeyValueContainer offsets)
         {
-            PropertyType = property.Info.DataType;
+            PropertyType = type;
             handler.Seek(Start + 8);
-            Value = PropertyType.Read(handler, offsets);
+            Value = type.Read(handler, offsets);
         }
 
         public override void ResetValue()
@@ -681,16 +682,22 @@ namespace ReeLib.Clip
         public short arrayIndex;
         public short speedPointNum;
         public PropertyType DataType;
-        public byte uknByte2;
+        public byte flags;
         public byte uknByte;
         internal long lastKeyOffset;
         internal long speedPointOffset;
         internal long clipPropertyOffset;
 
+        public int ExtraKeyCount
+        {
+            get => Version is >= ClipVersion.RE4 and <= ClipVersion.DD2 ? flags & 0b1111 : 0;
+            set => flags = Version is >= ClipVersion.RE4 and <= ClipVersion.DD2 ? (byte)(((value & 0b1111)) | (flags & 0b11110000)) : flags;
+        }
+
         public int KeyType
         {
-            get => (uknByte >> 4) & 0b11;
-            set => uknByte = (byte)(((value & 0b11) << 4) | (uknByte & 0b11001111));
+            get => (flags >> 4) & 0b11;
+            set => flags = (byte)(((value & 0b11) << 4) | (flags & 0b11001111));
         }
 
         public byte uknCount;
@@ -762,9 +769,9 @@ namespace ReeLib.Clip
                 else
                     action.Do(ref speedPointNum);
                 action.Do(ref DataType);
-                if (Version > ClipVersion.RE8)
-                    action.Do(ref uknByte2);
                 action.Do(ref uknByte);
+                if (Version > ClipVersion.RE8)
+                    action.Do(ref flags);
                 action.Do(ref lastKeyOffset);
                 if (Version < ClipVersion.RE4)
                 {
@@ -827,12 +834,28 @@ namespace ReeLib.Clip
 
         protected override bool DoWrite(FileHandler handler)
         {
-            nameUtf16Hash = MurMur3HashUtils.GetHash(FunctionName);
-            nameAsciiHash = MurMur3HashUtils.GetAsciiHash(FunctionName);
+            if (Version > ClipVersion.RE2_DMC5)
+            {
+                nameUtf16Hash = MurMur3HashUtils.GetHash(FunctionName);
+                nameAsciiHash = MurMur3HashUtils.GetAsciiHash(FunctionName);
+            }
             return base.DoWrite(handler);
         }
 
         public override string ToString() => $"[{FunctionName}]";
+
+        internal IList GetKeyList(EmbeddedClip clip)
+        {
+            if (Version < ClipVersion.MHWilds) return clip.NormalKeys;
+
+            return KeyType switch {
+                1 => clip.BoolKeys,
+                2 => clip.ActionKeys,
+                3 => clip.NoHermiteKeys,
+                0 => clip.NormalKeys,
+                _ => throw new NotSupportedException("Unsupported key type " + KeyType),
+            };
+        }
     }
 
 
@@ -841,6 +864,7 @@ namespace ReeLib.Clip
         public PropertyInfo Info { get; }
         public List<Property>? ChildProperties { get; set; }
         public List<KeyBase>? Keys { get; set; }
+        public List<KeyBase>? ExtraKeys { get; set; }
 
         public Property(ClipVersion version)
         {
@@ -903,7 +927,9 @@ namespace ReeLib.Clip
         public Guid guid1;
         public Guid guid2;
 
-        public ulong nameHash;
+        public uint pragmataHash;
+        public uint nameHash1;
+        public uint nameUtf16Hash;
         internal long nameOffset;
         internal long childIndex;
         internal long propertyIndex;
@@ -929,7 +955,8 @@ namespace ReeLib.Clip
                 action.Do(ref Unsafe.As<int, short>(ref childCount));
                 action.Do(ref Unsafe.As<int, short>(ref propCount));
                 action.Null(4);
-                action.Do(ref nameHash);
+                action.Do(ref nameHash1);
+                action.Do(ref nameUtf16Hash);
                 action.Do(ref nameOffset);
             }
             else
@@ -942,7 +969,8 @@ namespace ReeLib.Clip
                 action.Do(ref guid2);
                 if (Version == ClipVersion.RE3) {
                     action.Null(8);
-                    action.Do(ref nameHash);
+                    action.Do(ref nameHash1);
+                    action.Do(ref nameUtf16Hash);
                     action.Do(ref nameOffset);
                 } else {
                     if (Version == ClipVersion.RE7) {
@@ -996,7 +1024,7 @@ namespace ReeLib.Clip
             }
         }
 
-        public override string ToString() => Name ?? $"Hash: {nameHash}";
+        public override string ToString() => Name ?? $"Hash: {nameUtf16Hash}";
     }
 
 
@@ -1017,7 +1045,7 @@ namespace ReeLib.Clip
         public int uknCount3;
 
         public Guid guid;
-        internal long trackDataOffset;
+        internal long tracksOffset;
         internal long propertiesOffset;
         internal long keysOffset;
         internal long actionKeysOffset;
@@ -1064,7 +1092,7 @@ namespace ReeLib.Clip
             {
                 action.Do(ref guid);
             }
-            action.Do(ref trackDataOffset);
+            action.Do(ref tracksOffset);
             action.Do(ref propertiesOffset);
             action.Do(ref keysOffset);
             if (version >= ClipVersion.MHWilds)
@@ -1340,7 +1368,7 @@ namespace ReeLib.Clip
         public ClipBaseHeader Header { get; internal set; } = new();
         public List<ClipTrack> Tracks { get; } = new();
         public List<Property> Properties { get; } = new();
-        public List<NormalKey> ClipKeys { get; } = new();
+        public List<NormalKey> NormalKeys { get; } = new();
         public List<BoolKey> BoolKeys { get; } = new();
         public List<ActionKey> ActionKeys { get; } = new();
         public List<NoHermiteKey> NoHermiteKeys { get; } = new();
@@ -1360,7 +1388,7 @@ namespace ReeLib.Clip
         {
             Tracks.Clear();
             Properties.Clear();
-            ClipKeys.Clear();
+            NormalKeys.Clear();
             BoolKeys.Clear();
             ActionKeys.Clear();
             NoHermiteKeys.Clear();
@@ -1382,7 +1410,7 @@ namespace ReeLib.Clip
             }
             if (clipHeader.trackCount > 0)
             {
-                handler.Seek(clipHeader.trackDataOffset);
+                handler.Seek(clipHeader.tracksOffset);
                 for (int i = 0; i < clipHeader.trackCount; i++)
                 {
                     ClipTrack cTrack = new(Version);
@@ -1405,7 +1433,7 @@ namespace ReeLib.Clip
             handler.Seek(start + clipHeader.Size);
 
             clipHeader.trackCount = Tracks.Count;
-            clipHeader.trackDataOffset = handler.Tell();
+            clipHeader.tracksOffset = handler.Tell();
             ReFlattenProperties(Tracks);
             foreach (var track in Tracks)
             {
@@ -1414,7 +1442,8 @@ namespace ReeLib.Clip
                     track.childCount = Tracks.Count - 1;
                 }
 
-                track.nameHash = MurMur3HashUtils.GetCombineHash(track.Name);
+                track.nameHash1 = MurMur3HashUtils.GetAsciiHash(track.Name); // TODO verify for pragmata
+                track.nameUtf16Hash = MurMur3HashUtils.GetHash(track.Name);
                 track.WriteName(handler);
                 track.Write(handler);
             }
@@ -1457,7 +1486,6 @@ namespace ReeLib.Clip
                     Property property = new(Version);
                     property.Info.Read(handler);
                     property.Info.FunctionName = handler.ReadAsciiString(clipHeader.namesOffset + property.Info.nameOffset);
-                    DataInterpretationException.ThrowIf(string.IsNullOrEmpty(property.Info.FunctionName));
                     Properties.Add(property);
                     speedPointCount += (int)property.Info.speedPointNum;
                 }
@@ -1472,7 +1500,7 @@ namespace ReeLib.Clip
                 {
                     NormalKey key = new(Version);
                     key.Read(handler);
-                    ClipKeys.Add(key);
+                    NormalKeys.Add(key);
                     if (key.interpolation == InterpolationType.Hermite) hermiteKeys++;
                     if (key.interpolation == InterpolationType.Bezier3D) bezier3dCount++;
                 }
@@ -1514,48 +1542,46 @@ namespace ReeLib.Clip
             // sub properties or sub keys
             foreach (var property in Properties)
             {
-                if (property.Info.ChildMembershipCount == 0) continue;
                 if (property.IsPropertyContainer)
                 {
+                    DataInterpretationException.DebugThrowIf(property.Info.ExtraKeyCount != 0);
+                    if (property.Info.ChildMembershipCount == 0) continue;
                     property.ChildProperties ??= new();
                     property.ChildProperties.AddRange(Properties.Slice((int)property.Info.ChildStartIndex, property.Info.ChildMembershipCount));
                     continue;
                 }
 
                 property.Keys ??= new();
-                if (Version >= ClipVersion.MHWilds)
+                if (property.Info.ChildMembershipCount == 0 && property.Info.ExtraKeyCount == 0) continue;
+
+                IList list = property.Info.GetKeyList(this);
+
+                if (property.Info.ChildMembershipCount > 0)
                 {
-                    if (property.Info.KeyType == 1)
+                    if (Version >= ClipVersion.MHWilds)
                     {
-                        for (long i = property.Info.ChildStartIndex; i < property.Info.ChildMembershipCount + property.Info.ChildStartIndex; i++)
-                        {
-                            var key = BoolKeys[(int)i];
-                            property.Keys.Add(key);
-                            DataInterpretationException.DebugThrowIf(property.Info.DataType != PropertyType.Bool);
-                        }
-
-                        continue;
+                        DataInterpretationException.DebugThrowIf(property.Info.KeyType == 1 && property.Info.DataType != PropertyType.Bool);
+                        DataInterpretationException.DebugThrowIf(property.Info.KeyType == 2 && property.Info.DataType != PropertyType.Action);
                     }
 
-                    if (property.Info.KeyType == 3)
+                    for (long i = property.Info.ChildStartIndex; i < property.Info.ChildMembershipCount + property.Info.ChildStartIndex; i++)
                     {
-                        for (long i = property.Info.ChildStartIndex; i < property.Info.ChildMembershipCount + property.Info.ChildStartIndex; i++)
-                        {
-                            var key = NoHermiteKeys[(int)i];
-                            property.Keys.Add(key);
-                            key.ReadValue(handler, property, Header);
-                        }
-
-                        continue;
+                        var key = (KeyBase)list[(int)i]!;
+                        property.Keys.Add(key);
+                        key.ReadValue(handler, property.Info.DataType, Header);
                     }
-                    DataInterpretationException.DebugThrowIf(property.Info.uknByte != 0);
                 }
 
-                for (long i = property.Info.ChildStartIndex; i < property.Info.ChildMembershipCount + property.Info.ChildStartIndex; i++)
+                if (property.Info.ExtraKeyCount > 0)
                 {
-                    var key = ClipKeys[(int)i];
-                    property.Keys.Add(key);
-                    key.ReadValue(handler, property, Header);
+                    // note: assumption is same key type as base list, haven't found any non-normals with extras yet
+                    property.ExtraKeys ??= new();
+                    for (long i = 0; i < property.Info.ExtraKeyCount; i++)
+                    {
+                        var key = (KeyBase)list[(int)(property.Info.ChildStartIndex + property.Info.ChildMembershipCount + i)]!;
+                        property.ExtraKeys.Add(key);
+                        key.ReadValue(handler, property.Info.DataType, Header);
+                    }
                 }
             }
 
@@ -1642,12 +1668,12 @@ namespace ReeLib.Clip
                 property.Info.Write(handler);
             }
 
-            clipHeader.keysCount = ClipKeys.Count;
+            clipHeader.keysCount = NormalKeys.Count;
             clipHeader.boolKeysCount = BoolKeys.Count;
             clipHeader.actionKeysCount = ActionKeys.Count;
             clipHeader.noHermiteKeysCount = NoHermiteKeys.Count;
             clipHeader.keysOffset = handler.Tell();
-            foreach (var key in ClipKeys)
+            foreach (var key in NormalKeys)
             {
                 key.Write(handler);
             }
@@ -1685,7 +1711,7 @@ namespace ReeLib.Clip
         internal void ReFlattenProperties(IEnumerable<ClipTrack> tracks)
         {
             Properties.Clear();
-            ClipKeys.Clear();
+            NormalKeys.Clear();
             BoolKeys.Clear();
             ActionKeys.Clear();
             NoHermiteKeys.Clear();
@@ -1708,23 +1734,29 @@ namespace ReeLib.Clip
                         {
                             prop.Keys ??= new();
                             prop.Info.ChildMembershipCount = (ushort)prop.Keys.Count;
-                            if (prop.Keys.Count == 0)
+                            prop.Info.ExtraKeyCount = prop.ExtraKeys?.Count ?? 0;
+                            if (prop.Keys.Count == 0 && prop.Info.ExtraKeyCount == 0)
                             {
                                 prop.Info.ChildStartIndex = 0;
                                 continue;
                             }
-                            (IList keyList, int keyType) = prop.Keys.First() switch {
+                            var firstKey = prop.Keys.FirstOrDefault() ?? prop.ExtraKeys!.First();
+                            (IList keyList, int keyType) = firstKey switch {
+                                NormalKey => (clip.NormalKeys, 0),
                                 BoolKey => ((IList)clip.BoolKeys, 1),
                                 ActionKey => (clip.ActionKeys, 2),
-                                NormalKey => (clip.ClipKeys, 0),
                                 NoHermiteKey => (clip.NoHermiteKeys, 3),
-                                _ => throw new NotImplementedException("Unsupported key type " + prop.Keys.First().GetType()),
+                                _ => throw new NotImplementedException("Unsupported key type " + firstKey.GetType()),
                             };
                             prop.Info.ChildStartIndex = keyList.Count;
                             prop.Info.KeyType = keyType;
 
                             foreach (var key in prop.Keys) {
                                 keyList.Add(key);
+                            }
+                            if (prop.ExtraKeys?.Count > 0)
+                            {
+                                foreach (var key in prop.ExtraKeys) keyList.Add(key);
                             }
                             continue;
                         }

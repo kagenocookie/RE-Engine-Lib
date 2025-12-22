@@ -2049,11 +2049,11 @@ namespace ReeLib.Mot
             handler.ReadBytes(uknBytes28);
 
             ClipEntry.Read(handler);
-            if (ClipEntry.Header.version > ClipVersion.RE7 && ClipEntry.Header.numNodes > 1)
+            if (ClipEntry.Header.version > ClipVersion.RE7 && ClipEntry.Header.trackCount > 1)
             {
                 handler.Seek(endClipStructsRelocation);
-                EndClipStructs = new EndClipStruct[ClipEntry.Header.numNodes - 1];
-                for (int i = 0; i < ClipEntry.Header.numNodes - 1; ++i)
+                EndClipStructs = new EndClipStruct[ClipEntry.Header.trackCount - 1];
+                for (int i = 0; i < ClipEntry.Header.trackCount - 1; ++i)
                 {
                     EndClipStructs[i] = new EndClipStruct() { Version = ClipEntry.Header.version };
                     EndClipStructs[i].Read(handler);
@@ -2077,7 +2077,7 @@ namespace ReeLib.Mot
             clipOffset = handler.Tell();
             ClipEntry.Write(handler);
 
-            if (ClipEntry.Header.version > ClipVersion.RE7 && ClipEntry.Header.numNodes > 1)
+            if (ClipEntry.Header.version > ClipVersion.RE7 && ClipEntry.Header.trackCount > 1)
             {
                 handler.Align(16);
                 endClipStructsRelocation = handler.Tell();

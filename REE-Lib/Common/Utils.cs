@@ -201,7 +201,14 @@ namespace ReeLib.Common
 
             if (_classFields == null) {
                 // note to self: we shouldn't need to also clone properties here since backing fields already get picked up with GetFields
-                var allFields = typeof(T).GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                IEnumerable<FieldInfo> allFields = typeof(T).GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                var baseType = typeof(T).BaseType;
+                while (baseType != null && baseType != typeof(object))
+                {
+                    // need to separately handle private base fields
+                    allFields = allFields.Concat(baseType!.GetFields(BindingFlags.Instance | BindingFlags.NonPublic));
+                    baseType = baseType.BaseType;
+                }
                 var fields = allFields.Where(fi => fi.FieldType.IsClass && fi.FieldType != typeof(string));
                 _classFields = fields.Where(f => !f.FieldType.IsAssignableTo(typeof(ICloneable))).ToArray();
                 _cloneableFields = fields.Where(f => f.FieldType.IsAssignableTo(typeof(ICloneable))).ToArray();

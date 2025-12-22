@@ -1,79 +1,75 @@
 using ReeLib.Clip;
-using ReeLib.Common;
-using ReeLib.InternalAttributes;
 using ReeLib.MotTree;
 using ReeLib.Tml;
 
 namespace ReeLib.Tml
 {
-    public class Header : ReadWriteModel, IKeyValueContainer
+    /// <summary>
+    /// Full clip data header.
+    /// </summary>
+    public class ClipHeader : ClipBaseHeader, IKeyValueContainer
     {
-        public uint magic = ClipFile.Magic;
-        public ClipVersion version;
-        public float totalFrames;
         public int rootNodeCount;
-        public int trackCount;
-        public int nodeGroupCount;
+        public int sectionCount;
         public int nodeReorderCount;
         public int nodeCount;
-        public int propertyCount;
-        public int keyCount;
-        public Guid guid;
 
-        internal long nodesOffset;
-        internal long trackTableOffset;
+        internal long rootNodesOffset;
+
         internal long nodeGroupsOffset;
         internal long nodesReorderOffset;
         internal long nodeTableOffset;
-        internal long propertyOffset;
-        internal long keyOffset;
-        internal long speedPointOffset;
-        internal long hermiteDataOffset;
-        internal long bezier3DDataOffset;
-        internal long uknOffset;
-        internal long clipInfoOffset;
 
-        internal long stringsOffset;
-        internal long unicodeStringsOffset;
         internal long owordOffset;
         internal long dataOffset;
 
-        long IKeyValueContainer.AsciiStringOffset => stringsOffset;
-        long IKeyValueContainer.UnicodeStringOffset => unicodeStringsOffset;
         long IKeyValueContainer.DataOffset16B => owordOffset;
 
         protected override sealed bool ReadWrite<THandler>(THandler action)
         {
             action.Do(ref magic);
             action.Do(ref version);
-            action.Do(ref totalFrames);
+            action.Do(ref numFrames);
             action.Do(ref rootNodeCount);
             action.Do(ref trackCount);
-            action.Do(version >= ClipVersion.RE8, ref nodeGroupCount);
+            action.Do(version >= ClipVersion.RE8, ref sectionCount);
             action.Do(ref nodeReorderCount);
             action.Do(ref nodeCount);
             action.Do(ref propertyCount);
-            action.Do(ref keyCount);
-            if(version < ClipVersion.RE8) action.Null(4);
+            action.Do(ref keysCount);
+            if (version < ClipVersion.RE8) action.Null(4);
             action.Do(version <= ClipVersion.RE2_DMC5, ref guid);
+            if (version >= ClipVersion.MHWilds)
+            {
+                action.Do(ref boolKeysCount);
+                action.Do(ref actionKeysCount);
+                action.Do(ref noHermiteKeysCount);
+                action.Do(ref uknCount3);
+                DataInterpretationException.DebugThrowIf(uknCount3 > 0);
+            }
 
-            action.Do(ref nodesOffset);
-            action.Do(ref trackTableOffset);
+            action.Do(ref rootNodesOffset);
+            action.Do(ref trackDataOffset);
             action.Do(version >= ClipVersion.RE8, ref nodeGroupsOffset);
             action.Do(ref nodesReorderOffset);
             action.Do(ref nodeTableOffset);
-            action.Do(ref propertyOffset);
-            action.Do(ref keyOffset);
+            action.Do(ref propertiesOffset);
+            action.Do(ref keysOffset);
+            if (version >= ClipVersion.MHWilds)
+            {
+                action.Do(ref boolKeysOffset);
+                action.Do(ref actionKeysOffset);
+                action.Do(ref noHermiteKeysOffset);
+            }
             action.Do(ref speedPointOffset);
             action.Do(ref hermiteDataOffset);
             action.Do(version != ClipVersion.RE4, ref bezier3DDataOffset);
             action.Do(version <= ClipVersion.RE2_DMC5, ref uknOffset);
             action.Do(ref clipInfoOffset);
             DataInterpretationException.DebugThrowIf(uknOffset != 0 && uknOffset != clipInfoOffset, "It's actually used??");
-            DataInterpretationException.DebugThrowIf(version > ClipVersion.RE2_DMC5 && speedPointOffset != hermiteDataOffset, "Speedpoint does still exist");
 
-            action.Do(ref stringsOffset);
-            action.Do(ref unicodeStringsOffset);
+            action.Do(ref namesOffset);
+            action.Do(ref unicodeNamesOffset);
             action.Do(ref owordOffset);
             action.Do(ref dataOffset);
 
@@ -81,18 +77,19 @@ namespace ReeLib.Tml
         }
     }
 
-    public class TimelineTrack(ClipVersion version)
+    public class TimelineTrackGroup(ClipVersion version)
     {
         public bool enabled;
         public int ukn;
-        public int clipCount;
-        public int nodeCount;
         public string type = "";
         public string name = "";
-        public int nodeStartOffset;
-        public long uknOffset;
 
-        public List<TimelineNode> Nodes { get; } = new();
+        internal int clipCount;
+        internal int nodeCount;
+        internal int nodeStartOffset;
+        internal long uknIndex;
+
+        public List<TimelineTrack> Tracks { get; } = new();
         public ClipVersion Version { get; set; } = version;
 
         internal void Read(FileHandler handler, long asciiOffset, long unicodeOffset)
@@ -106,12 +103,12 @@ namespace ReeLib.Tml
             type = handler.ReadAsciiString(asciiOffset + handler.Read<long>());
             type = handler.ReadWString(unicodeOffset + handler.Read<long>() * 2);
             name = handler.ReadWString(unicodeOffset + handler.Read<long>() * 2);
-            handler.Read(ref nodeStartOffset);
-            handler.ReadNull(4);
             if (Version >= ClipVersion.RE_RT)
             {
-                handler.Read(ref uknOffset);
+                handler.Read(ref uknIndex);
             }
+            handler.Read(ref nodeStartOffset);
+            handler.ReadNull(4);
         }
 
         internal void Write(FileHandler handler)
@@ -124,50 +121,33 @@ namespace ReeLib.Tml
             handler.Write((long)handler.AsciiStringTableAdd(type, false).TableOffset);
             handler.Write((long)handler.StringTableAdd(type, false).TableOffset);
             handler.Write((long)handler.StringTableAdd(name, false).TableOffset);
-            handler.Write(ref nodeStartOffset);
-            handler.WriteNull(4);
             if (Version >= ClipVersion.RE_RT)
             {
-                handler.Write(ref uknOffset);
+                handler.Write(ref uknIndex);
             }
+            handler.Write(ref nodeStartOffset);
+            handler.WriteNull(4);
         }
 
         public override string ToString() => type + ": " + name;
     }
 
-    public class TimelineNode : ReadWriteModel
+    public class TimelineTrack : ClipTrack
     {
-        public int childCount;
-        public int propCount;
-        public float startFrame;
-        public float endFrame;
-        public Guid guid;
-
-        public Guid guid2;
-
-        public MotionTreeNodeType nodeType;
         public byte uknByte;
         public byte uknByte2;
-
-        public ulong nameHash;
-        internal long nameOffset;
-        internal long nodeTagOffset;
-        public long childIndex;
-        public long propertyIndex;
-
-        public List<TimelineNode> ChildNodes { get; } = new();
-        public List<Property> Properties { get; } = new();
-
-        public string Name = "";
         public string Tag = "";
 
-        public ClipVersion Version { get; set; }
+        public MotionTreeNodeType nodeType;
 
-        public TimelineNode(ClipVersion version)
+        internal long nodeTagOffset;
+
+        public List<TimelineTrack> TimelineChildTracks { get; } = new();
+        public new List<ClipTrack> ChildTracks => throw new NotSupportedException($"Use {nameof(TimelineChildTracks)} for full clip tracks!");
+
+        public TimelineTrack(ClipVersion version) : base(version)
         {
-            Version = version;
         }
-
 
         protected override bool ReadWrite<THandler>(THandler action)
         {
@@ -175,7 +155,7 @@ namespace ReeLib.Tml
             action.Do(ref propCount);
             action.Do(ref startFrame);
             action.Do(ref endFrame);
-            action.Do(ref guid);
+            action.Do(ref guid1);
             if (Version <= ClipVersion.RE_RT)
             {
                 action.Do(ref guid2);
@@ -203,7 +183,7 @@ namespace ReeLib.Tml
             return true;
         }
 
-        public void ReadName(FileHandler handler, long unicodeOffset, long asciiOffset)
+        public new void ReadName(FileHandler handler, long unicodeOffset, long asciiOffset)
         {
             if (Version == ClipVersion.RE7 || Version == ClipVersion.RE3)
             {
@@ -221,7 +201,7 @@ namespace ReeLib.Tml
             }
         }
 
-        public void WriteName(FileHandler handler)
+        public new void WriteName(FileHandler handler)
         {
             if (Version == ClipVersion.RE7 || Version == ClipVersion.RE3)
             {
@@ -240,13 +220,13 @@ namespace ReeLib.Tml
             }
         }
 
-        public override string ToString() => !string.IsNullOrEmpty(Name) ? Name : guid.ToString();
+        public override string ToString() => !string.IsNullOrEmpty(Name) ? Name : guid1.ToString();
     }
 
-    public class TmlNodeGroup : BaseModel
+    public class TimelineSectionTag : BaseModel
     {
-        public int ukn;
-        public float frameCount;
+        public float startFrame;
+        public float endFrame;
         public int ukn2;
         public float frameCount2;
         private long nameOffset;
@@ -255,9 +235,9 @@ namespace ReeLib.Tml
 
         protected override bool DoRead(FileHandler handler)
         {
-            handler.Read(ref ukn);
-            handler.Read(ref frameCount);
-            handler.Read(ref ukn2);
+            handler.Read(ref startFrame);
+            handler.Read(ref endFrame);
+            handler.ReadNull(4);
             handler.Read(ref frameCount2);
             handler.Read(ref nameOffset);
             return true;
@@ -265,11 +245,11 @@ namespace ReeLib.Tml
 
         protected override bool DoWrite(FileHandler handler)
         {
-            handler.Write(ref ukn);
-            handler.Write(ref frameCount);
-            handler.Write(ref ukn2);
+            handler.Write(ref startFrame);
+            handler.Write(ref endFrame);
+            handler.WriteNull(4);
             handler.Write(ref frameCount2);
-            handler.Write(nameOffset = handler.StringTableAdd(Name).TableOffset);
+            handler.Write(nameOffset = handler.StringTableAdd(Name, false).TableOffset);
             return true;
         }
 
@@ -285,23 +265,21 @@ namespace ReeLib.Tml
 
 namespace ReeLib
 {
-    public class TmlFile : BaseFile
+    public class ClipFile : BaseFile
     {
-        public Header Header { get; } = new();
-        public List<TimelineTrack> Tracks { get; } = new();
-        public List<TmlNodeGroup> NodeGroups { get; } = new();
-        public List<TimelineNode> RootNodes { get; } = new();
-        public List<TimelineNode> Nodes { get; } = new();
-        public List<Property> Properties { get; } = new();
-        public List<NormalKey> Keys { get; } = new();
+        public ClipHeader Header { get; } = new();
+        public List<TimelineTrackGroup> TrackGroups { get; } = new();
+        public List<TimelineSectionTag> Sections { get; } = new();
+        public List<TimelineTrack> RootTracks { get; } = new();
+        public List<TimelineTrack> AllTracks { get; } = new();
 
-        public List<SpeedPointData> SpeedPointData { get; } = new();
-        public List<HermiteInterpolationData> HermiteData { get; } = new();
-        public List<Bezier3DKeys> Bezier3DData { get; } = new();
-        public List<ClipInfoStruct> ClipInfo { get; } = new();
+        public EmbeddedClip Clip { get; } = new EmbeddedClip();
 
-        public TmlFile(FileHandler fileHandler) : base(fileHandler)
+        public const int Magic = 0x50494C43;
+
+        public ClipFile(FileHandler fileHandler) : base(fileHandler)
         {
+            Clip.Header = Header;
         }
 
         protected override bool DoRead()
@@ -314,40 +292,36 @@ namespace ReeLib
                 throw new InvalidDataException("Not a valid TML file");
             }
 
-            Tracks.Clear();
-            Keys.Clear();
-            Nodes.Clear();
-            NodeGroups.Clear();
-            RootNodes.Clear();
-            Properties.Clear();
-            HermiteData.Clear();
-            SpeedPointData.Clear();
-            Bezier3DData.Clear();
-            ClipInfo.Clear();
+            Clip.Clear();
 
-            handler.Seek(Header.nodesOffset);
+            TrackGroups.Clear();
+            AllTracks.Clear();
+            Sections.Clear();
+            RootTracks.Clear();
+
+            handler.Seek(Header.rootNodesOffset);
             var rootOffsets = handler.ReadArray<long>(Header.rootNodeCount);
 
             if (Header.trackCount > 0)
             {
-                handler.Seek(Header.trackTableOffset);
+                handler.Seek(Header.trackDataOffset);
                 for (int i = 0; i < Header.trackCount; ++i)
                 {
-                    var track = new TimelineTrack(Header.version);
-                    track.Read(handler, Header.stringsOffset, Header.unicodeStringsOffset);
-                    Tracks.Add(track);
+                    var track = new TimelineTrackGroup(Header.version);
+                    track.Read(handler, Header.namesOffset, Header.unicodeNamesOffset);
+                    TrackGroups.Add(track);
                 }
             }
 
-            if (Header.nodeGroupCount > 0)
+            if (Header.sectionCount > 0)
             {
                 handler.Seek(Header.nodeGroupsOffset);
-                for (int i = 0; i < Header.nodeGroupCount; ++i)
+                for (int i = 0; i < Header.sectionCount; ++i)
                 {
-                    var item = new TmlNodeGroup();
+                    var item = new TimelineSectionTag();
                     item.Read(handler);
-                    item.ReadName(handler, Header.unicodeStringsOffset);
-                    NodeGroups.Add(item);
+                    item.ReadName(handler, Header.unicodeNamesOffset);
+                    Sections.Add(item);
                 }
             }
 
@@ -361,129 +335,35 @@ namespace ReeLib
             handler.Seek(Header.nodeTableOffset);
             for (int i = 0; i < Header.nodeCount; ++i)
             {
-                var node = new TimelineNode(Header.version);
+                var node = new TimelineTrack(Header.version);
                 node.Read(handler);
-                node.ReadName(handler, Header.unicodeStringsOffset, Header.stringsOffset);
-                Nodes.Add(node);
+                node.ReadName(handler, Header.unicodeNamesOffset, Header.namesOffset);
+                AllTracks.Add(node);
             }
 
             foreach (var off in rootOffsets)
             {
                 // one dmc5 file has duplicate nodes where this fails - ignore, surely nobody's gonna edit this one
-                var rootNode = Nodes.First(n => n.Start == off);
-                RootNodes.Add(rootNode);
+                var rootNode = AllTracks.First(n => n.Start == off);
+                RootTracks.Add(rootNode);
             }
 
-            var speedPointCount = 0;
-            var clipInfoCount = 0;
-            handler.Seek(Header.propertyOffset);
-            for (int i = 0; i < Header.propertyCount; i++)
-            {
-                Property property = new(Header.version);
-                property.Info.Read(handler);
-                property.Info.FunctionName = handler.ReadAsciiString(Header.stringsOffset + property.Info.nameOffset);
-                DataInterpretationException.ThrowIf(string.IsNullOrEmpty(property.Info.FunctionName));
-                Properties.Add(property);
-                if (Header.version <= ClipVersion.RE2_DMC5)
-                {
-                    speedPointCount += property.Info.speedPointNum;
-                }
-            }
-
-            var hermiteKeys = 0;
-            var bezier3dCount = 0;
-            handler.Seek(Header.keyOffset);
-            for (int i = 0; i < Header.keyCount; i++)
-            {
-                NormalKey key = new(Header.version);
-                key.Read(handler);
-                Keys.Add(key);
-                if (key.interpolation == InterpolationType.Hermite) hermiteKeys++;
-                if (key.interpolation == InterpolationType.Bezier3D) bezier3dCount++;
-            }
-
-            if (speedPointCount > 0)
-            {
-                handler.Seek(Header.speedPointOffset);
-                SpeedPointData.ReadStructList(handler, speedPointCount);
-                DataInterpretationException.DebugThrowIf((Header.hermiteDataOffset - Header.speedPointOffset) / 24 != speedPointCount);
-            }
-            else if (Header.version == ClipVersion.RE7 && Header.speedPointOffset != Header.hermiteDataOffset)
-            {
-                // I have no idea why it's like this here, re7 being re7 I guess
-                // the struct looks identical so it's _probably_ the same thing as in newer games
-                handler.Seek(Header.speedPointOffset);
-                SpeedPointData.ReadStructList(handler, Properties.Count * 2);
-                DataInterpretationException.DebugThrowIf((Header.hermiteDataOffset - Header.speedPointOffset) / 24 != Properties.Count * 2);
-            }
-            else
-            {
-                DataInterpretationException.DebugThrowIf(Header.speedPointOffset != Header.hermiteDataOffset);
-            }
-
-            if (hermiteKeys > 0)
-            {
-                handler.Seek(Header.hermiteDataOffset);
-                HermiteData.ReadStructList(handler, hermiteKeys);
-            }
-
-            if (bezier3dCount > 0)
-            {
-                handler.Seek(Header.bezier3DDataOffset);
-                Bezier3DData.ReadStructList(handler, bezier3dCount);
-            }
-
-            // TODO figure out where the count actually comes from
-            // not key interpolation and not linked to properties directly
-            handler.Seek(Header.clipInfoOffset);
-            clipInfoCount = (int)(Header.stringsOffset - Header.clipInfoOffset) / ClipInfoStruct.GetSize(Header.version);
-            DataInterpretationException.DebugThrowIf((Header.stringsOffset - Header.clipInfoOffset) % ClipInfoStruct.GetSize(Header.version) != 0);
-            for (int i = 0; i < clipInfoCount; ++i)
-            {
-                var clip = new ClipInfoStruct() { Version = Header.version };
-                clip.Read(handler);
-                ClipInfo.Add(clip);
-            }
-
-            // note: copied from ClipEntry due to otherwise different file contents
-            // consider merging the two together somehow
-            foreach (var property in Properties)
-            {
-                if (property.Info.ChildMembershipCount == 0) continue;
-                if (property.IsPropertyContainer)
-                {
-                    property.ChildProperties ??= new();
-                    for (long i = property.Info.ChildStartIndex; i < property.Info.ChildMembershipCount + property.Info.ChildStartIndex; i++)
-                    {
-                        property.ChildProperties.Add(Properties[(int)i]);
-                    }
-                }
-                else
-                {
-                    property.Keys ??= new();
-                    for (long i = property.Info.ChildStartIndex; i < property.Info.ChildMembershipCount + property.Info.ChildStartIndex; i++)
-                    {
-                        NormalKey key = Keys[(int)i];
-                        property.Keys.Add(key);
-                        key.ReadValue(handler, property, Header);
-                    }
-                }
-            }
+            Clip.ReadProperties(handler);
 
             // setup node children
-            foreach (var node in Nodes)
+            foreach (var node in AllTracks)
             {
                 if (node.childCount != 0)
-                    node.ChildNodes.AddRange(Nodes.Slice((int)node.childIndex, node.childCount));
+                    node.TimelineChildTracks.AddRange(AllTracks.Slice((int)node.childIndex, node.childCount));
 
                 if (node.propCount != 0)
-                    node.Properties.AddRange(Properties.Slice((int)node.propertyIndex, node.propCount));
+                    node.Properties.AddRange(Clip.Properties.Slice((int)node.propertyIndex, node.propCount));
             }
 
-            foreach (var track in Tracks)
+            foreach (var group in TrackGroups)
             {
-                if (track.nodeCount != 0)
-                    track.Nodes.AddRange(RootNodes.Slice(track.nodeStartOffset, track.nodeCount));
+                if (group.nodeCount != 0)
+                    group.Tracks.AddRange(RootTracks.Slice(group.nodeStartOffset, group.nodeCount));
             }
 
             return true;
@@ -491,99 +371,92 @@ namespace ReeLib
 
         protected override bool DoWrite()
         {
-            Header.trackCount = Tracks.Count;
-            Header.nodeGroupCount = NodeGroups.Count;
-            Header.rootNodeCount = Header.nodeReorderCount = RootNodes.Count;
-            Header.nodeCount = Nodes.Count;
-            Header.propertyCount = Properties.Count;
-            Header.keyCount = Keys.Count;
+            Header.trackCount = TrackGroups.Count;
+            Header.sectionCount = Sections.Count;
+            Header.rootNodeCount = Header.nodeReorderCount = RootTracks.Count;
+            Header.nodeCount = AllTracks.Count;
+            Header.propertyCount = Clip.Properties.Count;
+            Header.keysCount = Clip.ClipKeys.Count;
 
             var handler = FileHandler;
             Header.Write(handler);
 
-            Header.nodesOffset = handler.Tell();
-            handler.Skip(sizeof(long) * RootNodes.Count);
-
-            Header.trackTableOffset = handler.Tell();
-            foreach (var track in Tracks)
+            static void FlattenTracks(List<TimelineTrack> tracks, List<TimelineTrack> allTracks)
             {
-                track.Write(handler);
+                allTracks.AddRange(tracks);
+                foreach (var track in tracks)
+                {
+                    track.childCount = track.TimelineChildTracks.Count;
+                    track.childIndex = track.childCount > 0 ? allTracks.Count : 0;
+                    FlattenTracks(track.TimelineChildTracks, allTracks);
+                }
+            }
+            AllTracks.Clear();
+            RootTracks.Clear();
+            foreach (var group in TrackGroups) {
+                group.nodeCount = group.Tracks.Count;
+                group.nodeStartOffset = RootTracks.Count;
+                // RootTracks.AddRange(group.Tracks);
+                // FlattenTracks(group.Tracks, AllTracks);
+                foreach (var track in group.Tracks)
+                {
+                    RootTracks.Add(track);
+                    AllTracks.Add(track);
+                    track.childCount = track.TimelineChildTracks.Count;
+                    track.childIndex = track.childCount > 0 ? AllTracks.Count : 0;
+                    FlattenTracks(track.TimelineChildTracks, AllTracks);
+                }
             }
 
-            Header.nodeGroupsOffset = handler.Tell();
-            if (NodeGroups.Count > 0)
+            Clip.ReFlattenProperties(AllTracks);
+
+            Header.rootNodesOffset = handler.Tell();
+            handler.Skip(RootTracks.Count * sizeof(long));
+
+            Header.trackDataOffset = handler.Tell();
+            foreach (var group in TrackGroups)
             {
-                NodeGroups.Write(handler);
+                group.Write(handler);
+            }
+
+            if (Sections.Count > 0)
+            {
+                handler.Tell();
+                Header.nodeGroupsOffset = handler.Tell();
+                Sections.Write(handler);
             }
 
             Header.nodesReorderOffset = handler.Tell();
-            handler.Skip(sizeof(long) * RootNodes.Count);
+            handler.Skip(RootTracks.Count * sizeof(long));
 
-            // TODO re-flatten nodes
             Header.nodeTableOffset = handler.Tell();
-            foreach (var node in Nodes)
+            foreach (var node in AllTracks)
             {
                 node.WriteName(handler);
                 node.Write(handler);
 
-                var rootIndex = RootNodes.IndexOf(node);
+                var rootIndex = RootTracks.IndexOf(node);
                 if (rootIndex != -1)
                 {
-                    handler.Write(Header.nodesOffset + rootIndex * 8, node.Start);
+                    handler.Write(Header.rootNodesOffset + rootIndex * 8, node.Start);
                     handler.Write(Header.nodesReorderOffset + rootIndex * 8, node.Start);
                 }
             }
 
-            Header.propertyOffset = handler.Tell();
-            foreach (var property in Properties)
-            {
-                var stringItem = handler.AsciiStringTableAdd(property.Info.FunctionName, false);
-                property.Info.nameOffset = stringItem.TableOffset;
+            Clip.WriteProperties(handler);
 
-                if (Header.version <= ClipVersion.RE3)
-                {
-                    stringItem = handler.StringTableAdd(property.Info.FunctionName, false);
-                    property.Info.unicodeNameOffset = stringItem.TableOffset;
-                }
-
-                property.Info.Write(handler);
-            }
-
-            Header.keyOffset = handler.Tell();
-            foreach (var key in Keys)
-            {
-                key.Write(handler);
-            }
-
-            Header.speedPointOffset = handler.Tell();
-            if (SpeedPointData.Count > 0)
-            {
-                SpeedPointData.Write(handler);
-            }
-
-            Header.hermiteDataOffset = handler.Tell();
-            HermiteData.Write(handler);
-
-            Header.bezier3DDataOffset = handler.Tell();
-            Bezier3DData.Write(handler);
-
-            Header.uknOffset = handler.Tell(); // this one never has content
-
-            Header.clipInfoOffset = handler.Tell();
-            ClipInfo.Write(handler);
-
-            Header.stringsOffset = handler.Tell();
+            Header.namesOffset = handler.Tell();
             handler.AsciiStringTableFlush();
 
             handler.Align(16);
-            Header.unicodeStringsOffset = handler.Tell();
+            Header.unicodeNamesOffset = handler.Tell();
             handler.StringTableFlush();
 
             handler.Align(16);
             Header.owordOffset = handler.Tell();
             handler.OffsetContentTableFlush();
 
-            Header.dataOffset = handler.Tell();
+            Header.dataOffset = handler.Tell(); // TODO wtf
 
             Header.Write(handler, Header.Start);
             return true;

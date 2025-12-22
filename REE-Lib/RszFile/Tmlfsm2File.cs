@@ -75,7 +75,7 @@ namespace ReeLib.Tmlfsm2
         public Guid guid;
         public uint nameHash;
 
-        public TmlFile? Clip { get; set; }
+        public ClipFile? Clip { get; set; }
 
         private int nameOffset;
 
@@ -155,7 +155,7 @@ namespace ReeLib
             for (int i = 0; i < header.clipCount; ++i)
             {
                 handler.Seek(clipOffets[i]);
-                var clip = new TmlFile(handler);
+                var clip = new ClipFile(handler);
                 clip.ReadNoSeek();
                 Clips.Add(new TimelineClip() { Clip = clip });
             }

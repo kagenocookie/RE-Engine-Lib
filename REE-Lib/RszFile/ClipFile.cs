@@ -647,7 +647,10 @@ namespace ReeLib.Clip
                 return;
             }
 
-            var expectedType = RszInstance.RszFieldTypeToCSharpType(rszType);
+            var expectedType = rszType switch {
+                RszFieldType.Action => typeof(long),
+                _ => RszInstance.RszFieldTypeToCSharpType(rszType),
+            };
             if (Value?.GetType() == expectedType) return;
 
             try

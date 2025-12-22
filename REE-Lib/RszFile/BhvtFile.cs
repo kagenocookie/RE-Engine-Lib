@@ -883,6 +883,19 @@ namespace ReeLib
         private const int Condition_GuidFieldIndex = 1;
         private const int Action_IDFieldIndex = 1;
 
+        public IEnumerable<BHVTNode> GetAllNodes()
+        {
+            static IEnumerable<BHVTNode> RecurseHandleChildren(BHVTNode node)
+            {
+                yield return node;
+                foreach (var child in node.Children.Children) {
+                    if (child.ChildNode == null) continue;
+                    foreach (var c in RecurseHandleChildren(child.ChildNode)) yield return c;
+                }
+            }
+            foreach (var ch in RecurseHandleChildren(RootNode)) yield return ch;
+        }
+
         public IEnumerable<Variable> GetAllVariables()
         {
             foreach (var vv in UserVariables.Variables) {
@@ -1371,10 +1384,16 @@ namespace ReeLib
                     }
                 }
 
-                foreach (var state in node.States.States)
+                for (int i = 0; i < node.States.States.Count; i++)
                 {
+                    var state = node.States.States[i];
                     state.targetNodeID = state.TargetNode?.ID ?? NodeID.Unset;
-                    if (state.TargetNode == null) continue;
+                    if (state.TargetNode == null) {
+                        Log.Warn($"Removing behavior tree state without target node from node '{node}'");
+                        node.States.States.Remove(state);
+                        i--;
+                        continue;
+                    }
 
                     state.transitionConditionID = StoreRszObject(state.Condition, StaticConditionsRsz, ConditionsRsz, version);
 

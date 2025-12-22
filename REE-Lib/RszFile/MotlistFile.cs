@@ -234,7 +234,6 @@ namespace ReeLib
     public class MotlistFile(FileHandler fileHandler) : BaseFile(fileHandler)
     {
         public const uint Magic = 0x74736C6D;
-        public const string Extension = ".motlist";
 
         public Header Header { get; } = new();
         public List<MotFileBase> MotFiles { get; } = new();

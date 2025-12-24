@@ -1,5 +1,7 @@
 using ReeLib.Efx.Structs.Common;
 using ReeLib.InternalAttributes;
+using ReeLib.Efx.Enums;
+using System.Numerics;
 
 namespace ReeLib.Efx.Structs.Vortexel;
 
@@ -8,17 +10,17 @@ public partial class EFXAttributePtVortexelWind : EFXAttribute
 {
     public EFXAttributePtVortexelWind() : base(EfxAttributeType.PtVortexelWind) { }
 
-    public float unkn1;
+    public via.Range TransitionRate;
     // TODO verify which fields exactly belong to wilds and which are also in RE4
-    [RszVersion(EfxVersion.MHWilds, EndAt = nameof(unkn3))]
-    public float unkn2;
-    public float unkn3;
-    public float unkn4;
-    public float unkn5;
-    public float unkn6;
-    public uint unkn7;
-    public uint unkn8;
-    public short unkn9;
+    [RszVersion(EfxVersion.MHWilds)]
+    public float unkn7;
+    public float unkn8;
+    public float TransitionThreshold;
+    public float MaxSpeed;
+    public uint TransitionWaitFrame;
+    public uint TransitionBlendFrame;
+    public bool IsTransitionWaitFramePerParticle;
+    public bool IsMergeGravity;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.VortexelWindEmitter, EfxVersion.MHWilds)]
@@ -26,27 +28,17 @@ public partial class EFXAttributeVortexelWindEmitter : EFXAttribute
 {
     public EFXAttributeVortexelWindEmitter() : base(EfxAttributeType.VortexelWindEmitter) { }
 
-    public UndeterminedFieldType unkn1;
-    public uint unkn2;
-    public UndeterminedFieldType unkn3;
-    public uint unkn4;
-    public UndeterminedFieldType unkn5;
-    public float unkn6;
-    public UndeterminedFieldType unkn7;
-    public UndeterminedFieldType unkn8;
-    public UndeterminedFieldType unkn9;
-    public float unkn10;
-    public ByteSet unkn11;
-    public float unkn12;
-    public float unkn13;
-    public float unkn14;
-    public float unkn15;
-    public float unkn16;
-    public float unkn17;
-    public float unkn18;
-    public float unkn19;
-    public float unkn20;
-    public short unknShort;
+    public VelocityEmitType EmitType;
+    public VelocityShapeType Shape;
+    public VelocityShapeType Direction;
+    public VelocityAttenuationType Attenuation;
+    public Vector3 Axis;
+    public float Speed;
+    public bool UseOcclusionRate;
+    public bool UsePressureRate;
+    public bool IsOutdoorWind;
+    public bool AttenuatePressure;
+    public Vector2 Pressure;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtVortexelPhysics, EfxVersion.MHWilds)]
@@ -54,32 +46,21 @@ public partial class EFXAttributePtVortexelPhysics : EFXAttribute
 {
     public EFXAttributePtVortexelPhysics() : base(EfxAttributeType.PtVortexelPhysics) { }
 
-    public uint unkn1;
-    public uint unkn2;
-    public float unkn3;
-    public uint unkn4;
-    public float unkn5;
-    public float unkn6;
-    public UndeterminedFieldType unkn7;
-    public float unkn8;
-    public UndeterminedFieldType unkn9;
-    public float unkn10;
-    public float unkn11;
-    public float unkn12;
-    public UndeterminedFieldType unkn13;
-    public float unkn14;
-    public UndeterminedFieldType unkn15;
-    public float unkn16;
-    public UndeterminedFieldType unkn17;
-    public float unkn18;
-    public UndeterminedFieldType unkn19;
-    public float unkn20;
-    public UndeterminedFieldType unkn21;
-    public float unkn22;
-    public UndeterminedFieldType unkn23;
-    public UndeterminedFieldType unkn24;
-    public float unkn25;
-    public UndeterminedFieldType unkn26;
+    public uint Flags;
+    public SolidBodyShapeType Shape;
+    public Vector3 Size;
+    public via.Range BounceRate;
+    public via.Range Friction;
+    public float MassDensity;
+    public float MomentBias;
+    public float PenaltyKinetic;
+    public via.Range RotationX;
+    public via.Range RotationY;
+    public via.Range RotationZ;
+    public via.Range InitAngularVelocityX;
+    public via.Range InitAngularVelocityY;
+    public via.Range InitAngularVelocityZ;
+    public via.Range AngularVelocityCoef;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtVortexelPhysicsSimple, EfxVersion.MHWilds)]
@@ -87,12 +68,10 @@ public partial class EFXAttributePtVortexelPhysicsSimple : EFXAttribute
 {
     public EFXAttributePtVortexelPhysicsSimple() : base(EfxAttributeType.PtVortexelPhysicsSimple) { }
 
-    public uint unkn1;
-    public float unkn2;
-    public UndeterminedFieldType unkn3;
-    public float unkn4;
-    public UndeterminedFieldType unkn5;
-    public float unkn6;
+    public uint Flags;
+    public via.Range HorizontalBounceRate;
+    public via.Range VerticalBounceRate;
+    public float Radius;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtVortexelSnap, EfxVersion.MHWilds)]
@@ -100,10 +79,10 @@ public partial class EFXAttributePtVortexelSnap : EFXAttribute
 {
     public EFXAttributePtVortexelSnap() : base(EfxAttributeType.PtVortexelSnap) { }
 
-    public uint unkn1;
-    public float unkn2;
-    public float unkn3;
-    public float unkn4;
-    public UndeterminedFieldType unkn5;
-    public float unkn6;
+    public uint Flags;
+    public float RayDistance;
+    public float RayStartOffset;
+    public float RayHitOffset;
+    public float FinishAngleMin;
+    public float FinishAngleMax;
 }

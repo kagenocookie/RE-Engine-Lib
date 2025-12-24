@@ -1,4 +1,5 @@
 using System.Numerics;
+using ReeLib.Efx.Enums;
 using ReeLib.Efx.Structs.Common;
 using ReeLib.InternalAttributes;
 
@@ -234,26 +235,24 @@ public partial class EFXAttributePtCollision : EFXAttribute
     public byte unkn0_1;
     public byte unkn0_2;
     public byte unkn0_3;
-    public float unkn1;
-    public float unkn2;
-    public uint unkn3;
-    public uint unkn4;
-    public float unkn5;
-    public float unkn6;
-    public float unkn7;
-    public float unkn8;
-    public uint unkn9;
-	[RszVersion('>', EfxVersion.RE7, EndAt = nameof(unkn16))]
-    public float unkn10;
-    public float unkn11;
+
+    //TODO Check older games
+    public via.Range Radius;
+    public via.RangeI BounceNum;
+    public via.Range BounceRate;
+    public float VerticalBounce;
+    public float HorizontalBounce;
+    public Finish FinishType;
+	[RszVersion('>', EfxVersion.RE7, EndAt = nameof(DelayFrameCollision))]
+    public float projectionOffset;
+    public float projectionDist;
     public float unkn12;
-	[RszVersion('<', EfxVersion.MHWilds, EndAt = nameof(unkn16))]
+	[RszVersion('<', EfxVersion.MHWilds, EndAt = nameof(DelayFrameCollision))]
     public float unkn13;
-	[RszVersion('>', EfxVersion.RE3, EndAt = nameof(unkn16))]
-    public float unkn14;
-	[RszVersion('>', EfxVersion.RERT, EndAt = nameof(unkn16))]
-    public uint unkn15;
-    public float unkn16;
+	[RszVersion('>', EfxVersion.RE3, EndAt = nameof(DelayFrameCollision))]
+    public float LookNormalDirectionOffset;
+	[RszVersion('>', EfxVersion.RERT, EndAt = nameof(DelayFrameCollision))]
+    public via.RangeI DelayFrameCollision;
 	[RszConditional("(stringBitFlag & (1 << 0)) != 0"), RszInlineWString]
 	public string? unknString0;
 
@@ -284,11 +283,11 @@ public partial class EFXAttributePtColor : EFXAttribute
 {
 	public EFXAttributePtColor() : base(EfxAttributeType.PtColor) { }
 
-	public uint unkn1;
-	public uint unkn2;
-	public via.Color color0;
+	public PtColorOperator ColorOperator;
+	public PtColorOperator AlphaOperator;
+	public via.Color Color;
 
-	public override string ToString() => $"PtColor: {color0}";
+	public override string ToString() => $"PtColor: {Color}";
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtColorClip, EfxVersion.DMC5)]
@@ -316,9 +315,15 @@ public partial class EFXAttributePtLife : EFXAttribute
 {
 	public EFXAttributePtLife() : base(EfxAttributeType.PtLife) { }
 
-	public uint unkn1_0;
-	public uint unkn1_1;
-	public int actionIndex;
+	public uint Flags;
+	public uint Status;
+	public int ActionIndex;
+}
+public enum SortType
+{
+    SortType_ByPosition = 0,
+    SortType_ByAlpha = 1,
+    SortType_None = 2,
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtSort, EfxVersion.RE8, EfxVersion.RE4, EfxVersion.DD2)]
@@ -326,7 +331,7 @@ public partial class EFXAttributePtSort : EFXAttribute
 {
 	public EFXAttributePtSort() : base(EfxAttributeType.PtSort) { }
 
-	public uint unkn;
+	public SortType SortType;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtUvSequence, EfxVersion.DMC5, EfxVersion.RE3, EfxVersion.RE4)]
@@ -334,11 +339,11 @@ public partial class EFXAttributePtUvSequence : EFXAttribute
 {
 	public EFXAttributePtUvSequence() : base(EfxAttributeType.PtUvSequence) { }
 
-	public uint unkn1_0;
-	public uint unkn1_1;
+	public uint Flags;
+	public uint PatternNo;
 	[RszVersion("<=", EfxVersion.RE3)]
 	public uint unkn1_2;
-	public float unkn1_3;
+	public float PlaySpeed;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtUvSequenceClip, EfxVersion.DMC5, EfxVersion.RE4)]

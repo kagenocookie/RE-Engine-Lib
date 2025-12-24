@@ -1,3 +1,5 @@
+using System.Numerics;
+using ReeLib.Bvh;
 using ReeLib.Efx.Structs.Common;
 using ReeLib.InternalAttributes;
 
@@ -7,7 +9,49 @@ namespace ReeLib.Efx.Structs.Main;
 public partial class EFXAttributeTypeRibbonLength : EFXAttribute
 {
 	public EFXAttributeTypeRibbonLength() : base(EfxAttributeType.TypeRibbonLength) { }
+    
+    public uint BlendFlags;
+    public via.Color Color;
+    public via.Color ColorRange;
+    public float ColorRate;
+    public float Intensity;
+    public float EdgeBlendRange;
+    public float AlphaRate;
 
+    public uint Flags;
+    public via.Range SizeScalar;
+    public via.Range Width;
+    public float TextureRepeatNum;
+    public float ShadowMultiplier;
+    public float FadeSide;
+    public float Unkn;//TODO Check this
+
+
+    public uint LengthFlags;
+    public via.Range Length;
+    //public uint ShapeDivision;
+    public via.Range BasingPoint;
+    public via.Range ReleaseFixEnd;
+    public via.Range DirectionX;
+    public via.Range DirectionY;
+    public via.Range DirectionZ;
+
+    public via.Color HeadColor;
+    public via.Color ColorPlace1;
+    public via.Color ColorPlace2;
+    public float ColorPlace1Ratio;
+    public float ColorPlace2Ratio;
+
+    public float HeadScale;
+    public float ScalePlace1;
+    public float ScalePlace2;
+    public float ScalePlace1Ratio;
+    public float ScalePlace2Ratio;
+
+    public via.Range GhostStretch;
+
+    //TODO Fix for older games
+    /*
 	public uint unkn1_0;
 	public via.Color color0;
 	public via.Color color1;
@@ -57,6 +101,7 @@ public partial class EFXAttributeTypeRibbonLength : EFXAttribute
     [RszVersion(EfxVersion.RE8, EndAt = nameof(sb_unkn2))]
 	public float sb_unkn1;
 	public float sb_unkn2;
+    */
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonLengthExpression, EfxVersion.RE7, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.RE4)]
@@ -664,7 +709,46 @@ public partial class EFXAttributeTypeRibbonFixEndMaterialExpression : EFXAttribu
 public partial class EFXAttributeTypeRibbonFollow : EFXAttribute
 {
 	public EFXAttributeTypeRibbonFollow() : base(EfxAttributeType.TypeRibbonFollow) { }
+    public uint BlendFlags;
+    public via.Color Color;
+    public via.Color ColorRange;
+    public float ColorRate;
+    public float Intensity;
+    public float EdgeBlendRange;
+    public float AlphaRate;
 
+    public uint Flags;
+    public via.Range SizeScalar;
+    public via.Range Width;
+    public float TextureRepeatNum;
+    public float ShadowMultiplier;
+    public float FadeSide;
+    public float Unkn;//TODO Check this
+
+
+    public uint FollowFlags;
+    public Vector2 StretchDistance;
+    public uint ShapeDivision;
+    public uint SplineDivision;
+
+    public via.Color HeadColor;
+    public via.Color ColorPlace1;
+    public via.Color ColorPlace2;
+    public float ColorPlace1Ratio;
+    public float ColorPlace2Ratio;
+
+    public float HeadScale;
+    public float ScalePlace1;
+    public float ScalePlace2;
+    public float ScalePlace1Ratio;
+    public float ScalePlace2Ratio;
+
+    public float FadeByTwistMin;
+    public float FadeByTwistMax;
+
+    public via.Range GhostStretch;
+    //TODO Fix for older games
+    /*
 	public uint emission;
 	public via.Color color0;
 	public via.Color color1;
@@ -716,6 +800,7 @@ public partial class EFXAttributeTypeRibbonFollow : EFXAttribute
     [RszVersion(EfxVersion.RE8, EndAt = nameof(rert_unkn3))]
 	public float rert_unkn2;
 	public UndeterminedFieldType rert_unkn3;
+    */
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonFollowExpression, EfxVersion.DMC5, EfxVersion.DD2)]
 public partial class EFXAttributeTypeRibbonFollowExpression : EFXAttribute, IExpressionAttribute
@@ -757,6 +842,48 @@ public partial class EFXAttributeTypeRibbonFollowMaterial : EFXAttribute
 {
 	public EFXAttributeTypeRibbonFollowMaterial() : base(EfxAttributeType.TypeRibbonFollowMaterial) { }
 
+    public uint BlendFlags;
+    public via.Color Color;
+    public via.Color ColorRange;
+    public float ColorRate;
+    public float Intensity;
+    public float EdgeBlendRange;
+    public float AlphaRate;
+
+    public uint Flags;
+    public via.Range SizeScalar;
+    public via.Range Width;
+    public float TextureRepeatNum;
+    public float ShadowMultiplier;
+    public float FadeSide;
+   
+
+
+    public uint FollowFlags;
+    public Vector2 StretchDistance;
+    public uint ShapeDivision;
+    public uint SplineDivision;
+    public uint Unkn1;
+    public via.Color HeadColor;
+    public via.Color ColorPlace1;
+    public via.Color ColorPlace2;
+    public float ColorPlace1Ratio;
+    public float ColorPlace2Ratio;
+
+    public float HeadScale;
+    public float ScalePlace1;
+    public float ScalePlace2;
+    public float ScalePlace1Ratio;
+    public float ScalePlace2Ratio;
+
+    
+    public float Unkn2;
+    public float Unkn3;
+    public float Unkn4;
+    public float FadeByTwistMin;
+    public float FadeByTwistMax;
+
+    /*
 	public uint unkn0;
 	public via.Color color1;
 	public via.Color color2;
@@ -795,8 +922,8 @@ public partial class EFXAttributeTypeRibbonFollowMaterial : EFXAttribute
 	public float unkn31;
 	public UndeterminedFieldType unkn32;
 	public uint unkn33;
-
-	[RszConstructorParams(nameof(Version)), RszSwitch(
+    */
+    [RszConstructorParams(nameof(Version)), RszSwitch(
 		nameof(Version), ">=", EfxVersion.DD2, typeof(EfxMaterialStructV2),
 		typeof(EfxMaterialStructV1)
 	)]
@@ -922,6 +1049,22 @@ public partial class EFXAttributeTypeRibbonTrail : EFXAttribute
 {
 	public EFXAttributeTypeRibbonTrail() : base(EfxAttributeType.TypeRibbonTrail) { }
 
+    public uint BlendFlags;
+    public via.Color Color;
+    public via.Color ColorRange;
+    public float ColorRate;
+    public float Intensity;
+    public float EdgeBlendRange;
+    public float AlphaRate;
+
+    public uint Flags;
+    public via.Range Width;
+    public float ShadowMultiplier;
+    public float Division;
+    public float IntervalFrame;//TODO Check this
+
+    //TODO Fix for older games
+    /*
 	public uint unkn0;
 	[RszVersion(EfxVersion.RE4)]
     public uint unkn1;
@@ -937,6 +1080,7 @@ public partial class EFXAttributeTypeRibbonTrail : EFXAttribute
     public float unkn10;
     public uint unkn11;
     public uint unkn12;
+    */
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonParticleExpression, EfxVersion.DD2)]
@@ -975,8 +1119,27 @@ public partial class EFXAttributeTypeRibbonParticleExpression : EFXAttribute, IE
 public partial class EFXAttributeTypeGpuRibbonFollow : EFXAttribute
 {
 	public EFXAttributeTypeGpuRibbonFollow() : base(EfxAttributeType.TypeGpuRibbonFollow) { }
+    public uint BlendFlags;
+    public via.Color Color;
+    public via.Color ColorRange;
+    public float ColorRate;
+    public float Intensity;
+    public float EdgeBlendRange;
+    public float AlphaRate;
 
-	public uint unkn0;
+
+
+    public uint FollowFlags;
+    public uint ParticleNum;
+    public uint SegmentNum;
+    public uint ControlPointNum;
+    public via.Range SizeScalar;
+    public Vector2 StretchDistance;
+
+
+    //TODO Fix for older games
+    /*
+    public uint unkn0;
 	[RszVersion('<', EfxVersion.RE4, EndAt = nameof(unkn4))]
 	public uint unkn1;
 	public uint unkn2;
@@ -1004,6 +1167,7 @@ public partial class EFXAttributeTypeGpuRibbonFollow : EFXAttribute
 	public float unkn13;
 	[RszVersion(EfxVersion.RE3)]
 	public float unkn14;
+    */
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuRibbonFollowExpression, EfxVersion.RE4)]
 public partial class EFXAttributeTypeGpuRibbonFollowExpression : EFXAttribute, IExpressionAttribute
@@ -1036,8 +1200,28 @@ public partial class EFXAttributeTypeGpuRibbonFollowExpression : EFXAttribute, I
 public partial class EFXAttributeTypeGpuRibbonLength : EFXAttribute
 {
 	public EFXAttributeTypeGpuRibbonLength() : base(EfxAttributeType.TypeGpuRibbonLength) { }
+    public uint BlendFlags;
+    public via.Color Color;
+    public via.Color ColorRange;
+    public float ColorRate;
+    public float Intensity;
+    public float EdgeBlendRange;
+    public float AlphaRate;
 
-	public uint unkn0;
+    public uint Flags;
+    public via.Range SizeScalar;
+    public via.Range Width;
+    public float TextureRepeatNum;
+    public uint ParticleNum;
+    public via.Range Length;
+    public uint ShapeDivision;
+    public via.Range BasingPoint;
+    public via.Range DirectionX;
+    public via.Range DirectionY;
+    public via.Range DirectionZ;
+    //TODO Fix for older games
+    /*
+    public uint unkn0;
 	[RszVersion('<', EfxVersion.RE4)]
 	public uint unkn1;
 	public via.Color color0;
@@ -1067,6 +1251,7 @@ public partial class EFXAttributeTypeGpuRibbonLength : EFXAttribute
 	public float unkn21;
 	public float unkn22;
 	public float unkn23;
+    */
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuRibbonLengthExpression, EfxVersion.DD2)]

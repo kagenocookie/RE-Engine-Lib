@@ -1,3 +1,5 @@
+using System.Numerics;
+using ReeLib.Efx.Enums;
 using ReeLib.Efx.Structs.Common;
 using ReeLib.InternalAttributes;
 
@@ -8,23 +10,15 @@ public partial class EFXAttributeTypeNoDraw : EFXAttribute
 {
 	public EFXAttributeTypeNoDraw() : base(EfxAttributeType.TypeNoDraw) { }
 
-	public uint unkn0;
-	public via.Color color1;
-	public via.Color color2;
-	public uint unkn1;
+	public uint Flags;
+	public via.Color Color;
+	public via.Color ColorRange;
+	public RotationOrder RotationOrder;
 
-	public float unkn2;
-	public float unkn3;
-	public float unkn4;
-	public float unkn5;
-	public float unkn6;
-	public float unkn7;
-	public float unkn8;
-	public float unkn9;
-	public float unkn10;
-	public float unkn11;
-	public float unkn12;
-	public float unkn13;
+	public Vector3 Rotation;
+    public Vector3 RotationRandom;
+    public Vector3 Size;
+    public Vector3 SizeRandom;
 	[RszVersion(EfxVersion.MHWilds, EndAt = nameof(unkn15))]
 	public float unkn14;
 	public UndeterminedFieldType unkn15;
@@ -82,18 +76,12 @@ public partial class EFXAttributeUnitCulling : EFXAttribute
 {
 	public EFXAttributeUnitCulling() : base(EfxAttributeType.UnitCulling) { }
 
-	public uint cullingFlags;
-	public float unkn1; // 1-6 seem like hashes sometimes, may be some sort of conditional substruct
-	public float unkn2;
-	public float unkn3;
-	public float cullingRadius1;
-	public float cullingRadius2;
-	public float cullingRadius3;
-	public float unkn7;
-	public float unkn8;
-	public float unkn9;
+	public uint Flags;
+	public Vector3 Center;
+	public Vector3 Size;
+	public Vector3 Rotation;
     [RszVersion(EfxVersion.RE8)]
-	public float cullingDistance;
+	public float DrawDistance;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UnitCullingExpression, EfxVersion.DD2)]

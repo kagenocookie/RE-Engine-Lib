@@ -1,3 +1,4 @@
+using ReeLib.Efx.Enums;
 using ReeLib.Efx.Structs.Common;
 using ReeLib.InternalAttributes;
 
@@ -62,40 +63,30 @@ public partial class EFXAttributeTypeMeshV2 : EFXAttribute
 {
     public EFXAttributeTypeMeshV2() : base(EfxAttributeType.TypeMesh) { }
 
-    public uint ukn1;
+    public uint Flags;
     [RszVersion(EfxVersion.RE4)]
-	public uint re4_unkn0;
-    public via.Color color1;
-    public via.Color color2;
-    public float unkn4;
-    public via.Color color3;
-    public float unkn6;
-    public uint frameCount;
-    public uint startingFrameMin;
-    public uint startingFrameMax;
-    public float animationSpeedMin;
-    public float animationSpeedMax;
-    public float acceleration;
-    public float accelerationRange;
-    public uint animationMode;
-    public uint unkn13;
-    public uint unkn14;
-    public float rotationX;
-    public float rotationXVariation;
-    public float rotationY;
-    public float rotationYVariation;
-    public float rotationZ;
-    public float rotationZVariation;
-    public float scaleX;
-    public float scaleXVariation;
-    public float scaleY;
-    public float scaleYVariation;
-    public float scaleZ;
-    public float scaleZVariation;
-    public float scaleMultiplier;
-    public float scaleMultiplierVariation;
-    public uint unkn23;
-    public uint unkn24;
+	public uint Flags2;
+    public via.Color Color;
+    public via.Color ColorRange;
+    public float ColorRate;
+    public via.Color EmissiveColor;
+    public float EmissiveRate;
+    public uint MaxPartsNum;
+    public via.RangeI PartsStartNo;
+    public via.Range PlaySpeed;
+    public via.Range PlaySpeedCoef;
+    public PlayType PlayType;
+    public PlayOrder PlayOrder;
+    public RotationOrder RotationOrder;
+    public via.Range RotationX;
+    public via.Range RotationY;
+    public via.Range RotationZ;
+    public via.Range ScaleX;
+    public via.Range ScaleY;
+    public via.Range ScaleZ;
+    public via.Range ScaleMultiplier;
+    public AxisXYZ FrontAxis;
+    public uint cbSize;
     [RszVersion(EfxVersion.RE4)]
     public uint re4_unkn1;
     [RszVersion(EfxVersion.MHWilds)]
@@ -105,9 +96,9 @@ public partial class EFXAttributeTypeMeshV2 : EFXAttribute
     [RszArraySizeField(nameof(texPaths))] public int texCount;
     [RszVersion(EfxVersion.DD2)]
     public uint dd2_unkn2;
-    [RszInlineWString] public string? meshPath;
-    [RszInlineWString] public string? unknPath;
-    [RszInlineWString] public string? mdfPath;
+    [RszInlineWString] public string? MeshPath;
+    [RszInlineWString] public string? MirrorMeshPath;
+    [RszInlineWString] public string? MaterialPath;
 
 	[RszByteSizeField(nameof(properties))] public int propertiesDataSize;
 	[RszClassInstance, RszList(nameof(propertiesDataSize), '/', 32), RszConstructorParams(nameof(Version))]
@@ -123,7 +114,7 @@ public partial class EFXAttributeTypeMeshV2 : EFXAttribute
         return DefaultWrite(handler);
     }
 
-    public override string ToString() => meshPath ?? GetType().Name;
+    public override string ToString() => MeshPath ?? GetType().Name;
 }
 
 
@@ -323,7 +314,43 @@ public partial class EFXAttributeTypeMeshExpression : EFXAttribute, IExpressionA
 public partial class EFXAttributeTypeGpuMesh : EFXAttribute
 {
     public EFXAttributeTypeGpuMesh() : base(EfxAttributeType.TypeGpuMesh) { }
+    //TODO Fix this for older games
+    public uint Flags;
+    public uint ParticleNum;
+    public uint cbSize;
+    public via.Color Color;
+    public via.Color ColorRange;
+    public float ColorRate;
+    public uint MaxPartsNum;
+    public via.RangeI PartsStartNo;
+    public via.Range PlaySpeed;
+    public via.Range PlaySpeedCoef;
+    public PlayType PlayType;
+    public PlayOrder PlayOrder;
+    public RotationOrder RotationOrder;
+    public via.Range RotationX;
+    public via.Range RotationY;
+    public via.Range RotationZ;
+    public via.Range ScaleX;
+    public via.Range ScaleY;
+    public via.Range ScaleZ;
+    public via.Range ScaleMultiplier;
+    public AxisXYZ OrientDirectionUpVector;
+    [RszVersion(EfxVersion.DD2)]
+    public float DirectionSmoothness;
 
+    [RszArraySizeField(nameof(texturePaths))] public int texCount;
+    [RszVersion(EfxVersion.DD2)]
+    public uint BufferNum;
+    [RszInlineWString] public string? MeshPath;
+    [RszInlineWString] public string? MirrorMeshPath;
+    [RszInlineWString] public string? MaterialPath;
+    [RszByteSizeField(nameof(unknData))] public uint unknDataSize;
+    [RszFixedSizeArray(nameof(unknDataSize))] public byte[]? unknData;
+
+    public int texBlockLength;
+    [RszList(nameof(texCount)), RszInlineWString] public string[]? texturePaths;
+    /*
     public byte unkn0_1;
     public byte unkn0_2;
     public byte unkn0_3;
@@ -383,8 +410,8 @@ public partial class EFXAttributeTypeGpuMesh : EFXAttribute
 
 	public int texBlockLength;
 	[RszList(nameof(texCount)), RszInlineWString] public string[]? texturePaths;
-
-	protected override bool DoRead(FileHandler handler)
+    */
+    protected override bool DoRead(FileHandler handler)
     {
 		DefaultRead(handler);
         return true;
@@ -397,7 +424,7 @@ public partial class EFXAttributeTypeGpuMesh : EFXAttribute
 		return true;
     }
 
-    public override string ToString() => !string.IsNullOrEmpty(meshPath) ? meshPath : type.ToString();
+    public override string ToString() => !string.IsNullOrEmpty(MeshPath) ? MeshPath : type.ToString();
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuMeshClip, EfxVersion.DD2)]

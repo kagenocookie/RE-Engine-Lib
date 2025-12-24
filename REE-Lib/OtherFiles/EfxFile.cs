@@ -27,7 +27,7 @@ namespace ReeLib.Efx
     public partial class EfxHeader : BaseModel
     {
         public int magic = EfxFile.Magic;
-        public int ukn; // re7: 0,1  vfx\vfx_resource\vfx_effecteditor\efd_character_id\efd_em3600\vfx_efd_bh7_em3600_1008.efx.1179750
+        public int dimensionType; // 1 = 3D, 0 = 2D re7: 0,1  vfx\vfx_resource\vfx_effecteditor\efd_character_id\efd_em3600\vfx_efd_bh7_em3600_1008.efx.1179750
         public int entryCount;
         public int stringTableLength;
         public int actionCount;
@@ -36,10 +36,10 @@ namespace ReeLib.Efx
         public int expressionParameterCount;
         public int effectGroupsCount;
         public int effectGroupsLength;
-        [RszVersion(EfxVersion.RE3, EndAt = nameof(uknFlag))]
+        [RszVersion(EfxVersion.RE3, EndAt = nameof(propBindingIndexCount))]
         public int boneCount;
         public int boneAttributeEntryCount;
-        public int uknFlag;
+        public int propBindingIndexCount;
 
         public EfxVersion Version { get; }
 
@@ -170,13 +170,14 @@ namespace ReeLib.Efx
     public abstract class EFXAttribute : BaseModel
     {
         public EfxAttributeType type;
-        public int unknSeqNum;
+        public int UniqueID;
+        /*
         public via.Int3 NodePosition => new via.Int3() {
-            x = (unknSeqNum % 0xff),
-            y = (unknSeqNum % 0xff00) >> 8,
-            z = (unknSeqNum & 0xff0000) >> 16,
+            x = (UniqueID % 0xff),
+            y = (UniqueID % 0xff00) >> 8,
+            z = (UniqueID & 0xff0000) >> 16,
         };
-
+        */
         public EfxVersion Version;
         public bool IsTypeAttribute => type.ToString().StartsWith("Type") && this is not IExpressionAttribute and not IClipAttribute and not IMaterialExpressionAttribute;
 
@@ -186,7 +187,7 @@ namespace ReeLib.Efx
             if (item == null) throw new ArgumentException($"Unsupported EFX attribute type {type}", nameof(type));
 
             item.type = type;
-            if (seqNum >= 0) item.unknSeqNum = seqNum;
+            if (seqNum >= 0) item.UniqueID = seqNum;
             return item;
         }
 
@@ -315,8 +316,9 @@ namespace ReeLib.Efx
                 var attr = EFXAttribute.Create(Version, type, seqNum);
                 attr.Version = Version;
                 attr.Read(handler);
-                if (expectedSize != -1 && expectedSize != attr.Size + 4) {
-                    throw new DataInterpretationException("EFX attribute was not properly read");
+                Log.Debug($"Read {attr.type} at {attr.Start}");
+                if (expectedSize != -1 && expectedSize - 4 != attr.Size) {//UniqueID is included in the struct size, so subtract 4
+                    throw new Exception($"EFX attribute ({attr.type}) was not properly read. Expected: {expectedSize} Actual: {attr.Size+4} Start:{attr.Start} End:{attr.Start + attr.Size}");
                 }
                 Attributes.Add(attr);
             }
@@ -333,8 +335,9 @@ namespace ReeLib.Efx
             foreach (var attr in Attributes) {
                 handler.Write(Version.ToAttributeTypeID(attr.type));
                 var sizeOffset = handler.Tell();
-                if (Version >= EfxVersion.MHWilds) handler.Skip(sizeof(int));
-                handler.Write(attr.unknSeqNum);
+                
+                handler.Write(attr.UniqueID);
+
                 attr.Write(handler);
                 if (Version >= EfxVersion.MHWilds) {
                     handler.Write(sizeOffset, (int)(attr.Size + 4));
@@ -441,7 +444,7 @@ namespace ReeLib.Efx
             handler.Write(Attributes.Count);
             foreach (var attr in Attributes) {
                 handler.Write(Version.ToAttributeTypeID(attr.type));
-                handler.Write(attr.unknSeqNum);
+                handler.Write(attr.UniqueID);
                 attr.Write(handler);
             }
             return true;
@@ -473,6 +476,7 @@ namespace ReeLib.Efx
         [RszIgnore] public float value_ukn4;
         [RszIgnore] public float value_ukn5;
         [RszIgnore] public float value_ukn6;
+        [RszIgnore] public float wilds_unkn0;
         [RszIgnore] public string? name;
         [RszIgnore] public string? filePath;
 
@@ -487,7 +491,10 @@ namespace ReeLib.Efx
                 handler.Read(ref value_ukn4);
                 handler.Read(ref value_ukn5);
                 handler.Read(ref value_ukn6);
-                if (type is 110 or 144 or 183 or 184 or 202 or 194 or 215) {
+                if (Version > EfxVersion.MHWilds) {
+                    handler.Read(ref wilds_unkn0);
+                }
+                    if (type is 110 or 144 or 183 or 184 or 202 or 194 or 215 or 217) {
                     filePath = handler.ReadWString(-1, handler.Read<int>(), false);
                 }
             }
@@ -508,7 +515,10 @@ namespace ReeLib.Efx
                 handler.Write(ref value_ukn4);
                 handler.Write(ref value_ukn5);
                 handler.Write(ref value_ukn6);
-                if (type is 110 or 144 or 183 or 184 or 202 or 194 or 215) {
+                if (Version > EfxVersion.MHWilds) {
+                    handler.Write(ref wilds_unkn0);
+                }
+                    if (type is 110 or 144 or 183 or 184 or 202 or 194 or 215 or 217) {
                     filePath ??= "";
                     handler.Write(filePath.Length + 1);
                     handler.WriteWString(filePath);

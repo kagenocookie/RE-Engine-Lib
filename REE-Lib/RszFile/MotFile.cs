@@ -1097,7 +1097,7 @@ namespace ReeLib.Mot
                         translation.X = translation.Y = translation.Z = handler.Read<float>();
                         break;
                     default:
-                        throw new InvalidOperationException($"Unknown Vector3 compression type {type} ({Compression.ToString("X")})");
+                        throw new NotSupportedException($"Can't read Vector3 compression type {type} ({Compression.ToString("X")})");
                 }
                 translations[i] = translation;
             }
@@ -1373,6 +1373,15 @@ namespace ReeLib.Mot
                             WriteUnit64AsBytes(handler, data, 5);
                             break;
                         }
+                    case Vector3Decompression.LoadVector3sXYAxis24Bit:
+                        {
+                            ulong data = (
+                                ((ulong)MathF.Round((translation.X - unpackData[2]) / unpackData[0] * 0xFFFFFF) << 00) |
+                                ((ulong)MathF.Round((translation.Y - unpackData[3]) / unpackData[1] * 0xFFFFFF) << 24)
+                            );
+                            WriteUnit64AsBytes(handler, data, 6);
+                            break;
+                        }
                     case Vector3Decompression.LoadVector3sYZAxis24Bit:
                         {
                             ulong data = (
@@ -1397,7 +1406,7 @@ namespace ReeLib.Mot
                             break;
                         }
                     default:
-                        throw new InvalidOperationException($"Unknown Vector3 compression type {type} ({Compression.ToString("X")})");
+                        throw new NotSupportedException($"Can't write Vector3 compression type {type} ({Compression.ToString("X")})");
                 }
             }
         }
@@ -1561,7 +1570,7 @@ namespace ReeLib.Mot
                         quaternion.W = ComputeQuaternionW(quaternion);
                         break;
                     default:
-                        throw new InvalidOperationException($"Unknown Quaternion compression type {type} ({Compression.ToString("X")})");
+                        throw new NotSupportedException($"Can't read Quaternion compression type {type} ({Compression.ToString("X")})");
                 }
                 if (type != QuaternionDecompression.LoadQuaternionsFull)
                 {
@@ -1720,7 +1729,7 @@ namespace ReeLib.Mot
                         handler.Write(quaternion.Z);
                         break;
                     default:
-                        throw new InvalidOperationException($"Unknown Quaternion compression type {type} ({Compression.ToString("X")})");
+                        throw new NotSupportedException($"Can't write Quaternion compression type {type} ({Compression.ToString("X")})");
                 }
             }
         }
@@ -1744,7 +1753,7 @@ namespace ReeLib.Mot
                         break;
 
                     default:
-                        throw new NotSupportedException("Unsupported float compression type " + type);
+                        throw new NotSupportedException("Can't read float compression type " + type);
                 }
                 floats[i] = value;
             }
@@ -1767,7 +1776,7 @@ namespace ReeLib.Mot
                         handler.Write((byte)MathF.Round((value - unpackData[1]) / unpackData[0] * 0xFF));
                         break;
                     default:
-                        throw new InvalidOperationException($"Unknown float compression type {type} ({Compression.ToString("X")})");
+                        throw new NotSupportedException($"Can't write float compression type {type} ({Compression.ToString("X")})");
                 }
             }
         }

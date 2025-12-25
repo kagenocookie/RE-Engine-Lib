@@ -58,12 +58,6 @@ public enum DistanceCullingType
     DistanceCullingType_Unlimited = 2,
 }
 
-public enum DistortionType
-{
-    DistortionType_Linear = 0,
-    DistortionType_Radial = 1,
-}
-
 public enum DivideType
 {
     DivideType_Standard = 0,

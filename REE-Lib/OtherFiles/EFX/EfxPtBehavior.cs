@@ -319,12 +319,6 @@ public partial class EFXAttributePtLife : EFXAttribute
 	public uint Status;
 	public int ActionIndex;
 }
-public enum SortType
-{
-    SortType_ByPosition = 0,
-    SortType_ByAlpha = 1,
-    SortType_None = 2,
-}
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtSort, EfxVersion.RE8, EfxVersion.RE4, EfxVersion.DD2)]
 public partial class EFXAttributePtSort : EFXAttribute

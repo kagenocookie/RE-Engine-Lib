@@ -49,7 +49,8 @@ namespace ReeLib.Mot
         public ushort boneClipCount;
         public byte clipCount;
         public byte motEndClipCount;
-        public ushort uknExtra; // seems to always be either 0 or 1; natives/stm/animation/ch/ch00/motlist/ch00_001_comnm.motlist.751 - count 1, extra offset 0
+        public ushort uknExtra;
+        public ushort uknExtra2; // seems to always be either 0 or 1; natives/stm/animation/ch/ch00/motlist/ch00_001_comnm.motlist.751 - count 1, extra offset 0
         public ushort FrameRate;
         public ushort animatedPropertyCount;
 
@@ -83,14 +84,10 @@ namespace ReeLib.Mot
                  ?.Then(ref boneClipCount)
                  ?.Then(ref clipCount)
                  ?.Then(ref motEndClipCount)
-                 ?.Then(version >= MotVersion.RE8, ref uknExtra)
+                 ?.Then(version >= MotVersion.RE8, ref uknExtra2)
                  ?.Then(ref FrameRate)
-                 ?.Then(ref animatedPropertyCount);
-            if (version < MotVersion.RE8) {
-                action.Then(ref uknExtra);
-            } else {
-                action.Null(2);
-            }
+                 ?.Then(ref animatedPropertyCount)
+                 ?.Then(ref uknExtra);
 
             return true;
         }

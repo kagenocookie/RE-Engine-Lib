@@ -99,7 +99,7 @@ public partial class EFXAttributeTypeRibbonLengthMaterial : EFXAttribute
 {
 	public EFXAttributeTypeRibbonLengthMaterial() : base(EfxAttributeType.TypeRibbonLengthMaterial) { }
 
-	public UndeterminedFieldType unkn1;
+	public uint Flags;
 	public via.Color color1;
 	public via.Color color2;
 	public float unkn4;
@@ -111,19 +111,24 @@ public partial class EFXAttributeTypeRibbonLengthMaterial : EFXAttribute
 	public float unkn10;
 	public float unkn11;
 	public float unkn12;
-	[RszVersion(EfxVersion.DD2)]
+	[RszVersionExact(EfxVersion.DD2)]
 	public float dd2_unkn1;
+	[RszVersion(EfxVersion.MHWilds)]
+	public uint Flags2_Wilds;
 	[RszVersion(EfxVersion.DD2)]
 	public float dd2_unkn2;
+	[RszVersion(EfxVersion.MHWilds)]
+	public float wilds_unkn1;
 	[RszVersion(EfxVersion.DD2)]
 	public float dd2_unkn3;
-	public uint unkn13; // TODO 4-byte thing?
+	public uint unkn13;
 	public float unkn14;
 	public float unkn15;
-	public int unkn16;
+	[RszVersion('<', EfxVersion.MHWilds)]
+	public uint Flags2;
 	public float unkn17;
 	public float unkn18;
-	public UndeterminedFieldType unkn19;
+	public float unkn19;
 	public UndeterminedFieldType unkn20;
 	public float unkn21;
 	public float unkn22;
@@ -271,7 +276,6 @@ public partial class EFXAttributeTypeRibbonChain : EFXAttribute
     [RszVersion(EfxVersion.DD2)]
 	public float dd2_unkn0;
 	public ByteSet unkn2_9_1;
-    [RszVersion('<', EfxVersion.MHWilds)]
     public float unkn2_10;
 
 	public float unkn2_11;
@@ -281,6 +285,7 @@ public partial class EFXAttributeTypeRibbonChain : EFXAttribute
 	public float unkn2_15;
 	public float unkn2_16;
 	public float unkn2_17;
+	[RszVersion('<', EfxVersion.MHWilds)]
 	public uint unkn2_18;
 	public float unkn2_19;
 	public float unkn2_20;
@@ -501,7 +506,7 @@ public partial class EFXAttributeTypeRibbonFixEnd : EFXAttribute
 {
 	public EFXAttributeTypeRibbonFixEnd() : base(EfxAttributeType.TypeRibbonFixEnd) { }
 
-	public uint unkn1;
+	public uint Flags;
 	public via.Color color0;
 	public via.Color color1;
 	public float unkn2_0;
@@ -514,6 +519,8 @@ public partial class EFXAttributeTypeRibbonFixEnd : EFXAttribute
 	public float unkn2_5;
 	public float unkn2_6;
 	public float unkn2_7;
+	[RszVersion(EfxVersion.MHWilds)]
+	public uint Flags2_Wilds;
 	public float unkn2_8;
 	[RszVersion(EfxVersion.RERT)]
 	public float sb_unkn0;
@@ -524,7 +531,8 @@ public partial class EFXAttributeTypeRibbonFixEnd : EFXAttribute
 	public float unkn2_11;
 	public uint unkn2_12;
 	public uint unkn2_13;
-	public uint unkn2_14;
+	[RszVersion('<', EfxVersion.MHWilds)]
+	public uint Flags2;
 	public float unkn2_15;
 	public int unkn2_16;
 	public int unkn2_17;
@@ -1148,7 +1156,7 @@ public partial class EFXAttributeTypeRibbonParticleMaterial : EFXAttribute
 	public float ukn31;
 	public float ukn32;
 	public float ukn33;
-	public float ukn34;
+	public uint ukn34;
 
     [RszConstructorParams(nameof(Version)), RszSwitch(
 		nameof(Version), ">=", EfxVersion.DD2, typeof(EfxMaterialStructV2),

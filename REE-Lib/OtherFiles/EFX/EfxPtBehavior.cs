@@ -240,7 +240,6 @@ public partial class EFXAttributePtCollision : EFXAttribute
     public byte unkn0_2;
     public byte unkn0_3;
 
-    //TODO Check older games
     public via.Range Radius;
     public via.RangeI BounceNum;
     public via.Range BounceRate;
@@ -274,7 +273,7 @@ public partial class EFXAttributePtProjection : EFXAttribute
     public float unkn2;
     public float unkn3;
     public float unkn4;
-    public UndeterminedFieldType unkn5;
+    public float unkn5;
     public UndeterminedFieldType unkn6;
     public UndeterminedFieldType unkn7;
 	[RszConditional("(flags & 2) != 0")] // TODO either 64 or 2 for string (or both); 128 is NOT string; see: 11_em0156_00_011.efx.5571972
@@ -320,11 +319,10 @@ public partial class EFXAttributePtColorMixer : EFXAttribute
 	public EFXAttributePtColorMixer() : base(EfxAttributeType.PtColorMixer) { }
 
 	public uint Unkn0;
-	public uint Unkn1;
+	[RszArraySizeField(nameof(Colors))] public int colorCount;
 	public uint Unkn2;
 	public float Unkn3;
-	public via.Color Color1;
-	public via.Color Color2;
+	[RszFixedSizeArray(nameof(colorCount))] public via.Color[]? Colors;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtLife, EfxVersion.RE7, EfxVersion.RE2, EfxVersion.DMC5, EfxVersion.RE3, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.RE4)]
@@ -370,16 +368,16 @@ public partial class EFXAttributePtUvSequenceClip : EFXAttribute, IClipAttribute
 	[RszClassInstance] public EfxClipData clipData = new();
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtFreezer, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtFreezer, EfxVersion.DD2, EfxVersion.MHWilds)]
 public partial class EFXAttributePtFreezer : EFXAttribute
 {
 	public EFXAttributePtFreezer() : base(EfxAttributeType.PtFreezer) { }
 
-	public UndeterminedFieldType unkn0;
-	public UndeterminedFieldType unkn1;
-	public UndeterminedFieldType unkn2;
-	public UndeterminedFieldType unkn3;
-	public UndeterminedFieldType unkn4;
+	public uint unkn0;
+	public uint unkn1;
+	public uint unkn2;
+	public uint unkn3;
+	public uint unkn4;
 	public uint unkn5;
 	public UndeterminedFieldType unkn6;
 	public UndeterminedFieldType unkn7;
@@ -458,6 +456,17 @@ public partial class EFXAttributePtLightningColliderAction : EFXAttribute
 
 	public uint Flags;
 	public float unkn2;
+	public uint unkn3;
+}
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtVortexelHeatSource, EfxVersion.MHWilds)]
+public partial class EFXAttributePtVortexelHeatSource : EFXAttribute
+{
+	public EFXAttributePtVortexelHeatSource() : base(EfxAttributeType.PtVortexelHeatSource) { }
+
+	public float Unkn0;
+	public int unkn1;
+	public short unkn2;
 	public uint unkn3;
 }
 

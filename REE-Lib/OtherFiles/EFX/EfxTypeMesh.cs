@@ -66,6 +66,8 @@ public partial class EFXAttributeTypeMeshV2 : EFXAttribute
     public uint Flags;
     [RszVersion(EfxVersion.RE4)]
 	public uint Flags2;
+    [RszVersion(EfxVersion.MHWilds)]
+    public float WildsUknFloat;
     public via.Color Color;
     public via.Color ColorRange;
     public float ColorRate;
@@ -89,8 +91,6 @@ public partial class EFXAttributeTypeMeshV2 : EFXAttribute
     public uint cbSize;
     [RszVersion(EfxVersion.RE4)]
     public uint re4_unkn1;
-    [RszVersion(EfxVersion.MHWilds)]
-    public uint mhws_unkn1;
     [RszVersion(EfxVersion.DD2)]
     public float dd2_unkn1;
     [RszArraySizeField(nameof(texPaths))] public int texCount;

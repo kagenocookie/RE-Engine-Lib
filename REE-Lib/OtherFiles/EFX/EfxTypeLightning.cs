@@ -566,9 +566,9 @@ public partial class EFXAttributePtLightningBranchAction : EFXAttribute
 
 	public uint unkn0;
 	public float unkn1;
-	public UndeterminedFieldType unkn2;
+	public float unkn2;
 	public uint unkn3;
-	public UndeterminedFieldType unkn4;
+	public uint unkn4;
 	public float unkn5;
-	public UndeterminedFieldType unkn6;
+	public uint unkn6;
 }

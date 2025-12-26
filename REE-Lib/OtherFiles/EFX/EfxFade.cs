@@ -62,7 +62,7 @@ public partial class EFXAttributeFadeByDepthExpression : EFXAttribute, IExpressi
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.FadeByEmitterAngle, EfxVersion.DMC5, EfxVersion.RE4)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.FadeByEmitterAngle, EfxVersion.DMC5, EfxVersion.RE4, EfxVersion.MHWilds)]
 public partial class EFXAttributeFadeByEmitterAngle : EFXAttribute
 {
 	public EFXAttributeFadeByEmitterAngle() : base(EfxAttributeType.FadeByEmitterAngle) { }
@@ -74,7 +74,7 @@ public partial class EFXAttributeFadeByEmitterAngle : EFXAttribute
 	public float FadeInStart;
 	public float FadeInEnd;
 	[RszVersion(EfxVersion.DD2)]
-	public UndeterminedFieldType FadeBlend;
+	public uint FadeBlend;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.FadeByOcclusion, EfxVersion.DMC5, EfxVersion.RE4)]

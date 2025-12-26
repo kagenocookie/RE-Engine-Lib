@@ -179,7 +179,7 @@ public partial class EFXAttributeTransform3DModifier : ReeLib.Efx.EFXAttribute
     public EFXAttributeTransform3DModifier() : base(EfxAttributeType.Transform3DModifier) { }
 
     public uint unkn0;
-    public uint unkn1;
+    public float unkn1;
     public float unkn2;
     public float unkn3;
     public float unkn4;
@@ -192,11 +192,11 @@ public partial class EFXAttributeTransform3DModifier : ReeLib.Efx.EFXAttribute
     public float unkn11;
     public float unkn12;
     public float unkn13;
-    public UndeterminedFieldType unkn14;
+    public float unkn14;
     public float unkn15;
-    public UndeterminedFieldType unkn16;
+    public float unkn16;
     public float unkn17;
-    public UndeterminedFieldType unkn18;
+    public float unkn18;
     public float unkn19;
     public float unkn20;
     public float unkn21;
@@ -208,7 +208,7 @@ public partial class EFXAttributeTransform3DModifier : ReeLib.Efx.EFXAttribute
     public float unkn27;
     public float unkn28;
     public float unkn29;
-    public UndeterminedFieldType unkn30;
+    public float unkn30;
     public float unkn31;
     public float unkn32;
     public float unkn33;

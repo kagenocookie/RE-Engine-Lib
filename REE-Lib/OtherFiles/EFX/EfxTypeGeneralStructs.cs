@@ -21,7 +21,7 @@ public partial class EFXAttributeTypeNoDraw : EFXAttribute
     public Vector3 SizeRandom;
 	[RszVersion(EfxVersion.MHWilds, EndAt = nameof(unkn15))]
 	public float unkn14;
-	public UndeterminedFieldType unkn15;
+	public float unkn15;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeNoDrawExpression, EfxVersion.RE3, EfxVersion.RE4)]

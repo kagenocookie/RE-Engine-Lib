@@ -11,17 +11,29 @@ public partial class EFXAttributePtVortexelWind : EFXAttribute
     public EFXAttributePtVortexelWind() : base(EfxAttributeType.PtVortexelWind) { }
 
     public via.Range TransitionRate;
-    // TODO verify which fields exactly belong to wilds and which are also in RE4
     [RszVersion(EfxVersion.MHWilds)]
-    public float unkn7;
-    public float unkn8;
+    public via.Range unkn7;
     public float TransitionThreshold;
-    public uint MaxSpeed; // TODO recheck wilds
+    public float MaxSpeed;
     public uint TransitionWaitFrame;
-    [RszVersion('>', EfxVersion.RE4)]
     public uint TransitionBlendFrame;
     public bool IsTransitionWaitFramePerParticle;
     public bool IsMergeGravity;
+}
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtVortexelWindExpression, EfxVersion.MHWilds)]
+public partial class EFXAttributePtVortexelWindExpression : ReeLib.Efx.EFXAttribute, IExpressionAttribute
+{
+    public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
+	public BitSet ExpressionBits => expressionBits;
+
+    public EFXAttributePtVortexelWindExpression() : base(EfxAttributeType.PtVortexelWindExpression) { }
+
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(4);
+    public ExpressionAssignType unkn1;
+    public ExpressionAssignType unkn2;
+    public ExpressionAssignType unkn3;
+    public ExpressionAssignType unkn4;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.VortexelWindEmitter, EfxVersion.MHWilds)]
@@ -62,10 +74,8 @@ public partial class EFXAttributeVortexelWindEmitterExpression : ReeLib.Efx.EFXA
 
     public EFXAttributeVortexelWindEmitterExpression() : base(EfxAttributeType.VortexelWindEmitterExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(16) { BitNameDict = new () {
-		[1] = nameof(emitRate),
-	} };
-    public ExpressionAssignType emitRate;
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(16);
+    public ExpressionAssignType unkn1;
     public ExpressionAssignType unkn2;
     public ExpressionAssignType unkn3;
     public ExpressionAssignType unkn4;
@@ -136,7 +146,7 @@ public partial class EFXAttributeVortexelCollider : EFXAttribute
     public float Unkn3;
     public float Unkn4;
     public float Unkn5;
-    public float Unkn6;
+    public uint Unkn6;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.VortexelIndoorMask, EfxVersion.MHWilds)]

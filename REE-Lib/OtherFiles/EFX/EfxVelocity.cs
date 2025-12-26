@@ -20,7 +20,7 @@ public partial class EFXAttributeVelocity2D : EFXAttribute
 	public float unkn1_6;
 	public float unkn1_7;
     [RszVersion(EfxVersion.RE4, EndAt = nameof(re4_unkn2))]
-	public float re4_unkn0;
+	public uint re4_unkn0;
 	public float re4_unkn1;
 	public float re4_unkn2;
 
@@ -31,8 +31,8 @@ public partial class EFXAttributeVelocity2D : EFXAttribute
 
 	public float unkn2_4;
     [RszVersion(EfxVersion.RE4, EndAt = nameof(re4_unkn2_1))]
-	public UndeterminedFieldType re4_unkn2_0;
-	public UndeterminedFieldType re4_unkn2_1;
+	public uint re4_unkn2_0;
+	public uint re4_unkn2_1;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Velocity2DDelayFrame, EfxVersion.MHWilds)]
 public partial class EFXAttributeVelocity2DDelayFrame : EFXAttribute
@@ -177,9 +177,9 @@ public partial class EFXAttributeAngularVelocity2D : EFXAttribute
 	public float unkn1;
 	public float unkn2;
 	public float unkn3;
-	public uint unkn4;
+	public float unkn4;
 	public float unkn5;
-	public uint unkn6;
+	public float unkn6;
 	public float unkn7;
 	public float unkn8;
 	public float unkn9;
@@ -311,11 +311,11 @@ public partial class EFXAttributePtAngularVelocity2D : EFXAttribute
 {
 	public EFXAttributePtAngularVelocity2D() : base(EfxAttributeType.PtAngularVelocity2D) { }
 
-	public uint null1;
+	public float unkn1;
 	public float unkn2;
 	public float unkn3;
 	public float unkn4;
-	public float null5;
+	public float unkn5;
 	public float unkn6;
 }
 

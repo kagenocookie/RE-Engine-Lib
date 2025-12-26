@@ -334,16 +334,18 @@ public partial class EFXAttributeTypeStrainRibbonMaterial : EFXAttribute
 	public float unkn24;
 	public float unkn25;
 	public float unkn26;
-	public UndeterminedFieldType unkn27;
-	public UndeterminedFieldType unkn28;
-	public UndeterminedFieldType unkn29;
-	public UndeterminedFieldType unkn30;
-	public UndeterminedFieldType unkn31;
+	public float unkn27;
+	public float unkn28;
+	public float unkn29;
+	public float unkn30;
+	public float unkn31;
 
 	public float unkn32;
-	public UndeterminedFieldType unkn33;
+	public float unkn33;
 	public float unkn34;
-	public UndeterminedFieldType unkn35;
+	[RszVersion(EfxVersion.MHWilds)]
+	public uint wildsUnkn0;
+	public uint unkn35;
 	public float unkn36;
 	public UndeterminedFieldType unkn37;
 	public float unkn38;
@@ -351,26 +353,31 @@ public partial class EFXAttributeTypeStrainRibbonMaterial : EFXAttribute
 	public float unkn40;
 	public float unkn41;
 	public float unkn42;
-	public float unkn43;
-	[RszVersion(EfxVersion.MHWilds, EndAt = nameof(wildsUnkn4))]
-	public uint wildsUnkn0;
+	[RszVersion(EfxVersion.MHWilds)]
 	public uint wildsUnkn1;
-	public uint wildsUnkn2;
-	public uint wildsUnkn3;
+	[RszVersion(EfxVersion.MHWilds, EndAt = nameof(wildsColor2))]
+	public via.Color wildsColor1;
+	public via.Color wildsColor2;
+	public float unkn43;
+	[RszVersion(EfxVersion.MHWilds)]
 	public uint wildsUnkn4;
 
 	public float unkn44;
 	public float unkn45;
 
+	[RszVersionExact(EfxVersion.DD2)]
 	public uint unkn46;
-	public UndeterminedFieldType unkn47;
+	public float unkn47;
 	public uint unkn48;
+	[RszVersion(EfxVersion.MHWilds)]
 	public UndeterminedFieldType unkn49;
 	public UndeterminedFieldType unkn50;
-	public UndeterminedFieldType unkn51;
-	public UndeterminedFieldType unkn52;
-	public UndeterminedFieldType unkn53;
+	public float unkn51;
+	public float unkn52;
+	public uint unkn53;
 	public uint unkn54;
+	[RszVersionExact(EfxVersion.DD2)]
+	public uint dd2Unkn;
 	public UndeterminedFieldType unkn55;
 	public UndeterminedFieldType unkn56;
 	public float unkn57;

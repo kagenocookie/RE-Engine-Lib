@@ -119,7 +119,7 @@ public partial class EFXAttributeParentOptionsExpression : EFXAttribute, IExpres
 
 	public EFXAttributeParentOptionsExpression() : base(EfxAttributeType.ParentOptionsExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(7);
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(8);
     public ExpressionAssignType unkn1_1;
     public ExpressionAssignType unkn1_2;
     public ExpressionAssignType unkn1_3;
@@ -127,6 +127,9 @@ public partial class EFXAttributeParentOptionsExpression : EFXAttribute, IExpres
     public ExpressionAssignType unkn1_5;
     public ExpressionAssignType unkn1_6;
     public ExpressionAssignType unkn1_7;
+
+	[RszVersion(EfxVersion.MHWilds)]
+    public ExpressionAssignType unkn1_8;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 

@@ -1,5 +1,9 @@
 using ReeLib.Efx.Structs.Common;
+using ReeLib.Efx.Enums;
 using ReeLib.InternalAttributes;
+using System.Numerics;
+using System.Drawing;
+using ReeLib.via;
 
 namespace ReeLib.Efx.Structs.Transforms;
 
@@ -8,11 +12,11 @@ public partial class EFXAttributeEmitterColor : EFXAttribute
 {
 	public EFXAttributeEmitterColor() : base(EfxAttributeType.EmitterColor) { }
 
-	public uint unkn1;
-	public uint unkn2;
-	public via.Color color;
+	public EmitterColorOperator ColorOperator;
+	public EmitterColorOperator AlphaOperator;
+	public via.Color Color;
 
-    public override string ToString() => $"EmitterColor: {color}";
+    public override string ToString() => $"EmitterColor: {Color}";
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.EmitterColorClip, EfxVersion.RE4)]
@@ -47,14 +51,12 @@ public partial class EFXAttributeEmitterShape2D : EFXAttribute
 {
 	public EFXAttributeEmitterShape2D() : base(EfxAttributeType.EmitterShape2D) { }
 
-	public float unkn1_0;
-	public float unkn1_1;
-	public float unkn1_2;
-	public float unkn1_3;
-	public uint unkn1_4;
-	public uint unkn1_5;
-	public uint unkn1_6;
-	public float unkn1_7;
+	public via.Range RangeX;
+    public via.Range RangeY;
+	public Shape2DType ShapeType;
+	public uint RangeDivideNum;
+	public AxisXYZ DivideAxis;
+	public float LocalRotation;
 
 }
 
@@ -78,7 +80,7 @@ public partial class EFXAttributeEmitterShape2DExpression : EFXAttribute, IExpre
 	public ExpressionAssignType size;
 	public ExpressionAssignType unkn4;
 	public ExpressionAssignType unkn5;
-	[RszClassInstance] public EFXExpressionList? expressions = new();
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.EmitterShape3D, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
@@ -86,32 +88,31 @@ public partial class EFXAttributeEmitterShape3D : EFXAttribute
 {
 	public EFXAttributeEmitterShape3D() : base(EfxAttributeType.EmitterShape3D) { }
 
-	public float RangeXMin;
-	public float RangeXMax;
-	public float RangeYMin;
-	public float RangeYMax;
-	public float RangeZMin;
-	public float RangeZMax;
-	public uint ShapeType;
+    public via.Range RangeX;
+    public via.Range RangeY;
+    public via.Range RangeZ;
+    public Shape3DType ShapeType;
 	public uint RangeDivideNum;
-	public uint RangeDivideAxis;
-	[RszVersion(">", EfxVersion.RE3, EndAt = nameof(unkn1_10))]
-	public uint emitCount;
-	public uint unkn1_10;
-	public float LocalRotationX;
-	public float LocalRotationY;
-	public float LocalRotationZ;
-	public uint RotationOrder;
-	[RszVersion(EfxVersion.RE2, EndAt = nameof(unkn4_3))]
-	[RszVersion(nameof(Version), "==", EfxVersion.MHRiseSB, "||", nameof(Version), "==", EfxVersion.RERT, "||", nameof(Version), "==", EfxVersion.RE8)]
-	public byte unkn2;
-	public uint unkn3;
-	[RszVersion(EfxVersion.RE4)]
-	public uint re4_unkn0;
-	public float unkn4_0;
-	public float unkn4_1;
-	public float unkn4_2;
-	public float unkn4_3;
+	public AxisXYZ RangeDivideAxis;
+	[RszVersion(">", EfxVersion.RE3, EndAt = nameof(RangeDivideVerticalNum))]
+	public uint RangeDivideHorizontalNum;
+	public uint RangeDivideVerticalNum;
+    public Vector3 LocalRotation;
+
+    public RotationOrder RotationOrder;
+	[RszVersion(EfxVersion.RE2, EndAt = nameof(ScaleVertical))]
+    public RotationCorrectType RotationCorrect;
+
+    [RszVersion(EfxVersion.RE4, EndAt = nameof(DivideEquidistantRecalcEveryFrameData))]
+    public bool DivideEquidistant;
+    public bool DivideEquidistantCalcOuterCurveData;
+    public bool DivideEquidistantRecalcEveryFrameData;
+
+	[RszVersion('>', EfxVersion.RE3)]
+    public bool UseExtension;
+
+    public via.Range ScaleHorizontal;//Cylinder angle on cylinder shape
+    public via.Range ScaleVertical;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.EmitterShape3DExpression, EfxVersion.RE7, EfxVersion.DMC5, EfxVersion.RE3, EfxVersion.RE4)]
@@ -160,56 +161,48 @@ public partial class EFXAttributeMeshEmitter : EFXAttribute
 {
     public EFXAttributeMeshEmitter() : base(EfxAttributeType.MeshEmitter) { }
 
-	public byte unkn0_1; // TODO 4-byte thing
-	public byte unkn0_2;
-	public byte unkn0_3;
-	public byte unkn0_4;
-	public float unkn1;
-	public int unkn2; // TODO 4-byte sbyte thing?
-	public int unkn3;
+	// TODO verify for Wilds
+	public uint Flags;
+	public float YNormalRange;
+	public int PartsNumber;
+	public int ClusterNumber;
 
-	public uint unkn4;
-	public float unkn5;
-	public float unkn6;
-	public float unkn7;
-    public float unkn8;
-    public float unkn9;
-    public float unkn10;
-    public uint unkn11;
-    public uint unkn12;
-    public UndeterminedFieldType unkn13;
-    public UndeterminedFieldType unkn14;
-    public uint unkn15;
-    public uint unkn16;
-    public UndeterminedFieldType unkn17;
+	public RotationOrder RotationOrder;
+	public Vector3 LocalScale;
+    public Vector3 LocalRotation;
+    public uint ColorUTilingCount;
+    public uint ColorVTilingCount;
+    public Vector2 ColorUVOffset;
+    public uint MaskUTilingCount;
+    public uint MaskVTilingCount;
+    public Vector2 MaskUVOffset;
 
-	public float unkn18;
-	public float unkn19;
-	[RszVersion('>', EfxVersion.RERT, EndAt = nameof(unkn25))]
-	public float unkn20;
-	public uint unkn21;
-	public UndeterminedFieldType unkn22;
-	public uint unkn23;
-	public uint unkn24;
-	public float unkn25;
+	public float EmissionThreshold;
+	[RszVersion('>', EfxVersion.RERT, EndAt = nameof(TriangleFilter))]
+	public float EmissionVertexColorThreshold;
+	public uint EmissionVertexColorChannel;
+	public uint EmissionMaskMapColorChannel;
+	public uint ParticleNum;
+	public uint LodIndex;
+	public float TriangleFilter;
 
-    [RszStringLengthField(nameof(mapPath))] public int mapPathLength;
-    [RszStringLengthField(nameof(meshPath))] public int meshPathLength;
-    [RszStringLengthField(nameof(mdfPath))] public int mdfPathLength;
-	[RszVersion('>', EfxVersion.DMC5), RszStringLengthField(nameof(texPath))] public int texPathLength;
-    [RszStringLengthField(nameof(maskPath))] public int maskPathLength;
-	[RszVersion(EfxVersion.DD2), RszStringLengthField(nameof(name))] public int nameLength;
-	[RszInlineWString(nameof(mapPathLength))] public string? mapPath; // mapName: NormalRoughnessMap
-	[RszInlineWString(nameof(meshPathLength))] public string? meshPath;
-	[RszInlineWString(nameof(mdfPathLength))] public string? mdfPath;
-	[RszVersion('>', EfxVersion.DMC5), RszInlineWString(nameof(texPathLength))]
-	public string? texPath;
-	[RszInlineWString(nameof(maskPathLength))] public string? maskPath; // note: might be a path to something else; RE4 doesn't use this one at all
+    [RszStringLengthField(nameof(DynamicColorMapPath))] public int DynamicColorMapNameLength;
+    [RszStringLengthField(nameof(MeshPath))] public int MeshPathLength;
+    [RszStringLengthField(nameof(MeshMirrorPath))] public int MeshMirrorPathLength;
+	[RszVersion('>', EfxVersion.DMC5), RszStringLengthField(nameof(ColorMapPath))] public int ColorMapPathLength;
+    [RszStringLengthField(nameof(MaskMapPath))] public int MaskMapPathLength;
+	[RszVersion(EfxVersion.DD2), RszStringLengthField(nameof(TargetGameObjectName))] public int TargetGameObjectNameLength;
+	[RszInlineWString(nameof(DynamicColorMapNameLength))] public string? DynamicColorMapPath; // mapName: NormalRoughnessMap
+	[RszInlineWString(nameof(MeshPathLength))] public string? MeshPath;
+	[RszInlineWString(nameof(MeshMirrorPathLength))] public string? MeshMirrorPath;
+	[RszVersion('>', EfxVersion.DMC5), RszInlineWString(nameof(ColorMapPathLength))]
+	public string? ColorMapPath;
+	[RszInlineWString(nameof(MaskMapPathLength))] public string? MaskMapPath; // note: might be a path to something else; RE4 doesn't use this one at all
 
-	[RszVersion(EfxVersion.DD2), RszInlineWString(nameof(nameLength))]
-	public string? name;
+	[RszVersion(EfxVersion.DD2), RszInlineWString(nameof(TargetGameObjectNameLength))]
+	public string? TargetGameObjectName;
 
-    public override string ToString() => !string.IsNullOrEmpty(meshPath) ? meshPath : type.ToString();
+    public override string ToString() => !string.IsNullOrEmpty(MeshPath) ? MeshPath : type.ToString();
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.MeshEmitterClip, EfxVersion.DMC5)]
@@ -252,5 +245,65 @@ public partial class EFXAttributeMeshEmitterExpression : ReeLib.Efx.EFXAttribute
     public ExpressionAssignType unkn14;
     public ExpressionAssignType unkn15;
     public ExpressionAssignType unkn16;
-	[RszClassInstance] public EFXExpressionList? expressions = new();
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
+}
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.EmitterHSV, EfxVersion.MHWilds)]
+public partial class EFXAttributeEmitterHSV : EFXAttribute
+{
+	public EFXAttributeEmitterHSV() : base(EfxAttributeType.EmitterHSV) { }
+
+	public uint Flags;
+	public uint Hue;
+	public via.Color color;
+	public via.RangeI Range1;
+	public via.RangeI Range2;
+	public via.RangeI Range3;
+	public Int4 Group1;
+	public Int4 Group2;
+	public Int4 Group3; // TODO verify if these are actually color and ranges
+}
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.EmitterHSVExpression, EfxVersion.MHWilds)]
+public partial class EFXAttributeEmitterHSVExpression : ReeLib.Efx.EFXAttribute, IExpressionAttribute
+{
+    public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
+	public BitSet ExpressionBits => expressionBits;
+
+    public EFXAttributeEmitterHSVExpression() : base(EfxAttributeType.EmitterHSVExpression) { }
+
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(16) { BitNameDict = new () {
+		[1] = nameof(emitRate),
+	} };
+    public ExpressionAssignType emitRate;
+    public ExpressionAssignType unkn2;
+    public ExpressionAssignType unkn3;
+    public ExpressionAssignType unkn4;
+    public ExpressionAssignType unkn5;
+    public ExpressionAssignType unkn6;
+    public ExpressionAssignType unkn7;
+    public ExpressionAssignType unkn8;
+    public ExpressionAssignType unkn9;
+    public ExpressionAssignType unkn10;
+    public ExpressionAssignType unkn11;
+    public ExpressionAssignType unkn12;
+    public ExpressionAssignType unkn13;
+    public ExpressionAssignType unkn14;
+    public ExpressionAssignType unkn15;
+    public ExpressionAssignType unkn16;
+    public ExpressionAssignType unkn17;
+    public ExpressionAssignType unkn18;
+    public ExpressionAssignType unkn19;
+    public ExpressionAssignType unkn20;
+    public ExpressionAssignType unkn21;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
+}
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PointCloudEmitter, EfxVersion.MHWilds)]
+public partial class EFXAttributePointCloudEmitter : EFXAttribute
+{
+	public EFXAttributePointCloudEmitter() : base(EfxAttributeType.PointCloudEmitter) { }
+
+	public uint Flags;
+	public uint Unkn1;
 }

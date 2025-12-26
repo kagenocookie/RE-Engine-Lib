@@ -1,19 +1,21 @@
 using System.Numerics;
 using ReeLib.Efx.Structs.Common;
+using ReeLib.Efx.Enums;
 using ReeLib.InternalAttributes;
+using ReeLib.via;
 
 namespace ReeLib.Efx.Structs.Transforms;
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Transform2D, EfxVersion.DMC5, EfxVersion.RE4)]
 public partial class EFXAttributeTransform2D : EFXAttribute
 {
-	public Vector2 position;
-	public float rotation;
-	public Vector2 scale;
+	public Vector2 LocalPosition;
+	public float LocalRotation;
+	public Vector2 LocalScale;
 
 	public EFXAttributeTransform2D() : base(EfxAttributeType.Transform2D) { }
 
-    public override string ToString() => $"Translate {position} rotate {rotation} scale {scale}";
+    public override string ToString() => $"Translate {LocalPosition} rotate {LocalRotation} scale {LocalScale}";
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Transform2DClip, EfxVersion.RERT)]
@@ -105,12 +107,12 @@ public partial class EFXAttributeTransform3D : EFXAttribute
 	public EFXAttributeTransform3D() : base(EfxAttributeType.Transform3D) { }
 
 	// [RszVersion(EfxVersion.MHWilds)] public uint mhws_unkn;
-	public Vector3 translation;
-	public Vector3 rotation;
-	public Vector3 scale;
-	public int rotationOrder;
+	public Vector3 LocalPosition;
+	public Vector3 LocalRotation;
+	public Vector3 LocalScale;
+	public RotationOrder RotationOrder;
 
-    public override string ToString() => $"Translate {translation} rotate {rotation} scale {scale}";
+    public override string ToString() => $"Translate {LocalPosition} rotate {LocalRotation} scale {LocalScale}";
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Transform3DExpression, EfxVersion.DMC5, EfxVersion.RE4, EfxVersion.DD2)]
@@ -317,22 +319,15 @@ public partial class EFXAttributeRotateAnim : EFXAttribute
 {
 	public EFXAttributeRotateAnim() : base(EfxAttributeType.RotateAnim) { }
 
-	public uint unkn1_0;
-	public float rotateSpeedX;
-	public float rotateSpeedXRandom;
-	public float rotateSpeedY;
-	public float rotateSpeedYRandom;
-	public float rotateSpeedZ;
-	public float rotateSpeedZRandom;
-	public float unkn4_2;
-	public float unkn4_3;
-	public float unkn4_4;
-	public float unkn4_5;
-	public float unkn4_6;
-	public float unkn4_7;
-	[RszVersion(EfxVersion.DD2, EndAt = nameof(unkn4_9))]
-	public uint unkn4_8;
-	public uint unkn4_9;
+	public uint Flags;
+    public via.Range RotationAddX;
+    public via.Range RotationAddY;
+    public via.Range RotationAddZ;
+    public via.Range RotationCoefX;
+    public via.Range RotationCoefY;
+    public via.Range RotationCoefZ;
+    [RszVersion(EfxVersion.DD2, EndAt = nameof(RotationDelayFrame))]
+	public via.RangeI RotationDelayFrame;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.RotateAnimDelayFrame, EfxVersion.RE4)]
@@ -380,25 +375,16 @@ public partial class EFXAttributeScaleAnim : EFXAttribute
 {
 	public EFXAttributeScaleAnim() : base(EfxAttributeType.ScaleAnim) { }
 
-	public float minScale;
-	public float unkn1_1;
-	public float maxScale;
-	public float unkn1_3;
-	public float unkn1_4;
-	public float unkn1_5;
-	public float unkn1_6;
-	public float unkn1_7;
-	public float unkn1_8;
-	public float unkn1_9;
-	public float unkn1_10;
-	public float unkn1_11;
-	public float unkn1_12;
-	public float unkn1_13;
-	public float unkn1_14;
-	public float unkn1_15;
-	[RszVersion(EfxVersion.DD2, EndAt = nameof(unkn1_17))]
-	public uint unkn1_16;
-	public uint unkn1_17;
+    public via.Range SizeScalarAdd;
+    public via.Range SizeScalarCoef;
+    public via.Range SizeXAdd;
+    public via.Range SizeXAddCoef;
+    public via.Range SizeYAdd;
+    public via.Range SizeYAddCoef;
+    public via.Range SizeZAdd;
+    public via.Range SizeZAddCoef;
+    [RszVersion(EfxVersion.DD2, EndAt = nameof(SizeDelayFrame))]
+    public via.RangeI SizeDelayFrame;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.ScaleAnimDelayFrame, EfxVersion.RE4)]
 public partial class EFXAttributeScaleAnimDelayFrame : EFXAttribute
@@ -438,12 +424,12 @@ public partial class EFXAttributeScaleByDepth : EFXAttribute
 {
 	public EFXAttributeScaleByDepth() : base(EfxAttributeType.ScaleByDepth) { }
 
-	public uint unkn1;
-	public float unkn2_0;
-	public float unkn2_1;
-	public float unkn2_2;
-	public float unkn2_3;
-	public float unkn2_4;
-	public float unkn2_5;
+	public uint Flags;
+	public float NearStart;
+	public float NearEnd;
+	public float NearScale;
+	public float FarStart;
+	public float FarEnd;
+	public float FarScale;
 
 }

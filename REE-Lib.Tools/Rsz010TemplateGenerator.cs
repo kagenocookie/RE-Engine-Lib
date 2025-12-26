@@ -117,6 +117,7 @@ public class Rsz010TemplateGenerator : IIncrementalGenerator
         { "via.Int3", "Int3" },
         { "via.Int2", "Int2" },
         { "via.RangeI", "Int2" },
+        { "via.Range", "Vec2" },
         { "via.Color", "Color" },
         { "bool", "byte" },
         { "byte", "ubyte" },
@@ -277,6 +278,9 @@ public class Rsz010TemplateGenerator : IIncrementalGenerator
         var name = field.GetFieldName();
         if (name == null) return;
 
+        var outputName = name; // de-capitalize to prevent conflicts with type names
+        if (char.IsUpper(outputName[0])) outputName = char.ToLower(outputName[0]) + outputName[1..];
+
         foreach (var conditionAttr in field.GetAttributesWhere(attr => attr.Name.ToString() == "RszConditional" || attr.Name.ToString() == "RszVersion" || attr.Name.ToString() == "RszVersionExact")) {
             var args = conditionAttr.ArgumentList!.Arguments;
             var positional = conditionAttr.GetPositionalArguments();
@@ -311,41 +315,41 @@ public class Rsz010TemplateGenerator : IIncrementalGenerator
 
             var size = string.Join(" ", mainAttr.GetPositionalArguments().Select(p => EvaluateExpressionString(ctx, p.Expression)));
             if (string.IsNullOrEmpty(size)) {
-                size = $"len_{name}";
+                size = $"len_{outputName}";
                 ctx.Indent().AppendLine($"uint {size};");
             }
             if (stringAttr != null || wstringAttr != null) {
                 var fieldType = stringAttr != null ? "struct { string str; }" : "struct { wstring str; }";
 
                 if (int.TryParse(size, out _)) {
-                    ctx.Indent().AppendLine($"{fieldType} {name}[{size}] <read=str,optimize=false>;");
+                    ctx.Indent().AppendLine($"{fieldType} {outputName}[{size}] <read=str,optimize=false>;");
                 } else {
-                    ctx.Indent().AppendLine($"if ({size} > 0) {fieldType} {name}[{size}] <read=str,optimize=false>;");
+                    ctx.Indent().AppendLine($"if ({size} > 0) {fieldType} {outputName}[{size}] <read=str,optimize=false>;");
                 }
             } else {
                 // var meta = isClass ? " <optimize=false>" : "";
                 var meta = " <optimize=false>";
                 var fieldType = RemapType(field.GetFieldType()?.GetArrayElementType(true));
                 if (int.TryParse(size, out _)) {
-                    ctx.Indent().AppendLine($"{fieldType} {name}[{size}]{meta};");
+                    ctx.Indent().AppendLine($"{fieldType} {outputName}[{size}]{meta};");
                 } else {
-                    ctx.Indent().AppendLine($"if ({size} > 0) {fieldType} {name}[{size}]{meta};");
+                    ctx.Indent().AppendLine($"if ({size} > 0) {fieldType} {outputName}[{size}]{meta};");
                 }
             }
         } else if (field.TryGetAttribute("RszInlineWString", out mainAttr) || field.TryGetAttribute("RszInlineString", out mainAttr)) {
             var stringType = mainAttr.Name.ToString().Contains("WString") ? "wstring" : "string";
             var size = string.Join(" ", mainAttr.GetPositionalArguments().Select(p => EvaluateExpressionString(ctx, p?.Expression)));
             if (string.IsNullOrEmpty(size)) {
-                ctx.Indent().AppendLine($"int len_{name};");
-                ctx.Indent().AppendLine($"{stringType} {name};");
+                ctx.Indent().AppendLine($"int len_{outputName};");
+                ctx.Indent().AppendLine($"{stringType} {outputName};");
             } else {
-                ctx.Indent().AppendLine($"{stringType} {name};");
+                ctx.Indent().AppendLine($"{stringType} {outputName};");
             }
         } else if (field.TryGetAttribute("RszOffsetWString", out mainAttr) || field.TryGetAttribute("RszOffsetString", out mainAttr)) {
             var stringType = mainAttr.Name.ToString().Contains("WString") ? "wstring" : "string";
 
-            ctx.Indent().AppendLine($"ulong offset_{name};");
-            ctx.Indent().AppendLine($"local int pos_{name} = FTell(); FSeek(offset_{name}); {stringType} {name}; FSeek(pos_{name});");
+            ctx.Indent().AppendLine($"ulong offset_{outputName};");
+            ctx.Indent().AppendLine($"local int pos_{outputName} = FTell(); FSeek(offset_{outputName}); {stringType} {outputName}; FSeek(pos_{outputName});");
         } else if (field.TryGetAttribute("RszSwitch", out mainAttr)) {
             var args = mainAttr.GetPositionalArguments().ToList();
             List<string> caseArgs = new();
@@ -367,7 +371,7 @@ public class Rsz010TemplateGenerator : IIncrementalGenerator
                     ctx.Indent().AppendLine($"}} else if ({condition}) {{");
                 }
                 ctx.AddIndent();
-                ctx.Indent().AppendLine($"{classname} {name};");
+                ctx.Indent().AppendLine($"{classname} {outputName};");
                 ctx.ReduceIndent();
                 if (i == args.Count - 1) {
                     if (!string.IsNullOrEmpty(condition)) {
@@ -382,12 +386,12 @@ public class Rsz010TemplateGenerator : IIncrementalGenerator
             }
         } else if (fieldtypename == "BitSet" && field.TryGetAttribute("RszConstructorParams", out mainAttr)) {
             var consargs = string.Join(" ", mainAttr.GetPositionalArguments().Select(p => EvaluateExpressionString(ctx, p?.Expression)));
-            ctx.Indent().Append(RemapType(fieldtypename)).Append(' ').Append(name).Append('(').Append(consargs).Append(')').AppendLine(";");
+            ctx.Indent().Append(RemapType(fieldtypename)).Append(' ').Append(outputName).Append('(').Append(consargs).Append(')').AppendLine(";");
         } else {
             if (fieldtypename == "BitSet" && field.Declaration.Variables.First().Initializer?.Value is ObjectCreationExpressionSyntax createSyntax) {
-                ctx.Indent().Append(RemapType(fieldtypename)).Append(' ').Append(name).Append(createSyntax.ArgumentList?.ToString()).AppendLine(";");
+                ctx.Indent().Append(RemapType(fieldtypename)).Append(' ').Append(outputName).Append(createSyntax.ArgumentList?.ToString()).AppendLine(";");
             } else {
-                ctx.Indent().Append(RemapType(fieldtypename)).Append(' ').Append(name).AppendLine(";");
+                ctx.Indent().Append(RemapType(fieldtypename)).Append(' ').Append(outputName).AppendLine(";");
             }
         }
 

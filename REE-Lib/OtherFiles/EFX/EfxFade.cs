@@ -1,5 +1,7 @@
 using ReeLib.Efx.Structs.Common;
+using ReeLib.Efx.Enums;
 using ReeLib.InternalAttributes;
+using System.Numerics;
 
 namespace ReeLib.Efx.Structs.Transforms;
 
@@ -8,13 +10,11 @@ public partial class EFXAttributeFadeByAngle : EFXAttribute
 {
 	public EFXAttributeFadeByAngle() : base(EfxAttributeType.FadeByAngle) { }
 
-	public uint unkn1_0;
-	public float unkn1_1;
-	public float unkn1_2;
-	public float unkn1_3;
-	public float unkn1_4;
-	public float unkn1_5;
-	public float unkn1_6;
+	public uint Flags;
+	public float Cone;
+	public float Spread;
+	public float AlphaRate;
+	public Vector3 ConeDirection;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.FadeByAngleExpression, EfxVersion.DMC5, EfxVersion.RE4)]
@@ -31,19 +31,19 @@ public partial class EFXAttributeFadeByAngleExpression : EFXAttribute, IExpressi
 	} };
     public ExpressionAssignType minAngle;
     public ExpressionAssignType maxAngle;
-	[RszClassInstance] public EFXExpressionList? expressions = new();
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.FadeByDepth, EfxVersion.DMC5, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
 public partial class EFXAttributeFadeByDepth : EFXAttribute
 {
 	public EFXAttributeFadeByDepth() : base(EfxAttributeType.FadeByDepth) { }
 
-	public float nearStart;
-	public float nearEnd;
-	public float farStart;
-	public float farEnd;
+	public float NearStart;
+	public float NearEnd;
+	public float FarStart;
+	public float FarEnd;
 
-    public override string ToString() => $"{nearStart} - {nearEnd} - {farStart} - {farEnd}";
+    public override string ToString() => $"{NearStart} - {NearEnd} - {FarStart} - {FarEnd}";
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.FadeByDepthExpression, EfxVersion.DMC5, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
@@ -67,14 +67,14 @@ public partial class EFXAttributeFadeByEmitterAngle : EFXAttribute
 {
 	public EFXAttributeFadeByEmitterAngle() : base(EfxAttributeType.FadeByEmitterAngle) { }
 
-	public uint unkn1_0;
-	public float unkn1_1;
-	public float unkn1_2;
-	public float unkn1_3;
-	public float unkn1_4;
-	public float unkn1_5;
+	public uint Flags;
+	public float Cone;
+	public float Spread;
+	public float AlphaRate;
+	public float FadeInStart;
+	public float FadeInEnd;
 	[RszVersion(EfxVersion.DD2)]
-	public UndeterminedFieldType unkn1_6;
+	public UndeterminedFieldType FadeBlend;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.FadeByOcclusion, EfxVersion.DMC5, EfxVersion.RE4)]
@@ -82,10 +82,9 @@ public partial class EFXAttributeFadeByOcclusion : EFXAttribute
 {
 	public EFXAttributeFadeByOcclusion() : base(EfxAttributeType.FadeByOcclusion) { }
 
-	public float unkn1;
-	public uint unkn2;
-	public float unkn3;
-	public float unkn4;
+	public float Radius;
+	public Vector2 Offset;
+	public float MinSize;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.FadeByRootCulling, EfxVersion.DD2, EfxVersion.MHWilds)]
@@ -93,22 +92,12 @@ public partial class EFXAttributeFadeByRootCulling : EFXAttribute
 {
 	public EFXAttributeFadeByRootCulling() : base(EfxAttributeType.FadeByRootCulling) { }
 
-	public uint null1;
-	public float unkn2;
-	public float unkn3;
-	public float unkn4;
-	public float null5;
-
-	public float unkn6;
-	public float unkn7;
-	public float unkn8;
-	public float unkn9;
-	public float unkn10;
-	public float unkn11;
-	public float unkn12;
-	public float null13;
-	public float null14;
-	public float null15;
-
-	public uint unkn16;
+	public EffectBoundsType ShapeType;
+	public Vector3 Center;
+	public float InnerRadius;
+	public float OuterRadius;
+    public Vector3 InnerSize;
+    public Vector3 OuterSize;
+    public Vector3 LocalRotation;
+    public RotationOrder RotationOrder;
 }

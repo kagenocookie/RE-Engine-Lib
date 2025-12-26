@@ -67,7 +67,7 @@ public partial class EFXAttributeTypeStrainRibbonV2 : EFXAttribute, IBoneRelatio
 	public via.Color color1;
 	public float unkn1_3;
 
-	public uint unkn1_4;
+	public float unkn1_4;
 	public uint unkn1_5;
 	public float unkn1_6;
 	public float unkn1_7;
@@ -100,9 +100,9 @@ public partial class EFXAttributeTypeStrainRibbonV2 : EFXAttribute, IBoneRelatio
 	public float unkn1_27;
 	public float unkn1_28;
 	public float unkn1_29;
-	public uint unkn1_30;
+	public float unkn1_30;
 	public float unkn1_31;
-	public uint unkn1_32;
+	public float unkn1_32;
 	public uint unkn1_33;
 	public uint unkn1_34;
 	public float unkn1_35;
@@ -146,6 +146,7 @@ public partial class EFXAttributeTypeStrainRibbonV2 : EFXAttribute, IBoneRelatio
 public partial class EFXAttributeTypeStrainRibbonV3 : EFXAttribute
 {
 	// structure looks vaguely similar to TypeStrainRibbon, but big reodering
+	// TODO verify for MHWilds
 	public EFXAttributeTypeStrainRibbonV3() : base(EfxAttributeType.TypeStrainRibbon) { }
 
     public uint unkn0_0;
@@ -253,7 +254,7 @@ public partial class EFXAttributeTypeStrainRibbonExpression : EFXAttribute, IExp
 	public ExpressionAssignType unkn14;
 	public ExpressionAssignType unkn15;
 
-	[RszClassInstance] public EFXExpressionList? expressions = new();
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
 
@@ -299,7 +300,7 @@ public partial class EFXAttributeTypeStrainRibbonExpressionV2 : EFXAttribute, IE
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeStrainRibbonMaterial, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeStrainRibbonMaterial, EfxVersion.DD2, EfxVersion.MHWilds)]
 public partial class EFXAttributeTypeStrainRibbonMaterial : EFXAttribute
 {
 	public EFXAttributeTypeStrainRibbonMaterial() : base(EfxAttributeType.TypeStrainRibbonMaterial) { }
@@ -351,6 +352,13 @@ public partial class EFXAttributeTypeStrainRibbonMaterial : EFXAttribute
 	public float unkn41;
 	public float unkn42;
 	public float unkn43;
+	[RszVersion(EfxVersion.MHWilds, EndAt = nameof(wildsUnkn4))]
+	public uint wildsUnkn0;
+	public uint wildsUnkn1;
+	public uint wildsUnkn2;
+	public uint wildsUnkn3;
+	public uint wildsUnkn4;
+
 	public float unkn44;
 	public float unkn45;
 
@@ -398,7 +406,7 @@ public partial class EFXAttributeTypeStrainRibbonMaterialClip : EFXAttribute, IM
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public readonly EfxMaterialClipData clipData = new();
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeStrainRibbonMaterialExpression, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeStrainRibbonMaterialExpression, EfxVersion.DD2, EfxVersion.MHWilds)]
 public partial class EFXAttributeTypeStrainRibbonMaterialExpression : EFXAttribute, IExpressionAttribute, IMaterialExpressionAttribute
 {
 	public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
@@ -440,8 +448,11 @@ public partial class EFXAttributeTypeStrainRibbonMaterialExpression : EFXAttribu
 	public ExpressionAssignType unkn18;
 	public ExpressionAssignType color4;
 	public ExpressionAssignType unkn20;
-	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
+	[RszVersion(EfxVersion.MHWilds)]
 	public ExpressionAssignType unkn21;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
+	[RszVersionExact(EfxVersion.DD2)] // TODO probably shouldn't be here, need to fully resolve MHWilds struct
+	public ExpressionAssignType unkn22;
 	[RszArraySizeField(nameof(materialExpressions))] public int materialExpressionCount;
 	[RszVersion(EfxVersion.DD2), RszClassInstance, RszConstructorParams(nameof(Version))]
 	public EFXMaterialExpressionList? materialExpressions;

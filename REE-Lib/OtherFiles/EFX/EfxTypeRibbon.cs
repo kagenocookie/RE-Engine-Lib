@@ -1,5 +1,8 @@
+using System.Numerics;
+using ReeLib.Bvh;
 using ReeLib.Efx.Structs.Common;
 using ReeLib.InternalAttributes;
+using ReeLib.via;
 
 namespace ReeLib.Efx.Structs.Main;
 
@@ -8,55 +11,47 @@ public partial class EFXAttributeTypeRibbonLength : EFXAttribute
 {
 	public EFXAttributeTypeRibbonLength() : base(EfxAttributeType.TypeRibbonLength) { }
 
-	public uint unkn1_0;
-	public via.Color color0;
-	public via.Color color1;
-	public float unkn1_3;
+    public uint BlendFlags;
+    public via.Color Color;
+    public via.Color ColorRange;
+    public float ColorRate;
+    public float Intensity;
+    public float EdgeBlendRange;
+    public float AlphaRate;
 
-	public float unkn1_4;
-	public float unkn1_5;
-	public float unkn1_6;
-    [RszVersion(EfxVersion.RE4)]
-	public uint unkn1_7;
-	public float unkn1_8;
-	public float unkn1_9;
-	public float unkn1_10;
-	public float unkn1_11;
+	[RszVersion('>', EfxVersion.RERT)]
+    public uint Flags;
+    public via.Range SizeScalar;
+    public via.Range Width;
+
     [RszVersion(EfxVersion.RERT)]
-	public float sb_unkn0;
-	public float unkn1_12;
-    [RszVersion(EfxVersion.DD2)] public float dd2_unkn1;
-    [RszVersion(EfxVersion.RE2)]
-	public uint unkn1_13; // TODO 4-byte thing?
-	public float unkn1_14;
-	public float unkn1_15;
-	public uint unkn1_16;
+    public float TextureRepeatNum;
+    public float ShadowMultiplier;
+    [RszVersion(EfxVersion.DD2)] public float FadeSide; // TODO verify type
+    [RszVersion(EfxVersion.RE2)] public uint LengthFlags;
+    public via.Range Length;
+    public uint ShapeDivision; // TODO verify type
+    public via.Range BasingPoint;
+    public via.Range ReleaseFixEnd;
+    public via.Range DirectionX;
+    public via.Range DirectionY;
+    public via.Range DirectionZ;
 
-	public float unkn1_17;
-	public float unkn1_18;
-	public float unkn1_19;
-	public float unkn1_20;
-	public float unkn1_21;
-	public float unkn1_22;
-	public float unkn1_23;
-	public float unkn1_24;
-	public float unkn1_25;
-	public float unkn1_26;
+	[RszVersion(EfxVersion.RE2, EndAt = nameof(GhostStretch))]
+    public via.Color HeadColor;
+    public via.Color ColorPlace1;
+    public via.Color ColorPlace2;
+    public float ColorPlace1Ratio;
+    public float ColorPlace2Ratio;
 
-	[RszVersion(EfxVersion.RE2, EndAt = nameof(sb_unkn2))]
-	public via.Color color2_1;
-	public via.Color color2_2;
-	public via.Color color2_3;
-	public float unkn1_29;
-	public float unkn1_30;
-	public float unkn1_31;
-	public float unkn1_32;
-	public float unkn1_33;
-	public float unkn1_34;
-	public float unkn1_35;
-    [RszVersion(EfxVersion.RE8, EndAt = nameof(sb_unkn2))]
-	public float sb_unkn1;
-	public float sb_unkn2;
+    public float HeadScale;
+    public float ScalePlace1;
+    public float ScalePlace2;
+    public float ScalePlace1Ratio;
+    public float ScalePlace2Ratio;
+
+    [RszVersion(EfxVersion.RE8)]
+    public via.Range GhostStretch;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonLengthExpression, EfxVersion.RE7, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.RE4)]
@@ -156,6 +151,19 @@ public partial class EFXAttributeTypeRibbonLengthMaterial : EFXAttribute
 		typeof(EfxMaterialStructV1)
 	)]
 	public EfxMaterialStructBase? material;
+}
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonLengthMaterialClip, EfxVersion.MHWilds)]
+public partial class EFXAttributeTypeRibbonLengthMaterialClip : EFXAttribute, IMaterialClipAttribute
+{
+    public EfxMaterialClipData MaterialClip => clipData;
+    public BitSet ClipBits => clipBits;
+
+    public EFXAttributeTypeRibbonLengthMaterialClip() : base(EfxAttributeType.TypeRibbonLengthMaterialClip) { }
+
+	[RszClassInstance] public readonly BitSet clipBits = new BitSet(4);
+    public uint unkn1;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public readonly EfxMaterialClipData clipData = new();
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonLengthMaterialExpression, EfxVersion.DD2)]
@@ -664,58 +672,62 @@ public partial class EFXAttributeTypeRibbonFixEndMaterialExpression : EFXAttribu
 public partial class EFXAttributeTypeRibbonFollow : EFXAttribute
 {
 	public EFXAttributeTypeRibbonFollow() : base(EfxAttributeType.TypeRibbonFollow) { }
+    public uint BlendFlags;
+    public via.Color Color;
+    public via.Color ColorRange;
+    public float ColorRate;
+    public float Intensity;
+    public float EdgeBlendRange;
+    public float AlphaRate;
 
-	public uint emission;
-	public via.Color color0;
-	public via.Color color1;
-	public float unkn4;
-	public float unkn5;
-	public float unkn6;
-	public float unkn7;
 	[RszVersion(EfxVersion.RE4)]
-	public uint unkn8;
-	public float unkn9;
-	public float unkn10;
-	public float trailWidth;
-	public float unkn12;
-	public float sb_unkn0;
-	[RszVersion(nameof(Version), ">=", EfxVersion.RE2, "&&", nameof(Version), "<=", EfxVersion.RE8)]
+    public uint Flags;
+    public via.Range SizeScalar;
+    public via.Range Width;
+
+    public float TextureRepeatNum;
+	[RszVersion(nameof(Version), ">=", EfxVersion.RE2, "&&", nameof(Version), "<", EfxVersion.RE8)]
 	public uint unkn14_re2;
-	[RszVersion(nameof(Version), "<", EfxVersion.RE2, "||", nameof(Version), ">", EfxVersion.RE8)] // else
-	public float unkn14;
 	[RszVersion(EfxVersion.DD2)]
-	public float dd2__unkn0;
-	[RszVersion(EfxVersion.RERT)]
-	public int rert_unkn0;
-	public float unkn15;
-	[RszVersion(EfxVersion.RE8)]
-	public float rert_unkn1;
-	public uint trailLength;
-    [RszVersion(EfxVersion.RE3)]
-	public uint something;
-    [RszVersion("==", EfxVersion.RE7)]
-	public float unkn17;
+    public float ShadowMultiplier;
+    public uint FadeSide; // TODO verify values here
+	[RszVersion('>', EfxVersion.RE8)]
+    public uint FollowFlags;
+	// [RszVersion(nameof(Version), "<", EfxVersion.RE2, "||", nameof(Version), ">", EfxVersion.RE8)]
 
-	public int ukn18;
+    public Vector2 StretchDistance; // TODO verify values here
+	[RszVersion(">=", EfxVersion.RE8)]
+    public uint Unkn;//TODO Check this
 
-    [RszVersion(EfxVersion.RE2, EndAt = nameof(unkn26))]
-    public via.Color color2;
-	public via.Color unkn19;
-	public via.Color unkn20;
-	public float unkn21;
-	public float unkn22;
-	public float unkn23;
-	public float unkn24;
-	public float unkn25;
-	public float unkn26;
-    [RszVersion(EfxVersion.RE2)]
-	public float re2_unkn;
-    [RszVersion(EfxVersion.RE3, EndAt = nameof(re3_unkn2))]
-	public float re3_unkn1;
-	public float re3_unkn2;
-    [RszVersion(EfxVersion.RE8, EndAt = nameof(rert_unkn3))]
-	public float rert_unkn2;
-	public UndeterminedFieldType rert_unkn3;
+	[RszVersion(EfxVersion.RE3, EndAt = nameof(SplineDivision))]
+    public uint ShapeDivision;
+	[RszVersion('>', EfxVersion.RE3, EndAt = nameof(SplineDivision))] // TODO verify values
+    public uint SplineDivision;
+
+    [RszVersionExact(EfxVersion.RE7)]
+	public float unkn_re7;
+    [RszVersionExact(EfxVersion.RE7)]
+	public uint unkn_re7_2;
+
+    [RszVersion(EfxVersion.RE2, EndAt = nameof(ScalePlace2Ratio))]
+    public via.Color HeadColor;
+    public via.Color ColorPlace1;
+    public via.Color ColorPlace2;
+    public float ColorPlace1Ratio;
+    public float ColorPlace2Ratio;
+
+    public float HeadScale;
+    public float ScalePlace1;
+    public float ScalePlace2;
+    public float ScalePlace1Ratio;
+    public float ScalePlace2Ratio;
+
+    [RszVersion(EfxVersion.RE3, EndAt = nameof(FadeByTwistMax))]
+    public float FadeByTwistMin;
+    public float FadeByTwistMax;
+
+    [RszVersion(EfxVersion.RE8)]
+    public via.Range GhostStretch;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonFollowExpression, EfxVersion.DMC5, EfxVersion.DD2)]
 public partial class EFXAttributeTypeRibbonFollowExpression : EFXAttribute, IExpressionAttribute
@@ -757,46 +769,48 @@ public partial class EFXAttributeTypeRibbonFollowMaterial : EFXAttribute
 {
 	public EFXAttributeTypeRibbonFollowMaterial() : base(EfxAttributeType.TypeRibbonFollowMaterial) { }
 
-	public uint unkn0;
-	public via.Color color1;
-	public via.Color color2;
-	public float unkn3;
-	public UndeterminedFieldType unkn4;
-	public UndeterminedFieldType unkn5;
-	public UndeterminedFieldType unkn6;
-	public uint unkn7;
-	public float unkn8;
-	public float unkn9;
-	public float unkn10;
-	public float unkn11;
-	public float unkn12;
-	public float unkn13;
-	public float unkn14;
-	public uint unkn15;
-	public float unkn16;
-	public float unkn17;
-	public uint unkn18;
+    public uint BlendFlags;
+    public via.Color Color;
+    public via.Color ColorRange;
+    public float ColorRate;
+    public float Intensity;
+    public float EdgeBlendRange;
+    public float AlphaRate;
 
-	public uint unkn19;
-	public UndeterminedFieldType unkn20;
-	public via.Color color3;
-	public via.Color color4;
-	public via.Color color5;
+    public uint Flags;
+    public via.Range SizeScalar;
+    public via.Range Width;
+    public float TextureRepeatNum;
+    public float ShadowMultiplier;
+    public float FadeSide;
 
-	public float unkn22;
-	public float unkn23;
-	public float unkn24;
-	public float unkn25;
-	public float unkn26;
-	public float unkn27;
-	public float unkn28;
-	public float unkn29;
-	public float unkn30;
-	public float unkn31;
-	public UndeterminedFieldType unkn32;
-	public uint unkn33;
 
-	[RszConstructorParams(nameof(Version)), RszSwitch(
+
+    public uint FollowFlags;
+    public Vector2 StretchDistance;
+    public uint ShapeDivision;
+    public uint SplineDivision;
+    public uint Unkn1;
+    public via.Color HeadColor;
+    public via.Color ColorPlace1;
+    public via.Color ColorPlace2;
+    public float ColorPlace1Ratio;
+    public float ColorPlace2Ratio;
+
+    public float HeadScale;
+    public float ScalePlace1;
+    public float ScalePlace2;
+    public float ScalePlace1Ratio;
+    public float ScalePlace2Ratio;
+
+
+    public float Unkn2;
+    public float Unkn3;
+    public float Unkn4;
+    public float FadeByTwistMin;
+    public uint FadeByTwistFlags; // TODO recheck
+
+    [RszConstructorParams(nameof(Version)), RszSwitch(
 		nameof(Version), ">=", EfxVersion.DD2, typeof(EfxMaterialStructV2),
 		typeof(EfxMaterialStructV1)
 	)]
@@ -917,26 +931,30 @@ public partial class EFXAttributeTypeRibbonParticle : EFXAttribute
 	public float ukn33;
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonTrail, EfxVersion.RE7, EfxVersion.RE2, EfxVersion.RE3, EfxVersion.RE4)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonTrail, EfxVersion.RE7, EfxVersion.RE2, EfxVersion.RE3, EfxVersion.RERT, EfxVersion.RE4)]
 public partial class EFXAttributeTypeRibbonTrail : EFXAttribute
 {
 	public EFXAttributeTypeRibbonTrail() : base(EfxAttributeType.TypeRibbonTrail) { }
 
-	public uint unkn0;
-	[RszVersion(EfxVersion.RE4)]
-    public uint unkn1;
-    public via.Color color0;
-    public via.Color color1;
-    public float unkn4;
-    public float unkn5;
-    public float unkn6;
-    public float unkn7;
-    public float unkn8;
-    public float unkn9;
-	[RszVersion(EfxVersion.RERT)]
-    public float unkn10;
-    public uint unkn11;
-    public uint unkn12;
+    public uint BlendFlags;
+	[RszVersionExact(EfxVersion.RE4)]
+    public uint FlagsRe4;
+    public via.Color Color;
+    public via.Color ColorRange;
+    public float ColorRate;
+    public float Intensity;
+    public float EdgeBlendRange;
+    public float AlphaRate;
+
+	[RszVersion(">", EfxVersion.RE4)] // TODO verify which field should be gone
+    public uint Flags;
+    public via.Range Width;
+	[RszVersion('<', EfxVersion.RERT)]
+    public uint FlagsDmc5; // could be intervalFrame or division?
+	[RszVersion(EfxVersion.RERT, EndAt = nameof(Division))]
+    public float ShadowMultiplier;
+    public uint Division;
+    public uint IntervalFrame;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonParticleExpression, EfxVersion.DD2)]
@@ -975,35 +993,33 @@ public partial class EFXAttributeTypeRibbonParticleExpression : EFXAttribute, IE
 public partial class EFXAttributeTypeGpuRibbonFollow : EFXAttribute
 {
 	public EFXAttributeTypeGpuRibbonFollow() : base(EfxAttributeType.TypeGpuRibbonFollow) { }
-
-	public uint unkn0;
+    public uint BlendFlags;
 	[RszVersion('<', EfxVersion.RE4, EndAt = nameof(unkn4))]
 	public uint unkn1;
 	public uint unkn2;
 	public uint unkn3;
 	[RszVersion(EfxVersion.RE8)]
 	public uint unkn4;
-	public via.Color color0;
-	public via.Color color1;
-	public float unkn7;
+    public via.Color Color;
+    public via.Color ColorRange;
+    public float ColorRate;
+    public float Intensity;
+    public float EdgeBlendRange;
+    public float AlphaRate;
 
-	public float unkn8;
-	public float unkn9;
-	public float unkn10;
 
-	[RszVersion(EfxVersion.RE4, EndAt = nameof(re4_unkn5))]
-    public uint re4_unkn1;
-    public uint re4_unkn2;
-    public uint re4_unkn3;
-    public uint re4_unkn4;
+	[RszVersion(EfxVersion.RE4, EndAt = nameof(ControlPointNum))]
+    public uint FollowFlags;
+    public uint ParticleNum;
+    public uint SegmentNum;
+    public uint ControlPointNum;
 	[RszVersionExact(EfxVersion.RE4)]
-    public uint re4_unkn5;
-
-	public float unkn11;
-	public float unkn12;
-	public float unkn13;
+    public uint re4_unkn5; // TODO verify placement with above fields
+    public via.Range SizeScalar;
 	[RszVersion(EfxVersion.RE3)]
-	public float unkn14;
+    public Vector2 StretchDistance;
+	[RszVersionExact(EfxVersion.RE2, EfxVersion.DMC5)]
+    public float UknDmc5;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuRibbonFollowExpression, EfxVersion.RE4)]
 public partial class EFXAttributeTypeGpuRibbonFollowExpression : EFXAttribute, IExpressionAttribute
@@ -1032,41 +1048,35 @@ public partial class EFXAttributeTypeGpuRibbonFollowExpression : EFXAttribute, I
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuRibbonLength, EfxVersion.RE8)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuRibbonLength, EfxVersion.RE8, EfxVersion.RE4, EfxVersion.DD2)]
 public partial class EFXAttributeTypeGpuRibbonLength : EFXAttribute
 {
 	public EFXAttributeTypeGpuRibbonLength() : base(EfxAttributeType.TypeGpuRibbonLength) { }
-
-	public uint unkn0;
+    public uint BlendFlags;
 	[RszVersion('<', EfxVersion.RE4)]
 	public uint unkn1;
-	public via.Color color0;
-	public via.Color color1;
-	public float unkn3;
-	public float unkn4;
-	public UndeterminedFieldType unkn5;
-	public float unkn6;
+    public via.Color Color;
+    public via.Color ColorRange;
+    public float ColorRate;
+    public float Intensity;
+    public float EdgeBlendRange;
+    public float AlphaRate;
+
 	[RszVersion(EfxVersion.RE4)]
-    public uint re4_unkn1;
-	[RszVersion("==", EfxVersion.RE4)]
-    public uint re4_unkn2;
-	public float unkn7;
-	public float unkn8;
-	public float unkn9;
-	public float unkn10;
-	public float unkn11;
-	public uint unkn12;
-	public float unkn13;
-	public float unkn14;
-	public uint unkn15;
-	public float unkn16;
-	public float unkn17;
-	public float unkn18;
-	public float unkn19;
-	public float unkn20;
-	public float unkn21;
-	public float unkn22;
-	public float unkn23;
+    public uint Flags;
+    public via.Range SizeScalar;
+    public via.Range Width;
+    public float TextureRepeatNum;
+	[RszVersionExact(EfxVersion.RE4)]
+    public float unkn_Re4; // TODO verify values
+    public uint ParticleNum;
+    public via.Range Length;
+	[RszVersion('>', EfxVersion.DMC5)]
+    public uint ShapeDivision;
+    public via.Range BasingPoint;
+    public via.Range DirectionX;
+    public via.Range DirectionY;
+    public via.Range DirectionZ;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuRibbonLengthExpression, EfxVersion.DD2)]
@@ -1096,4 +1106,99 @@ public partial class EFXAttributeTypeGpuRibbonLengthExpression : EFXAttribute, I
     public ExpressionAssignType unkn13;
     public ExpressionAssignType unkn14;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
+}
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonParticleMaterial, EfxVersion.MHWilds)]
+public partial class EFXAttributeTypeRibbonParticleMaterial : EFXAttribute
+{
+	public EFXAttributeTypeRibbonParticleMaterial() : base(EfxAttributeType.TypeRibbonParticleMaterial) { }
+
+	public uint ukn1;
+	public via.Color color1;
+	public via.Color color2;
+	public float ukn5;
+	public uint ukn6;
+	public uint ukn7;
+	public float ukn8;
+	public uint ukn9;
+
+	public float ukn10;
+	public float ukn11;
+	public float ukn12;
+	public float ukn14;
+	public int ukn15;
+	public float ukn16;
+	public float ukn17;
+	public float ukn18;
+	public uint ukn19;
+	public uint ukn20;
+	public uint ukn21;
+	public float ukn22;
+	public float ukn23;
+	public float ukn24;
+	public via.Color color3;
+	public via.Color color4;
+	public via.Color color5;
+	public float ukn25;
+	public float ukn26;
+	public float ukn27;
+	public float ukn28;
+	public float ukn29;
+	public float ukn30;
+	public float ukn31;
+	public float ukn32;
+	public float ukn33;
+	public float ukn34;
+
+    [RszConstructorParams(nameof(Version)), RszSwitch(
+		nameof(Version), ">=", EfxVersion.DD2, typeof(EfxMaterialStructV2),
+		typeof(EfxMaterialStructV1)
+	)]
+	public EfxMaterialStructBase? material;
+}
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonParticleMaterialClip, EfxVersion.MHWilds)]
+public partial class EFXAttributeTypeRibbonParticleMaterialClip : EFXAttribute, IClipAttribute
+{
+    public EfxClipData Clip => clipData;
+    public BitSet ClipBits => clipBits;
+
+	public EFXAttributeTypeRibbonParticleMaterialClip() : base(EfxAttributeType.TypeRibbonParticleMaterialClip) { }
+
+	[RszClassInstance] public readonly BitSet clipBits = new BitSet(1); // TODO verify clip bit count
+	public uint unkn1;
+	[RszClassInstance] public EfxClipData clipData = new();
+}
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonParticleMaterialExpression, EfxVersion.MHWilds)]
+public partial class EFXAttributeTypeRibbonParticleMaterialExpression : EFXAttribute, IExpressionAttribute
+{
+    public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
+    public EFXMaterialExpressionList? MaterialExpressions => materialExpressions;
+	public BitSet ExpressionBits => expressionBits;
+
+	public EFXAttributeTypeRibbonParticleMaterialExpression() : base(EfxAttributeType.TypeRibbonParticleMaterialExpression) { }
+
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(14);
+    public ExpressionAssignType unkn1;
+    public ExpressionAssignType unkn2;
+    public ExpressionAssignType unkn3;
+    public ExpressionAssignType unkn4;
+    public ExpressionAssignType unkn5;
+    public ExpressionAssignType unkn6;
+    public ExpressionAssignType unkn7;
+    public ExpressionAssignType unkn8;
+    public ExpressionAssignType color1;
+    public ExpressionAssignType unkn10;
+    public ExpressionAssignType color2;
+    public ExpressionAssignType unkn12;
+    public ExpressionAssignType color3;
+    public ExpressionAssignType unkn14;
+
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
+
+	public ExpressionAssignType unkn15;
+	public uint materialExpressionCount;
+
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXMaterialExpressionList? materialExpressions;
 }

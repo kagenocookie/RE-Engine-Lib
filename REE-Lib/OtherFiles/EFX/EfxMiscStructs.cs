@@ -1,5 +1,8 @@
+using System.Numerics;
+using ReeLib.Efx.Enums;
 using ReeLib.Efx.Structs.Common;
 using ReeLib.InternalAttributes;
+using ReeLib.via;
 
 namespace ReeLib.Efx.Structs.Misc;
 
@@ -40,18 +43,18 @@ public partial class EFXAttributeDistortion : EFXAttribute
 {
 	public EFXAttributeDistortion() : base(EfxAttributeType.Distortion) { }
 
-	public DistortionType distortionType;
-	public float unkn2_strength;
+	public DistortionType DistortionType;
+	public float Influence;
 
-	[RszVersion(EfxVersion.RE3, EndAt = nameof(color))]
-	public float unkn3;
-	public float unkn4;
+	[RszVersion(EfxVersion.RE3, EndAt = nameof(SpecularColor))]
+	public float SpecularPower;
+	public float SpecularIntensity;
 	[RszVersion(EfxVersion.RE8)]
-	public via.Color color;
+	public via.Color SpecularColor;
 
-	[RszVersion(EfxVersion.DD2, EndAt = nameof(dd2_unkn2))]
-	public float dd2_unkn1;
-	public byte dd2_unkn2;
+	[RszVersion(EfxVersion.DD2, EndAt = nameof(FadeScreenEdge))]
+	public float AlphaBlend;
+	public bool FadeScreenEdge;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.DistortionExpression, EfxVersion.DD2)]
@@ -76,28 +79,28 @@ public partial class EFXAttributeProceduralDistortion : ReeLib.Efx.EFXAttribute
 {
     public EFXAttributeProceduralDistortion() : base(EfxAttributeType.ProceduralDistortion) { }
 
-    [RszVersion(EfxVersion.RE4)]
-	public uint unkn0;
-	public float unkn1;
-	public float unkn2;
-	public float unkn3;
-	public float unkn4;
-	public float unkn5;
+    [RszVersion(EfxVersion.RE8)]//TODO Verify older versions
+	public uint Flags;
+	public float UScale;
+	public float VScale;
+	public float WaveFrequency;
+	public float WaveAmplitude;
+	public float WaveAmplitudeCoef;
 
-    [RszVersion(EfxVersion.RE4, EndAt = nameof(unkn17))]
-	public float unkn6;
-	public float unkn7;
-	public float unkn8;
-	public float unkn9;
-	public float unkn10;
-	public float unkn11;
-	public float unkn12;
-	public float unkn13;
-	public float unkn14;
-	public float unkn15;
-	public float unkn16;
-	public float unkn17;
-	public float unkn18;
+    [RszVersion(EfxVersion.RE8, EndAt = nameof(RadialOscillationAmplitudeNoiseAmplitude))]
+	public float WaveOffset;
+	public float WaveTimer;
+	public float SpinInit;
+	public float SpinMax;
+	public float SpinTimer;
+	public float SpinTimerCoef;
+	public float RadialOscillationFrequency;
+	public float RadialOscillationAmplitude;
+	public float RadialOscillationFrequencyNoiseFrequency;
+	public float RadialOscillationFrequencyNoiseAmplitude;
+	public float RadialOscillationAmplitudeNoiseFrequency;
+	public float RadialOscillationAmplitudeNoiseAmplitude;
+	public float RadialOscillationTimer;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.ProceduralDistortionDelayFrame, EfxVersion.RE4)]
@@ -158,11 +161,11 @@ public partial class EFXAttributeFakeDoF : ReeLib.Efx.EFXAttribute
 {
     public EFXAttributeFakeDoF() : base(EfxAttributeType.FakeDoF) { }
 
-    public float unkn0;
-    public float unkn1;
-    public float unkn2;
-    public uint unkn3;
-    public float unkn4;
+    public float NearDistance;
+    public float MaxScale;
+    public float MinAlpha;
+    public uint UsingMipLevel;
+    public float VanishDistance;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.WindInfluence3D, EfxVersion.RE8, EfxVersion.RE4)]
@@ -170,12 +173,9 @@ public partial class EFXAttributeWindInfluence3D : EFXAttribute
 {
 	public EFXAttributeWindInfluence3D() : base(EfxAttributeType.WindInfluence3D) { }
 
-	public float unkn1;
-	public float unkn2;
-	public float unkn3;
-	public float unkn4;
-	public uint unkn5;
-	public uint unkn6;
+	public via.Range InfluenceRate;
+	public via.Range InfluenceCoef;
+	public via.RangeI InfluenceFrame;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.WindInfluence3DDelayFrame, EfxVersion.DD2)]
@@ -192,7 +192,7 @@ public partial class EFXAttributeDepthOcclusion : EFXAttribute
 {
 	public EFXAttributeDepthOcclusion() : base(EfxAttributeType.DepthOcclusion) { }
 
-	public uint unkn;
+	public uint Flags;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PlaneCollider, EfxVersion.RE8, EfxVersion.RE4)]
@@ -200,22 +200,14 @@ public partial class EFXAttributePlaneCollider : EFXAttribute
 {
 	public EFXAttributePlaneCollider() : base(EfxAttributeType.PlaneCollider) { }
 
-	public uint unkn1;
-	public UndeterminedFieldType unkn2;
-	public float unkn3;
-	public UndeterminedFieldType unkn4;
-	public UndeterminedFieldType unkn5;
-	public UndeterminedFieldType unkn6;
-	public float unkn7;
-	public uint unkn8;
-	public uint unkn9;
-	public float unkn10;
-	public float unkn11;
-	public UndeterminedFieldType unkn12;
-	public UndeterminedFieldType unkn13;
-	public UndeterminedFieldType unkn14;
-	public uint unkn15;
-	public uint unkn16;
+    public uint Flags;
+	public Vector3 Position;
+    public Vector3 Rotation;
+    public via.RangeI BounceNum;
+    public via.Range BounceRate;
+    public Vector3 FaceNormalRotation;
+    public via.RangeI IdleTime;
+
 }
 
 
@@ -224,18 +216,18 @@ public partial class EFXAttributeFixRandomGenerator : EFXAttribute
 {
 	public EFXAttributeFixRandomGenerator() : base(EfxAttributeType.FixRandomGenerator) { }
 
-	public uint unkn1_0;
-	public int unkn1_1; // probably a seed
-	public int unkn1_2;
-	public int unkn1_3; // probably a seed
-	public int unkn1_4;
-	[RszVersion(EfxVersion.RE3, EndAt = nameof(unkn1_9))]
-	public int unkn1_5;
-	[RszVersion(">", EfxVersion.RE3, EndAt = nameof(unkn1_9))]
-	public int unkn1_6;
-	public int unkn1_7;
-	public int unkn1_8;
-	public int unkn1_9;
+	public int useRandomSeedTableCount;
+	public int randomSeedTable0;//TODO Make this into a fixed array of 8?
+	public int randomSeedTable1;
+	public int randomSeedTable2;
+	public int randomSeedTable3;
+	[RszVersion(EfxVersion.RE3, EndAt = nameof(tableSelectionGroup))]
+	public int randomSeedTable4;
+	[RszVersion(">", EfxVersion.RE3, EndAt = nameof(tableSelectionGroup))]
+	public int randomSeedTable5;
+	public int randomSeedTable6;
+	public int randomSeedTable7;
+	public int tableSelectionGroup;//This value may be incorrect for older games, could be in a different spot
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.EffectShader, EfxVersion.DD2)]
@@ -285,18 +277,27 @@ public partial class EFXAttributeAttractor : EFXAttribute, IBoneRelationAttribut
 {
 	public EFXAttributeAttractor() : base(EfxAttributeType.Attractor) { }
 
-	public uint unkn1_0;
-	public float positionX;
-	public float positionY;
-	public float positionZ;
-	public float attractionForce;
-	public float unkn1_5;
-	public float unkn1_6;
-	public float unkn1_7;
-	[RszVersion(EfxVersion.DD2, EndAt = nameof(unkn1_10))]
-	public float unkn1_8;
-	public float unkn1_9;
-	public float unkn1_10;
+	public uint Flags;
+	public Vector3 AttractPosition;
+	public via.Range ForceScale;
+    public via.Range ReversalForceScale;
+	[RszVersion(EfxVersion.DD2, EndAt = nameof(ForceResist))]//TODO Verify older game fields
+    public via.Range ReversalDistance;
+	public float ForceResist;
+
+	[RszVersion(EfxVersion.MHWilds, EndAt = nameof(endwilds))]
+	public UndeterminedFieldType unknWild1;
+	public UndeterminedFieldType unknWild2;
+	public via.Range unknWild3;
+	public via.Range unknWild4;
+	public via.Range unknWild5;
+	public via.Range unknWild6;
+	public via.Range unknWild7;
+	public via.Range unknWild8;
+	public via.Range unknWild9;
+	public UndeterminedFieldType unknWild10;
+	public UndeterminedFieldType endwilds;
+
 	[RszInlineWString] public string? boneName;
 
     public string? ParentBone { get; set; }
@@ -325,7 +326,7 @@ public partial class EFXAttributeAttractorExpression : EFXAttribute, IExpression
 
 	public EFXAttributeAttractorExpression() : base(EfxAttributeType.AttractorExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(10) { BitNameDict = new () {
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(11) { BitNameDict = new () {
 		[1] = nameof(posX),
 		[2] = nameof(posY),
 		[3] = nameof(posZ),
@@ -344,6 +345,9 @@ public partial class EFXAttributeAttractorExpression : EFXAttribute, IExpression
 	public ExpressionAssignType unkn8;
 	public ExpressionAssignType unkn9;
 	public ExpressionAssignType unkn10;
+
+	[RszVersion(EfxVersion.MHWilds)]
+	public ExpressionAssignType unkn11_Wilds;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
@@ -353,17 +357,14 @@ public partial class EFXAttributeBlink : EFXAttribute
 	public EFXAttributeBlink() : base(EfxAttributeType.Blink) { }
 
 	[RszVersion(EfxVersion.DD2)]
-	public uint dd2_unkn1;
-	public float unkn1_0;
-	public float unkn1_1;
-	public float unkn1_2;
-	public float unkn1_3;
-	public float unkn1_4;
-	public float unkn1_5;
-	public float unkn1_6;
-	public float unkn1_7;
-	public float unkn1_8;
-	public float unkn1_9;
+	public uint Flags;
+	public float MinRate;
+	public float MaxRate;
+	public via.Range LowFrequency;
+    public via.Range LowFrequencyWidth;
+    public via.Range HighFrequency;
+    public via.Range HighFrequencyWidth;
+
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.ColorGrading, EfxVersion.RE4, EfxVersion.DD2)]
@@ -371,12 +372,12 @@ public partial class EFXAttributeColorGrading : EFXAttribute
 {
 	public EFXAttributeColorGrading() : base(EfxAttributeType.ColorGrading) { }
 
-	public via.Color color0;//Unconfirmed
-	public via.Color color1;//Unconfirmed
-	public float unkn1_0;
-	public float unkn1_1;
-	public float unkn1_2;
-	public float unkn1_3;
+	public via.Color HighBrightnessColor;
+	public via.Color LowBrightnessColor;
+	public float HighBrightnessIntensity;
+	public float LowBrightnessIntensity;
+	public float HighGradingBorder;
+	public float LowGradingBorder;
 
 }
 
@@ -385,22 +386,25 @@ public partial class EFXAttributeContrastHighlighter : EFXAttribute
 {
 	public EFXAttributeContrastHighlighter() : base(EfxAttributeType.ContrastHighlighter) { }
 
-	public float unkn1_0;
-	public float unkn1_1;
-	public float unkn1_2;
-	public float unkn1_3;
-	public uint unkn1_4;
-	public float unkn1_5;
+	public float Threshold;
+	public float PeakMultiplier;
+	public float EdgeLimiter;
+	public float LuminanceScale;
+	public uint HighlightColor;
+	public float HighlightIntensity;
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.DrawOverlay, EfxVersion.DMC5, EfxVersion.RERT, EfxVersion.RE4)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.DrawOverlay, EfxVersion.DMC5, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.MHWilds)]
 public partial class EFXAttributeDrawOverlay : EFXAttribute
 {
 	public EFXAttributeDrawOverlay() : base(EfxAttributeType.DrawOverlay) { }
 
-	public uint unkn0_0;
-	public uint unkn0_1;
-	public uint unkn0_2;
+	public uint Segment;
+	public uint Priority;
+	public uint CameraID;
+
+	[RszVersion(EfxVersion.MHWilds)]
+	public UndeterminedFieldType UnknWilds;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.EmitMask, EfxVersion.RE4)]
@@ -422,15 +426,15 @@ public partial class EFXAttributeLuminanceBleed : EFXAttribute
 {
 	public EFXAttributeLuminanceBleed() : base(EfxAttributeType.LuminanceBleed) { }
 
-	public uint unkn0;
+    public LuminanceBleedType BleedType;
 	[RszVersion(EfxVersion.RE3)]
-    public uint unkn1_toggle;
-    public float unkn2;
+    public LuminanceBleedSamplingType SamplingType;
+    public float Bleed;
 
-    public float unkn3;
-    public float unkn4;
-    public float unkn5;
-    public float unkn6;
+    public float Slide;
+    public float ColorScaler;
+    public float ColorBias;
+    public float TexelScaler;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Noise, EfxVersion.RE4, EfxVersion.DD2)]
@@ -438,14 +442,10 @@ public partial class EFXAttributeNoise : EFXAttribute
 {
 	public EFXAttributeNoise() : base(EfxAttributeType.Noise) { }
 
-	public float unkn1_0;
-	public float unkn1_1;
-	public float unkn1_2;
-	public float unkn1_3;
-	public float unkn1_4;
-	public float unkn1_5;
-	public float unkn1_6;
-	public float unkn1_7;
+	public via.Range LowFrequency;
+	public via.Range LowFrequencyWidth;
+	public via.Range HighFrequency;
+	public via.Range HighFrequencyWidth;
 
 }
 
@@ -474,18 +474,15 @@ public partial class EFXAttributeStretchBlur : EFXAttribute
 {
 	public EFXAttributeStretchBlur() : base(EfxAttributeType.StretchBlur) { }
 
-    public uint blurRotation;
-    public uint two;//<comment="Doesn't seem to work when this value isn't two">;
-    public float blurAmount;
-    public float unkn4;
-    public float unkn5;
-    public float unknBlurScaleX;
-    public float unknBlurScaleY;
-    public float blurOpacity;
-    public float unkn9;
-    public float unkn10;
-    public float unkn11;
-    public float unkn12;
+    public uint Flags;
+    public uint TargetStencil;//<comment="Doesn't seem to work when this value isn't two">;
+    public float StrengthBlur;
+    public Vector2 ScreenFadeRange;
+
+    public Vector2 SamplingSize;
+    public float AlphaIntensity;
+    public float AdjustRotationBySpeed;
+    public Vector3 SamplingOffset;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TexelChannelOperator, EfxVersion.RE4)]
@@ -493,23 +490,20 @@ public partial class EFXAttributeTexelChannelOperator : EFXAttribute
 {
 	public EFXAttributeTexelChannelOperator() : base(EfxAttributeType.TexelChannelOperator) { }
 
-	public float unkn1_0;
-	public float unkn1_1;
-	public via.Color unkn1_2;
-	public float unkn1_3;
-	public float unkn1_4;
-	public float unkn1_5;
-	public float unkn1_6;
-	public float unkn1_7;
-	public float unkn1_8;
-	public float unkn1_9;
-	public uint unkn1_10;
-	public uint unkn1_11;
-	public uint unkn1_12;
-	public uint unkn1_13;
-	public uint unkn1_14;
-	public uint unkn1_15;
-	public uint unkn1_16;
+	public float HueShift;
+	public float HueIntensity;
+	public via.Color ShadeColor;
+	public float ShadeAlphaBlendRate;
+	public float Desaturate;
+	public float AmbientColorIntensity;
+	public float EmissiveRate;
+	public float EmissivePower;
+	public float Opacity;
+	public float HueIntensityCurve;
+	public uint UseIntEnvelope;
+	public via.RangeI Appear;
+    public via.RangeI Keep;
+    public via.RangeI Vanish;
 
 }
 
@@ -518,23 +512,18 @@ public partial class EFXAttributeVanishArea3D : EFXAttribute, IBoneRelationAttri
 {
 	public EFXAttributeVanishArea3D() : base(EfxAttributeType.VanishArea3D) { }
 
-	public uint unkn1_0;
-	public float unkn1_1;
-	public float unkn1_2;
-	public float unkn1_3;
-	public float unkn1_4;
-	public float unkn1_5;
-	public float unkn1_6;
-	public float unkn1_7;
-	public float unkn1_8;
-	public UndeterminedFieldType unkn1_9;
-	public float unkn1_10;
-	public float unkn1_11;
-	[RszInlineWString] public string? boneName;
+	public uint Flags;
+    [RszVersion(EfxVersion.MHWilds)]
+    public Vector3 wilds_unkn0;
+    public Vector3 AreaPosition;
+    public Vector3 AreaScale;
+    public Vector3 AreaAngle;
+	public via.Range VanishFrame;
+	[RszInlineWString] public string? JointName;
 
     public string? ParentBone { get; set; }
 
-    public override string ToString() => !string.IsNullOrEmpty(boneName) ? boneName : type.ToString();
+    public override string ToString() => !string.IsNullOrEmpty(JointName) ? JointName : type.ToString();
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.VanishArea3DExpression, EfxVersion.RE4)]
 public partial class EFXAttributeVanishArea3DExpression : EFXAttribute, IExpressionAttribute
@@ -586,40 +575,34 @@ public partial class EFXAttributeRgbCommon : EFXAttribute
 {
 	public EFXAttributeRgbCommon() : base(EfxAttributeType.RgbCommon) { }
 
-	public uint unkn1;
-	public via.Color color1;
-	public via.Color color2;
-	public float unkn3;
-	public float unkn4;
-	public float unkn5;
-	public via.Color color3;
-	public via.Color color4;
+	public uint Flags;
+	public via.Color GreenChColor;
+	public via.Color GreenChColorRange;
+	public float GreenChIntensity;
+	public float GreenChSaturate;
+	public float GreenChCurve;
+	public via.Color RedChColor;
+	public via.Color RedChColorRange;
 
-	public float unkn8;
-	public float unkn9;
-	public float unkn10;
+	public float RedChIntensity;
+	public float RedChAlphaToB;
+	public float Alpha;
 
-	public byte ukn2_0;
-	public uint ukn2_1;
-	public uint ukn2_2;
-	public uint ukn2_3;
-	public uint ukn2_4;
-	public uint ukn2_5;
-	public uint ukn2_6;
+	public bool UseGreenChLife;
+    public via.RangeI GreenChAppearFrame;
+    public via.RangeI GreenChKeepFrame;
+    public via.RangeI GreenChVanishFrame;
 
-	public byte ukn3_0;
-	public uint ukn3_1;
+    public bool GreenChLighting;
+	public LifeType GreenChLifeType;
 
-	public byte ukn4_0;
-	public uint ukn4_1;
-	public uint ukn4_2;
-	public uint ukn4_3;
-	public uint ukn4_4;
-	public uint ukn4_5;
-	public uint ukn4_6;
+	public byte UseRedChLife;
+    public via.RangeI RedChAppearFrame;
+    public via.RangeI RedChKeepFrame;
+    public via.RangeI RedChVanishFrame;
 
-	public byte ukn5_0;
-	public uint ukn5_1;
+    public bool RedChLighting;
+	public LifeType RedChLifeType;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.RgbCommonExpression, EfxVersion.DD2)]
@@ -630,7 +613,7 @@ public partial class EFXAttributeRgbCommonExpression : EFXAttribute, IExpression
 
 	public EFXAttributeRgbCommonExpression() : base(EfxAttributeType.RgbCommonExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(13) { BitNameDict = new() {
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(22) { BitNameDict = new() {
 		[1] = "GreenChColor",
 		[3] = "GreenChIntensity",
 		[4] = "GreenChSaturate",
@@ -670,41 +653,34 @@ public partial class EFXAttributeRgbWater : EFXAttribute
 {
 	public EFXAttributeRgbWater() : base(EfxAttributeType.RgbWater) { }
 
-    public ByteSet unkn0;
-	public float unkn1;
-	[RszVersion(EfxVersion.MHWilds)]
-	public float mhws_unkn;
-	public ByteSet unkn2;
-	public float unkn3;
-	public float unkn4;
-	public float unkn5;
+    public via.Color SpecularColor;
+    [RszVersion(EfxVersion.MHWilds)]
+    public float mhws_unkn;
+    public float SpecularIntensity;
 
-	public byte toggle_b1;
-	public uint unkn6;
-	public UndeterminedFieldType unkn7;
-	public uint unkn8;
-	public UndeterminedFieldType unkn9;
+	public via.Color SheetColor;
+	public float SheetIntensity;
+	public float GtoB;
+	public float Alpha;
 
-	public byte toggle_b2;
-	public UndeterminedFieldType unkn10;
-	public UndeterminedFieldType unkn11;
-	public UndeterminedFieldType unkn12;
-	public UndeterminedFieldType unkn13;
-	public UndeterminedFieldType unkn14;
-	public uint unkn15;
-	public UndeterminedFieldType unkn16;
-	public uint unkn17;
-	public UndeterminedFieldType unkn18;
-	public UndeterminedFieldType unkn19;
+	public bool UseSpecularLife;
+	public via.RangeI SpecularAppearFrame;
+    public via.RangeI SpecularKeepFrame;
+    public via.RangeI SpecularVanishFrame;
 
-	public byte toggle_b3;
-	public UndeterminedFieldType unkn20;
-	public UndeterminedFieldType unkn21;
-	public uint unkn22;
-	public UndeterminedFieldType unkn23;
-	public uint unkn24;
-	public UndeterminedFieldType unkn25;
-	public UndeterminedFieldType unkn26;
+    public LifeType SpecularLifeType;
+
+    public byte UseSheetLife;
+    public via.RangeI SheetAppearFrame;
+    public via.RangeI SheetKeepFrame;
+    public via.RangeI SheetVanishFrame;
+    public LifeType SheetLifeType;
+
+	public byte UseGtoBLife;
+    public via.RangeI GtoBAppearFrame;
+    public via.RangeI GtoBKeepFrame;
+    public via.RangeI GtoBVanishFrame;
+    public LifeType GtoBLifeType;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.RgbWaterExpression, EfxVersion.MHWilds)]
@@ -760,16 +736,12 @@ public partial class EFXAttributeFlowMap : EFXAttribute
 {
 	public EFXAttributeFlowMap() : base(EfxAttributeType.FlowMap) { }
 
-	public float unkn1;
-	public float unkn2;
-	public float unkn3;
-	public float unkn4;
-	public float unkn5;
-	public float unkn6;
-	public float unkn7;
-	public float unkn8;
+	public via.Range Strength;
+	public via.Range StrengthCoef;
+    public via.Range Speed;
+    public via.Range SpeedCoef;
 
-	[RszInlineWString] public string? flowmapMaskPath;
+    [RszInlineWString] public string? flowmapMaskPath;
 
     public override string ToString() => !string.IsNullOrEmpty(flowmapMaskPath) ? flowmapMaskPath : type.ToString();
 }
@@ -779,15 +751,15 @@ public partial class EFXAttributeAssignCSV : EFXAttribute
 {
 	public EFXAttributeAssignCSV() : base(EfxAttributeType.AssignCSV) { }
 
-    public ushort unkn1;
-    public uint unkn2;
-    public uint unkn3;
-    [RszInlineWString] public string? efcsvPath;
-    [RszInlineWString] public string? unknString0;
-    [RszInlineWString] public string? unknString1;
-    [RszInlineWString] public string? unknString2;
+    public bool RandomizeIndexOrder;
+    public bool UseTableRange;
+    public via.RangeI mTableRange;
+    [RszInlineWString] public string? efcsvPostionListPath;
+    [RszInlineWString] public string? efcsvRotationListPath;
+    [RszInlineWString] public string? efcsvVelocityListPath;
+    [RszInlineWString] public string? efcsvColorListPath;
 
-    public override string ToString() => !string.IsNullOrEmpty(efcsvPath) ? efcsvPath : type.ToString();
+    public override string ToString() => !string.IsNullOrEmpty(efcsvPostionListPath) ? efcsvPostionListPath : type.ToString();
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.DestinationCSV, EfxVersion.DD2)]
@@ -810,25 +782,24 @@ public partial class EFXAttributeDestinationCSV : EFXAttribute
     public override string ToString() => !string.IsNullOrEmpty(efcsvPath) ? efcsvPath : type.ToString();
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TerrainSnap, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TerrainSnap, EfxVersion.DD2, EfxVersion.MHWilds)]
 public partial class EFXAttributeTerrainSnap : EFXAttribute
 {
 	public EFXAttributeTerrainSnap() : base(EfxAttributeType.TerrainSnap) { }
 
-	public uint unkn0;
-	public bool unkn1;
-	public float unkn2;
-	public UndeterminedFieldType unkn3;
-	public float unkn4;
-	public float unkn5;
-	public float unkn6;
-	public float unkn7;
-	public short unkn8;
-	public float unkn9;
-	public UndeterminedFieldType unkn10;
-	public float unkn11;
-	public UndeterminedFieldType unkn12;
-	public float unkn13;
+	public TerrainSnapType SnapType;
+	public bool InitSnap;
+	public via.Range HorizontalBounceRate;
+    public via.Range VerticalBounceRate;
+    public via.Range Offset;
+    public bool IgnoreScale;
+    public bool FinishParticleAngleApplyEmitterAngle;
+    public float FinishParticleAngleMaxRad;
+	public float FinishParticleAngleMinRad;
+    public via.Range FinishParticleAngleFrame;
+    public float KillParticleHeight;
+	[RszVersionExact(EfxVersion.MHWilds)]
+	public byte uknByte;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Trigger, EfxVersion.DD2)]
@@ -839,4 +810,54 @@ public partial class EFXAttributeTrigger : EFXAttribute
 	public uint unkn1;
 	public UndeterminedFieldType unkn2;
 	public float unkn3;
+}
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.DrawSubscene, EfxVersion.MHWilds)]
+public partial class EFXAttributeDrawSubscene : EFXAttribute
+{
+	public EFXAttributeDrawSubscene() : base(EfxAttributeType.DrawSubscene) { }
+}
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.IgnoreSettings, EfxVersion.MHWilds)]
+public partial class EFXAttributeIgnoreSettings : EFXAttribute
+{
+	public EFXAttributeIgnoreSettings() : base(EfxAttributeType.IgnoreSettings) { }
+
+	public uint Flags;
+}
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.RepeatArea, EfxVersion.MHWilds)]
+public partial class EFXAttributeRepeatArea : EFXAttribute
+{
+	public EFXAttributeRepeatArea() : base(EfxAttributeType.RepeatArea) { }
+
+	public uint Flags;
+	public Vector3 Area;
+	public float Unkn;
+}
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Listener, EfxVersion.MHWilds)]
+public partial class EFXAttributeListener : EFXAttribute
+{
+	public EFXAttributeListener() : base(EfxAttributeType.Listener) { }
+
+	public uint Unkn1;
+	public uint Unkn2;
+}
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Layout, EfxVersion.MHWilds)]
+public partial class EFXAttributeLayout : EFXAttribute
+{
+	public EFXAttributeLayout() : base(EfxAttributeType.Layout) { }
+
+	public uint flags1;
+	public uint flags2;
+	public uint Unkn3;
+
+	// note: not 100% on the flag bits but most Wilds files seem to work with this
+	[RszConditional("((flags1 & (8 | 4 | 16)) != 0)", EndAt = nameof(layoutDataFloats))]
+	[RszInlineWString]
+	public string? layoutName;
+	[RszFixedSizeArray]
+	public byte[]? layoutDataFloats;
 }

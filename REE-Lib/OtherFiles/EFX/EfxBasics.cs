@@ -1,5 +1,6 @@
 using ReeLib.Efx.Structs.Common;
 using ReeLib.InternalAttributes;
+using ReeLib.via;
 
 namespace ReeLib.Efx.Structs.Basic;
 
@@ -8,54 +9,60 @@ public partial class EFXAttributeSpawn : EFXAttribute
 {
 	public EFXAttributeSpawn() : base(EfxAttributeType.Spawn) { }
 
-	public uint maxParticles;
-	public uint rawMaxParticles;
-	public via.Int2 spawnNum;
-	public via.Int2 intervalFrame;
+	public uint MaxParticles;
+	public uint ParticleInterval;
+	public via.Int2 SpawnNum;
+	public via.Int2 IntervalFrame;
 
 	[RszVersion('<', EfxVersion.DD2)]
-	public uint useSpawnFrame;
+	public uint UseSpawnFrameInt;
 
-	[RszVersion(EfxVersion.DD2)] public bool useSpawnFrame_toggle;
-	public via.RangeI spawnFrame;
+	[RszVersion(EfxVersion.DD2)] public bool UseSpawnFrame;
+	public via.RangeI SpawnFrame;
 
-	[RszVersion(">", EfxVersion.RE3, EndAt = nameof(re4_unkn6))]
-	public via.RangeI loopNum;
+	[RszVersion(">", EfxVersion.RE3, EndAt = nameof(OriginalMaxParticles))]
+	public via.RangeI LoopNum;
 
-	public via.Int2 emitterdelayFrame;
-	[RszVersion(EfxVersion.DD2, EndAt = nameof(dd2_unkn2))]
-	public bool dd2_toggle1;
-	public bool dd2_toggle2;
-	public bool dd2_toggle3;
-	public float dd2_unknFlt;
-	public byte dd2_unkn2_toggle;
-	public uint dd2_unkn2;
+	public via.Int2 EmitterDelayFrame;
 
-	public uint ringBufferMode;
+	[RszVersion(EfxVersion.DD2, EndAt = nameof(UseRevival))]
+	public bool RingBufferMode;
+	public bool UseLoopNumRatio;
+	public bool Interpolate;
+	public float DistancePerSpawn;
+	public bool UseRevival;
+    //TODO FIX Check these are correct on older games
+	[RszVersion(EfxVersion.RE4)]
+    via.RangeI RevivalNum;
+	[RszVersion(EfxVersion.DD2)]
+    via.RangeI RevivalInterval;
 
-	[RszVersion(EfxVersion.RERT, EndAt = nameof(re4_unkn6))]
-	[RszVersion(EfxVersion.DD2)] public via.Int2 dd2_unkn3;
-	[RszVersion(EfxVersion.DD2)] public byte dd2_unkn4;
-	public uint sb_unkn3;
 
-	[RszVersion(EfxVersion.RE4, EndAt = nameof(re4_unkn6))]
-	[RszVersion("<", EfxVersion.DD2, EndAt = nameof(re4_unkn4))]
+	[RszVersionExact(EfxVersion.RE4, EndAt = nameof(re4_unkn4))] // TODO recheck
 	public uint re4_unkn0;
 	public float re4_unkn1;
 	public uint re4_unkn2;
 	public uint re4_unkn3;
-	public uint re4_unkn4;
+	public uint re4_unkn4; // TODO need to verify where to place these relative to SpawnChanceFrame
+
+	[RszVersion(EfxVersion.DD2)] public bool TrySpawnAllParticles;
+
+	[RszVersion(EfxVersion.RE8)]
+	public uint SpawnChanceFrame;
+    [RszVersion(EfxVersion.DD2)] public bool InitializeFull;
+    [RszVersion(EfxVersion.RERT)] public uint OriginalMaxParticles;
+
+    /*
+	[RszVersion(EfxVersion.RE4, EndAt = nameof(re4_unkn6))]
 
 	[RszVersion(EfxVersion.DD2)] public byte dd2_unkn5;
 	public uint re4_unkn5;
 	[RszVersion("<", EfxVersion.DD2, EndAt = nameof(re4_unkn6))]
 	public uint re4_unkn6;
+    */
+    [RszVersion(EfxVersion.MHWilds)] public byte mhws_unkn_toggle;
 
-	[RszVersion(EfxVersion.MHWilds)] public byte mhws_unkn_toggle;
-    // [RszVersion(EfxVersion.MHWilds)] public uint mhws_unkn1;
-    // [RszVersion(EfxVersion.MHWilds)] public uint mhws_unkn2;
-
-    public override string ToString() => $"Count = {spawnNum}";
+    public override string ToString() => $"Count = {SpawnNum}";
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.SpawnExpression, EfxVersion.RE3, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
@@ -85,26 +92,23 @@ public partial class EFXAttributeParentOptions : EFXAttribute, IBoneRelationAttr
 {
 	public EFXAttributeParentOptions() : base(EfxAttributeType.ParentOptions) { }
 
-	public via.Int3 RelationPos;
+	public via.Int3 RelationPos;//TODO ENUM - ParentConstraint
 	public via.Int3 RelationRot;
 	public via.Int3 RelationScl;
 	[RszVersion('<', EfxVersion.RE8)]
 	public uint ParticleUseLocal_re7;
-	[RszVersion(EfxVersion.RE8, EndAt = nameof(unkn8))]
+	[RszVersion(EfxVersion.RE8, EndAt = nameof(ConstInheritReleaseRate))]
 	public byte ParticleUseLocal;
-	public float ConstInheritRate;
-	public float ConstInheritVariation;
-	public uint ConstFrame;
-	public uint ConstFrameVariation;
-	public uint unkn6;
-	public uint unkn7;
-	public float unkn8;
+	public via.Range ConstInheritRate;
+	public via.RangeI ConstFrame;
+    public via.RangeI ConstReleaseFrame;
+	public float ConstInheritReleaseRate;
 
-	[RszInlineWString(ByteSize = true)] public string? boneName;
+	[RszInlineWString(ByteSize = true)] public string? BoneName;
 
     public string? ParentBone { get; set; }
 
-    public override string ToString() => !string.IsNullOrEmpty(boneName) ? boneName : type.ToString();
+    public override string ToString() => !string.IsNullOrEmpty(BoneName) ? BoneName : type.ToString();
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.ParentOptionsExpression, EfxVersion.DD2)]
@@ -129,17 +133,16 @@ public partial class EFXAttributeParentOptionsExpression : EFXAttribute, IExpres
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Life, EfxVersion.RE7, EfxVersion.DMC5, EfxVersion.RE4, EfxVersion.DD2)]
 public partial class EFXAttributeLife : EFXAttribute
 {
-	public via.Int2 AppearFrameRange;
-	public via.Int2 KeepFrameRange;
-	public via.Int2 VanishFrameRange;
-	public uint unkn7; // Might be KeepHoldFrame
-	public uint unkn8; // Might be KeepHoldFrameVariation
+	public via.RangeI AppearFrame;
+	public via.RangeI KeepFrame;
+	public via.RangeI VanishFrame;
+	public via.RangeI KeepHoldFrame;
 	[RszVersion(EfxVersion.RE2)]
-	public uint unkn9;
+	public uint Flags;//VanishEvent flags
 
 	public EFXAttributeLife() : base(EfxAttributeType.Life) { }
 
-    public override string ToString() => $"Appear {AppearFrameRange}, Keep {KeepFrameRange}, Vanish {VanishFrameRange}";
+    public override string ToString() => $"Appear {AppearFrame}, Keep {KeepFrame}, Vanish {VanishFrame}";
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.LifeExpression, EfxVersion.RE7, EfxVersion.RE2, EfxVersion.DMC5, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
@@ -255,9 +258,9 @@ public partial class EFXAttributeTextureFilter : EFXAttribute
 {
 	public EFXAttributeTextureFilter() : base(EfxAttributeType.TextureFilter) { }
 
-	public float unkn1;
-	public float unkn2;
-	public float unkn3;
+	public float TexelAlphaRate;
+	public float TexelAlphaHPThreshold;
+	public float TexelAlphaHPMinValue;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UVScroll, EfxVersion.RE4)]
@@ -265,19 +268,13 @@ public partial class EFXAttributeUVScroll : EFXAttribute
 {
 	public EFXAttributeUVScroll() : base(EfxAttributeType.UVScroll) { }
 
-	public uint unkn1_0;
-	public float unkn1_1;
-	public float unkn1_2;
-	public float unkn1_3;
-	public float unkn1_4;
-	public float unkn1_5;
-	public UndeterminedFieldType unkn1_6;
-	public float unkn1_7;
-	public UndeterminedFieldType unkn1_8;
-	public float unkn1_9;
-	public float unkn1_10;
-	public float unkn1_11;
-	public float unkn1_12;
+	public uint Flags;
+    public via.Range uScrollAdd;
+    public via.Range vScrollAdd;
+    public via.Range uScrollAddCoef;
+    public via.Range vScrollAddCoef;
+    public via.Range uScrollOffset;
+    public via.Range vScrollOffset;
 
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UVSequence, EfxVersion.DMC5, EfxVersion.RE4)]
@@ -285,29 +282,23 @@ public partial class EFXAttributeUVSequence : EFXAttribute
 {
 	public EFXAttributeUVSequence() : base(EfxAttributeType.UVSequence) { }
 
-	public uint unkn1;//<comment = "Might	 be SequenceNum">;
-	public uint unkn2;//<comment = "Might be SequenceNumVariation">;
-	public uint startingFrame;
-	public uint startingFrameRandom;
-	public float animationSpeed;
-	public float animationSpeedRandom;
-	public uint mode;//<comment="0 - Show only starting frame,1 - Looped Animation, 2 - Play once and disappear after last frame, 3 - Play once and stay on last frame until end of duration in Life struct.">;
-	[RszInlineWString] public string? uvsPath;
+	public via.RangeI SequenceNo;
+    public via.RangeI PatternNo;
+    public via.Range PlaySpeed;
+	public uint Flags;//<comment="0 - Show only starting frame,1 - Looped Animation, 2 - Play once and disappear after last frame, 3 - Play once and stay on last frame until end of duration in Life struct.">;
+	[RszInlineWString] public string? UVSPath;
 
-    public override string ToString() => $"UVS path: {uvsPath}";
+    public override string ToString() => $"UVS path: {UVSPath}";
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UVSequenceModifier, EfxVersion.RE4, EfxVersion.DD2)]
 public partial class EFXAttributeUVSequenceModifier : EFXAttribute
 {
 	public EFXAttributeUVSequenceModifier() : base(EfxAttributeType.UVSequenceModifier) { }
 
-	public uint unkn1_0;
-	public float unkn1_1;
-	public float unkn1_2;
-	public float minSpeed;
-	public float minSpeedRandom;
-	public float maxSpeed;
-	public float maxSpeedRandom;
+	public uint Flags;
+	public via.Range PlaySpeedInit;
+    public via.Range PlaySpeedFinal;
+    public via.Range PlaySpeedChangeTimeCoef;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.UVSequenceExpression, EfxVersion.DMC5, EfxVersion.RE4)]
 public partial class EFXAttributeUVSequenceExpression : EFXAttribute, IExpressionAttribute
@@ -340,10 +331,10 @@ public partial class EFXAttributeAlphaCorrection : EFXAttribute
 	public EFXAttributeAlphaCorrection() : base(EfxAttributeType.AlphaCorrection) { }
 
 	[RszVersion(EfxVersion.RE2)]
-	uint unkn1;
-	float unkn2_0;
-	float unkn2_1;
-	float unkn2_2;
+	uint Flags;
+	float LowPass;
+	float HighPass;
+	float CurveConst;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.ShaderSettings, EfxVersion.RE7, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]

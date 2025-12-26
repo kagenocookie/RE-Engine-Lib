@@ -103,7 +103,7 @@ public partial class EFXAttributeTypeLightning3DV1 : ReeLib.Efx.EFXAttribute, IB
 
 	public override string ToString() => !string.IsNullOrEmpty(boneName) ? boneName : type.ToString();
 }
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeLightning3D, EfxVersion.MHRiseSB, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeLightning3D, EfxVersion.RE8, EfxVersion.MHRiseSB, EfxVersion.DD2)]
 public partial class EFXAttributeTypeLightning3D : EFXAttribute, IBoneRelationAttribute
 {
 	public EFXAttributeTypeLightning3D() : base(EfxAttributeType.TypeLightning3D) { }

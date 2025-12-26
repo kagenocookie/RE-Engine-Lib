@@ -175,3 +175,98 @@ public partial class EFXAttributeFluidSimulator2D : ReeLib.Efx.EFXAttribute
     [RszVersion(EfxVersion.DD2), RszFixedSizeArray(nameof(re4_unk3_3))]
     public FloatWithColor[]? gradient;
 }
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.FluidParticle2DSimulator, EfxVersion.MHWilds)]
+public partial class EFXAttributeFluidParticle2DSimulator : ReeLib.Efx.EFXAttribute
+{
+    public EFXAttributeFluidParticle2DSimulator() : base(EfxAttributeType.FluidParticle2DSimulator) { }
+
+    public uint Flags;
+    public uint unkn1;
+    public uint unkn2;
+    public uint unkn3;
+    public uint unkn4;
+
+    public float unkn5;
+    public UndeterminedFieldType unkn6;
+    public float unkn7;
+    public float unkn8;
+
+    public UndeterminedFieldType unkn9;
+    public UndeterminedFieldType unkn10;
+    public float unkn11;
+    public float unkn12;
+
+    public UndeterminedFieldType unkn13;
+    public float unkn14;
+    public UndeterminedFieldType unkn15;
+    public float unkn16;
+    public float unkn17;
+    public float unkn18;
+
+    public float unkn19;
+    public float unkn20;
+    public float unkn21;
+    public UndeterminedFieldType unkn22;
+    public float unkn23;
+    public UndeterminedFieldType unkn24;
+
+    public float unkn25;
+    public UndeterminedFieldType unkn26;
+    public UndeterminedFieldType unkn27;
+    public UndeterminedFieldType unkn28;
+    public UndeterminedFieldType unkn29;
+    public float unkn30;
+    public float unkn31;
+    public UndeterminedFieldType unkn32;
+    public float unkn33;
+
+    public float unkn34;
+    public float unkn35;
+    public int unkn36;
+    public int unkn37;
+    public int unkn38;
+    public UndeterminedFieldType unkn39;
+    public UndeterminedFieldType unkn40;
+    public int dataCountMaybe;
+    [RszInlineWString] public string? str1;
+    [RszInlineWString] public string? str2;
+    [RszInlineWString] public string? str3;
+    [RszInlineWString] public string? str4;
+    [RszInlineWString] public string? str5;
+
+    // TODO: these last ones could be dataCountMaybe * [float + uint] array?
+    public float uknk2_0;
+    public uint uknk2_1;
+    public float uknk2_2;
+    public uint uknk2_3;
+    public float uknk2_4;
+    public uint uknk2_5;
+    public float uknk2_6;
+    public uint uknk2_7;
+}
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.FluidParticleEmitter, EfxVersion.MHWilds)]
+public partial class EFXAttributeFluidParticleEmitter : EFXAttribute
+{
+	public EFXAttributeFluidParticleEmitter() : base(EfxAttributeType.FluidParticleEmitter) { }
+
+	public uint Flags;
+	public float Unkn0;
+	public float Unkn1;
+	public float Unkn2;
+	public float Unkn3;
+}
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.FluidParticleEmitterTarget, EfxVersion.MHWilds)]
+public partial class EFXAttributeFluidParticleEmitterTarget : EFXAttribute
+{
+	public EFXAttributeFluidParticleEmitterTarget() : base(EfxAttributeType.FluidParticleEmitterTarget) { }
+
+	public uint Flags;
+	public uint Unkn1;
+	public uint Unkn2;
+	public uint Unkn3;
+	public uint Unkn4;
+	[RszInlineWString] public string? UserDataFilePath;
+}

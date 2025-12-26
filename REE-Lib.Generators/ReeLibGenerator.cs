@@ -515,7 +515,7 @@ public class ReeLibGenerator : IIncrementalGenerator
             var elementType = fieldType?.GetArrayElementType();
             var size = EvaluateAttributeExpressionList(ctx, mainAttr.GetPositionalArguments());
             if (handle == HandleType.Write) {
-                if (!field.IsReadonly()) {
+                if (!field.IsReadonly() && !string.IsNullOrEmpty(size)) {
                     ctx.Indent().AppendLine($"{name} ??= new {elementType}[{size}];");
                     ctx.Indent().AppendLine($"if ({name}.Length != ({size})) {{");
                     ctx.AddIndent();
@@ -527,6 +527,7 @@ public class ReeLibGenerator : IIncrementalGenerator
                 }
                 ctx.Indent().AppendLine($"handler.WriteArray({name});");
             } else if (handle == HandleType.Read) {
+                if (string.IsNullOrEmpty(size)) size = "handler.Read<int>()";
                 if (field.IsReadonly()) {
                     ctx.Indent().AppendLine($"handler.ReadArray({name});");
                 } else {

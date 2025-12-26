@@ -217,6 +217,7 @@ public partial class EFXAttributePtColliderAction : EFXAttribute
 	[RszVersion(EfxVersion.DD2, EndAt = nameof(dd2_unkn2))]
 	public uint dd2_unkn0;
 	public uint dd2_unkn1;
+	[RszVersionExact(EfxVersion.DD2)]
 	public uint dd2_unkn2;
 
 	[RszConditional("(dataFlags & (1 << 1)) != 0"), RszInlineWString]
@@ -224,6 +225,9 @@ public partial class EFXAttributePtColliderAction : EFXAttribute
 
 	[RszConditional("(dataFlags & (1 << 0)) != 0"), RszInlineWString]
 	public string? unknString_flag1;
+
+	[RszVersionExact(EfxVersion.MHWilds)]
+	public uint wilds_unkn0;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtCollision, EfxVersion.RE7, EfxVersion.DMC5, EfxVersion.RE3, EfxVersion.RE4, EfxVersion.DD2)]
@@ -266,15 +270,15 @@ public partial class EFXAttributePtProjection : EFXAttribute
 {
     public EFXAttributePtProjection() : base(EfxAttributeType.PtProjection) { }
 
-    public uint unkn1;
+    public uint flags;
     public float unkn2;
     public float unkn3;
-    public UndeterminedFieldType unkn4;
+    public float unkn4;
     public UndeterminedFieldType unkn5;
     public UndeterminedFieldType unkn6;
     public UndeterminedFieldType unkn7;
-	// RszConditional("(stringBitFlag & (1 << 0)) != 0"),
-	// [RszInlineWString] public string? unknString0;
+	[RszConditional("(flags & 2) != 0")] // TODO either 64 or 2 for string (or both); 128 is NOT string; see: 11_em0156_00_011.efx.5571972
+	[RszInlineWString] public string? unknString0;
 }
 
 
@@ -308,6 +312,19 @@ public partial class EFXAttributePtColorClip : ReeLib.Efx.EFXAttribute, IClipAtt
 	[RszClassInstance] public EfxClipData clipData = new();
 
     public override string ToString() => $"PtColorClip: {clipBits}";
+}
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtColorMixer, EfxVersion.RE7, EfxVersion.RE2, EfxVersion.DMC5, EfxVersion.RE3, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.RE4)]
+public partial class EFXAttributePtColorMixer : EFXAttribute
+{
+	public EFXAttributePtColorMixer() : base(EfxAttributeType.PtColorMixer) { }
+
+	public uint Unkn0;
+	public uint Unkn1;
+	public uint Unkn2;
+	public float Unkn3;
+	public via.Color Color1;
+	public via.Color Color2;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtLife, EfxVersion.RE7, EfxVersion.RE2, EfxVersion.DMC5, EfxVersion.RE3, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.RE4)]
@@ -370,6 +387,14 @@ public partial class EFXAttributePtFreezer : EFXAttribute
 	public UndeterminedFieldType unkn9;
 }
 
+[RszGenerate, RszAutoReadWrite]
+public partial class PtPathTranslateName : BaseModel
+{
+	[RszInlineWString] public string name = "";
+
+    public override string ToString() => name;
+}
+
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtPathTranslate, EfxVersion.RE4, EfxVersion.DD2)]
 public partial class EFXAttributePtPathTranslate : EFXAttribute
 {
@@ -392,6 +417,11 @@ public partial class EFXAttributePtPathTranslate : EFXAttribute
 	public Vector3 scale;
 	[RszFixedSizeArray(nameof(dataSize))] public PtPathTranslateSubstruct[]? substruct2;
 
+	[RszVersion(EfxVersion.MHWilds)]
+	public uint nameFlags;
+	[RszVersion(EfxVersion.MHWilds)]
+	[RszList(nameof(dataSize)), RszClassInstance] public List<PtPathTranslateName>? names;
+
     public struct PtPathTranslateSubstruct
     {
         public float unkn0;
@@ -402,4 +432,56 @@ public partial class EFXAttributePtPathTranslate : EFXAttribute
         public float unkn5;
         public float unkn6;
     }
+}
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtPathTranslateExpression, EfxVersion.MHWilds)]
+public partial class EFXAttributePtPathTranslateExpression : EFXAttribute, IExpressionAttribute
+{
+	public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
+	public BitSet ExpressionBits => expressionBits;
+
+	public EFXAttributePtPathTranslateExpression() : base(EfxAttributeType.PtPathTranslateExpression) { }
+
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(4);
+
+	public ExpressionAssignType Field1;
+	public ExpressionAssignType Field2;
+	public ExpressionAssignType Field3;
+	public ExpressionAssignType Field4;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
+}
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtLightningColliderAction, EfxVersion.MHWilds)]
+public partial class EFXAttributePtLightningColliderAction : EFXAttribute
+{
+	public EFXAttributePtLightningColliderAction() : base(EfxAttributeType.PtLightningColliderAction) { }
+
+	public uint Flags;
+	public float unkn2;
+	public uint unkn3;
+}
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtCollisionInfluence, EfxVersion.MHWilds)]
+public partial class EFXAttributePtCollisionInfluence : EFXAttribute
+{
+	public EFXAttributePtCollisionInfluence() : base(EfxAttributeType.PtLightningColliderAction) { }
+
+	public struct PtCollisionInfluenceData
+	{
+		public uint Hash;
+		public float Influence1;
+		public float Influence2;
+		public float Influence3;
+	}
+
+	public uint Flags;
+	public uint Unkn1;
+	public uint Unkn2;
+	public uint Unkn3;
+	public uint Unkn4;
+	public uint Unkn5;
+	public uint Unkn6;
+	public float Unkn7;
+	public uint Unkn8;
+	[RszFixedSizeArray] public PtCollisionInfluenceData[]? Data;
 }

@@ -24,30 +24,36 @@ public partial class EFXAttributeSpawn : EFXAttribute
 	public via.RangeI LoopNum;
 
 	public via.Int2 EmitterDelayFrame;
-	[RszVersion(EfxVersion.DD2, EndAt = nameof(RevivalNum))]
+
+	[RszVersion(EfxVersion.DD2, EndAt = nameof(UseRevival))]
 	public bool RingBufferMode;
 	public bool UseLoopNumRatio;
 	public bool Interpolate;
 	public float DistancePerSpawn;
 	public bool UseRevival;
     //TODO FIX Check these are correct on older games
+	[RszVersion(EfxVersion.RE4)]
     via.RangeI RevivalNum;
+	[RszVersion(EfxVersion.DD2)]
     via.RangeI RevivalInterval;
 
 
-    [RszVersion(EfxVersion.RERT, EndAt = nameof(OriginalMaxParticles))]
-	[RszVersion(EfxVersion.DD2)] public bool TrySpawnAllParticles;
-	public uint SpawnChanceFrame;
-    public bool InitializeFull;
-    public uint OriginalMaxParticles;
-    /*
-	[RszVersion(EfxVersion.RE4, EndAt = nameof(re4_unkn6))]
-	[RszVersion("<", EfxVersion.DD2, EndAt = nameof(re4_unkn4))]
+	[RszVersionExact(EfxVersion.RE4, EndAt = nameof(re4_unkn4))] // TODO recheck
 	public uint re4_unkn0;
 	public float re4_unkn1;
 	public uint re4_unkn2;
 	public uint re4_unkn3;
-	public uint re4_unkn4;
+	public uint re4_unkn4; // TODO need to verify where to place these relative to SpawnChanceFrame
+
+	[RszVersion(EfxVersion.DD2)] public bool TrySpawnAllParticles;
+
+	[RszVersion(EfxVersion.RE8)]
+	public uint SpawnChanceFrame;
+    [RszVersion(EfxVersion.DD2)] public bool InitializeFull;
+    [RszVersion(EfxVersion.RERT)] public uint OriginalMaxParticles;
+
+    /*
+	[RszVersion(EfxVersion.RE4, EndAt = nameof(re4_unkn6))]
 
 	[RszVersion(EfxVersion.DD2)] public byte dd2_unkn5;
 	public uint re4_unkn5;
@@ -55,8 +61,6 @@ public partial class EFXAttributeSpawn : EFXAttribute
 	public uint re4_unkn6;
     */
     [RszVersion(EfxVersion.MHWilds)] public byte mhws_unkn_toggle;
-    // [RszVersion(EfxVersion.MHWilds)] public uint mhws_unkn1;
-    // [RszVersion(EfxVersion.MHWilds)] public uint mhws_unkn2;
 
     public override string ToString() => $"Count = {SpawnNum}";
 }

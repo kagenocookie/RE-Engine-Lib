@@ -34,6 +34,15 @@ public partial class EFXAttributeVelocity2D : EFXAttribute
 	public UndeterminedFieldType re4_unkn2_0;
 	public UndeterminedFieldType re4_unkn2_1;
 }
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Velocity2DDelayFrame, EfxVersion.MHWilds)]
+public partial class EFXAttributeVelocity2DDelayFrame : EFXAttribute
+{
+	public EFXAttributeVelocity2DDelayFrame() : base(EfxAttributeType.Velocity2DDelayFrame) { }
+
+	public uint DelayFrames;
+	public uint Unkn1;
+}
+
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Velocity2DExpression, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
 public partial class EFXAttributeVelocity2DExpression : EFXAttribute, IExpressionAttribute
 {
@@ -66,11 +75,10 @@ public partial class EFXAttributeVelocity2DExpression : EFXAttribute, IExpressio
 
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Velocity3D, EfxVersion.RE2, EfxVersion.DMC5, EfxVersion.RE3, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.RE4)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Velocity3D, EfxVersion.RE7, EfxVersion.RE2, EfxVersion.DMC5, EfxVersion.RE3, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.RE4)]
 public partial class EFXAttributeVelocity3D : EFXAttribute
 {
 	public EFXAttributeVelocity3D() : base(EfxAttributeType.Velocity3D) { }
-    //TODO FIX Check this works on older games
 
 	[RszVersion(EfxVersion.RE2)]
 	public uint Flags;
@@ -89,8 +97,10 @@ public partial class EFXAttributeVelocity3D : EFXAttribute
     [RszVersion(EfxVersion.RE4)]
     public via.RangeI GravityDelayFrame;
 
+    [RszVersion(EfxVersion.RE2, EndAt = nameof(Spread))]
     public via.Range InheritRate;
     public via.Range InheritDistance;
+    [RszVersion(EfxVersion.RE8)]
     public via.Range Spread;
 }
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Velocity3DDelayFrame, EfxVersion.RE4)]
@@ -178,6 +188,15 @@ public partial class EFXAttributeAngularVelocity2D : EFXAttribute
 	public float radians12;
 	public float radians13;
 	public float radians14;
+}
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.AngularVelocity2DDelayFrame, EfxVersion.DMC5, EfxVersion.RE4)]
+public partial class EFXAttributeAngularVelocity2DDelayFrame : EFXAttribute
+{
+	public EFXAttributeAngularVelocity2DDelayFrame() : base(EfxAttributeType.AngularVelocity2DDelayFrame) { }
+
+	public uint DelayFrames;
+	public uint Unkn1;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.AngularVelocity3D, EfxVersion.DMC5, EfxVersion.RE4)]

@@ -619,6 +619,7 @@ public enum Repeat
     Repeat_None = 0,
     Repeat_U = 1,
     Repeat_V = 2,
+    Repeat_UV = 3,
 }
 
 public enum Rotate90

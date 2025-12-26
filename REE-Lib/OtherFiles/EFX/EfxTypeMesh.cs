@@ -317,14 +317,22 @@ public partial class EFXAttributeTypeGpuMesh : EFXAttribute
     //TODO Fix this for older games
     public uint Flags;
     public uint ParticleNum;
+	[RszVersion(EfxVersion.MHWilds, EndAt = nameof(uknWilds1))]
+    public float uknWilds0;
+    public uint uknWilds1;
     public uint cbSize;
+	[RszVersion('<', EfxVersion.DD2)]
+    public uint unkn3;
     public via.Color Color;
     public via.Color ColorRange;
     public float ColorRate;
     public uint MaxPartsNum;
+    [RszVersion(EfxVersion.RE4)]
     public via.RangeI PartsStartNo;
+	[RszVersion(EfxVersion.RE4, EndAt = nameof(PlaySpeedCoef))] // TODO verify
     public via.Range PlaySpeed;
     public via.Range PlaySpeedCoef;
+	[RszVersion(EfxVersion.RE4, EndAt = nameof(RotationOrder))]
     public PlayType PlayType;
     public PlayOrder PlayOrder;
     public RotationOrder RotationOrder;
@@ -335,6 +343,7 @@ public partial class EFXAttributeTypeGpuMesh : EFXAttribute
     public via.Range ScaleY;
     public via.Range ScaleZ;
     public via.Range ScaleMultiplier;
+	[RszVersion(EfxVersion.RE4)]
     public AxisXYZ OrientDirectionUpVector;
     [RszVersion(EfxVersion.DD2)]
     public float DirectionSmoothness;
@@ -350,67 +359,7 @@ public partial class EFXAttributeTypeGpuMesh : EFXAttribute
 
     public int texBlockLength;
     [RszList(nameof(texCount)), RszInlineWString] public string[]? texturePaths;
-    /*
-    public byte unkn0_1;
-    public byte unkn0_2;
-    public byte unkn0_3;
-    public byte unkn0_4;
-	[RszVersion(EfxVersion.MHWilds)]
-    public float mhws_unkn1;
-	[RszVersion(EfxVersion.MHWilds)]
-    public float mhws_unkn2;
-    public uint unkn1;
-    public uint unkn2;
-	[RszVersion('<', EfxVersion.DD2)]
-    public uint unkn3;
-    public via.Color color0;
-    public via.Color color1;
-    public float unkn6;
-    public uint unkn7;
-	[RszVersion(EfxVersion.RE4, EndAt = nameof(re4_unkn2))]
-    public uint re4_unkn1;
-    public uint re4_unkn2;
-	[RszVersion("==", EfxVersion.RE8)]
-    public float re8_unkn1;
-    public float unkn10;
-    public float unkn11;
-    public float unkn12;
-	[RszVersion(EfxVersion.RE4, EndAt = nameof(unkn16))]
-    public float unkn13;
-    public uint unkn14;
-    public uint unkn15;
-    public uint unkn16;
-    public float unkn17;
-    public float unkn18;
-    public float unkn19;
-    public float unkn20;
-    public float unkn21;
-    public float unkn22;
-    public float unkn23;
-    public float unkn24;
-    public float unkn25;
-    public float unkn26;
-	[RszVersion(EfxVersion.RE4, EndAt = nameof(unkn31))]
-    public float unkn27;
-    public float unkn28;
-    public float unkn29;
-    public float unkn30;
-    public uint unkn31;
-	[RszVersion(EfxVersion.DD2)]
-    public float dd2_unkn;
 
-	[RszArraySizeField(nameof(texturePaths))] public int texCount;
-	[RszVersion(EfxVersion.DD2)]
-    public uint dd2_unkn2;
-    [RszInlineWString] public string? meshPath;
-    [RszInlineWString] public string? unknPath;
-    [RszInlineWString] public string? mdfPath;
-    [RszByteSizeField(nameof(unknData))] public uint unknDataSize;
-    [RszFixedSizeArray(nameof(unknDataSize))] public byte[]? unknData;
-
-	public int texBlockLength;
-	[RszList(nameof(texCount)), RszInlineWString] public string[]? texturePaths;
-    */
     protected override bool DoRead(FileHandler handler)
     {
 		DefaultRead(handler);
@@ -427,7 +376,7 @@ public partial class EFXAttributeTypeGpuMesh : EFXAttribute
     public override string ToString() => !string.IsNullOrEmpty(MeshPath) ? MeshPath : type.ToString();
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuMeshClip, EfxVersion.DD2)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuMeshClip, EfxVersion.DD2, EfxVersion.MHWilds)]
 public partial class EFXAttributeTypeGpuMeshClip : EFXAttribute, IMaterialClipAttribute
 {
     public EfxMaterialClipData MaterialClip => clipData;
@@ -435,7 +384,7 @@ public partial class EFXAttributeTypeGpuMeshClip : EFXAttribute, IMaterialClipAt
 
 	public EFXAttributeTypeGpuMeshClip() : base(EfxAttributeType.TypeGpuMeshClip) { }
 
-	[RszClassInstance] public readonly BitSet clipBits = new BitSet(1);
+	[RszClassInstance] public readonly BitSet clipBits = new BitSet(5);
     public uint unkn1;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public readonly EfxMaterialClipData clipData = new();
 }

@@ -2,6 +2,8 @@ using ReeLib.Efx.Structs.Common;
 using ReeLib.Efx.Enums;
 using ReeLib.InternalAttributes;
 using System.Numerics;
+using System.Drawing;
+using ReeLib.via;
 
 namespace ReeLib.Efx.Structs.Transforms;
 
@@ -78,7 +80,7 @@ public partial class EFXAttributeEmitterShape2DExpression : EFXAttribute, IExpre
 	public ExpressionAssignType size;
 	public ExpressionAssignType unkn4;
 	public ExpressionAssignType unkn5;
-	[RszClassInstance] public EFXExpressionList? expressions = new();
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.EmitterShape3D, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
@@ -106,6 +108,7 @@ public partial class EFXAttributeEmitterShape3D : EFXAttribute
     public bool DivideEquidistantCalcOuterCurveData;
     public bool DivideEquidistantRecalcEveryFrameData;
 
+	[RszVersion('>', EfxVersion.RE3)]
     public bool UseExtension;
 
     public via.Range ScaleHorizontal;//Cylinder angle on cylinder shape
@@ -158,6 +161,7 @@ public partial class EFXAttributeMeshEmitter : EFXAttribute
 {
     public EFXAttributeMeshEmitter() : base(EfxAttributeType.MeshEmitter) { }
 
+	// TODO verify for Wilds
 	public uint Flags;
 	public float YNormalRange;
 	public int PartsNumber;
@@ -241,5 +245,65 @@ public partial class EFXAttributeMeshEmitterExpression : ReeLib.Efx.EFXAttribute
     public ExpressionAssignType unkn14;
     public ExpressionAssignType unkn15;
     public ExpressionAssignType unkn16;
-	[RszClassInstance] public EFXExpressionList? expressions = new();
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
+}
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.EmitterHSV, EfxVersion.MHWilds)]
+public partial class EFXAttributeEmitterHSV : EFXAttribute
+{
+	public EFXAttributeEmitterHSV() : base(EfxAttributeType.EmitterHSV) { }
+
+	public uint Flags;
+	public uint Hue;
+	public via.Color color;
+	public via.RangeI Range1;
+	public via.RangeI Range2;
+	public via.RangeI Range3;
+	public Int4 Group1;
+	public Int4 Group2;
+	public Int4 Group3; // TODO verify if these are actually color and ranges
+}
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.EmitterHSVExpression, EfxVersion.MHWilds)]
+public partial class EFXAttributeEmitterHSVExpression : ReeLib.Efx.EFXAttribute, IExpressionAttribute
+{
+    public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
+	public BitSet ExpressionBits => expressionBits;
+
+    public EFXAttributeEmitterHSVExpression() : base(EfxAttributeType.EmitterHSVExpression) { }
+
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(16) { BitNameDict = new () {
+		[1] = nameof(emitRate),
+	} };
+    public ExpressionAssignType emitRate;
+    public ExpressionAssignType unkn2;
+    public ExpressionAssignType unkn3;
+    public ExpressionAssignType unkn4;
+    public ExpressionAssignType unkn5;
+    public ExpressionAssignType unkn6;
+    public ExpressionAssignType unkn7;
+    public ExpressionAssignType unkn8;
+    public ExpressionAssignType unkn9;
+    public ExpressionAssignType unkn10;
+    public ExpressionAssignType unkn11;
+    public ExpressionAssignType unkn12;
+    public ExpressionAssignType unkn13;
+    public ExpressionAssignType unkn14;
+    public ExpressionAssignType unkn15;
+    public ExpressionAssignType unkn16;
+    public ExpressionAssignType unkn17;
+    public ExpressionAssignType unkn18;
+    public ExpressionAssignType unkn19;
+    public ExpressionAssignType unkn20;
+    public ExpressionAssignType unkn21;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
+}
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PointCloudEmitter, EfxVersion.MHWilds)]
+public partial class EFXAttributePointCloudEmitter : EFXAttribute
+{
+	public EFXAttributePointCloudEmitter() : base(EfxAttributeType.PointCloudEmitter) { }
+
+	public uint Flags;
+	public uint Unkn1;
 }

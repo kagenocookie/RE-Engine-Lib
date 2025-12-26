@@ -121,6 +121,8 @@ public partial class EFXExpressionObject : BaseModel
 
 	[RszArraySizeField(nameof(parameters))] public int parameterCount;
 	[RszArraySizeField(nameof(components))] public int componentsCount;
+
+	// TODO: this seems to affect the struct somehow if != 0 (see MHWs 11_em_fallivy_03.efx); maybe it reads type info from the header parameter list directly?
 	[RszVersion(EfxVersion.DD2)] public int struct3Count;
 
 	[RszList(nameof(parameterCount))]

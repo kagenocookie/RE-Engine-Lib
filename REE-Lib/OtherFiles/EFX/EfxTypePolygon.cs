@@ -16,10 +16,11 @@ public partial class EFXAttributeTypePolygon : EFXAttribute
     public float Intensity;
 
 	public float EdgeBlendRange;
-    
+
     [RszVersion(EfxVersion.RE4, EndAt = nameof(Flags2))]
     public float AlphaRate;
 	public uint Flags2;
+    // [RszVersion("!=", EfxVersion.RE8, EndAt = nameof(RotationZ))]
 	public RotationOrder RotationOrder;
     public via.Range RotationX;
     public via.Range RotationY;
@@ -130,7 +131,7 @@ public partial class EFXAttributeTypePolygonTrail : EFXAttribute
     [RszVersion(EfxVersion.RERT)]
 	public float sb_unkn0;
 
-	public AxisXYZ Axis;
+	public AxisType Axis;
 	public via.Range Length;
 	public float StretchDistance;
 	public uint NumTrailDivision;
@@ -152,7 +153,7 @@ public partial class EFXAttributeTypePolygonTrailMaterial : EFXAttribute
     public uint Flags;
     public via.Color Color;
     public via.Color ColorRange;
-    public AxisXYZ Axis;
+    public AxisType Axis;
     public via.Range Length;
     public float StretchDistance;
     public uint NumTrailDivision;
@@ -205,53 +206,28 @@ public partial class EFXAttributeTypeGpuPolygon : EFXAttribute
 
     //TODO Fix this for older games
     public uint BlendFlags;
+	[RszVersionExact(EfxVersion.RE3, EfxVersion.RE8, EfxVersion.RERT)]
+	public uint unkn1;
+	[RszVersionExact(EfxVersion.RE8, EfxVersion.RERT)]
+	public uint unkn2;
     public via.Color Color;
     public via.Color ColorRange;
     public float ColorRate;
     public float Intensity;
     public float EdgeBlendRate;
     public float AlphaRate;
+    [RszVersion(EfxVersion.RE4)]
     public uint Flags;
+    [RszVersion(EfxVersion.RE4)]
     public uint ParticleNum;
-    
+
     public via.Range RotationX;
     public via.Range RotationY;
     public via.Range RotationZ;
     public via.Range SizeScalar;
     public via.Range Width;
     public via.Range Height;
-    public AxisXYZ OrientDirectionUpVector;
-
-    /*
-    public uint unkn0;
-	[RszVersionExact(EfxVersion.RE3, EfxVersion.RE8, EfxVersion.RERT)]
-	public uint unkn1;
-	[RszVersionExact(EfxVersion.RE8, EfxVersion.RERT)]
-	public uint unkn2;
-    public via.Color color0;
-    public via.Color color1;
-    public float unkn3;
-
-    public float unkn4;
-    public float unkn5;
-    public float unkn6;
-	[RszVersion(EfxVersion.RE4)] public uint re_unkn1; // looks moved from unkn2
-    public float unkn8;
-	[RszVersionExact(EfxVersion.RE4)] public uint re_unkn2;
-    public float unkn10;
-    public float unkn11;
-    public float unkn12;
-    public float unkn13;
-    public float unkn14;
-    public float unkn15;
-    public float unkn16;
-    public float unkn17;
-    public float unkn18;
-    public float unkn19;
-    public float unkn20;
-	[RszVersion(EfxVersion.DD2)] public float dd2_unkn1;
-	[RszVersion(EfxVersion.RE4)] public uint re_unkn3;
-    */
+    [RszVersion(EfxVersion.RE4)] public AxisXYZ OrientDirectionUpVector;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuPolygonExpression, EfxVersion.DD2)]

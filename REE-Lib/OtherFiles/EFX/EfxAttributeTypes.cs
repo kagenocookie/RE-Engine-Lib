@@ -684,6 +684,9 @@ public static partial class EfxAttributeTypeRemapper
             [EfxVersion.DD2] = 19,
             [EfxVersion.MHWilds] = 20,
         },
+        [EfxAttributeType.Layout] = new() {
+            [EfxVersion.MHWilds] = 21,
+        },
         // DD2 probably added a EmitterColorExpression here, unused
         [EfxAttributeType.PtSort] = new() {
             [EfxVersion.MHRise] = 18,
@@ -3059,6 +3062,34 @@ public static partial class EfxAttributeTypeRemapper
         #endregion
         [EfxAttributeType.UnknownRERT_233] = new() {
             [EfxVersion.RERT] = 233, // RayTracingTarget?
+        },
+
+        [EfxAttributeType.RayTracingTarget] = new() {
+            [EfxVersion.MHWilds] = 273,
+        },
+        [EfxAttributeType.PointCloudEmitter] = new() {
+            [EfxVersion.MHWilds] = 274,
+        },
+        [EfxAttributeType.DumpGpuParticle] = new() {
+            [EfxVersion.MHWilds] = 275,
+        },
+        [EfxAttributeType.RibbonJointOffsetVelocity] = new() {
+            [EfxVersion.MHWilds] = 276,
+        },
+        [EfxAttributeType.RibbonJointScale] = new() {
+            [EfxVersion.MHWilds] = 277,
+        },
+        [EfxAttributeType.FluidParticleEmitter] = new() {
+            [EfxVersion.MHWilds] = 278,
+        },
+        [EfxAttributeType.FluidParticleEmitterTarget] = new() {
+            [EfxVersion.MHWilds] = 279,
+        },
+        [EfxAttributeType.FluidParticle2DSimulatorExpression] = new() {
+            [EfxVersion.MHWilds] = 280,
+        },
+        [EfxAttributeType.FluidParticleEmitter3D] = new() {
+            [EfxVersion.MHWilds] = 281,
         },
 
         // max item marker enum entry, not an actual object type

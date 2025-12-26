@@ -21,6 +21,7 @@ namespace ReeLib.Efx
         RE4,
         DD2,
         MHWilds,
+        Pragmata,
     }
 
     [RszGenerate, RszVersionedObject(typeof(EfxVersion))]
@@ -303,10 +304,7 @@ namespace ReeLib.Efx
             int lastAttributeTypeId = -1;
             for (int i = 0; i < attributeCount; ++i) {
                 var typeId = handler.Read<int>();
-                if (typeId < lastAttributeTypeId)
-                {
-                    throw new Exception($"EFX attribute ID {typeId} is out of order from previous {lastAttributeTypeId}");
-                }
+                DataInterpretationException.DebugThrowIf(typeId < lastAttributeTypeId, $"EFX attribute ID {typeId} is out of order from previous {lastAttributeTypeId}");
                 var type = Version.GetAttributeType(lastAttributeTypeId = typeId);
                 int expectedSize = -1;
                 if (Version >= EfxVersion.MHWilds) {
@@ -335,7 +333,7 @@ namespace ReeLib.Efx
             foreach (var attr in Attributes) {
                 handler.Write(Version.ToAttributeTypeID(attr.type));
                 var sizeOffset = handler.Tell();
-                
+
                 handler.Write(attr.UniqueID);
 
                 attr.Write(handler);
@@ -426,10 +424,14 @@ namespace ReeLib.Efx
             var actionAttributeCount = handler.Read<int>();
             for (int i = 0; i < actionAttributeCount; ++i) {
                 var type = Version.GetAttributeType(handler.Read<int>());
+                var expectedSize = Version >= EfxVersion.MHWilds ? handler.Read<int>() : -1;
                 var seqNum = handler.Read<int>();
                 var attr = EFXAttribute.Create(Version, type, seqNum);
                 attr.Version = Version;
                 attr.Read(handler);
+                if (expectedSize != -1 && expectedSize - 4 != attr.Size) {//UniqueID is included in the struct size, so subtract 4
+                    throw new Exception($"EFX attribute ({attr.type}) was not properly read. Expected: {expectedSize} Actual: {attr.Size+4} Start:{attr.Start} End:{attr.Start + attr.Size}");
+                }
                 Attributes.Add(attr);
             }
             return true;
@@ -491,10 +493,10 @@ namespace ReeLib.Efx
                 handler.Read(ref value_ukn4);
                 handler.Read(ref value_ukn5);
                 handler.Read(ref value_ukn6);
-                if (Version > EfxVersion.MHWilds) {
+                if (Version >= EfxVersion.MHWilds) {
                     handler.Read(ref wilds_unkn0);
                 }
-                    if (type is 110 or 144 or 183 or 184 or 202 or 194 or 215 or 217) {
+                if (type is 110 or 144 or 183 or 184 or 202 or 194 or 215 or 217) {
                     filePath = handler.ReadWString(-1, handler.Read<int>(), false);
                 }
             }
@@ -515,10 +517,10 @@ namespace ReeLib.Efx
                 handler.Write(ref value_ukn4);
                 handler.Write(ref value_ukn5);
                 handler.Write(ref value_ukn6);
-                if (Version > EfxVersion.MHWilds) {
+                if (Version >= EfxVersion.MHWilds) {
                     handler.Write(ref wilds_unkn0);
                 }
-                    if (type is 110 or 144 or 183 or 184 or 202 or 194 or 215 or 217) {
+                if (type is 110 or 144 or 183 or 184 or 202 or 194 or 215 or 217) {
                     filePath ??= "";
                     handler.Write(filePath.Length + 1);
                     handler.WriteWString(filePath);
@@ -640,6 +642,7 @@ namespace ReeLib
         private const int VERSION_RE4 = 3539837;
         private const int VERSION_DD2 = 4064419;
         private const int VERSION_WILDS = 5571972;
+        private const int VERSION_PRAGMATA = 5965300;
 
         public static EfxVersion GetEfxVersion(int fileVersion) => fileVersion switch {
             VERSION_RE7 => EfxVersion.RE7,
@@ -654,6 +657,7 @@ namespace ReeLib
             VERSION_RE4 => EfxVersion.RE4,
             VERSION_DD2 => EfxVersion.DD2,
             VERSION_WILDS => EfxVersion.MHWilds,
+            VERSION_PRAGMATA => EfxVersion.Pragmata,
             _ => EfxVersion.Unknown,
         };
         public static int GetFileVersion(EfxVersion version) => version switch {
@@ -669,6 +673,7 @@ namespace ReeLib
             EfxVersion.RE4 => VERSION_RE4,
             EfxVersion.DD2 => VERSION_DD2,
             EfxVersion.MHWilds => VERSION_WILDS,
+            EfxVersion.Pragmata => VERSION_PRAGMATA,
             _ => -1,
         };
         public static EfxVersion[] AllVersions => (EfxVersion[])Enum.GetValues(typeof(EfxVersion));

@@ -16,8 +16,9 @@ public partial class EFXAttributePtVortexelWind : EFXAttribute
     public float unkn7;
     public float unkn8;
     public float TransitionThreshold;
-    public float MaxSpeed;
+    public uint MaxSpeed; // TODO recheck wilds
     public uint TransitionWaitFrame;
+    [RszVersion('>', EfxVersion.RE4)]
     public uint TransitionBlendFrame;
     public bool IsTransitionWaitFramePerParticle;
     public bool IsMergeGravity;
@@ -38,7 +39,43 @@ public partial class EFXAttributeVortexelWindEmitter : EFXAttribute
     public bool UsePressureRate;
     public bool IsOutdoorWind;
     public bool AttenuatePressure;
-    public Vector2 Pressure;
+    public float unkn0;
+    public uint flags;
+    public float unkn1;
+    public float unkn2;
+    public float unkn3;
+    public float unkn4;
+    public float unkn5;
+    public float unkn6;
+    public float unkn7;
+    public float unkn8;
+    public float unkn9;
+    public short unkn10;
+    // public Vector2 Pressure; TODO where should this be?
+}
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.VortexelWindEmitterExpression, EfxVersion.MHWilds)]
+public partial class EFXAttributeVortexelWindEmitterExpression : ReeLib.Efx.EFXAttribute, IExpressionAttribute
+{
+    public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
+	public BitSet ExpressionBits => expressionBits;
+
+    public EFXAttributeVortexelWindEmitterExpression() : base(EfxAttributeType.VortexelWindEmitterExpression) { }
+
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(16) { BitNameDict = new () {
+		[1] = nameof(emitRate),
+	} };
+    public ExpressionAssignType emitRate;
+    public ExpressionAssignType unkn2;
+    public ExpressionAssignType unkn3;
+    public ExpressionAssignType unkn4;
+    public ExpressionAssignType unkn5;
+    public ExpressionAssignType unkn6;
+    public ExpressionAssignType unkn7;
+    public ExpressionAssignType unkn8;
+    public ExpressionAssignType unkn9;
+    public ExpressionAssignType unkn10;
+	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.PtVortexelPhysics, EfxVersion.MHWilds)]
@@ -85,4 +122,32 @@ public partial class EFXAttributePtVortexelSnap : EFXAttribute
     public float RayHitOffset;
     public float FinishAngleMin;
     public float FinishAngleMax;
+}
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.VortexelCollider, EfxVersion.MHWilds)]
+public partial class EFXAttributeVortexelCollider : EFXAttribute
+{
+    public EFXAttributeVortexelCollider() : base(EfxAttributeType.VortexelCollider) { }
+
+    public uint Flags;
+    public float Unkn0;
+    public float Unkn1;
+    public float Unkn2;
+    public float Unkn3;
+    public float Unkn4;
+    public float Unkn5;
+    public float Unkn6;
+}
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.VortexelIndoorMask, EfxVersion.MHWilds)]
+public partial class EFXAttributeVortexelIndoorMask : EFXAttribute
+{
+    public EFXAttributeVortexelIndoorMask() : base(EfxAttributeType.VortexelIndoorMask) { }
+
+    public uint Flags;
+    public float Unkn0;
+    public float Unkn1;
+    public float Unkn2;
+    public float Unkn3;
+    public float Unkn4;
 }

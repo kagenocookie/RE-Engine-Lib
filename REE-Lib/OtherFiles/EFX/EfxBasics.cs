@@ -104,6 +104,9 @@ public partial class EFXAttributeParentOptions : EFXAttribute, IBoneRelationAttr
     public via.RangeI ConstReleaseFrame;
 	public float ConstInheritReleaseRate;
 
+	[RszVersion(EfxVersion.Pragmata)] public uint PragUkn1;
+	[RszVersion(EfxVersion.Pragmata)] public uint PragUkn2;
+
 	[RszInlineWString(ByteSize = true)] public string? BoneName;
 
     public string? ParentBone { get; set; }

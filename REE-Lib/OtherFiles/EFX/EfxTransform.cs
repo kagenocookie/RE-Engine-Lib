@@ -101,16 +101,16 @@ public partial class EFXAttributeTransform2DModifierDelayFrame : EFXAttribute
 	public uint unkn1;
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Transform3D, EfxVersion.DMC5, EfxVersion.RE4)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.Transform3D, EfxVersion.DMC5, EfxVersion.RE4, EfxVersion.Pragmata)]
 public partial class EFXAttributeTransform3D : EFXAttribute
 {
 	public EFXAttributeTransform3D() : base(EfxAttributeType.Transform3D) { }
 
-	// [RszVersion(EfxVersion.MHWilds)] public uint mhws_unkn;
 	public Vector3 LocalPosition;
 	public Vector3 LocalRotation;
 	public Vector3 LocalScale;
 	public RotationOrder RotationOrder;
+	[RszVersion(EfxVersion.Pragmata)] public uint prag_unkn;
 
     public override string ToString() => $"Translate {LocalPosition} rotate {LocalRotation} scale {LocalScale}";
 }

@@ -156,6 +156,10 @@ namespace ReeLib.InternalAttributes
     public sealed class RszArraySizeFieldAttribute : System.Attribute
     {
         public string ArrayField { get; init; }
+        /// <summary>
+        /// Store the size on write as double what it actually is.
+        /// </summary>
+        public bool DoubleSize { get; init; }
 
         public RszArraySizeFieldAttribute(string arrayField)
         {

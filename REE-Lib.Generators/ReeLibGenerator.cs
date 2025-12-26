@@ -405,12 +405,13 @@ public class ReeLibGenerator : IIncrementalGenerator
             if (EvaluateExpressionString(ctx, field.GetAttribute("RszStringLengthField")?.ArgumentList?.Arguments.FirstOrDefault()?.Expression) is string str4) {
                 ctx.Indent().AppendLine($"{name} = string.IsNullOrEmpty({str4}) ? 1 : ({str4}.Length + 1);");
             }
-            if (EvaluateExpressionString(ctx, field.GetAttribute("RszArraySizeField")?.ArgumentList?.Arguments.FirstOrDefault()?.Expression) is string str5) {
+            if (field.TryGetAttribute("RszArraySizeField", out var arrAttr) && EvaluateExpressionString(ctx, arrAttr?.ArgumentList?.Arguments.FirstOrDefault()?.Expression) is string str5) {
                 var targetField = ctx.context.ClassDecl.GetFields().FirstOrDefault(f => f.GetFieldName() == str5);
+                var useDoubleSize = arrAttr?.GetOptionalArguments()?.Any(opt => opt.GetText().ToString().Contains("DoubleSize")) == true;
                 if (targetField != null && targetField.GetFieldType()?.GetElementType() is GenericNameSyntax generic) {
-                    ctx.Indent().AppendLine($"{name} = {str5}?.Count ?? 0;");
+                    ctx.Indent().AppendLine(useDoubleSize ? $"{name} = ({str5}?.Count ?? 0) * 2;" : $"{name} = {str5}?.Count ?? 0;");
                 } else {
-                    ctx.Indent().AppendLine($"{name} = {str5}?.Length ?? 0;");
+                    ctx.Indent().AppendLine(useDoubleSize ? $"{name} = ({str5}?.Length ?? 0) * 2;" : $"{name} = {str5}?.Length ?? 0;");
                 }
             }
         }

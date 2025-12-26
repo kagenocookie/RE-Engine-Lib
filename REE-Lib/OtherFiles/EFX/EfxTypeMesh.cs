@@ -132,7 +132,7 @@ public partial class EFXAttributeTypeMeshClip : EFXAttribute, IMaterialClipAttri
 	[RszClassInstance] public readonly BitSet clipBits = new BitSet(13);
 
 	[RszVersion("<=", EfxVersion.DMC5), RszArraySizeField(nameof(clipData))] public int mdfPropertyCount;
-	[RszVersion(nameof(Version), ">=", EfxVersion.RE3, "&&", nameof(Version), "<=", EfxVersion.RERT), RszArraySizeField(nameof(clipData))] // else if
+	[RszVersion(nameof(Version), ">=", EfxVersion.RE3, "&&", nameof(Version), "<=", EfxVersion.RERT), RszArraySizeField(nameof(clipData), DoubleSize = true)] // else if
 	public int mdfPropertyCountDouble;
 	[RszVersion(EfxVersion.RE4)] public uint unkn1; // else
 

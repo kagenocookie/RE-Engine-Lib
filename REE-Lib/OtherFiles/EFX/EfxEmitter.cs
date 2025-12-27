@@ -161,7 +161,6 @@ public partial class EFXAttributeMeshEmitter : EFXAttribute
 {
     public EFXAttributeMeshEmitter() : base(EfxAttributeType.MeshEmitter) { }
 
-	// TODO verify for Wilds
 	public uint Flags;
 	public float YNormalRange;
 	public int PartsNumber;
@@ -201,6 +200,45 @@ public partial class EFXAttributeMeshEmitter : EFXAttribute
 
 	[RszVersion(EfxVersion.DD2), RszInlineWString(nameof(TargetGameObjectNameLength))]
 	public string? TargetGameObjectName;
+
+    public override string ToString() => !string.IsNullOrEmpty(MeshPath) ? MeshPath : type.ToString();
+}
+
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.MeshEmitter, EfxVersion.MHWilds)]
+public partial class EFXAttributeMeshEmitterV2 : EFXAttribute
+{
+    public EFXAttributeMeshEmitterV2() : base(EfxAttributeType.MeshEmitter) { }
+
+	public uint Flags;
+	public float YNormalRange;
+	public int PartsNumber;
+	public int ClusterNumber;
+
+	public RotationOrder RotationOrder;
+	public Vector3 LocalScale;
+    public Vector3 LocalRotation;
+
+	public float EmissionThreshold;
+	public float EmissionVertexColorThreshold;
+	public uint EmissionVertexColorChannel;
+	public uint EmissionMaskMapColorChannel;
+	public uint ParticleNum;
+	public uint LodIndex;
+	public float TriangleFilter;
+
+    public uint ColorUTilingCount;
+    public uint ColorVTilingCount;
+    public Vector2 ColorUVOffset;
+    public uint MaskUTilingCount;
+    public uint MaskVTilingCount;
+    public Vector2 MaskUVOffset;
+
+	[RszInlineWString] public string? DynamicColorMapPath;
+	[RszInlineWString] public string? MeshPath;
+	[RszInlineWString] public string? MeshMirrorPath;
+	[RszInlineWString] public string? ColorMapPath;
+	[RszInlineWString] public string? MaskMapPath;
+	[RszInlineWString] public string? TargetGameObjectName;
 
     public override string ToString() => !string.IsNullOrEmpty(MeshPath) ? MeshPath : type.ToString();
 }

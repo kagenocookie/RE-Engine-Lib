@@ -10,6 +10,9 @@ public partial class EFXAttributeVelocity2D : EFXAttribute
 {
 	public EFXAttributeVelocity2D() : base(EfxAttributeType.Velocity2D) { }
 
+	[RszVersion(EfxVersion.RE4)]
+	public uint Flags;
+
 	public float unkn1_0;
 	public float unkn1_1;
 	public float unkn1_2;
@@ -18,11 +21,11 @@ public partial class EFXAttributeVelocity2D : EFXAttribute
 
 	public float unkn1_5;
 	public float unkn1_6;
-	public float unkn1_7;
-    [RszVersion(EfxVersion.RE4, EndAt = nameof(re4_unkn2))]
+    [RszVersion(EfxVersion.RE4)]
 	public uint re4_unkn0;
+	public float unkn1_7;
+    [RszVersion(EfxVersion.RE4)]
 	public float re4_unkn1;
-	public float re4_unkn2;
 
 	public float unkn2_0;
 	public float unkn2_1;

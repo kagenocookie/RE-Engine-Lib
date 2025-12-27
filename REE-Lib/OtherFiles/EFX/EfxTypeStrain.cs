@@ -146,7 +146,6 @@ public partial class EFXAttributeTypeStrainRibbonV2 : EFXAttribute, IBoneRelatio
 public partial class EFXAttributeTypeStrainRibbonV3 : EFXAttribute
 {
 	// structure looks vaguely similar to TypeStrainRibbon, but big reodering
-	// TODO verify for MHWilds
 	public EFXAttributeTypeStrainRibbonV3() : base(EfxAttributeType.TypeStrainRibbon) { }
 
     public uint unkn0_0;
@@ -178,11 +177,15 @@ public partial class EFXAttributeTypeStrainRibbonV3 : EFXAttribute
     public float unkn5_5;
     public float unkn5_6;
     public float unkn5_7;
-    public uint unkn5_8;
+    public float unkn5_8; // TODO verify previous versions type
     public float unkn5_9;
     public float unkn5_10;
     public float unkn5_11;
     public float unkn5_12;
+	// past this is wild territory for Wilds
+	[RszVersion(EfxVersion.MHWilds, EndAt = nameof(wilds_Ukn2))]
+	public uint wilds_Ukn1;
+	public uint wilds_Ukn2;
     public float unkn5_13;
     public float unkn5_14;
     public float unkn5_15;
@@ -191,13 +194,17 @@ public partial class EFXAttributeTypeStrainRibbonV3 : EFXAttribute
     public float unkn5_18;
     public float unkn5_19;
     public float unkn5_20;
+	// past this is wild territory for Wilds
+	[RszVersion(EfxVersion.MHWilds, EndAt = nameof(wilds_Color2))]
+	public via.Color wilds_Color1;
+	public via.Color wilds_Color2;
     public float unkn5_21;
     public float unkn5_22;
     public float unkn5_23;
     public uint unkn5_24;
     public float unkn5_25;
     public float unkn5_26;
-    public uint unkn5_27;
+    public float unkn5_27; // TODO verify if int in previous games
     public float unkn5_28;
     public float unkn5_29;
     public float unkn5_30;
@@ -205,12 +212,25 @@ public partial class EFXAttributeTypeStrainRibbonV3 : EFXAttribute
 
     public int unkn6;
 	public float unkn7_0;
+	[RszVersion(EfxVersion.MHWilds)]
+	public uint wilds_Ukn2_1;
     public float unkn7_1;
     public float unkn7_2;
     public float unkn7_3;
     public float unkn7_4;
     public float unkn7_5;
+	// past this is wild territory for Wilds
+	[RszVersion(EfxVersion.MHWilds, EndAt = nameof(wilds_UknLast))]
+	public uint wilds_Ukn3_1;
+	public UndeterminedFieldType wilds_Ukn3_2;
+	public UndeterminedFieldType wilds_Ukn3_3;
+	public UndeterminedFieldType wilds_Ukn3_4;
+	public float wilds_Ukn3_5;
+	public float wilds_Ukn3_6;
+	public UndeterminedFieldType wilds_UknLast;
 	[RszInlineWString] public string? boneName;
+
+	[RszVersion('<', EfxVersion.MHWilds, EndAt = nameof(unkn8_6))]
 	public int unkn8_0;
 	public uint unkn8_color1;
 	public uint unkn8_color2;
@@ -223,7 +243,7 @@ public partial class EFXAttributeTypeStrainRibbonV3 : EFXAttribute
 }
 
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeStrainRibbonExpression, EfxVersion.RE2, EfxVersion.DMC5, EfxVersion.RE8, EfxVersion.RERT)]
+[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeStrainRibbonExpression, EfxVersion.RE2, EfxVersion.DMC5, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.MHWilds)]
 public partial class EFXAttributeTypeStrainRibbonExpression : EFXAttribute, IExpressionAttribute
 {
 	public EFXExpressionList? Expression { get => expressions; set => expressions = value!; }
@@ -232,7 +252,7 @@ public partial class EFXAttributeTypeStrainRibbonExpression : EFXAttribute, IExp
 	public EFXAttributeTypeStrainRibbonExpression() : base(EfxAttributeType.TypeStrainRibbonExpression) { }
 
 	// TODO bitset versioning
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(15) { BitNameDict = new () {
+	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(24) { BitNameDict = new () {
 		[3] = nameof(posX), // rert: moved up by 2 (xyz = 567)
 		[4] = nameof(posY),
 		[5] = nameof(posZ),
@@ -253,6 +273,17 @@ public partial class EFXAttributeTypeStrainRibbonExpression : EFXAttribute, IExp
 	public ExpressionAssignType unkn13;
 	public ExpressionAssignType unkn14;
 	public ExpressionAssignType unkn15;
+
+    [RszVersion(EfxVersion.MHWilds, EndAt = nameof(unkn24))]
+	public ExpressionAssignType unkn16;
+	public ExpressionAssignType unkn17;
+	public ExpressionAssignType unkn18;
+	public ExpressionAssignType unkn19;
+	public ExpressionAssignType unkn20;
+	public ExpressionAssignType unkn21;
+	public ExpressionAssignType unkn22;
+	public ExpressionAssignType unkn23;
+	public ExpressionAssignType unkn24;
 
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }

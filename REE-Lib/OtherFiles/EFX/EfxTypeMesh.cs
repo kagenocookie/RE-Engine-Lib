@@ -500,13 +500,17 @@ public partial class EFXAttributeTypeGpuMeshTrail : EFXAttribute
     public override string ToString() => !string.IsNullOrEmpty(meshPath) ? meshPath : type.ToString();
 }
 
-[RszGenerate, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuMeshTrail, EfxVersion.DD2)]
+[RszGenerate, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeGpuMeshTrail, EfxVersion.DD2, EfxVersion.MHWilds)]
 public partial class EFXAttributeTypeGpuMeshTrailV2 : EFXAttribute
 {
 	public EFXAttributeTypeGpuMeshTrailV2() : base(EfxAttributeType.TypeGpuMeshTrail) { }
 
 	public uint unknFlags;
 	public uint unkn1;
+    [RszVersion(EfxVersion.MHWilds)]
+    public float Wilds_Ukn1;
+    [RszVersion(EfxVersion.MHWilds)]
+    public uint Wilds_Ukn2;
 	public uint unkn2;
 	public via.Color color1;
 	public via.Color color2;
@@ -537,14 +541,29 @@ public partial class EFXAttributeTypeGpuMeshTrailV2 : EFXAttribute
 	public UndeterminedFieldType unkn29;
 	public uint unkn30;
 	public float unkn31;
+
+    [RszVersion(EfxVersion.MHWilds, EndAt = nameof(Wilds_Ukn6))] // note: most likely same 4 fields / substruct moved from unkn33-unkn36
+    public uint Wilds_Ukn3;
+    public uint Wilds_Ukn4;
+    public uint Wilds_Ukn5;
+    public float Wilds_Ukn6;
 	public uint texCount;
-	public UndeterminedFieldType unkn32;
+	public uint unkn32;
+    [RszVersionExact(EfxVersion.DD2, EndAt = nameof(unkn36))]
 	public uint unkn33;
 	public uint unkn34;
 	public uint unkn35;
 	public float unkn36;
+
 	public uint unkn37;
 	public uint unkn38;
+
+    [RszVersion(EfxVersion.MHWilds)]
+    public float Wilds_Ukn8;
+
+    [RszVersion(EfxVersion.MHWilds)]
+    public float Wilds_Ukn9;
+    [RszVersionExact(EfxVersion.DD2)]
 	public uint unkn39;
 	public float unkn40;
 	public float unkn41;
@@ -560,8 +579,18 @@ public partial class EFXAttributeTypeGpuMeshTrailV2 : EFXAttribute
 	public float unkn51;
 	public float unkn52;
 	public float unkn53;
+    [RszVersion(EfxVersion.MHWilds)]
+    public float Wilds_Ukn10;
+    [RszVersion(EfxVersion.MHWilds)]
+    public UndeterminedFieldType Wilds_Ukn11;
 	public UndeterminedFieldType unkn54;
 	public float unkn55;
+    [RszVersion(EfxVersion.MHWilds)]
+    public UndeterminedFieldType Wilds_Ukn12;
+    [RszVersion(EfxVersion.MHWilds)]
+    public uint Wilds_Ukn13;
+    [RszVersion(EfxVersion.MHWilds)]
+    public uint Wilds_Ukn14;
 	public UndeterminedFieldType unkn56;
 	[RszInlineWString] public string? meshPath;
 	[RszInlineWString] public string? unkPath;

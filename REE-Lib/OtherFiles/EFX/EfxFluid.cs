@@ -199,7 +199,7 @@ public partial class EFXAttributeFluidParticle2DSimulator : ReeLib.Efx.EFXAttrib
 
     public UndeterminedFieldType unkn13;
     public float unkn14;
-    public UndeterminedFieldType unkn15;
+    public float unkn15;
     public float unkn16;
     public float unkn17;
     public float unkn18;
@@ -228,22 +228,20 @@ public partial class EFXAttributeFluidParticle2DSimulator : ReeLib.Efx.EFXAttrib
     public int unkn38;
     public UndeterminedFieldType unkn39;
     public UndeterminedFieldType unkn40;
-    public int dataCountMaybe;
+    public int dataCount;
     [RszInlineWString] public string? str1;
     [RszInlineWString] public string? str2;
     [RszInlineWString] public string? str3;
     [RszInlineWString] public string? str4;
     [RszInlineWString] public string? str5;
 
-    // TODO: these last ones could be dataCountMaybe * [float + uint] array?
-    public float uknk2_0;
-    public uint uknk2_1;
-    public float uknk2_2;
-    public uint uknk2_3;
-    public float uknk2_4;
-    public uint uknk2_5;
-    public float uknk2_6;
-    public uint uknk2_7;
+    [RszFixedSizeArray(nameof(dataCount))] public HashValue[]? data;
+
+    public struct HashValue
+    {
+        public float Value;
+        public uint Hash;
+    }
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.FluidParticleEmitter, EfxVersion.MHWilds)]

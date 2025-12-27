@@ -21,6 +21,8 @@ public class ListFileWrapper
 
     public delegate bool PathFilter(ReadOnlySpan<char> path);
 
+    private List<PathFilter> PatternFilters { get; } = new();
+
     public IEnumerable<string> GetRecursiveFileList(string folder, int limit = -1)
     {
         var list = new List<string>();
@@ -95,7 +97,7 @@ public class ListFileWrapper
 
     public string[] GetFiles(string filter)
     {
-        if (filter.Contains('*') || filter.Contains('+')) {
+        if (QueryHasPatterns(filter)) {
             return FilterAllFiles(filter);
         } else {
             return GetFilesInFolder(filter);
@@ -114,8 +116,8 @@ public class ListFileWrapper
         }
 
         try {
-            var regex = new Regex("^" + pattern.Replace("**", ".*") + "$");
-            var results = FilterAllFiles(regex, int.MaxValue).ToArray();
+            ParsePattern(pattern);
+            var results = FilterAllFiles(PatternFilters, int.MaxValue).ToArray();
             folderListCache[cacheKey] = results;
             return results;
         } catch (Exception) {
@@ -124,17 +126,97 @@ public class ListFileWrapper
             return [];
         }
     }
-
     public void ResetResultCache()
     {
         folderListCache.Clear();
     }
 
-    public List<string> FilterAllFiles(Regex regex, int limit)
+    public static bool QueryHasPatterns(string pattern)
+    {
+        if (pattern.StartsWith('+') || pattern.StartsWith('!')) return true;
+        if (pattern.Contains('*') || pattern.Contains(" +") || pattern.Contains(" !")) return true;
+        return false;
+    }
+
+    private void ParsePattern(string pattern)
+    {
+        PatternFilters.Clear();
+        var span = pattern.AsSpan();
+        var space = pattern.IndexOf(' ');
+        var segmentStart = 0;
+
+        while (true)
+        {
+            char next;
+            if (space == -1)
+            {
+                next = 'e';
+                space = pattern.Length;
+            }
+            else
+            {
+                var nonspace = space;
+                while (nonspace < pattern.Length && pattern[nonspace] == ' ') nonspace++;
+                next = nonspace >= pattern.Length ? 'e' : pattern[nonspace];
+                space = nonspace;
+            }
+            var segment = span.Slice(segmentStart, space - segmentStart).TrimEnd();
+            if (segment.Length == 0)
+            {
+                if (next == 'e') break;
+            }
+            var curSegmentType = segment[0];
+            if (curSegmentType == '!')
+            {
+                var segmentStr = segment.Slice(1).ToString();
+                PatternFilters.Add((path) => path.IndexOf(segmentStr) == -1);
+                segmentStart = space;
+            }
+            else if (curSegmentType == '+')
+            {
+                var segmentStr = segment.Slice(1).ToString();
+                PatternFilters.Add((path) => path.IndexOf(segmentStr) != -1);
+                segmentStart = space;
+            }
+            else if (curSegmentType == 'e' || next == '!' || next == '+' || next == 'e')
+            {
+                var segmentStr = segment.ToString();
+                if (!QueryHasPatterns(segmentStr)) {
+                    segmentStr = segmentStr + ".*";
+                } else {
+                    segmentStr = segmentStr.Replace("**", ".*");
+                }
+
+                var regex = new Regex("^" + segmentStr + "$");
+                PatternFilters.Add((path) => regex.IsMatch(path));
+                if (curSegmentType == 'e') break;
+                else
+                {
+                    segmentStart = space;
+                }
+            }
+
+            if (next == 'e') break;
+            space = pattern.IndexOf(' ', space + 1);
+        }
+    }
+
+    public List<string> FilterAllFiles(List<PathFilter> filters, int limit)
     {
         var list = new List<string>();
-        foreach (var path in Files) {
-            if (regex.IsMatch(path)) {
+        foreach (var path in Files)
+        {
+            var allow = true;
+            foreach (var filter in filters)
+            {
+                if (!filter.Invoke(path))
+                {
+                    allow = false;
+                    break;
+                }
+            }
+            if (allow)
+            {
                 list.Add(path);
                 if (list.Count >= limit) break;
             }
@@ -204,7 +286,7 @@ public class ListFileWrapper
 
     private static string NormalizePath(string path)
     {
-        path = path.Replace('\\', '/');
+        path = path.Replace('\\', '/').TrimEnd();
         if (path.StartsWith('/')) path = path[1..];
         return path.ToLowerInvariant();
     }

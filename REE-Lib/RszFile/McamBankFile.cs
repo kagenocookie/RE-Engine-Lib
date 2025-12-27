@@ -1,8 +1,6 @@
-using ReeLib.Motbank;
-
-namespace ReeLib.Motbank
+namespace ReeLib.McamBank
 {
-    public class MotbankEntry : BaseModel
+    public class McamBankEntry : BaseModel
     {
         public long BankID;
         public uint BankType;
@@ -11,7 +9,7 @@ namespace ReeLib.Motbank
         public int Version { get; set; }
         public string Path { get; set; } = string.Empty;
 
-        public MotbankEntry(int version)
+        public McamBankEntry(int version)
         {
             Version = version;
         }
@@ -55,42 +53,39 @@ namespace ReeLib.Motbank
 
 namespace ReeLib
 {
-    public class MotbankFile(FileHandler fileHandler) : BaseFile(fileHandler)
+    using ReeLib.McamBank;
+
+    public class McamBankFile(FileHandler fileHandler) : BaseFile(fileHandler)
     {
         public int version = fileHandler.FileVersion;
-        public uint magic = Magic;
 
-        public string UvarPath { get; set; } = string.Empty;
-        public string JmapPath { get; set; } = string.Empty;
-        public List<MotbankEntry> MotlistItems { get; } = new();
+        public List<McamBankEntry> Items { get; } = new();
 
-        public const uint Magic = 0x6B6E626D;
+        public const uint Magic = 0x6B6E6263;
 
         protected override bool DoRead()
         {
             FileHandler handler = FileHandler;
             handler.Read(ref version);
-            handler.Read(ref magic);
+            var magic = handler.Read<int>();
             if (magic != Magic)
             {
-                throw new InvalidDataException($"{handler.FilePath} Not a motbank file");
+                throw new InvalidDataException($"{handler.FilePath} Not a mcambank file");
             }
             handler.ReadNull(8);
-            var motlistsOffset = handler.Read<long>();
-            UvarPath = handler.ReadOffsetWStringNullable() ?? "";
-            if (version >= 3)
-            {
-                JmapPath = handler.ReadOffsetWStringNullable() ?? "";
-            }
-            var motlistCount = handler.Read<int>();
 
-            MotlistItems.Clear();
-            handler.Seek(motlistsOffset);
-            for (int i = 0; i < motlistCount; i++)
+            var listOffset = handler.Read<long>();
+            handler.ReadNull(8);
+            if (version >= 3) handler.ReadNull(8);
+            var count = handler.Read<int>();
+
+            Items.Clear();
+            handler.Seek(listOffset);
+            for (int i = 0; i < count; i++)
             {
-                MotbankEntry item = new(version);
+                McamBankEntry item = new(version);
                 item.Read(handler);
-                MotlistItems.Add(item);
+                Items.Add(item);
             }
 
             return true;
@@ -102,38 +97,19 @@ namespace ReeLib
             handler.Clear();
 
             handler.Write(ref version);
-            handler.Write(ref magic);
+            handler.Write(Magic);
             handler.WriteNull(8);
 
             long motlistsOffsetStart = handler.Tell();
             handler.Skip(8);
-            if (string.IsNullOrEmpty(UvarPath))
-            {
-                handler.WriteInt64(0);
-            }
-            else
-            {
-                handler.WriteOffsetWString(UvarPath);
-            }
 
-            if (version >= 3)
-            {
-                if (string.IsNullOrEmpty(JmapPath))
-                {
-                    handler.WriteInt64(0);
-                }
-                else
-                {
-                    handler.WriteOffsetWString(JmapPath);
-                }
-            }
-
-            handler.Write(MotlistItems.Count);
-            handler.StringTableFlush();
-
+            handler.WriteNull(8);
+            if (version >= 3) handler.WriteNull(8);
+            handler.Write(Items.Count);
             handler.Align(16);
+
             handler.Write(motlistsOffsetStart, handler.Tell());
-            MotlistItems.Write(handler);
+            Items.Write(handler);
             handler.StringTableFlush();
             return true;
         }

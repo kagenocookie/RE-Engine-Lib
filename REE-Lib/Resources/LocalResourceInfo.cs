@@ -320,6 +320,8 @@ public class LocalResources
                     }
                 } else if (type == "Float") {
                     field["type"] = "F32";
+                } else if (type == "U31") {
+                    field["type"] = "U32";
                 }
             }
         }

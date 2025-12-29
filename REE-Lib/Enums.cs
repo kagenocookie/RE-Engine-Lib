@@ -125,6 +125,7 @@ namespace ReeLib
         gtrick,
         apollo,
         drdr,
+        kunitsu,
         oni2,
         mhwilds,
         pragmata,
@@ -149,6 +150,7 @@ namespace ReeLib
         sf6 = 9,
         gtrick,
         apollo,
+        kunitsu,
         drdr,
         pragmata,
     }

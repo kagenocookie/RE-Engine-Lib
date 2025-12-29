@@ -1416,6 +1416,8 @@ namespace ReeLib.Mesh
 				count = handler.Read<int>();
 				handler.ReadNull(4);
 				var offset = handler.Read<long>(); // note: might be only 1 group for earlier games
+				if (offset == 0) return true;
+
 				handler.Seek(offset);
 				offsets = handler.ReadArray<long>(count);
 			}
@@ -1678,6 +1680,7 @@ namespace ReeLib
 			{ "SF6", new (220705151, 230110883, MeshSerializerVersion.SF6, [GameName.sf6]) },
 			{ "DD2", new (230517984, 240423143, MeshSerializerVersion.DD2, [GameName.dd2]) },
 			{ "DD2 old", new (230517984, 231011879, MeshSerializerVersion.DD2_Old, [GameName.dd2]) },
+			{ "Kunitsu-Gami", new (230727984, 240306278, MeshSerializerVersion.DD2_Old, [GameName.kunitsu]) },
 
 			{ "ONI2", new (240704828, 240827123, MeshSerializerVersion.Onimusha, [GameName.oni2]) },
 			{ "MHWilds", new (240704828, 241111606, MeshSerializerVersion.MHWILDS, [GameName.mhwilds], extraWeightBuffer: true) },

@@ -129,6 +129,8 @@ namespace ReeLib.Mesh
 				action.Do(ref boneIndicesOffset);
 				action.Do(ref blendShapeIndicesOffset);
 				action.Do(ref nameOffsetsOffset);
+				if (FormatVersion <= MeshSerializerVersion.DMC5)
+					action.Skip(8);
 			}
 			else if (FormatVersion >= MeshSerializerVersion.RE4 && FormatVersion < MeshSerializerVersion.Onimusha)
 			{
@@ -761,9 +763,16 @@ namespace ReeLib.Mesh
 				uknSize1 = uknSize2 = vertBufferSize + (int)(handler.Tell() - faceBufferOffset);
 			}
 
-			handler.WriteNull(Utils.Align16((int)handler.Tell()) - (int)handler.Tell());
+			handler.WritePaddingUntil(Utils.Align16((int)handler.Tell()));
 
-			totalBufferSize = (int)(handler.Tell() - vertexBufferOffset);
+			if (Version < MeshSerializerVersion.RE4)
+			{
+				totalBufferSize = (int)(faceBufferOffset - vertexBufferOffset);
+			}
+			else
+			{
+				totalBufferSize = (int)(handler.Tell() - vertexBufferOffset);
+			}
 
 			if (ShapeKeyWeights.Length > 0)
 			{
@@ -2177,6 +2186,7 @@ namespace ReeLib
 					foreach (var buf in StreamingBuffers) buf.WriteElementHeaders(handler);
 				}
 
+				if (Header.FormatVersion >= MeshSerializerVersion.RE4) handler.Align(16);
 				MeshBuffer.WriteBufferData(handler);
 				header.verticesOffset = MeshBuffer.vertexBufferOffset;
 			}

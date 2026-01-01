@@ -1,7 +1,9 @@
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using ReeLib.Aimp;
 using ReeLib.Common;
+using ReeLib.Gui;
 using ReeLib.InternalAttributes;
 using ReeLib.via;
 
@@ -71,9 +73,8 @@ namespace ReeLib.Aimp
         public string? hash;
         public MapType mapType;
         public SectionType sectionType;
-        public Guid guid;
+        public GuiObjectID mapId;
         public float agentRadWhenBuild;
-        public ulong uriHash;
         public int uknId; // usually 1, sometimes 0 or 2; not related to embedded data nor is it the sectionID
 
         public long layersOffset;
@@ -109,10 +110,10 @@ namespace ReeLib.Aimp
 
             if (Version >= AimpFormat.Format46) {
                 handler.Read(ref agentRadWhenBuild);
-                handler.Read(ref uriHash);
+                mapId = new GuiObjectID(handler.Read<long>());
                 handler.Read(ref uknId);
             } else if (Version >= AimpFormat.Format28) {
-                handler.Read(ref guid);
+                handler.Read(ref mapId.guid);
                 handler.Read(ref uknId);
             }
 
@@ -143,10 +144,10 @@ namespace ReeLib.Aimp
 
             if (Version >= AimpFormat.Format46) {
                 handler.Write(ref agentRadWhenBuild);
-                handler.Write(ref uriHash);
+                handler.Write(mapId.AsID);
                 handler.Write(ref uknId);
             } else if (Version >= AimpFormat.Format28) {
-                handler.Write(ref guid);
+                handler.Write(mapId.guid);
                 handler.Write(ref uknId);
             }
 
@@ -251,19 +252,25 @@ namespace ReeLib.Aimp
         }
     }
 
-    public class PolygonNode
+    public interface IMultiIndexNode
     {
-        public int pointCount;
-        public int[] indices = [];
+        public int[] Indices { get; set; }
+    }
+
+    public class PolygonNode : IMultiIndexNode
+    {
         public NodeInfoAttributes attributes = new();
+        public int[] indices = [];
         public Vector3 min;
         public Vector3 max;
 
         public AimpFormat version;
 
+        public int[] Indices { get => indices; set => indices = value; }
+
         public void Read(FileHandler handler)
         {
-            handler.Read(ref pointCount);
+            var pointCount = handler.Read<int>();
             indices = handler.ReadArray<int>(pointCount);
             attributes.Read(pointCount, handler, version);
             handler.Read(ref min);
@@ -272,7 +279,7 @@ namespace ReeLib.Aimp
 
         public void Write(FileHandler handler)
         {
-            handler.Write(ref pointCount);
+            handler.Write(indices.Length);
             handler.WriteArray<int>(indices);
             if (version >= AimpFormat.Format28) {
                 attributes.Write(handler);
@@ -284,13 +291,15 @@ namespace ReeLib.Aimp
         }
     }
 
-    public class AABBNode
+    public class AABBNode : IMultiIndexNode
     {
         // there are a few rare cases where it's not not just 2 indices duplicated twice (aivspc)
-        public short[] indices = new short[4];
+        public ushort[] indices = new ushort[4];
         // these values also seem to only ever be not 0 in volume space maps (see DMC5 m02_340c_start.aimap.28, RE4 loc5500_ao.aivspc.6)
         public float[]? values;
         public int value;
+
+        public int[] Indices { get => indices.Select(i => (int)i).ToArray(); set => indices = value.Select(i => (ushort)i).ToArray(); }
     }
 
     public struct MapBoundaryNode
@@ -301,13 +310,15 @@ namespace ReeLib.Aimp
     }
 
     [RszGenerate]
-    public partial class WallNode
+    public partial class WallNode : IMultiIndexNode
     {
         public via.mat4 matrix;
         public PaddedVec3 scale;
         public Quaternion rotation;
         public PaddedVec3 position;
         [RszFixedSizeArray(8)] public int[] indices = new int[8];
+
+        public int[] Indices { get => indices; set => indices = value; }
 
         public void Read(FileHandler handler) => DefaultRead(handler);
         public void Write(FileHandler handler) => DefaultWrite(handler);
@@ -319,6 +330,13 @@ namespace ReeLib.Aimp
         [FieldOffset(0)] public float x;
         [FieldOffset(4)] public float y;
         [FieldOffset(8)] public float z;
+
+        public PaddedVec3(Vector3 vec)
+        {
+            x = vec.X;
+            y = vec.Y;
+            z = vec.Z;
+        }
 
         public PaddedVec3(float x, float y, float z)
         {
@@ -338,6 +356,14 @@ namespace ReeLib.Aimp
         public int[] type3 = [];
         public int[] type4 = [];
         public int TotalCount => (type1?.Length ?? 0) + (type2?.Length ?? 0) + (type3?.Length ?? 0) + (type4?.Length ?? 0);
+
+        public void Clear()
+        {
+            type1 = [];
+            type2 = [];
+            type3 = [];
+            type4 = [];
+        }
 
         public void Read(FileHandler handler)
         {
@@ -368,6 +394,10 @@ namespace ReeLib.Aimp
     {
         public AimpFormat format;
 
+        public Vector3[]? Vertices { get; internal set; }
+        public List<NodeInfo> NodeInfos { get; internal set; } = [];
+        public int VertexStartOffset { get; set; }
+
         public abstract int NodeCount { get; }
         public string Classname => "via.navigation.map." + GetType().Name;
 
@@ -377,6 +407,31 @@ namespace ReeLib.Aimp
         public abstract void WriteNodes(FileHandler handler);
 
         public abstract Vector3 GetNodeCenter(ContentGroupContainer container, int i);
+        protected abstract RangeI GetVertexRange(ContentGroupContainer container);
+
+        protected void UnpackVertices(ContentGroupContainer container)
+        {
+            var range = GetVertexRange(container);
+            // DataInterpretationException.DebugThrowIf(range.r != VertexStartOffset);
+            Vertices = new Vector3[range.s - range.r];
+            for (int i = 0; i < Vertices.Length; i++) Vertices[i] = container.Vertices[range.r + i].Vector3;
+        }
+
+        protected void PackVertices(ContentGroupContainer container, int vertStartIndex)
+        {
+            Debug.Assert(Vertices != null);
+            for (int i = 0; i < Vertices.Length; i++) container.Vertices[vertStartIndex + i] = new PaddedVec3(Vertices[i]);
+        }
+
+        internal abstract void UnpackData(ContentGroupContainer container, ContentGroupContainer? otherContainer);
+
+        internal abstract void PackData(ContentGroupContainer container, int startIndex);
+
+        protected int CalculateVertexPackOffset(ContentGroupContainer container, int vertStartIndex)
+        {
+            var range = GetVertexRange(container);
+            return vertStartIndex - range.r;
+        }
 
         public static ContentGroup Create(string classname, AimpFormat format)
         {
@@ -391,6 +446,20 @@ namespace ReeLib.Aimp
             };
             content.format = format;
             return content;
+        }
+
+        protected void ShiftVertexIndices<T>(List<T> Nodes, ContentGroupContainer container, int vertStartIndex) where T : IMultiIndexNode
+        {
+            var vertOffset = CalculateVertexPackOffset(container, vertStartIndex);
+            if (vertOffset != 0)
+            {
+                foreach (var n in Nodes)
+                {
+                    var indices = n.Indices;
+                    for (int i = 0; i < indices.Length; ++i) indices[i] += vertOffset;
+                    n.Indices = indices;
+                }
+            }
         }
     }
 
@@ -414,6 +483,7 @@ namespace ReeLib.Aimp
 
         [field: RszIgnore] public List<LinkInfo> Links { get; } = new();
         [field: RszIgnore] public RszInstance? UserData { get; set; }
+        [field: RszIgnore] public List<NodeInfo> PairNodes { get; } = new();
 
         public Color GetColor(AimpFile file) => attributes == 0 ? new Color(0xffffffff) : file.layers![BitOperations.TrailingZeroCount(attributes)].color;
 
@@ -421,6 +491,8 @@ namespace ReeLib.Aimp
         public void Write(FileHandler handler) => DefaultWrite(handler);
 
         public NodeInfoRE7 AsRE7() => new NodeInfoRE7() { flags = flags, index = index, index2 = index, attributes = attributes };
+
+        public override string ToString() => $"{groupIndex}:{index} {flags} [{nextIndex}]";
     }
 
     public struct NodeInfoRE7
@@ -434,15 +506,24 @@ namespace ReeLib.Aimp
         public readonly NodeInfo Upgrade() => new NodeInfo() { flags = flags, index = index, attributes = attributes, nextIndex = index + 1 };
     }
 
-    [StructLayout(LayoutKind.Sequential, Pack = 4)]
-    public struct LinkInfo
+    [RszGenerate]
+    public partial class LinkInfo
     {
         public int index;
         public int sourceNodeIndex;
         public int targetNodeIndex;
-        public int ukn1; // if 2 => 2-way
+        /// <summary>
+        /// Seems to represent the index of the target triangle / polygons's matching edge index (index 1+2 = 0, 2+3 = 1, 3+1 = 2 for triangles).
+        /// </summary>
+        public int edgeIndex;
         public ulong attributes;
-        public int ukn2; // this is sometimes int, sometimes float...
+        public int ukn; // this is sometimes int, sometimes float...
+
+        [field: RszIgnore] public NodeInfo? SourceNode { get; set; }
+        [field: RszIgnore] public NodeInfo? TargetNode { get; set; }
+
+        public void Read(FileHandler handler) => DefaultRead(handler);
+        public void Write(FileHandler handler) => DefaultWrite(handler);
     }
 
     public struct IndexSet
@@ -454,7 +535,7 @@ namespace ReeLib.Aimp
 
     public class NodeData
     {
-        public NodeInfo[] Nodes = [];
+        public List<NodeInfo> Nodes = [];
         public int maxIndex;
         public int minIndex;
 
@@ -465,9 +546,11 @@ namespace ReeLib.Aimp
             {
                 if (_effectiveNodeIndices == null)
                 {
+                    if (Nodes.Count == 0) return _effectiveNodeIndices = [];
+
                     _effectiveNodeIndices = new int[maxIndex + 1];
                     int offsetIndex = 0;
-                    for (int i = 0; i < Nodes.Length; i++) {
+                    for (int i = 0; i < Nodes.Count; i++) {
                         var node = Nodes[i];
                         // I'm not quite sure what the point of these extra indices is... maybe they generate lerped gap points for wayp files?
                         while (offsetIndex < node.nextIndex && offsetIndex < _effectiveNodeIndices.Length) {
@@ -479,17 +562,31 @@ namespace ReeLib.Aimp
             }
         }
 
+        public void Clear()
+        {
+            _effectiveNodeIndices = null;
+            Nodes.Clear();
+            minIndex = 0;
+            maxIndex = 0;
+        }
+
+        public void ResetNodeIndexCache()
+        {
+            _effectiveNodeIndices = null;
+        }
+
         public void Read(FileHandler handler, AimpFormat format)
         {
             var nodeCount = handler.Read<int>();
-            if (format >= AimpFormat.Format28) {
-                handler.Read(ref maxIndex);
+            if (format == AimpFormat.Format28) {
+                handler.ReadNull(4);
             }
             if (format >= AimpFormat.Format41) {
+                handler.Read(ref maxIndex);
                 handler.Read(ref minIndex);
             }
 
-            Nodes = new NodeInfo[nodeCount];
+            Nodes = new List<NodeInfo>(nodeCount);
 
             if (format >= AimpFormat.Format28)
             {
@@ -497,14 +594,16 @@ namespace ReeLib.Aimp
                 {
                     var node = new NodeInfo();
                     node.Read(handler);
-                    Nodes[i] = node;
+                    Nodes.Add(node);
                 }
 
                 foreach (var node in Nodes)
                 {
                     for (int i = 0; i < node.linkCount; ++i)
                     {
-                        node.Links.Add(handler.Read<LinkInfo>());
+                        var link = new LinkInfo();
+                        link.Read(handler);
+                        node.Links.Add(link);
                     }
                 }
             }
@@ -513,24 +612,39 @@ namespace ReeLib.Aimp
                 for (int i = 0; i < nodeCount; ++i)
                 {
                     var node = handler.Read<NodeInfoRE7>().Upgrade();
-                    Nodes[i] = node;
+                    Nodes.Add(node);
                 }
                 int linkCount = handler.Read<int>();
                 for (int i = 0; i < linkCount; ++i)
                 {
-                    var link = handler.Read<LinkInfo>();
+                    var link = new LinkInfo();
+                    link.Read(handler);
                     Nodes[link.sourceNodeIndex].Links.Add(link);
                 }
-                // convenience to simplify usage - integration can also assume it's there and valid
-                maxIndex = linkCount;
+            }
+
+            // convenience to simplify usage - integrations can always assume it's there and valid even for older games
+            if (maxIndex == 0)
+            {
+                foreach (var node in Nodes)
+                {
+                    foreach (var link in node.Links)
+                    {
+                        maxIndex = Math.Max(maxIndex, Math.Max(link.sourceNodeIndex, link.targetNodeIndex));
+                    }
+                }
             }
         }
 
         public void Write(FileHandler handler, AimpFormat format)
         {
-            handler.Write(Nodes.Length);
-            if (format >= AimpFormat.Format28) handler.Write(ref maxIndex);
-            if (format >= AimpFormat.Format41) handler.Write(ref minIndex);
+            handler.Write(Nodes.Count);
+            if (format == AimpFormat.Format28) handler.WriteNull(4);
+            else if (format >= AimpFormat.Format41)
+            {
+                handler.Write(ref maxIndex);
+                handler.Write(ref minIndex);
+            }
 
             if (format >= AimpFormat.Format28) {
                 foreach (var node in Nodes) node.Write(handler);
@@ -548,7 +662,7 @@ namespace ReeLib.Aimp
             {
                 foreach (var link in node.Links)
                 {
-                    handler.Write(link);
+                    link.Write(handler);
                 }
             }
         }
@@ -559,6 +673,16 @@ namespace ReeLib.Aimp
         public int[] indexData = [];
 
         public override Vector3 GetNodeCenter(ContentGroupContainer container, int i) => Nodes[i].pos;
+        protected override RangeI GetVertexRange(ContentGroupContainer container)
+        {
+            return new RangeI(); // no verts here
+        }
+
+        internal override void UnpackData(ContentGroupContainer container, ContentGroupContainer? otherContainer)
+        {
+            Vertices = [];
+        }
+        internal override void PackData(ContentGroupContainer container, int startIndex) { }
 
         public struct Point
         {
@@ -610,6 +734,50 @@ namespace ReeLib.Aimp
             container.Vertices[Nodes[i].index3].Vector3
         ) * 0.333f;
 
+        protected override RangeI GetVertexRange(ContentGroupContainer container)
+        {
+            var range = new RangeI() { r = int.MaxValue, s = int.MinValue };
+            foreach (var n in Nodes) {
+                range.r = Math.Min(Math.Min(n.index1, Math.Min(n.index2, n.index3)), range.r);
+                range.s = Math.Max(Math.Max(n.index1, Math.Max(n.index2, n.index3)), range.s);
+            }
+            range.s++;
+            return range;
+        }
+
+        internal override void UnpackData(ContentGroupContainer container, ContentGroupContainer? otherContainer)
+        {
+            UnpackVertices(container);
+
+            if (otherContainer == null) return;
+            for (int i = 0; i < Nodes.Count; ++i)
+            {
+                var polygonNodeIndex = polygonIndices[i];
+                NodeInfos[i].PairNodes.Add(otherContainer.NodeInfo.Nodes[polygonNodeIndex]);
+            }
+        }
+
+        internal override void PackData(ContentGroupContainer container, int vertStartIndex)
+        {
+            Debug.Assert(Vertices != null);
+            var vertOffset = CalculateVertexPackOffset(container, vertStartIndex);
+            if (vertOffset != 0)
+            {
+                foreach (var n in Nodes)
+                {
+                    n.index1 += vertOffset;
+                    n.index2 += vertOffset;
+                    n.index3 += vertOffset;
+                }
+            }
+            PackVertices(container, vertStartIndex);
+            for (int i = 0; i < Nodes.Count; ++i)
+            {
+                var nodeinfo = NodeInfos[i];
+                polygonIndices[i] = nodeinfo.PairNodes[0].index;
+            }
+        }
+
         public override bool ReadNodes(FileHandler handler, int count)
         {
             Nodes.Clear();
@@ -644,6 +812,46 @@ namespace ReeLib.Aimp
         public IndexSet[] triangleIndices = [];
 
         public override Vector3 GetNodeCenter(ContentGroupContainer container, int i) => container.Vertices[Nodes[i].indices[0]].Vector3;
+
+        protected override RangeI GetVertexRange(ContentGroupContainer container)
+        {
+            var range = new RangeI() { r = int.MaxValue, s = int.MinValue };
+            foreach (var n in Nodes) {
+                foreach (var ind in n.indices) {
+                    range.r = Math.Min(ind, range.r);
+                    range.s = Math.Max(ind, range.s);
+                }
+            }
+            range.s++;
+            return range;
+        }
+
+        internal override void UnpackData(ContentGroupContainer container, ContentGroupContainer? otherContainer)
+        {
+            UnpackVertices(container);
+
+            if (otherContainer == null) return;
+            for (int i = 0; i < Nodes.Count; ++i)
+            {
+                var otherNodeIndices = triangleIndices[i];
+                var nodeinfo = NodeInfos[i];
+                foreach (var index in otherNodeIndices.indices)
+                {
+                    nodeinfo.PairNodes.Add(otherContainer.NodeInfo.Nodes[index]);
+                }
+            }
+        }
+
+        internal override void PackData(ContentGroupContainer container, int vertStartIndex)
+        {
+            ShiftVertexIndices(Nodes, container, vertStartIndex);
+            PackVertices(container, vertStartIndex);
+            for (int i = 0; i < Nodes.Count; ++i)
+            {
+                var nodeinfo = NodeInfos[i];
+                triangleIndices[i].indices = nodeinfo.PairNodes.Select(p => p.index).ToArray();
+            }
+        }
 
         public override bool ReadNodes(FileHandler handler, int count)
         {
@@ -684,15 +892,60 @@ namespace ReeLib.Aimp
 
     public class ContentGroupMapBoundary : ContentGroup<ContentGroupMapBoundary.MapBoundaryNodeInfo>
     {
-        public int[] integers = []; // always all -1
-
-        public class MapBoundaryNodeInfo
+        public class MapBoundaryNodeInfo : IMultiIndexNode
         {
             public int[] indices = new int[8];
             public Vector3 min, max;
+
+            public int[] Indices { get => indices; set => indices = value; }
         }
 
         public override Vector3 GetNodeCenter(ContentGroupContainer container, int i) => (Nodes[i].min + Nodes[i].max) * 0.5f;
+
+        protected override RangeI GetVertexRange(ContentGroupContainer container)
+        {
+            var range = new RangeI() { r = int.MaxValue, s = int.MinValue };
+            foreach (var n in Nodes) {
+                foreach (var ind in n.indices) {
+                    range.r = Math.Min(ind, range.r);
+                    range.s = Math.Max(ind, range.s);
+                }
+            }
+            range.s++;
+            return range;
+        }
+
+        internal override void UnpackData(ContentGroupContainer container, ContentGroupContainer? otherContainer)
+        {
+            // we don't necessarily need to unpack anything - we just need the min/max on the nodes to regenerate the vert list later
+            UnpackVertices(container);
+        }
+
+        internal override void PackData(ContentGroupContainer container, int vertStartIndex)
+        {
+            Debug.Assert(Vertices != null);
+            var arr = Vertices;
+            Array.Resize(ref arr, NodeCount * 8);
+            Vertices = arr;
+            for (int i = 0; i < Nodes.Count; ++i)
+            {
+                var node = Nodes[i];
+                // I have no idea what the significance of these hardcoded offsets is, but that's how they look like in the files
+                var mid = (node.min + node.max) * 0.5f;
+                Vertices[i * 8 + 0] = new Vector3(node.min.X, node.min.Y, node.min.Z + 0.5f);
+                Vertices[i * 8 + 1] = new Vector3(node.min.X + 0.25f, node.min.Y, node.max.Z);
+                Vertices[i * 8 + 2] = new Vector3(node.max.X, node.max.Y, node.min.Z + 0.5f);
+                Vertices[i * 8 + 3] = new Vector3(node.max.X - 0.25f, node.max.Y, node.min.Z);
+
+                // TODO verify if the mid Y has any effect whatsoever (can't find a correlation in the numbers, might be meaningless, might not)
+                Vertices[i * 8 + 4] = new Vector3(node.min.X, mid.Y, node.min.Z + 0.5f);
+                Vertices[i * 8 + 5] = new Vector3(node.min.X + 0.25f, mid.Y, node.max.Z);
+                Vertices[i * 8 + 6] = new Vector3(node.max.X, mid.Y, node.min.Z + 0.5f);
+                Vertices[i * 8 + 7] = new Vector3(node.max.X - 0.25f, mid.Y, node.min.Z);
+            }
+            ShiftVertexIndices(Nodes, container, vertStartIndex);
+            PackVertices(container, vertStartIndex);
+        }
 
         public override bool ReadNodes(FileHandler handler, int count)
         {
@@ -720,21 +973,74 @@ namespace ReeLib.Aimp
 
         public override bool ReadData(FileHandler handler)
         {
-            integers = handler.ReadArray<int>(Nodes.Count);
+            // don't even store the indices here, since they're always -1
+            for (int i = 0; i < Nodes.Count; ++i)
+            {
+                DataInterpretationException.ThrowIf(handler.Read<int>() != -1, "Boundary aimp content type isn't supposed to have indices");
+            }
             return true;
         }
 
         public override void WriteData(FileHandler handler)
         {
-            handler.WriteArray(integers);
+            for (int i = 0; i < Nodes.Count; ++i) handler.Write(-1);
         }
     }
 
     public class ContentGroupMapAABB : ContentGroup<AABBNode>
     {
+        // depending on usecase, the index sets can have either 0, 1 or 4 indices
+        // 0 => if main content AABB
+        // 1 => if secondary content AABB for a Boundary type main content (and sometimes for Walls too)
+        // 4 => if secondary content AABB for a Wall type main content
         public IndexSet[] data = [];
 
+
         public override Vector3 GetNodeCenter(ContentGroupContainer container, int i) => container.Vertices[Nodes[i].indices[0]].Vector3;
+
+        protected override RangeI GetVertexRange(ContentGroupContainer container)
+        {
+            var range = new RangeI() { r = int.MaxValue, s = int.MinValue };
+            foreach (var n in Nodes)
+            {
+                foreach (var ind in n.indices)
+                {
+                    range.r = Math.Min(ind, range.r);
+                    range.s = Math.Max(ind, range.s);
+                }
+            }
+            range.s++;
+            return range;
+        }
+
+
+        internal override void UnpackData(ContentGroupContainer container, ContentGroupContainer? otherContainer)
+        {
+            UnpackVertices(container);
+            // note: we can't just reconstruct this from the paired up Boundary content group because not all AABB groups have a pair
+
+            if (otherContainer == null) return;
+            for (int i = 0; i < Nodes.Count; ++i)
+            {
+                var otherNodeIndices = data[i];
+                var nodeinfo = NodeInfos[i];
+                foreach (var index in otherNodeIndices.indices)
+                {
+                    nodeinfo.PairNodes.Add(otherContainer.NodeInfo.Nodes[index]);
+                }
+            }
+        }
+
+        internal override void PackData(ContentGroupContainer container, int vertStartIndex)
+        {
+            ShiftVertexIndices(Nodes, container, vertStartIndex);
+            PackVertices(container, vertStartIndex);
+            for (int i = 0; i < Nodes.Count; ++i)
+            {
+                var nodeinfo = NodeInfos[i];
+                data[i].indices = nodeinfo.PairNodes.Select(p => p.index).ToArray();
+            }
+        }
 
         public override bool ReadNodes(FileHandler handler, int count)
         {
@@ -786,11 +1092,37 @@ namespace ReeLib.Aimp
     }
     public class ContentGroupWall : ContentGroup<WallNode>
     {
-        public OffsetData[] data = [];
+        public int[] indices = [];
 
         public override Vector3 GetNodeCenter(ContentGroupContainer container, int i) => container.Vertices[Nodes[i].indices[0]].Vector3;
 
-        public struct OffsetData { public uint mask; }; // re4: 1x uint; before was saved as 2x uint -- why? dd2+ change?
+        protected override RangeI GetVertexRange(ContentGroupContainer container)
+        {
+            var range = new RangeI() { r = int.MaxValue, s = int.MinValue };
+            foreach (var n in Nodes) {
+                foreach (var ind in n.indices) {
+                    range.r = Math.Min(ind, range.r);
+                    range.s = Math.Max(ind, range.s);
+                }
+            }
+            range.s++;
+            return range;
+        }
+
+        internal override void UnpackData(ContentGroupContainer container, ContentGroupContainer? otherContainer)
+        {
+            UnpackVertices(container);
+        }
+
+        internal override void PackData(ContentGroupContainer container, int vertStartIndex)
+        {
+            ShiftVertexIndices(Nodes, container, vertStartIndex);
+            PackVertices(container, vertStartIndex);
+            for (int i = 0; i < Nodes.Count; ++i)
+            {
+                indices[i] = NodeInfos[i].PairNodes[0].index;
+            }
+        }
 
         public override bool ReadNodes(FileHandler handler, int count)
         {
@@ -810,13 +1142,17 @@ namespace ReeLib.Aimp
 
         public override bool ReadData(FileHandler handler)
         {
-            data = handler.ReadArray<OffsetData>(Nodes.Count);
+            // don't even store the indices here, since they're always -1
+            for (int i = 0; i < Nodes.Count; ++i)
+            {
+                DataInterpretationException.ThrowIf(handler.Read<int>() != -1, "Wall aimp content type isn't supposed to have indices");
+            }
             return true;
         }
 
         public override void WriteData(FileHandler handler)
         {
-            handler.WriteArray(data);
+            for (int i = 0; i < Nodes.Count; ++i) handler.Write(-1);
         }
     }
 
@@ -824,8 +1160,8 @@ namespace ReeLib.Aimp
     {
         public ContentGroup[] contents = [];
 
-        public PaddedVec3[] Vertices = [];
-        public NodeData Nodes = new();
+        public PaddedVec3[] Vertices { get; internal set; } = [];
+        public NodeData NodeInfo = new();
 
         // aiwayp, aivspc: float1,2 = 1f, 0f
         // ainvm: float2 always 1.396263f
@@ -848,7 +1184,7 @@ namespace ReeLib.Aimp
             get {
                 if (_nodeOrigins == null)
                 {
-                    _nodeOrigins = new Vector3[Nodes.Nodes.Length];
+                    _nodeOrigins = new Vector3[NodeInfo.Nodes.Count];
                     int offset = 0;
                     foreach (var content in contents)
                     {
@@ -869,7 +1205,7 @@ namespace ReeLib.Aimp
 
         internal AimpHeader header = null!;
 
-        public ContentGroupContainer(AimpFormat version)
+        internal ContentGroupContainer(AimpFormat version)
         {
             this.version = version;
         }
@@ -885,6 +1221,8 @@ namespace ReeLib.Aimp
 
         protected override bool DoRead(FileHandler handler)
         {
+            _nodeOrigins = null;
+            NodeInfo.ResetNodeIndexCache();
             var contentCount = handler.Read<int>();
             var firstHeaderOffset = handler.Tell();
             if (contentCount == 0) {
@@ -900,7 +1238,8 @@ namespace ReeLib.Aimp
             handler.ReadNull(4);
 
             Vertices = handler.ReadArray<PaddedVec3>(handler.Read<int>());
-            Nodes.Read(handler, version);
+            NodeInfo.Clear();
+            NodeInfo.Read(handler, version);
 
             // why the hell does this exist
             // maybe it's supposed to be a section type override, so a file could contain multiple section types?
@@ -934,7 +1273,7 @@ namespace ReeLib.Aimp
             handler.WriteNull(4);
             handler.Write(Vertices.Length);
             handler.WriteArray(Vertices);
-            Nodes.Write(handler, version);
+            NodeInfo.Write(handler, version);
             if (header.Version > AimpFormat.Format8 && header.sectionType == SectionType.NoSection) {
                 handler.WriteNull(4);
             }
@@ -961,6 +1300,166 @@ namespace ReeLib.Aimp
         {
             foreach (var group in contents) {
                 group.WriteData(handler);
+            }
+        }
+
+        internal void UnpackData(ContentGroupContainer? other)
+        {
+            var effectiveNodeIndices = NodeInfo.EffectiveNodeIndices;
+            foreach (var nodeinfo in NodeInfo.Nodes)
+            {
+                contents[nodeinfo.groupIndex].NodeInfos.Add(nodeinfo);
+                foreach (var link in nodeinfo.Links)
+                {
+                    var n1 = NodeInfo.Nodes[effectiveNodeIndices[link.sourceNodeIndex]];
+                    var n2 = NodeInfo.Nodes[effectiveNodeIndices[link.targetNodeIndex]];
+
+                    // Debug.Assert(n1 == nodeinfo || n2 == nodeinfo);
+                    // TODO figure out why sometimes neither n1 nor n2 is equal to our nodeInfo
+
+                    link.SourceNode = n1;
+                    link.TargetNode = n2;
+                }
+            }
+
+            int vertOffset = 0;
+            foreach (var c in contents)
+            {
+                c.VertexStartOffset = vertOffset;
+                if (c.NodeCount == 0) {
+                    c.Vertices = [];
+                    continue;
+                }
+                c.UnpackData(this, other);
+                vertOffset += c.Vertices?.Length ?? 0;
+            }
+        }
+
+        internal void PackData()
+        {
+            NodeInfo.Nodes.Clear();
+            for (int g = 0; g < contents.Length; ++g)
+            {
+                int i = 0;
+                foreach (var nodeinfo in contents[g].NodeInfos)
+                {
+                    NodeInfo.Nodes.Add(nodeinfo);
+                    nodeinfo.index = i++;
+                    nodeinfo.groupIndex = g;
+                    nodeinfo.linkCount = nodeinfo.Links.Count;
+                }
+            }
+
+            // note: we can't blindly automate the nextIndex field because wayp files can have varying and not strictly-ascending values
+
+            int verts = 0;
+            foreach (var c in contents)
+            {
+                c.PackData(this, verts);
+                verts += c.Vertices!.Length;
+            }
+
+            _nodeOrigins = null;
+            NodeInfo.ResetNodeIndexCache();
+            var nodeIndices = NodeInfo.EffectiveNodeIndices;
+            var linkNodeIndexDict = new Dictionary<NodeInfo, int>();
+            for (int i = 0; i < nodeIndices.Length; ++i)
+            {
+                linkNodeIndexDict.TryAdd(NodeInfo.Nodes[nodeIndices[i]], i);
+            }
+
+            foreach (var nodeInfo in NodeInfo.Nodes)
+            {
+                foreach (var link in nodeInfo.Links)
+                {
+                    // note: this only theoretically (untested) works for wayp files
+                    // for non-wayp files, the node indices should mostly just be equal to the index so we may be able to get away with just taking the node index directly there otherwise
+                    link.sourceNodeIndex = linkNodeIndexDict[link.SourceNode!];
+                    link.targetNodeIndex = linkNodeIndexDict[link.TargetNode!];
+                    DataInterpretationException.DebugThrowIf(link.sourceNodeIndex == -1 || link.targetNodeIndex == -1);
+
+                    // backup non-dict code just in case
+                    // var srcIndex = NodeInfo.Nodes.IndexOf(link.SourceNode!);
+                    // var targetIndex = NodeInfo.Nodes.IndexOf(link.TargetNode!);
+                    // link.sourceNodeIndex = nodeIndices.IndexOf(srcIndex);
+                    // link.targetNodeIndex = nodeIndices.IndexOf(targetIndex);
+                }
+            }
+        }
+
+        public TGroup InitGroup<TGroup>(int vertCount, bool isMainGroup) where TGroup : ContentGroup, new()
+        {
+            var group = contents.OfType<TGroup>().FirstOrDefault();
+            int previousGroupVertCount = 0;
+            if (group == null) {
+                group = new TGroup() { format = header.Version };
+                if (isMainGroup) {
+                    contents = new ContentGroup[] { group }.Concat(contents).ToArray();
+                } else {
+                    contents = contents.Append(group).ToArray();
+                }
+                group.Vertices = new Vector3[vertCount];
+            }
+            else
+            {
+                previousGroupVertCount = group.Vertices!.Length;
+                var diff = vertCount - previousGroupVertCount;
+                if (diff != 0) {
+                    group.Vertices = new Vector3[vertCount];
+                }
+            }
+
+            if (contents.Length > 1)
+            {
+                var diff = vertCount - previousGroupVertCount;
+                var newArray = new PaddedVec3[Vertices.Length + diff];
+                Vertices = newArray;
+                // we don't need to copy values over, they'll get filled during the PackData() step from the group-local vertex arrays
+            }
+            else
+            {
+                Vertices = new PaddedVec3[vertCount];
+            }
+
+            // shift vertex indices accordingly for groups after the one we just resized
+            var groupIndex = Array.IndexOf(contents, group);
+            if (contents.Length > groupIndex + 1)
+            {
+                var delta = vertCount - contents[groupIndex + 1].VertexStartOffset;
+                for (int i = groupIndex + 1; i < contents.Length; ++i) contents[i].VertexStartOffset += delta;
+            }
+
+            return group;
+        }
+
+        public void RemoveGroup(ContentGroup group)
+        {
+            var groupIndex = Array.IndexOf(contents, group);
+            if (groupIndex == -1) return;
+
+            contents = contents.Except([group]).ToArray();
+            var vertsStart = group.VertexStartOffset;
+            var vertsCount = group.Vertices?.Length ?? 0;
+            foreach (var node in group.NodeInfos) {
+                NodeInfo.Nodes.Remove(node);
+            }
+            foreach (var node in NodeInfo.Nodes)
+            {
+                for (int l = 0; l < node.Links.Count; l++)
+                {
+                    if (node.Links[l].TargetNode?.groupIndex == groupIndex || node.Links[l].SourceNode?.groupIndex == groupIndex)
+                    {
+                        node.Links.RemoveAt(l--);
+                    }
+                }
+            }
+            if (vertsCount != 0)
+            {
+                var verts = Vertices;
+                var nextVertsStart = vertsStart + vertsCount;
+                Array.Resize(ref verts, verts.Length - vertsCount);
+                Array.Copy(Vertices, nextVertsStart, verts, vertsStart, Vertices.Length - nextVertsStart);
+                Vertices = verts;
             }
         }
     }
@@ -1206,8 +1705,7 @@ namespace ReeLib
         public ContentGroupContainer? secondaryContent;
         public MapLayers[]? layers;
 
-        public ulong embedHash1;
-        public ulong embedHash2;
+        public GuiObjectID parentMapId;
 
         public EmbeddedMap[] embeds = Array.Empty<EmbeddedMap>();
 
@@ -1287,6 +1785,52 @@ namespace ReeLib
 
         public override RSZFile? GetRSZ() => RSZ;
 
+        /// <summary>
+        /// Resets and initializes both content groups with empty data.
+        /// </summary>
+        public void ResetContentGroups(MapType mapType)
+        {
+            mainContent = new ContentGroupContainer(Header.Version) { header = Header };
+            secondaryContent = null;
+            Header.mapType = mapType;
+            embeds = [];
+        }
+
+        /// <summary>
+        /// Initializes both content groups with empty data if they are not yet initialized and resizes the data structures according to the given vertex counts.
+        /// </summary>
+        public void InitContentGroups(int mainContentVertCount, int secondaryContentVertCount)
+        {
+            mainContent ??= new ContentGroupContainer(Header.Version) { header = Header };
+            switch (Header.mapType) {
+                case MapType.Navmesh:
+                    mainContent.InitGroup<ContentGroupTriangle>(mainContentVertCount, true);
+                    secondaryContent ??= new ContentGroupContainer(Header.Version) { header = Header };
+                    secondaryContent.InitGroup<ContentGroupPolygon>(secondaryContentVertCount, true);
+                    break;
+                case MapType.WayPoint:
+                    mainContent.InitGroup<ContentGroupMapPoint>(mainContentVertCount, true);
+                    break;
+                case MapType.VolumeSpace:
+                    mainContent.InitGroup<ContentGroupMapAABB>(mainContentVertCount, true);
+                    break;
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+
+        public void UnpackData()
+        {
+            mainContent?.UnpackData(secondaryContent);
+            secondaryContent?.UnpackData(mainContent);
+        }
+
+        public void PackData()
+        {
+            mainContent?.PackData();
+            secondaryContent?.PackData();
+        }
+
         protected override bool DoRead()
         {
             var handler = FileHandler;
@@ -1300,12 +1844,12 @@ namespace ReeLib
             if (header.contentGroup1Offset > 0) {
                 handler.Seek(header.contentGroup1Offset);
                 // note: there are cases with no content groups (DMC5)
-                mainContent ??= new(format) { header = header };
+                mainContent = new(format) { header = header };
                 mainContent.Read(handler);
             }
 
             if (header.contentGroup2Offset > 0 && header.group2DataOffset > 0) {
-                secondaryContent ??= new(format) { header = header };
+                secondaryContent = new(format) { header = header };
                 handler.Seek(header.contentGroup2Offset);
                 secondaryContent.Read(handler);
             }
@@ -1334,7 +1878,7 @@ namespace ReeLib
             if (header.rszOffset > 0)
             {
                 ReadRsz(RSZ, header.rszOffset);
-                var nodes = (mainContent?.Nodes.Nodes ?? []).Concat(secondaryContent?.Nodes.Nodes ?? []);
+                var nodes = (mainContent?.NodeInfo.Nodes ?? []).Concat(secondaryContent?.NodeInfo.Nodes ?? []);
                 foreach (var node in nodes)
                 {
                     if (node.userdataIndex == 0) continue;
@@ -1345,10 +1889,8 @@ namespace ReeLib
             if (header.embeddedContentOffset > 0) {
                 handler.Seek(header.embeddedContentOffset);
 
-                handler.Read(ref embedHash1);
-                if (format <= AimpFormat.Format41) {
-                    handler.Read(ref embedHash2);
-                }
+                if (format >= AimpFormat.Format46) parentMapId = new GuiObjectID(handler.Read<long>());
+                else handler.Read(ref parentMapId.guid);
 
                 var embedCount = handler.Read<int>();
                 embeds = new EmbeddedMap[embedCount];
@@ -1364,11 +1906,13 @@ namespace ReeLib
             }
 
             DataInterpretationException.ThrowIfNotZeroEOF(handler);
+            UnpackData();
             return true;
         }
 
         protected override bool DoWrite()
         {
+            PackData();
             var handler = FileHandler;
             var header = Header;
             header.Write(handler);
@@ -1411,8 +1955,8 @@ namespace ReeLib
 
             if (header.Version >= AimpFormat.Format28) {
                 // rebuild the RSZ data table just in case anything relevant changed
-                var userdataInstances = (mainContent?.Nodes.Nodes ?? [])
-                    .Concat(secondaryContent?.Nodes.Nodes ?? [])
+                var userdataInstances = (mainContent?.NodeInfo.Nodes ?? [])
+                    .Concat(secondaryContent?.NodeInfo.Nodes ?? [])
                     .Where(x => x.UserData != null);
 
                 RSZ.ClearObjects();
@@ -1428,10 +1972,9 @@ namespace ReeLib
 
                 handler.Align(16);
                 header.embeddedContentOffset = handler.Tell();
-                handler.Write(ref embedHash1);
-                if (header.Version <= AimpFormat.Format41) {
-                    handler.Write(ref embedHash2);
-                }
+                if (header.Version >= AimpFormat.Format46) handler.Write(parentMapId.AsID);
+                else handler.Write(ref parentMapId.guid);
+
                 handler.Write(embeds.Length);
 
                 if (embeds.Length > 0)

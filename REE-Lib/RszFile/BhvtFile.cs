@@ -193,6 +193,18 @@ namespace ReeLib.Bhvt
 
         public RszInstance? Instance { get; set; }
 
+        public void RandomizeActionID()
+        {
+            if (Instance == null) return;
+
+            Action = (uint)System.Random.Shared.Next();
+            if (Instance.Fields[BhvtFile.Action_IDFieldIndex].type == RszFieldType.U32) {
+                Instance.Values[BhvtFile.Action_IDFieldIndex] = Action;
+            } else {
+                Instance.Values[BhvtFile.Action_IDFieldIndex] = (int)Action;
+            }
+        }
+
         public override string ToString() => $"<{ActionEx}> {Instance?.ToString() ?? "NULL"}";
     }
 
@@ -879,9 +891,9 @@ namespace ReeLib
         // only used in fsmv2 files
         public List<BhvtGameObjectReference> GameObjectReferences { get; set; } = new ();
 
-        private const int Condition_IDFieldIndex = 0;
-        private const int Condition_GuidFieldIndex = 1;
-        private const int Action_IDFieldIndex = 1;
+        internal const int Condition_IDFieldIndex = 0;
+        internal const int Condition_GuidFieldIndex = 1;
+        internal const int Action_IDFieldIndex = 1;
 
         public IEnumerable<BHVTNode> GetAllNodes()
         {

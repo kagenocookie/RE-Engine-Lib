@@ -1150,6 +1150,14 @@ namespace ReeLib.via
             this.target = target;
         }
 
+        public void Set(IGameObject? target)
+        {
+            if (target is ScnGameObject ss) {
+                this.guid = ss.Guid;
+            }
+            this.target = target;
+        }
+
         public override string ToString() => $"Ref<{guid} => {target}>";
     }
 }

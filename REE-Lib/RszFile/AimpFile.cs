@@ -66,6 +66,26 @@ namespace ReeLib.Aimp
 	    NoMap = 3,
     }
 
+    /// <summary>
+    /// via.navigation.map.NodeContent.EdgeAttribute.
+    ///
+    /// Note that an InnerSide=0x10000 enum entry seems to exist too, but that doesn't fit in the byte sized attribute on navmesh edge infos so we're ignoring it.
+    /// </summary>
+    [Flags]
+    public enum EdgeAttribute : byte
+    {
+        /// <summary>
+        /// Edge is a contour line segment, meaning it's an outer edge with no neighboring triangle.
+        /// </summary>
+        Contour = 1,
+        Divided = 2,
+        Vertical = 4,
+        ContourP0 = 8,
+        ContourP1 = 16,
+        WallP0 = 32,
+        WallP1 = 64,
+    }
+
     public class AimpHeader : BaseModel
     {
         public uint magic = AimpFile.Magic;
@@ -165,15 +185,15 @@ namespace ReeLib.Aimp
         }
     }
 
-    public class NodeInfoAttributes
+    public class EdgeInfo
     {
-        public byte[] attributeIds = [];
-        public float[] values = [];
+        public EdgeAttribute[] edgeAttributes = [];
+        public float[] traverseCosts = [];
 
         public void Init(int count)
         {
-            attributeIds = new byte[count];
-            values = new float[count];
+            edgeAttributes = new EdgeAttribute[count];
+            traverseCosts = new float[count];
         }
 
         public void Read(int count, FileHandler handler, AimpFormat version)
@@ -200,30 +220,28 @@ namespace ReeLib.Aimp
         }
         public void Read(int count, FileHandler handler)
         {
-            attributeIds = handler.ReadArray<byte>(count);
+            edgeAttributes = handler.ReadArray<EdgeAttribute>(count);
             handler.Align(4);
-            values = handler.ReadArray<float>(count);
+            traverseCosts = handler.ReadArray<float>(count);
         }
 
         public void ReadRE7(int count, FileHandler handler)
         {
-            // note: values are actually ints here but it's fine
-            values = handler.ReadArray<float>(count);
+            edgeAttributes = handler.ReadArray<int>(count).Select(n => (EdgeAttribute)n).ToArray();
         }
 
         public void Write(FileHandler handler)
         {
-            handler.WriteArray(attributeIds!);
+            handler.WriteArray(edgeAttributes!);
             handler.Align(4);
-            handler.WriteArray(values!);
+            handler.WriteArray(traverseCosts!);
         }
 
         public void WriteRE7(FileHandler handler)
         {
-            foreach (var f in values!)
+            foreach (var attr in edgeAttributes!)
             {
-                var num = BitConverter.SingleToInt32Bits(f);
-                handler.Write(num);
+                handler.Write((int)attr);
             }
         }
     }
@@ -233,14 +251,14 @@ namespace ReeLib.Aimp
         public int index1;
         public int index2;
         public int index3;
-        public NodeInfoAttributes attributes = new();
+        public EdgeInfo edges = new();
 
         public void Read(FileHandler handler, AimpFormat format)
         {
             handler.Read(ref index1);
             handler.Read(ref index2);
             handler.Read(ref index3);
-            attributes.Read(3, handler, format);
+            edges.Read(3, handler, format);
         }
 
         public void Write(FileHandler handler, AimpFormat format)
@@ -248,7 +266,7 @@ namespace ReeLib.Aimp
             handler.Write(ref index1);
             handler.Write(ref index2);
             handler.Write(ref index3);
-            attributes.Write(handler, format);
+            edges.Write(handler, format);
         }
     }
 
@@ -259,7 +277,7 @@ namespace ReeLib.Aimp
 
     public class PolygonNode : IMultiIndexNode
     {
-        public NodeInfoAttributes attributes = new();
+        public EdgeInfo edges = new();
         public int[] indices = [];
         public Vector3 min;
         public Vector3 max;
@@ -272,7 +290,7 @@ namespace ReeLib.Aimp
         {
             var pointCount = handler.Read<int>();
             indices = handler.ReadArray<int>(pointCount);
-            attributes.Read(pointCount, handler, version);
+            edges.Read(pointCount, handler, version);
             handler.Read(ref min);
             handler.Read(ref max);
         }
@@ -282,9 +300,9 @@ namespace ReeLib.Aimp
             handler.Write(indices.Length);
             handler.WriteArray<int>(indices);
             if (version >= AimpFormat.Format28) {
-                attributes.Write(handler);
+                edges.Write(handler);
             } else {
-                attributes.WriteRE7(handler);
+                edges.WriteRE7(handler);
             }
             handler.Write(ref min);
             handler.Write(ref max);

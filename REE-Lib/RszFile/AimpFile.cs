@@ -312,6 +312,7 @@ namespace ReeLib.Aimp
     public class AABBNode : IMultiIndexNode
     {
         // there are a few rare cases where it's not not just 2 indices duplicated twice (aivspc)
+        // maybe the second pair is a "ground" bounds? (see RE4 loc5510.aivspc)
         public ushort[] indices = new ushort[4];
         // these values also seem to only ever be not 0 in volume space maps (see DMC5 m02_340c_start.aimap.28, RE4 loc5500_ao.aivspc.6)
         public float[]? values;
@@ -367,20 +368,19 @@ namespace ReeLib.Aimp
         public override string ToString() => $"{x}, {y}, {z}";
     }
 
-    public class NodeTypeData
+    public class NodeHeightPartitioning
     {
-        public int[] type1 = [];
-        public int[] type2 = [];
-        public int[] type3 = [];
-        public int[] type4 = [];
-        public int TotalCount => (type1?.Length ?? 0) + (type2?.Length ?? 0) + (type3?.Length ?? 0) + (type4?.Length ?? 0);
+        public int[] height0 = [];
+        public int[] height1 = [];
+        public int[] height2 = [];
+        public int[] height3 = [];
 
         public void Clear()
         {
-            type1 = [];
-            type2 = [];
-            type3 = [];
-            type4 = [];
+            height0 = [];
+            height1 = [];
+            height2 = [];
+            height3 = [];
         }
 
         public void Read(FileHandler handler)
@@ -389,22 +389,22 @@ namespace ReeLib.Aimp
             var c2 = handler.Read<int>();
             var c3 = handler.Read<int>();
             var c4 = handler.Read<int>();
-            type1 = handler.ReadArray<int>(c1);
-            type2 = handler.ReadArray<int>(c2);
-            type3 = handler.ReadArray<int>(c3);
-            type4 = handler.ReadArray<int>(c4);
+            height0 = handler.ReadArray<int>(c1);
+            height1 = handler.ReadArray<int>(c2);
+            height2 = handler.ReadArray<int>(c3);
+            height3 = handler.ReadArray<int>(c4);
         }
 
         public void Write(FileHandler handler)
         {
-            handler.Write(type1.Length);
-            handler.Write(type2.Length);
-            handler.Write(type3.Length);
-            handler.Write(type4.Length);
-            handler.WriteArray(type1);
-            handler.WriteArray(type2);
-            handler.WriteArray(type3);
-            handler.WriteArray(type4);
+            handler.Write(height0.Length);
+            handler.Write(height1.Length);
+            handler.Write(height2.Length);
+            handler.Write(height3.Length);
+            handler.WriteArray(height0);
+            handler.WriteArray(height1);
+            handler.WriteArray(height2);
+            handler.WriteArray(height3);
         }
     }
 
@@ -1110,8 +1110,6 @@ namespace ReeLib.Aimp
     }
     public class ContentGroupWall : ContentGroup<WallNode>
     {
-        public int[] indices = [];
-
         public override Vector3 GetNodeCenter(ContentGroupContainer container, int i) => container.Vertices[Nodes[i].indices[0]].Vector3;
 
         protected override RangeI GetVertexRange(ContentGroupContainer container)
@@ -1136,10 +1134,6 @@ namespace ReeLib.Aimp
         {
             ShiftVertexIndices(Nodes, container, vertStartIndex);
             PackVertices(container, vertStartIndex);
-            for (int i = 0; i < Nodes.Count; ++i)
-            {
-                indices[i] = NodeInfos[i].PairNodes[0].index;
-            }
         }
 
         public override bool ReadNodes(FileHandler handler, int count)
@@ -1216,9 +1210,7 @@ namespace ReeLib.Aimp
             }
         }
 
-        // for paired content group types, this is only ever present on group 2 (always the last group)
-        // each sub array contains indices of the current group nodes, one node can be in multiple
-        public NodeTypeData? QuadData;
+        public NodeHeightPartitioning? NodeHeights;
         public AimpFormat version;
 
         internal AimpHeader header = null!;
@@ -1272,8 +1264,8 @@ namespace ReeLib.Aimp
 
             if (version > AimpFormat.Format8) {
                 handler.Read(ref bounds);
-                QuadData ??= new();
-                QuadData.Read(handler);
+                NodeHeights ??= new();
+                NodeHeights.Read(handler);
             }
 
             return true;
@@ -1300,8 +1292,8 @@ namespace ReeLib.Aimp
             handler.Write(ref float2);
             if (version > AimpFormat.Format8) {
                 handler.Write(ref bounds);
-                QuadData ??= new();
-                QuadData.Write(handler);
+                NodeHeights ??= new();
+                NodeHeights.Write(handler);
             }
 
             return true;
@@ -1847,6 +1839,56 @@ namespace ReeLib
         {
             mainContent?.PackData();
             secondaryContent?.PackData();
+            var boundContent = secondaryContent ?? mainContent;
+            if (boundContent != null) {
+                RebuildHeightPartition(boundContent);
+            }
+        }
+
+        private static void RebuildHeightPartition(ContentGroupContainer container)
+        {
+            container.NodeHeights ??= new();
+            var h0 = new List<int>();
+            var h1 = new List<int>();
+            var h2 = new List<int>();
+            var h3 = new List<int>();
+            List<int>[] heights = [h0, h1, h2, h3];
+            var minHeight = container.bounds.minpos.Y;
+            var totalHeight = container.bounds.Size.Y;
+
+            for (int i = 0; i < container.NodeInfo.Nodes.Count; i++) {
+                var nodeInfo = container.NodeInfo.Nodes[i];
+                var content = container.contents[nodeInfo.groupIndex];
+                Vector3 min, max;
+                switch (content) {
+                    case ContentGroupPolygon polyContent:
+                        min = polyContent.Nodes[nodeInfo.index].min;
+                        max = polyContent.Nodes[nodeInfo.index].max;
+                        break;
+                    case ContentGroupMapPoint pointContent:
+                        // note: it seems like point groups have slightly different partitioning break points, but it's close enough
+                        min = max = pointContent.Nodes[nodeInfo.index].pos;
+                        break;
+                    case ContentGroupMapAABB aabbContent:
+                        // note: there's technically 4 indices but the second pair doesn't seem to affect the height partitioning
+                        min = container.Vertices[aabbContent.Nodes[nodeInfo.index].indices[0]].Vector3;
+                        max = container.Vertices[aabbContent.Nodes[nodeInfo.index].indices[1]].Vector3;
+                        break;
+                    default:
+                        continue;
+                }
+
+                var h_min = Math.Clamp((int)Math.Floor(((min.Y - minHeight) / totalHeight) * 4), 0, 3);
+                var h_max = Math.Clamp((int)Math.Ceiling(((max.Y - minHeight) / totalHeight) * 4) - 1, 0, 3);
+                for (int h = h_min; h <= h_max; ++h) {
+                    heights[h].Add(i);
+                }
+            }
+
+            container.NodeHeights.height0 = h0.ToArray();
+            container.NodeHeights.height1 = h1.ToArray();
+            container.NodeHeights.height2 = h2.ToArray();
+            container.NodeHeights.height3 = h3.ToArray();
         }
 
         protected override bool DoRead()

@@ -566,13 +566,17 @@ namespace ReeLib.Aimp
                     if (Nodes.Count == 0) return _effectiveNodeIndices = [];
 
                     _effectiveNodeIndices = new int[maxIndex + 1];
-                    int offsetIndex = 0;
                     for (int i = 0; i < Nodes.Count; i++) {
                         var node = Nodes[i];
-                        // I'm not quite sure what the point of these extra indices is... maybe they generate lerped gap points for wayp files?
-                        while (offsetIndex < node.index && offsetIndex < _effectiveNodeIndices.Length) {
-                            _effectiveNodeIndices[offsetIndex++] = i;
-                        }
+                        _effectiveNodeIndices[node.index] = i;
+                    }
+
+                    // I'm not quite sure what the point of these extra indices is... maybe they generate lerped gap points for wayp files?
+                    var lastIndex = 0;
+                    for (int i = 0; i <= maxIndex; i++) {
+                        var index = _effectiveNodeIndices[i];
+                        if (index == 0) _effectiveNodeIndices[i] = lastIndex;
+                        lastIndex = index;
                     }
                 }
                 return _effectiveNodeIndices;
@@ -602,22 +606,26 @@ namespace ReeLib.Aimp
 
             if (format >= AimpFormat.Format28)
             {
+                var nodeMaxIndex = 0;
                 for (int i = 0; i < nodeCount; ++i)
                 {
                     var node = new NodeInfo();
                     node.Read(handler);
                     Nodes.Add(node);
+                    nodeMaxIndex = Math.Max(nodeMaxIndex, node.index);
                 }
+                if (maxIndex == 0) maxIndex = nodeMaxIndex;
 
-                int linkCount = handler.Read<int>(); // TODO ensure correct order / node matching for links
-                foreach (var node in Nodes)
+                var nodeIndices = EffectiveNodeIndices;
+
+                int linkCount = handler.Read<int>();
+                for (int i = 0; i < linkCount; ++i)
                 {
-                    for (int i = 0; i < node.linkCount; ++i)
-                    {
-                        var link = new LinkInfo();
-                        link.Read(handler);
-                        node.Links.Add(link);
-                    }
+                    var link = new LinkInfo();
+                    link.Read(handler);
+                    link.SourceNode = Nodes[nodeIndices[link.sourceNodeIndex]];
+                    link.TargetNode = Nodes[nodeIndices[link.targetNodeIndex]];
+                    link.SourceNode.Links.Add(link);
                 }
             }
             else
@@ -1201,6 +1209,7 @@ namespace ReeLib.Aimp
                         {
                             _nodeOrigins[offset + i] = content.GetNodeCenter(this, i);
                         }
+                        offset = content.NodeCount;
                     }
                 }
                 return _nodeOrigins;

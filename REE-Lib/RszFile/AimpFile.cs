@@ -491,13 +491,13 @@ namespace ReeLib.Aimp
     [RszGenerate]
     public partial class NodeInfo
     {
-        public int groupIndex;
         public int index;
+        public int groupIndex;
+        public int localIndex;
         public int flags; // found bits: 1, 2, 16, 32; combinations: 0, 1, 2, 16, 18, 19, 34; LinkBoundary? Wall?
         public ulong attributes;
         public int userdataIndex;
         public int linkCount;
-        public int nextIndex;
 
         [field: RszIgnore] public List<LinkInfo> Links { get; } = new();
         [field: RszIgnore] public RszInstance? UserData { get; set; }
@@ -508,20 +508,20 @@ namespace ReeLib.Aimp
         public void Read(FileHandler handler) => DefaultRead(handler);
         public void Write(FileHandler handler) => DefaultWrite(handler);
 
-        public NodeInfoRE7 AsRE7() => new NodeInfoRE7() { flags = flags, index = index, index2 = index, attributes = attributes };
+        public NodeInfoRE7 AsRE7() => new NodeInfoRE7() { flags = flags, index = localIndex, localIndex = localIndex, attributes = attributes };
 
-        public override string ToString() => $"{groupIndex}:{index} {flags} [{nextIndex}]";
+        public override string ToString() => $"[{index}] {groupIndex}:{localIndex} {flags}";
     }
 
     public struct NodeInfoRE7
     {
         public int index;
-        public int zero;
-        public int index2; // equal to index
+        public int groupIndex;
+        public int localIndex; // equal to index
         public int flags;
         public ulong attributes;
 
-        public readonly NodeInfo Upgrade() => new NodeInfo() { flags = flags, index = index, attributes = attributes, nextIndex = index + 1 };
+        public readonly NodeInfo Upgrade() => new NodeInfo() { index = index, groupIndex = groupIndex, localIndex = localIndex, flags = flags, attributes = attributes };
     }
 
     [RszGenerate]
@@ -555,7 +555,6 @@ namespace ReeLib.Aimp
     {
         public List<NodeInfo> Nodes = [];
         public int maxIndex;
-        public int minIndex;
 
         private int[]? _effectiveNodeIndices;
         public int[] EffectiveNodeIndices
@@ -571,7 +570,7 @@ namespace ReeLib.Aimp
                     for (int i = 0; i < Nodes.Count; i++) {
                         var node = Nodes[i];
                         // I'm not quite sure what the point of these extra indices is... maybe they generate lerped gap points for wayp files?
-                        while (offsetIndex < node.nextIndex && offsetIndex < _effectiveNodeIndices.Length) {
+                        while (offsetIndex < node.index && offsetIndex < _effectiveNodeIndices.Length) {
                             _effectiveNodeIndices[offsetIndex++] = i;
                         }
                     }
@@ -584,7 +583,6 @@ namespace ReeLib.Aimp
         {
             _effectiveNodeIndices = null;
             Nodes.Clear();
-            minIndex = 0;
             maxIndex = 0;
         }
 
@@ -596,12 +594,8 @@ namespace ReeLib.Aimp
         public void Read(FileHandler handler, AimpFormat format)
         {
             var nodeCount = handler.Read<int>();
-            if (format == AimpFormat.Format28) {
-                handler.ReadNull(4);
-            }
             if (format >= AimpFormat.Format41) {
                 handler.Read(ref maxIndex);
-                handler.Read(ref minIndex);
             }
 
             Nodes = new List<NodeInfo>(nodeCount);
@@ -615,6 +609,7 @@ namespace ReeLib.Aimp
                     Nodes.Add(node);
                 }
 
+                int linkCount = handler.Read<int>(); // TODO ensure correct order / node matching for links
                 foreach (var node in Nodes)
                 {
                     for (int i = 0; i < node.linkCount; ++i)
@@ -657,24 +652,26 @@ namespace ReeLib.Aimp
         public void Write(FileHandler handler, AimpFormat format)
         {
             handler.Write(Nodes.Count);
-            if (format == AimpFormat.Format28) handler.WriteNull(4);
-            else if (format >= AimpFormat.Format41)
+            if (format >= AimpFormat.Format41)
             {
                 handler.Write(ref maxIndex);
-                handler.Write(ref minIndex);
             }
 
+            var linkCount = 0;
             if (format >= AimpFormat.Format28) {
-                foreach (var node in Nodes) node.Write(handler);
+                foreach (var node in Nodes)
+                {
+                    node.Write(handler);
+                    linkCount += node.Links.Count;
+                }
             } else {
-                var linkCount = 0;
                 foreach (var node in Nodes)
                 {
                     handler.Write(node.AsRE7());
                     linkCount += node.Links.Count;
                 }
-                handler.Write(linkCount);
             }
+            handler.Write(linkCount);
 
             foreach (var node in Nodes)
             {
@@ -792,7 +789,7 @@ namespace ReeLib.Aimp
             for (int i = 0; i < Nodes.Count; ++i)
             {
                 var nodeinfo = NodeInfos[i];
-                polygonIndices[i] = nodeinfo.PairNodes[0].index;
+                polygonIndices[i] = nodeinfo.PairNodes[0].localIndex;
             }
         }
 
@@ -867,7 +864,7 @@ namespace ReeLib.Aimp
             for (int i = 0; i < Nodes.Count; ++i)
             {
                 var nodeinfo = NodeInfos[i];
-                triangleIndices[i].indices = nodeinfo.PairNodes.Select(p => p.index).ToArray();
+                triangleIndices[i].indices = nodeinfo.PairNodes.Select(p => p.localIndex).ToArray();
             }
         }
 
@@ -1056,7 +1053,7 @@ namespace ReeLib.Aimp
             for (int i = 0; i < Nodes.Count; ++i)
             {
                 var nodeinfo = NodeInfos[i];
-                data[i].indices = nodeinfo.PairNodes.Select(p => p.index).ToArray();
+                data[i].indices = nodeinfo.PairNodes.Select(p => p.localIndex).ToArray();
             }
         }
 
@@ -1348,15 +1345,19 @@ namespace ReeLib.Aimp
         internal void PackData()
         {
             NodeInfo.Nodes.Clear();
+            int linkIndex = 0;
             for (int g = 0; g < contents.Length; ++g)
             {
                 int i = 0;
                 foreach (var nodeinfo in contents[g].NodeInfos)
                 {
                     NodeInfo.Nodes.Add(nodeinfo);
-                    nodeinfo.index = i++;
+                    nodeinfo.localIndex = i++;
                     nodeinfo.groupIndex = g;
                     nodeinfo.linkCount = nodeinfo.Links.Count;
+                    foreach (var link in nodeinfo.Links) {
+                        link.index = linkIndex++;
+                    }
                 }
             }
 
@@ -1862,17 +1863,17 @@ namespace ReeLib
                 Vector3 min, max;
                 switch (content) {
                     case ContentGroupPolygon polyContent:
-                        min = polyContent.Nodes[nodeInfo.index].min;
-                        max = polyContent.Nodes[nodeInfo.index].max;
+                        min = polyContent.Nodes[nodeInfo.localIndex].min;
+                        max = polyContent.Nodes[nodeInfo.localIndex].max;
                         break;
                     case ContentGroupMapPoint pointContent:
                         // note: it seems like point groups have slightly different partitioning break points, but it's close enough
-                        min = max = pointContent.Nodes[nodeInfo.index].pos;
+                        min = max = pointContent.Nodes[nodeInfo.localIndex].pos;
                         break;
                     case ContentGroupMapAABB aabbContent:
                         // note: there's technically 4 indices but the second pair doesn't seem to affect the height partitioning
-                        min = container.Vertices[aabbContent.Nodes[nodeInfo.index].indices[0]].Vector3;
-                        max = container.Vertices[aabbContent.Nodes[nodeInfo.index].indices[1]].Vector3;
+                        min = container.Vertices[aabbContent.Nodes[nodeInfo.localIndex].indices[0]].Vector3;
+                        max = container.Vertices[aabbContent.Nodes[nodeInfo.localIndex].indices[1]].Vector3;
                         break;
                     default:
                         continue;

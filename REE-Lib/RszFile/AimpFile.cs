@@ -834,7 +834,12 @@ namespace ReeLib.Aimp
     {
         public IndexSet[] triangleIndices = [];
 
-        public override Vector3 GetNodeCenter(ContentGroupContainer container, int i) => container.Vertices[Nodes[i].indices[0]].Vector3;
+        public override Vector3 GetNodeCenter(ContentGroupContainer container, int i)
+        {
+            Vector3 avg = Vector3.Zero;
+            foreach (var index in Nodes[i].indices) avg += container.Vertices[index].Vector3;
+            return avg / Nodes[i].indices.Length;
+        }
 
         protected override RangeI GetVertexRange(ContentGroupContainer container)
         {
@@ -1372,7 +1377,7 @@ namespace ReeLib.Aimp
                 }
             }
 
-            // note: we can't blindly automate the nextIndex field because wayp files can have varying and not strictly-ascending values
+            // note: we can't blindly automate the node index field because wayp files can have varying and not strictly-ascending values
 
             int verts = 0;
             foreach (var c in contents)

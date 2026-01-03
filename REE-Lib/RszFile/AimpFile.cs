@@ -1363,6 +1363,8 @@ namespace ReeLib.Aimp
                     NodeInfo.Nodes.Add(nodeinfo);
                     nodeinfo.localIndex = i++;
                     nodeinfo.groupIndex = g;
+                    // note: the devs sometimes include AABB/Boundary node link count in the base Triangle node's link count instead of the actual node marked in the link info
+                    // not sure if that's intentional or a bug on their side (see RE4 loc72.ainvm.18)
                     nodeinfo.linkCount = nodeinfo.Links.Count;
                     foreach (var link in nodeinfo.Links) {
                         link.index = linkIndex++;
@@ -1876,8 +1878,10 @@ namespace ReeLib
                         max = polyContent.Nodes[nodeInfo.localIndex].max;
                         break;
                     case ContentGroupMapPoint pointContent:
-                        // note: it seems like point groups have slightly different partitioning break points, but it's close enough
-                        min = max = pointContent.Nodes[nodeInfo.localIndex].pos;
+                        // note: there seems to be some additional "padding" done to map points because sometimes the points are in multiple blocks
+                        // this value seems "close enough"
+                        min = pointContent.Nodes[nodeInfo.localIndex].pos - new Vector3(0, totalHeight * 0.0000001f, 0);
+                        max = pointContent.Nodes[nodeInfo.localIndex].pos;
                         break;
                     case ContentGroupMapAABB aabbContent:
                         // note: there's technically 4 indices but the second pair doesn't seem to affect the height partitioning

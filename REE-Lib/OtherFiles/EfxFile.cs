@@ -1,5 +1,9 @@
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using ReeLib.Common;
 using ReeLib.Efx.Structs.Common;
 using ReeLib.InternalAttributes;
@@ -167,7 +171,6 @@ namespace ReeLib.Efx
         NoAssignment = 2,
     }
 
-
     public abstract class EFXAttribute : BaseModel
     {
         public EfxAttributeType type;
@@ -286,6 +289,48 @@ namespace ReeLib.Efx
                 clone.Attributes.Add((EFXAttribute)attr.Clone());
             }
             return clone;
+        }
+    }
+
+    public class EfxJsonTypeResolver : DefaultJsonTypeInfoResolver
+    {
+        public static readonly EfxJsonTypeResolver Instance = new();
+
+        public static readonly JsonSerializerOptions jsonOptions = new() {
+            WriteIndented = true,
+            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Never,
+            IncludeFields = true,
+            IgnoreReadOnlyProperties = false,
+            TypeInfoResolver = Instance,
+        };
+
+        public override JsonTypeInfo GetTypeInfo(Type type, JsonSerializerOptions options)
+        {
+            JsonTypeInfo jsonTypeInfo = base.GetTypeInfo(type, options);
+            Debug.Assert(type == jsonTypeInfo.Type);
+
+            if (type == typeof(EFXAttribute))
+            {
+                var subtypes = typeof(EFXAttribute).Assembly.GetTypes().Where(t => !t.IsAbstract && t.IsAssignableTo(typeof(EFXAttribute)) && t != typeof(EFXAttribute));
+
+                jsonTypeInfo.PolymorphismOptions = new JsonPolymorphismOptions
+                {
+                    TypeDiscriminatorPropertyName = "$type",
+                    IgnoreUnrecognizedTypeDiscriminators = true,
+                    UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization,
+                    DerivedTypes = {}
+                };
+                foreach (var t in subtypes) {
+                    jsonTypeInfo.PolymorphismOptions.DerivedTypes.Add(new JsonDerivedType(t, t.FullName!));
+                }
+                jsonTypeInfo.PreferredPropertyObjectCreationHandling = JsonObjectCreationHandling.Populate;
+            }
+            else if (type == typeof(EfxFile) || type == typeof(EFXEntry))
+            {
+                jsonTypeInfo.PreferredPropertyObjectCreationHandling = JsonObjectCreationHandling.Populate;
+            }
+
+            return jsonTypeInfo;
         }
     }
 
@@ -629,6 +674,9 @@ namespace ReeLib
         public EfxFile(FileHandler fileHandler) : base(fileHandler)
         {
         }
+
+        [JsonConstructor]
+        private EfxFile() : base(new FileHandler()) { }
 
         private const int VERSION_RE7 = 1179750;
         private const int VERSION_RE2 = 1769669;

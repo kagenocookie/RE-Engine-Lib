@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Text.Json.Serialization;
 
 namespace ReeLib
 {
@@ -158,7 +159,10 @@ namespace ReeLib
 
     public abstract class BaseModel : IModel
     {
+        [JsonIgnore]
         public long Start { get; set; }
+
+        [JsonIgnore]
         public long Size { get; protected set; }
 
         public bool Read(FileHandler handler)

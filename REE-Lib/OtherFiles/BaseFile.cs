@@ -1,12 +1,16 @@
+using System.Text.Json.Serialization;
 using ReeLib.Common;
 
 namespace ReeLib
 {
     public abstract class BaseFile : IDisposable
     {
+        [JsonIgnore]
         public long Size { get; protected set; }
+        [JsonIgnore]
         public bool Embedded { get; set; }
 
+        [JsonIgnore]
         public FileHandler FileHandler { get; set; }
 
         public BaseFile(FileHandler fileHandler)

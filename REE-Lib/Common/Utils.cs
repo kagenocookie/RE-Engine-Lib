@@ -198,13 +198,17 @@ namespace ReeLib.Common
             }
 
             var clone = (T)MemberwiseCloneMethod.Invoke(source, Array.Empty<object?>())!;
+            ReplaceFields(source, clone);
+            return clone;
+        }
 
+        public static void ReplaceFields(T source, T target)
+        {
             if (_classFields == null) {
                 // note to self: we shouldn't need to also clone properties here since backing fields already get picked up with GetFields
                 IEnumerable<FieldInfo> allFields = typeof(T).GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
                 var baseType = typeof(T).BaseType;
-                while (baseType != null && baseType != typeof(object))
-                {
+                while (baseType != null && baseType != typeof(object)) {
                     // need to separately handle private base fields
                     allFields = allFields.Concat(baseType!.GetFields(BindingFlags.Instance | BindingFlags.NonPublic));
                     baseType = baseType.BaseType;
@@ -215,13 +219,12 @@ namespace ReeLib.Common
             }
 
             foreach (var plain in _classFields) {
-                plain.SetValue(clone, plain.GetValue(source).DeepClone());
+                plain.SetValue(target, plain.GetValue(source).DeepClone());
             }
 
             foreach (var plain in _cloneableFields!) {
-                plain.SetValue(clone, ((ICloneable?)plain.GetValue(source))?.Clone());
+                plain.SetValue(target, ((ICloneable?)plain.GetValue(source))?.Clone());
             }
-            return clone;
         }
     }
 

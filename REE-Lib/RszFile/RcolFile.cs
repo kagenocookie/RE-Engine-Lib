@@ -517,13 +517,13 @@ namespace ReeLib.Rcol
     {
         public string tag = string.Empty;
         public uint hash;
-        public uint ukn;
 
         protected override bool DoRead(FileHandler handler)
         {
             handler.ReadOffsetWString(out tag);
             handler.Read(ref hash);
-            handler.Read(ref ukn);
+            DataInterpretationException.DebugThrowIf(hash != MurMur3HashUtils.GetHash(tag));
+            handler.ReadNull(4);
             return true;
         }
 
@@ -531,7 +531,7 @@ namespace ReeLib.Rcol
         {
             handler.WriteOffsetWString(tag);
             handler.Write(ref hash);
-            handler.Write(ref ukn);
+            handler.WriteNull(4);
             return true;
         }
 

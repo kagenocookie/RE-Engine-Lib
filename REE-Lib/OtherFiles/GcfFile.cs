@@ -1,8 +1,6 @@
 using ReeLib.Gcf;
 using ReeLib.InternalAttributes;
 
-using Header = ReeLib.StructModel<ReeLib.Msg.HeaderStruct>;
-
 namespace ReeLib.Gcf
 {
     [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(int)), RszAssignVersion]

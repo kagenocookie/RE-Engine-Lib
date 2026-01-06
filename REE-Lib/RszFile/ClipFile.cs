@@ -453,6 +453,7 @@ namespace ReeLib.Clip
     {
         public float rate;
         public int hermiteDataIndex;
+        public StructRef<HermiteInterpolationData>? hermiteData;
 
         private int CommonKeySize => GetKeySize(Version);
 
@@ -520,16 +521,13 @@ namespace ReeLib.Clip
 
         public override void ReadValue(FileHandler handler, PropertyType property, IKeyValueContainer offsets)
         {
-            handler.Seek(Start + (Version < ClipVersion.Pragmata ? 16 : 8));
+            handler.Seek(Start + 16);
             ReadValueOnly(handler, property, offsets);
-            if (Version < ClipVersion.MHWilds)
-            {
-                handler.Seek(Start + 24);
-                handler.Read(ref hermiteDataIndex);
-                handler.ReadNull(4);
-                if (Version < ClipVersion.RE3) {
-                    handler.ReadNull(8);
-                }
+            handler.Seek(Start + 24);
+            handler.Read(ref hermiteDataIndex);
+            handler.ReadNull(4);
+            if (Version < ClipVersion.RE3) {
+                handler.ReadNull(8);
             }
         }
 
@@ -1307,14 +1305,23 @@ namespace ReeLib.Clip
         public override string ToString() => $"[Props: {Props1.Count} + {Props2.Count}]";
     }
 
-    public struct SpeedPointData
+    [RszGenerate, RszAutoReadWrite]
+    public partial class SpeedPointData : BaseModel
     {
         public float f1;
         public float f2;
-        public long a;
+        public long data;
         public long hermiteDataIndex;
 
-        public override string ToString() => $"{f1} {f2}  {a} {hermiteDataIndex}";
+        public InterpolationType InterpolationType
+        {
+            get => (InterpolationType)(data & 0xff);
+            set => data = data & ~0xff | (byte)value;
+        }
+
+        [RszIgnore] public HermiteInterpolationData hermiteData;
+
+        public override string ToString() => $"{f1} {f2}  {data} {hermiteDataIndex}";
     }
 
     public struct HermiteInterpolationData
@@ -1375,7 +1382,6 @@ namespace ReeLib.Clip
         public List<BoolKey> BoolKeys { get; } = new();
         public List<ActionKey> ActionKeys { get; } = new();
         public List<NoHermiteKey> NoHermiteKeys { get; } = new();
-        public List<HermiteInterpolationData> HermiteData { get; } = new();
         public List<Bezier3DKeys> Bezier3DData { get; } = new();
         public List<SpeedPointData> SpeedPointData { get; } = new();
         public List<ClipInfoStruct> ClipInfoList { get; } = new();
@@ -1395,7 +1401,6 @@ namespace ReeLib.Clip
             BoolKeys.Clear();
             ActionKeys.Clear();
             NoHermiteKeys.Clear();
-            HermiteData.Clear();
             Bezier3DData.Clear();
             SpeedPointData.Clear();
             ClipInfoList.Clear();
@@ -1591,19 +1596,35 @@ namespace ReeLib.Clip
             if (speedPointCount > 0)
             {
                 handler.Seek(Header.speedPointOffset);
-                SpeedPointData.ReadStructList(handler, speedPointCount);
+                SpeedPointData.Read(handler, speedPointCount);
                 DataInterpretationException.DebugThrowIf((Header.hermiteDataOffset - Header.speedPointOffset) / 24 != speedPointCount);
+                hermiteKeys += SpeedPointData.Count(sp => sp.InterpolationType == InterpolationType.Hermite);
             }
 
             if (hermiteKeys > 0)
             {
-                var allHermiteKeys = hermiteKeys + SpeedPointData.Count(c => c.hermiteDataIndex > 0);
                 handler.Seek(Header.hermiteDataOffset);
-                HermiteData.ReadStructList(handler, allHermiteKeys);
+                var hermiteData = new List<HermiteInterpolationData>();
+                hermiteData.ReadStructList(handler, hermiteKeys);
                 var nextOffset = Header.bezier3DDataOffset;
                 if (nextOffset == 0) nextOffset = Header.uknOffset;
                 if (nextOffset == 0) nextOffset = Header.namesOffset;
-                DataInterpretationException.DebugThrowIf((nextOffset - Header.hermiteDataOffset) / 16 != allHermiteKeys);
+                DataInterpretationException.DebugWarnIf((nextOffset - Header.hermiteDataOffset) / 16 != hermiteKeys);
+
+                foreach (var sp in SpeedPointData)
+                {
+                    if (sp.InterpolationType == InterpolationType.Hermite)
+                    {
+                        sp.hermiteData = hermiteData[(int)sp.hermiteDataIndex];
+                    }
+                }
+                foreach (var key in NormalKeys)
+                {
+                    if (key.interpolation == InterpolationType.Hermite)
+                    {
+                        key.hermiteData = new StructRef<HermiteInterpolationData>(hermiteData[key.hermiteDataIndex]);
+                    }
+                }
             }
 
             if (bezier3dCount > 0)
@@ -1670,6 +1691,24 @@ namespace ReeLib.Clip
 
                 property.Info.Write(handler);
             }
+            var hermiteData = new List<HermiteInterpolationData>();
+            foreach (var key in NormalKeys)
+            {
+                if (key.interpolation == InterpolationType.Hermite)
+                {
+                    key.hermiteDataIndex = hermiteData.Count;
+                    hermiteData.Add((key.hermiteData ??= new()).Data);
+                }
+            }
+
+            foreach (var sp in SpeedPointData)
+            {
+                if (sp.InterpolationType == InterpolationType.Hermite)
+                {
+                    sp.hermiteDataIndex = hermiteData.Count;
+                    hermiteData.Add(sp.hermiteData);
+                }
+            }
 
             clipHeader.keysCount = NormalKeys.Count;
             clipHeader.boolKeysCount = BoolKeys.Count;
@@ -1700,7 +1739,7 @@ namespace ReeLib.Clip
             SpeedPointData.Write(handler);
 
             clipHeader.hermiteDataOffset = handler.Tell();
-            HermiteData.Write(handler);
+            hermiteData.Write(handler);
 
             clipHeader.bezier3DDataOffset = handler.Tell();
             Bezier3DData.Write(handler);

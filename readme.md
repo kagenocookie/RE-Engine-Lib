@@ -78,7 +78,7 @@ All file readers follow a similar pattern - just create the file and call `.Read
 
 ## Development
 
-*** EFX data ***
+### EFX data
 The `Tools` project contains a source generator for converting the EFX structs into a 010 Editor compatible binary template, (see https://github.com/kagenocookie/REE-EFX-Unified). To use it, launch the Tools project with the command:
 
 `dotnet run efx-templates C:/path/to/REE-EFX-Unified/`

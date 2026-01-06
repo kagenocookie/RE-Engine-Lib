@@ -157,6 +157,16 @@ namespace ReeLib
     }
 
 
+    public class StructRef<T>(T data = default) : ICloneable where T : unmanaged
+    {
+        public T Data = data;
+
+        public object Clone()
+        {
+            return MemberwiseClone();
+        }
+    }
+
     public abstract class BaseModel : IModel
     {
         [JsonIgnore]

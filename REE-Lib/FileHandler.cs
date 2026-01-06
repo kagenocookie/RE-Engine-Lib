@@ -32,7 +32,7 @@ namespace ReeLib
 
         public long Position => Stream.Position;
 
-        private static readonly byte[] zeroes = new byte[256];
+        private static readonly byte[] zeroes = new byte[512];
 
         public FileHandler() : this(new MemoryStream())
         {

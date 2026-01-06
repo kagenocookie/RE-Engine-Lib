@@ -448,6 +448,8 @@ namespace ReeLib
         SVG,
         /// <summary>.slqg</summary>
         SoundStreamingLQG,
+        /// <summary>.wel</summary>
+        EventList,
 
         /// <remarks>Deprecated in favor of <see cref="EffectCollision"/></remarks>
         fxct,

@@ -452,7 +452,7 @@ namespace ReeLib.Clip
     public class NormalKey : NoHermiteKey
     {
         public float rate;
-        public int hermiteDataIndex;
+        internal int hermiteDataIndex;
         public StructRef<HermiteInterpolationData>? hermiteData;
 
         private int CommonKeySize => GetKeySize(Version);

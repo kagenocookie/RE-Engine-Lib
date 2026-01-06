@@ -109,7 +109,7 @@ public class ListFileWrapper
     /// </summary>
     public string[] FilterAllFiles(string pattern)
     {
-        pattern = pattern.ToLowerInvariant();
+        pattern = pattern.ToLowerInvariant().Trim();
         var cacheKey = pattern.ToLowerInvariant();
         if (folderListCache.TryGetValue(cacheKey, out var names)) {
             return names;

@@ -1122,13 +1122,19 @@ namespace ReeLib
             return true;
         }
 
+        private static uint UnboxAsUint32(object value)
+        {
+            if (value is int ii) return (uint)ii;
+            return Convert.ToUInt32(value);
+        }
+
         private void SetupReferences()
         {
             var version = Option.Version;
             var nodeDict = Nodes.ToDictionary(n => (ulong)n.ID);
             var actions = new Dictionary<ulong, RszInstance>();
             foreach (var act in ActionRsz.ObjectList.Concat(StaticActionRsz.ObjectList)) {
-                var id = Convert.ToUInt64(act.Values[Action_IDFieldIndex]);
+                var id = (ulong)UnboxAsUint32(act.Values[Action_IDFieldIndex]);
                 var exId = 0u;
                 while (!actions.TryAdd(id | ((ulong)exId << 32), act)) {
                     exId++;
@@ -1186,8 +1192,8 @@ namespace ReeLib
             var isBhvt = FileHandler.FilePath?.Contains(".bhvt") == true;
             if (isBhvt)
             {
-                var actionsDict = ActionRsz.ObjectList.ToDictionary(a => Convert.ToUInt32(a.Values[Action_IDFieldIndex]));
-                var staticActionsDict = StaticActionRsz.ObjectList.ToDictionary(a => Convert.ToUInt32(a.Values[Action_IDFieldIndex]));
+                var actionsDict = ActionRsz.ObjectList.ToDictionary(a => UnboxAsUint32(a.Values[Action_IDFieldIndex]));
+                var staticActionsDict = StaticActionRsz.ObjectList.ToDictionary(a => UnboxAsUint32(a.Values[Action_IDFieldIndex]));
                 foreach (var node in Nodes)
                 {
                     // unlike the motfsm2 version, this one isn't consistent about order
@@ -1394,7 +1400,7 @@ namespace ReeLib
                     if (act.Instance != null)
                     {
                         StoreRszObject(act.Instance, StaticActionRsz, ActionRsz, version);
-                        act.Action = (uint)act.Instance.Values[Action_IDFieldIndex];
+                        act.Action = UnboxAsUint32(act.Instance.Values[Action_IDFieldIndex]);
                     }
                 }
 

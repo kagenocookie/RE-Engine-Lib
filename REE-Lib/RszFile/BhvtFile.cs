@@ -745,6 +745,8 @@ namespace ReeLib.Bhvt
                         state.TargetNode = newNode;
                     }
                 }
+
+                foreach (var act in child.Actions.Actions) act.RandomizeActionID();
             }
         }
 

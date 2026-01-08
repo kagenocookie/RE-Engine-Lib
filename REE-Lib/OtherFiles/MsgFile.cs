@@ -92,8 +92,8 @@ namespace ReeLib.Msg
         public Header MsgHeader { get; set; } = header;
 
         // patch back to attributeOffset
-        public long AttributeOffsetStart { get; private set; } = -1;
-        public long ContentOffsetsByLangsStart { get; private set; } = -1;
+        internal long _attributeOffsetStart = -1;
+        internal long _contentOffsetsByLangsStart = -1;
 
         /// <summary>
         /// True if hashOrIndex is murmurhash3 of the entry Name
@@ -121,9 +121,9 @@ namespace ReeLib.Msg
             handler.Write(ref unknown);
             handler.Write(ref hashOrIndex);
             handler.WriteOffsetWString(entryName);
-            AttributeOffsetStart = handler.Tell();
+            _attributeOffsetStart = handler.Tell();
             handler.Write(ref attributeOffset);
-            ContentOffsetsByLangsStart = handler.Tell();
+            _contentOffsetsByLangsStart = handler.Tell();
             handler.Skip(8 * MsgHeader.Data.langCount);
             return true;
         }
@@ -178,9 +178,9 @@ namespace ReeLib.Msg
             }
             var header = Header;
             header.attributeOffset = handler.Tell();
-            if (header.AttributeOffsetStart == -1) throw new InvalidOperationException("AttributeOffsetStart is not set");
-            if (header.ContentOffsetsByLangsStart == -1) throw new InvalidOperationException("ContentOffsetsByLangsStart is not set");
-            handler.Write(header.AttributeOffsetStart, header.attributeOffset);
+            if (header._attributeOffsetStart == -1) throw new InvalidOperationException("AttributeOffsetStart is not set");
+            if (header._contentOffsetsByLangsStart == -1) throw new InvalidOperationException("ContentOffsetsByLangsStart is not set");
+            handler.Write(header._attributeOffsetStart, header.attributeOffset);
             for (int i = 0; i < AttributeItems.Count; i++)
             {
                 switch (AttributeItems[i].ValueType)
@@ -196,7 +196,7 @@ namespace ReeLib.Msg
 
             int langCount = header.MsgHeader.Data.langCount;
             long pos = handler.Tell();
-            handler.Seek(header.ContentOffsetsByLangsStart);
+            handler.Seek(header._contentOffsetsByLangsStart);
             if (header.ContentOffsetsByLangs == null)
             {
                 header.ContentOffsetsByLangs = new List<long>(Enumerable.Repeat(0L, langCount));

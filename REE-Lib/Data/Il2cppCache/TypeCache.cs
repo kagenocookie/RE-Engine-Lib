@@ -158,6 +158,19 @@ public class TypeCache
         return typeof(int);
     }
 
+    public EnumDescriptor? CreateEnum(string name, string backingType)
+    {
+        if (enums.TryGetValue(name, out var existing)) {
+            return existing;
+        }
+
+        var desc = CreateEnumDescriptor(backingType);
+        if (desc == null) return null;
+
+        desc.IsCustom = true;
+        return enums[name] = desc;
+    }
+
     private static EnumDescriptor? CreateEnumDescriptor(string backing)
     {
         if (!descriptorFactory.TryGetValue(backing, out var factory)) {

@@ -15,6 +15,7 @@ public abstract class EnumDescriptor
 
     public bool IsEmpty { get; private set; } = true;
     public bool IsFlags { get; set; }
+    public bool IsCustom { get; set; }
 
     public abstract string GetLabel(object value);
     public abstract string GetDisplayLabel(object value);

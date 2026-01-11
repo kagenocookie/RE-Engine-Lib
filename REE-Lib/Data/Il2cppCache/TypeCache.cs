@@ -105,13 +105,21 @@ public class TypeCache
         return classname == baseClassname || GetSubclasses(baseClassname).Contains(classname);
     }
 
-    public EnumDescriptor GetEnumDescriptor(string classname)
+    public EnumDescriptor GetEnumDescriptor(string classname, RszFieldType fallbackType = RszFieldType.S32)
     {
         if (enums.TryGetValue(classname, out var descriptor)) {
             return descriptor;
         }
 
-        return EnumDescriptor<int>.Default;
+        return fallbackType switch {
+            RszFieldType.U32 => EnumDescriptor<uint>.Default,
+            RszFieldType.S32 => EnumDescriptor<int>.Default,
+            RszFieldType.U64 => EnumDescriptor<ulong>.Default,
+            RszFieldType.S64 => EnumDescriptor<long>.Default,
+            RszFieldType.U16 => EnumDescriptor<ushort>.Default,
+            RszFieldType.S16 => EnumDescriptor<short>.Default,
+            _ => EnumDescriptor<int>.Default,
+        };
     }
 
     internal void ApplyCacheData(TypeCacheData data)

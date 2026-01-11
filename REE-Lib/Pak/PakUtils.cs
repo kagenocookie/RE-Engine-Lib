@@ -38,6 +38,10 @@ public static class PakUtils
 
             list.Add(NormalizePath(path));
         }
+        // enforce correct sorting order
+        list.Sort();
+        var mainPaks = list.Count;
+
         // new dlc structure
         var dlcPath = Path.Combine(directory, "dlc");
         if (Directory.Exists(dlcPath)) {
@@ -57,6 +61,9 @@ public static class PakUtils
                 list.Add(dlcPakFile);
             }
         }
+
+        // sort dlc paks separately, they should be at the bottom after the main paks
+        list.Sort(mainPaks, list.Count - mainPaks, null);
 
         return list;
     }

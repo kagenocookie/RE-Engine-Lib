@@ -3,6 +3,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text.Json.Serialization;
+using ReeLib.Bhvt;
 using ReeLib.Pfb;
 using ReeLib.Scn;
 
@@ -1154,6 +1155,8 @@ namespace ReeLib.via
         {
             if (target is ScnGameObject ss) {
                 this.guid = ss.Guid;
+            } else if (target is BhvtGameObjectReference bb) {
+                this.guid = bb.guid;
             }
             this.target = target;
         }

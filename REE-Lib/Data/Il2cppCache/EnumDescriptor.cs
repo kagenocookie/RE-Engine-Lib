@@ -13,7 +13,7 @@ public abstract class EnumDescriptor
     private string? _hintstring;
     public string HintstringLabels => _hintstring ??= string.Join(",", LabelValuePairs);
 
-    public bool IsEmpty { get; private set; } = true;
+    public bool IsEmpty => !CacheItems.Any();
     public bool IsFlags { get; set; }
     public bool IsCustom { get; set; }
 
@@ -38,7 +38,6 @@ public abstract class EnumDescriptor
             }
         }
 
-        IsEmpty = false;
         IsFlags = GuessIsFlags();
     }
 
@@ -47,8 +46,6 @@ public abstract class EnumDescriptor
         foreach (var item in pairs) {
             AddValue(item.name, item.value);
         }
-
-        IsEmpty = false;
     }
 
     public void ParseCacheData(SignedEnumItem[] pairs)
@@ -56,8 +53,6 @@ public abstract class EnumDescriptor
         foreach (var item in pairs) {
             AddValue(item.Name, JsonSerializer.SerializeToElement(item.Value));
         }
-
-        IsEmpty = false;
     }
 
     protected abstract bool GuessIsFlags();

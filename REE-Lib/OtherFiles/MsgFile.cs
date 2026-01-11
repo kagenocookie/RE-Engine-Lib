@@ -413,6 +413,24 @@ namespace ReeLib
             return null;
         }
 
+        public Dictionary<string, string> ToNameDictionary(Language language)
+        {
+            var dict = new Dictionary<string, string>();
+            foreach (var e in Entries) {
+                dict[e.Name] = e.GetMessage(language);
+            }
+            return dict;
+        }
+
+        public Dictionary<Guid, string> ToGuidDictionary(Language language)
+        {
+            var dict = new Dictionary<Guid, string>();
+            foreach (var e in Entries) {
+                dict[e.Guid] = e.GetMessage(language);
+            }
+            return dict;
+        }
+
         private string GetUniqueNewKey()
         {
             var basename = "new_entry_name";

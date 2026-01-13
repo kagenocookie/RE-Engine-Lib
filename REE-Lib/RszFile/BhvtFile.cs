@@ -343,6 +343,8 @@ namespace ReeLib.Bhvt
         {
             States.Clear();
             var count = handler.Read<int>();
+            if (count == 0) return true;
+
             for (int i = 0; i < count; i++)
             {
                 var subcount = handler.Read<int>();
@@ -350,7 +352,6 @@ namespace ReeLib.Bhvt
                 state.eventIDs.ReadStructList(handler, subcount);
                 States.Add(state);
             }
-            if (count == 0) return true;
             uint[,] data = new uint[5, count];
             handler.ReadArray(data);
 
@@ -1146,13 +1147,37 @@ namespace ReeLib
                 }
             }
 
-            var flagPairs = new Dictionary<NodeAttribute, int>();
+            foreach (var node in Nodes)
+            {
+                if (node.ParentID.IsUnset) continue;
+
+                var parent = nodeDict[(ulong)node.ParentID];
+                var parentNchild = parent.Children.Children.FindIndex(ch => (ulong)ch.ChildId == (ulong)node.ID);
+                if (parentNchild == -1)
+                {
+                    Log.Warn("Invalid BHVT node parent ID " + node.ParentID);
+                    continue;
+                }
+                parent.Children.Children[parentNchild].ChildNode = node;
+                var firstUnsetChildNodeIndex = parent.Children.Children.FindIndex(ch => ch.ChildNode == null);
+                if (firstUnsetChildNodeIndex != -1 && firstUnsetChildNodeIndex < parentNchild)
+                {
+                    // swap the NChild order so we can later more easily re-serialize in the same order
+                    // the flattened Nodes list order matters, but the children list's order doesn't seem to
+                    // maybe the ordering of the children list is different because of editor display shenanigans, or maybe it's just arbitrary and never re-sorted
+                    var tmp = parent.Children.Children[firstUnsetChildNodeIndex];
+                    parent.Children.Children[firstUnsetChildNodeIndex] = parent.Children.Children[parentNchild];
+                    parent.Children.Children[parentNchild] = tmp;
+                }
+            }
+
             foreach (var node in Nodes)
             {
                 foreach (var ch in node.Children.Children)
                 {
-                    var other = nodeDict[(ulong)ch.ChildId];
-                    ch.ChildNode = other;
+                    // just in case any of the child nodes didn't get picked up in the first loop, try it again here
+                    if (ch.ChildNode == null) ch.ChildNode = nodeDict[(ulong)ch.ChildId];
+
                     if (ch.ConditionID.HasValue)
                     {
                         ch.Condition = ch.ConditionID.idType == 64
@@ -1162,8 +1187,6 @@ namespace ReeLib
                         DataInterpretationException.DebugWarnIf(ch.ConditionID.idType == 64 != ShouldBeStaticClass(ch.Condition.RszClass.name, version), ch.Condition.RszClass.name);
                     }
                 }
-
-                flagPairs[node.Attributes] = flagPairs.GetValueOrDefault(node.Attributes) + 1;
 
                 if (node.ParentID.IsUnset) RootNode = node;
 
@@ -1353,8 +1376,6 @@ namespace ReeLib
                     Nodes.Add(child.ChildNode);
                 }
 
-                // note: the original files have the nodes in an undefined, random order, probably roughly in creation order
-                // to make editing easier, we just rebuild the tree anew on save, probably shouldn't cause issues
                 foreach (var child in node.Children.Children) {
                     if (child.ChildNode == null) continue;
 

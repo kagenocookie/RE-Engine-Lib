@@ -902,8 +902,26 @@ namespace ReeLib
             foreach (var entry in Entries) {
                 foreach (var attr in entry.Attributes) {
                     if (attr is IBoneRelationAttribute parented) {
-                        var parentBoneIndex = BoneRelations[index++];
-                        parented.ParentBone = parentBoneIndex == -1 ? null : Bones[parentBoneIndex].name;
+                        short parentBoneIndex;
+                        if (index >= BoneRelations.Count)
+                        {
+                            Log.Warn($"EFX entry[{Entries.IndexOf(entry)}] {entry}.{attr} has too many bone relations ({index+1} > {BoneRelations.Count}), attaching to root bone {(Bones.FirstOrDefault()?.name)}");
+                            parentBoneIndex = 0;
+                        }
+                        else
+                        {
+                            parentBoneIndex = BoneRelations[index++];
+                        }
+
+                        if (parentBoneIndex >= 0 && parentBoneIndex < Bones.Count)
+                        {
+                            parented.ParentBone = Bones[parentBoneIndex].name;
+                        }
+                        else
+                        {
+                            parented.ParentBone = null;
+                            if (parentBoneIndex != -1) Log.Warn($"Invalid EFX parent bone index {parentBoneIndex} for relation {index - 1}");
+                        }
                     }
                 }
             }

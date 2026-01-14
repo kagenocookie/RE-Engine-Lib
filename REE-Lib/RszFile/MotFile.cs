@@ -165,7 +165,10 @@ namespace ReeLib.Mot
         public TrackFlag trackFlags;
         public byte uknIndex = byte.MaxValue; // <= re2: always 0, dd2: always 255, other: varying
         public uint boneHash;
-        public float uknFloat = 1f; // usually 1, but not always
+        /// <summary>
+        /// Unknown purpose, is always > 0 and <= 1, most often 1
+        /// </summary>
+        public float uknFloat = 1f;
         public long trackHeaderOffset;
         public string? boneName;
 
@@ -535,6 +538,7 @@ namespace ReeLib.Mot
         {
             EnsureViableFrameIndexSize();
             handler.Write(ref flags);
+            keyCount = frameIndexes?.Length ?? 0;
             handler.Write(ref keyCount);
             if (MotVersion >= MotVersion.RE3)
             {
@@ -1996,10 +2000,11 @@ namespace ReeLib.Mot
 
         protected override bool DoWrite(FileHandler handler)
         {
+            // if someone manually disabled track types, ensure we remove the data as
             ClipHeader.trackHeaderOffset = handler.Tell();
-            Translation?.Write(handler);
-            Rotation?.Write(handler);
-            Scale?.Write(handler);
+            if (HasTranslation) Translation?.Write(handler);
+            if (HasRotation) Rotation?.Write(handler);
+            if (HasScale) Scale?.Write(handler);
             // update the clip header with our newly found offset
             ClipHeader.Write(handler, ClipHeader.Start);
             return true;
@@ -2007,9 +2012,9 @@ namespace ReeLib.Mot
 
         public void WriteOffsetContents(FileHandler handler)
         {
-            Translation?.WriteOffsetContents(handler);
-            Rotation?.WriteOffsetContents(handler);
-            Scale?.WriteOffsetContents(handler);
+            if (HasTranslation) Translation?.WriteOffsetContents(handler);
+            if (HasRotation) Rotation?.WriteOffsetContents(handler);
+            if (HasScale) Scale?.WriteOffsetContents(handler);
         }
 
         public void ChangeVersion(MotVersion version)

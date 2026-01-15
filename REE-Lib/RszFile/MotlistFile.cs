@@ -340,6 +340,9 @@ namespace ReeLib
             return true;
         }
 
+        public static bool HasSharedBoneList(MotVersion version) => version >= MotVersion.RE3;
+        public static bool HasSharedBoneList(MotlistVersion version) => version >= MotlistVersion.RE3;
+
         protected override bool DoWrite()
         {
             var handler = FileHandler;

@@ -114,23 +114,8 @@ namespace ReeLib.Mot
     }
 
 
-    public class MotBone(BoneHeader header)
-    {
-        public BoneHeader Header { get; set; } = header;
-
-        public string Name { get => Header.boneName; set => Header.boneName = value; }
-        public int Index { get => Header.Index; set => Header.Index = value; }
-        public Vector3 Translation { get => Header.translation; set => Header.translation = value; }
-        public Quaternion Quaternion { get => Header.quaternion; set => Header.quaternion = value; }
-
-        public MotBone? Parent { get; set; }
-        public List<MotBone> Children { get; } = new();
-
-        public override string ToString() => Header.boneName;
-    }
-
     [RszGenerate, RszAutoReadWrite]
-    public partial class BoneHeader : BaseModel
+    public partial class MotBone : BaseModel, ICloneable
     {
         [RszOffsetWString]
         public string boneName = string.Empty;
@@ -145,9 +130,37 @@ namespace ReeLib.Mot
         public int uknValue1;
         public int uknValue2;
 
+        [field: RszIgnore] public MotBone? Parent { get; set; }
+        [field: RszIgnore] public List<MotBone> Children { get; } = new();
+
         public const int StructSize = 80;
 
+        object ICloneable.Clone() => this.Clone();
+        public MotBone Clone()
+        {
+            var newBone = new MotBone()
+            {
+                boneHash = boneHash,
+                boneName = boneName,
+                childOffs = childOffs,
+                Index = Index,
+                nextSiblingOffs = nextSiblingOffs,
+                parentOffs = parentOffs,
+                quaternion = quaternion,
+                translation = translation,
+                uknValue1 = uknValue1,
+                uknValue2 = uknValue2
+            };
+            newBone.Children.AddRange(Children.Select(c => c.Clone()));
+            foreach (var ch in newBone.Children)
+            {
+                ch.Parent = newBone;
+            }
+            return newBone;
+        }
+
         public override string ToString() => $"[{Index}] {boneName}";
+        // public override string ToString() => Header.boneName;
     }
 
     [Flags]
@@ -420,6 +433,8 @@ namespace ReeLib.Mot
                         Vector3Decompression.LoadVector3sYZAxis8Bit or Vector3Decompression.LoadVector3sXZAxis8Bit or Vector3Decompression.LoadVector3sXYAxis8Bit
                     )
                         return 5;
+                    if (TranslationCompressionType is Vector3Decompression.LoadVector3sXYZAxis16Bit)
+                        return 2;
                 }
 
                 if (TrackType == TrackValueType.Float)
@@ -538,7 +553,7 @@ namespace ReeLib.Mot
         {
             EnsureViableFrameIndexSize();
             handler.Write(ref flags);
-            keyCount = frameIndexes?.Length ?? 0;
+            keyCount = translations?.Length ?? rotations?.Length ?? frameIndexes?.Length ?? 0;
             handler.Write(ref keyCount);
             if (MotVersion >= MotVersion.RE3)
             {
@@ -975,7 +990,7 @@ namespace ReeLib.Mot
                     case Vector3Decompression.LoadVector3sXYZAxis16Bit:
                         {
                             var data = handler.Read<ushort>();
-                            translation.X = translation.Y = translation.Z = unpackData[0] * (data * (1f / 0xFFFF)) + unpackData[3];
+                            translation.X = translation.Y = translation.Z = unpackData[0] * (data * (1f / 0xFFFF)) + unpackData[1];
                             break;
                         }
                     case Vector3Decompression.LoadVector3sXYAxis8Bit:
@@ -1279,7 +1294,7 @@ namespace ReeLib.Mot
                         }
                     case Vector3Decompression.LoadVector3sXYZAxis16Bit:
                         {
-                            var data = (ushort)MathF.Round((translation.X - unpackData[3]) / unpackData[0] * 0xFFFF);
+                            var data = (ushort)MathF.Round((translation.X - unpackData[1]) / unpackData[0] * 0xFFFF);
                             handler.Write(data);
                             break;
                         }
@@ -1918,6 +1933,9 @@ namespace ReeLib.Mot
                         unpackData[0] = scale.Y; unpackData[1] = scale.Z;
                         SetVector(unpackData, 2, min);
                         break;
+                    case Vector3Decompression.LoadVector3sXYZAxis16Bit:
+                        unpackData[0] = scale.X; unpackData[1] = min.X;
+                        break;
                 }
                 static void SetVector(float[] bytes, int offset, Vector3 vec)
                 {
@@ -2002,9 +2020,9 @@ namespace ReeLib.Mot
         {
             // if someone manually disabled track types, ensure we remove the data as
             ClipHeader.trackHeaderOffset = handler.Tell();
-            if (HasTranslation) Translation?.Write(handler);
-            if (HasRotation) Rotation?.Write(handler);
-            if (HasScale) Scale?.Write(handler);
+            if (HasTranslation) Translation!.Write(handler);
+            if (HasRotation) Rotation!.Write(handler);
+            if (HasScale) Scale!.Write(handler);
             // update the clip header with our newly found offset
             ClipHeader.Write(handler, ClipHeader.Start);
             return true;
@@ -2012,9 +2030,9 @@ namespace ReeLib.Mot
 
         public void WriteOffsetContents(FileHandler handler)
         {
-            if (HasTranslation) Translation?.WriteOffsetContents(handler);
-            if (HasRotation) Rotation?.WriteOffsetContents(handler);
-            if (HasScale) Scale?.WriteOffsetContents(handler);
+            if (HasTranslation) Translation!.WriteOffsetContents(handler);
+            if (HasRotation) Rotation!.WriteOffsetContents(handler);
+            if (HasScale) Scale!.WriteOffsetContents(handler);
         }
 
         public void ChangeVersion(MotVersion version)
@@ -2560,19 +2578,18 @@ namespace ReeLib
         public const string Extension = ".mot";
 
         public MotHeader Header { get; } = new();
-        public List<BoneHeader>? BoneHeaders { get; set; }
         public List<BoneMotionClip> BoneClips { get; } = new();
         public List<MotClip> Clips { get; } = new();
         public List<MotEndClip> EndClips { get; } = new();
         public List<MotPropertyTrack> MotPropertyTracks { get; } = new();
         public MotPropertyTree? PropertyTree { get; set; }
 
-        public List<MotBone> Bones { get; } = new();
-        public List<MotBone> RootBones { get; } = new();
+        public List<MotBone> Bones { get; internal set; } = new();
+        public List<MotBone> RootBones { get; internal set; } = new();
 
         public override string Name { get => Header.motName; set => Header.motName = value; }
 
-        public MotBone? GetBoneByHash(uint hash) => Bones.FirstOrDefault(b => b.Header.boneHash == hash);
+        public MotBone? GetBoneByHash(uint hash) => Bones.FirstOrDefault(b => b.boneHash == hash);
 
         private bool IsMotlist => PathUtils.GetFilenameExtensionWithoutSuffixes(FileHandler.FilePath ?? string.Empty).SequenceEqual("motlist") == true;
 
@@ -2744,12 +2761,15 @@ namespace ReeLib
             handler.Write(12, header.motSize);
 
             handler.Align(16);
-            header.boneHeaderOffsetStart = handler.Tell();
-            handler.Write(header.BoneHeaderOffsetStartOffset, header.boneHeaderOffsetStart);
+            if (Bones.Count > 0 || header.boneHeaderOffsetStart != 0)
+            {
+                header.boneHeaderOffsetStart = handler.Tell();
+                handler.Write(header.BoneHeaderOffsetStartOffset, header.boneHeaderOffsetStart);
+            }
 
             if (!IsMotlist)
             {
-                if (BoneHeaders == null) throw new Exception("Missing bone headers for MOT");
+                if (Bones.Count == 0) throw new Exception("Missing bone headers for MOT");
 
                 WriteBones();
             }
@@ -2765,8 +2785,6 @@ namespace ReeLib
             } else {
                 bone.Parent.Children.Add(bone);
             }
-            BoneHeaders ??= new();
-            BoneHeaders.Add(bone.Header);
         }
 
         public void RemoveBone(MotBone bone)
@@ -2777,7 +2795,6 @@ namespace ReeLib
             } else {
                 bone.Parent.Children.Remove(bone);
             }
-            BoneHeaders?.Remove(bone.Header);
         }
 
         public void CopyBones(MotFile source)
@@ -2864,29 +2881,27 @@ namespace ReeLib
             var hasOwnBoneList = !IsMotlist || header.motSize == 0 || header.boneHeaderOffsetStart > 0 && header.boneHeaderOffsetStart < header.motSize;
             if (!hasOwnBoneList)
             {
-                if (mainSourceMot?.BoneHeaders == null)
+                if (mainSourceMot == null)
                 {
                     throw new InvalidDataException("Mot file bones not found");
                 }
 
-                BoneHeaders = mainSourceMot.BoneHeaders;
-                Bones.AddRange(mainSourceMot.Bones);
-                RootBones.AddRange(mainSourceMot.RootBones);
+                Bones = mainSourceMot.Bones;
+                RootBones = mainSourceMot.RootBones;
             }
             else
             {
-                BoneHeaders = new(header.boneCount);
+                Bones.EnsureCapacity(header.boneCount);
                 handler.Seek(header.boneHeaderOffsetStart);
                 var boneHeaderOffset = handler.Read<long>();
                 var boneHeaderCount = handler.Read<long>();
                 for (int i = 0; i < boneHeaderCount; i++)
                 {
-                    BoneHeader boneHeader = new();
-                    boneHeader.Read(handler);
-                    BoneHeaders.Add(boneHeader);
-                    Bones.Add(new MotBone(boneHeader));
+                    MotBone bone = new();
+                    bone.Read(handler);
+                    Bones.Add(bone);
                 }
-                foreach (var boneHeader in BoneHeaders)
+                foreach (var boneHeader in Bones)
                 {
                     // TODO how does this behave with motlists with varying bone lists?
                     var bone = GetBoneByHash(boneHeader.boneHash);
@@ -2900,8 +2915,8 @@ namespace ReeLib
 
                     int refBoneIndex;
                     if (boneHeader.parentOffs != 0) {
-                        refBoneIndex = (int)((boneHeader.parentOffs - boneHeaderOffset) / BoneHeader.StructSize);
-                        var parentBone = GetBoneByHash(BoneHeaders[refBoneIndex].boneHash);
+                        refBoneIndex = (int)((boneHeader.parentOffs - boneHeaderOffset) / MotBone.StructSize);
+                        var parentBone = GetBoneByHash(Bones[refBoneIndex].boneHash);
                         if (parentBone == null)
                         {
                             Log.Warn("Parent bone not found");
@@ -2918,19 +2933,19 @@ namespace ReeLib
 
                     if (boneHeader.childOffs != 0)
                     {
-                        refBoneIndex = (int)((boneHeader.childOffs - boneHeaderOffset) / BoneHeader.StructSize);
+                        refBoneIndex = (int)((boneHeader.childOffs - boneHeaderOffset) / MotBone.StructSize);
                         if (refBoneIndex != bone.Index)
                         {
-                            var next = GetBoneByHash(BoneHeaders[refBoneIndex].boneHash);
+                            var next = GetBoneByHash(Bones[refBoneIndex].boneHash);
                             while (next != null)
                             {
                                 if (!bone.Children.Contains(next)) bone.Children.Add(next);
-                                if (BoneHeaders[refBoneIndex].nextSiblingOffs == 0) break;
+                                if (Bones[refBoneIndex].nextSiblingOffs == 0) break;
 
-                                refBoneIndex = (int)((BoneHeaders[refBoneIndex].nextSiblingOffs - boneHeaderOffset) / BoneHeader.StructSize);
+                                refBoneIndex = (int)((Bones[refBoneIndex].nextSiblingOffs - boneHeaderOffset) / MotBone.StructSize);
                                 if (refBoneIndex == next.Index) break;
 
-                                next = GetBoneByHash(BoneHeaders[refBoneIndex].boneHash);
+                                next = GetBoneByHash(Bones[refBoneIndex].boneHash);
                                 // NOTE: some files have the same bone defined twice for some reason (dd2 - ch253000_00_cs_feather.motlist.751)
                                 // ignore such cases and forget about the duplicates, hopefully not important
                                 if (next != null && bone.Children.Contains(next)) break;
@@ -2940,7 +2955,7 @@ namespace ReeLib
                 }
             }
 
-            foreach (var bone in BoneHeaders)
+            foreach (var bone in Bones)
             {
                 // could be sped up with a dictionary - but then we need to maintain both the list and dict, maybe later
                 var clip = BoneClips.FirstOrDefault(c => c.ClipHeader.boneHash == bone.boneHash);
@@ -2953,36 +2968,33 @@ namespace ReeLib
 
         public void WriteBones()
         {
-            if (BoneHeaders == null)
-            {
-                throw new Exception("Bone headers missing for mot file " + Name);
-            }
+            if (Bones.Count == 0) return;
 
             var header = Header;
             var handler = FileHandler;
             handler.Align(16);
             header.boneHeaderOffsetStart = handler.Tell();
             handler.Write(header.boneHeaderOffsetStart + sizeof(long) * 2);
-            handler.Write((long)BoneHeaders.Count);
+            handler.Write((long)Bones.Count);
 
             // rebuild Bone headers in case anything changed and to ensure correct offsets
             var sortedBones = Bones.OrderBy(b => b.Index).ToList();
             DataInterpretationException.ThrowIf(sortedBones.Count > 0 && sortedBones.Last().Index != sortedBones.Count - 1 && !sortedBones.All(b => b.Index == 0), "Detected skips in bone indices, this probably shouldn't happen!");
 
-            BoneHeaders.Sort(new FuncComparer<BoneHeader>((a, b) => a.Index.CompareTo(b.Index)));
+            Bones.Sort(new FuncComparer<MotBone>((a, b) => a.Index.CompareTo(b.Index)));
             var firstBoneOffset = handler.Tell();
             foreach (var bone in Bones)
             {
-                bone.Header.parentOffs = bone.Parent == null ? 0 : firstBoneOffset + bone.Parent.Index * BoneHeader.StructSize;
+                bone.parentOffs = bone.Parent == null ? 0 : firstBoneOffset + bone.Parent.Index * MotBone.StructSize;
                 var sibling = GetNextSiblingIndex(bone.Parent?.Children ?? RootBones, bone);
-                bone.Header.nextSiblingOffs = sibling == -1 ? 0 : firstBoneOffset + sibling * BoneHeader.StructSize;
-                bone.Header.childOffs = bone.Children.Count == 0 ? 0 : firstBoneOffset + bone.Children[0].Index * BoneHeader.StructSize;
-                if (!string.IsNullOrEmpty(bone.Header.boneName)) {
-                    bone.Header.boneHash = MurMur3HashUtils.GetHash(bone.Header.boneName);
+                bone.nextSiblingOffs = sibling == -1 ? 0 : firstBoneOffset + sibling * MotBone.StructSize;
+                bone.childOffs = bone.Children.Count == 0 ? 0 : firstBoneOffset + bone.Children[0].Index * MotBone.StructSize;
+                if (!string.IsNullOrEmpty(bone.boneName)) {
+                    bone.boneHash = MurMur3HashUtils.GetHash(bone.boneName);
                 }
             }
 
-            BoneHeaders.Write(handler);
+            Bones.Write(handler);
             handler.StringTableFlush();
             handler.Align(16);
         }
@@ -3019,7 +3031,7 @@ namespace ReeLib
             }
         }
 
-        public void CopyValuesFrom(MotFile source, bool replaceBehaviorClips)
+        public void CopyValuesFrom(MotFile source, bool replaceBehaviorClips, bool replaceBoneList)
         {
             if (replaceBehaviorClips)
             {
@@ -3030,11 +3042,24 @@ namespace ReeLib
             EndClips.AddRange(source.EndClips);
             BoneClips.Clear();
             BoneClips.AddRange(source.BoneClips);
-            if (BoneHeaders == null)
+            if (Bones.Count == 0)
             {
-                BoneHeaders = source.BoneHeaders?.ToList();
+                Bones.AddRange(source.Bones);
             }
-            else
+            else if (replaceBoneList && source.Bones != Bones)
+            {
+                var newRootBones = source.RootBones.Select(c => c.Clone());
+                Bones.Clear();
+                RootBones.Clear();
+                RootBones.AddRange(newRootBones);
+                var pending = new Stack<MotBone>(newRootBones);
+                while (pending.TryPop(out var next)) {
+                    Bones.Add(next);
+                    foreach (var c in next.Children.Reverse<MotBone>()) pending.Push(c);
+                }
+                Bones.Sort((a, b) => a.Index.CompareTo(b.Index));
+            }
+            else if (source.Bones != Bones)
             {
                 // keep the current bone list, otherwise we'd break object references without a big rewrite
                 // and a vastly different source hierarchy probably wouldn't work anyway
@@ -3055,7 +3080,7 @@ namespace ReeLib
                     else
                     {
                         clip.ClipHeader.boneIndex = (ushort)bone.Index;
-                        clip.ClipHeader.boneName ??= bone.Name;
+                        clip.ClipHeader.boneName ??= bone.boneName;
                     }
 
                     if (Header.version <= MotVersion.RE2_DMC5)

@@ -2972,16 +2972,25 @@ namespace ReeLib
 
             var header = Header;
             var handler = FileHandler;
+
+            // rebuild Bone headers in case anything changed and to ensure correct offsets
+            var sortedBones = Bones.OrderBy(b => b.Index).ToList();
+            if (sortedBones.Count > 0 && sortedBones.Last().Index != sortedBones.Count - 1 && !sortedBones.All(b => b.Index == 0)) {
+                Log.Info("Detected likely bone list modification in motion " + Header.motName + ". Rebuilding bone indices...");
+
+                FlattenBones();
+                header.boneCount = (ushort)Bones.Count;
+                // re-adjust indices to be sequential in rebuilt hierarchy order
+                for (int i = 0; i < Bones.Count; ++i) {
+                    Bones[i].Index = i;
+                }
+            }
+
             handler.Align(16);
             header.boneHeaderOffsetStart = handler.Tell();
             handler.Write(header.boneHeaderOffsetStart + sizeof(long) * 2);
             handler.Write((long)Bones.Count);
 
-            // rebuild Bone headers in case anything changed and to ensure correct offsets
-            var sortedBones = Bones.OrderBy(b => b.Index).ToList();
-            DataInterpretationException.ThrowIf(sortedBones.Count > 0 && sortedBones.Last().Index != sortedBones.Count - 1 && !sortedBones.All(b => b.Index == 0), "Detected skips in bone indices, this probably shouldn't happen!");
-
-            Bones.Sort(new FuncComparer<MotBone>((a, b) => a.Index.CompareTo(b.Index)));
             var firstBoneOffset = handler.Tell();
             foreach (var bone in Bones)
             {
@@ -3052,11 +3061,7 @@ namespace ReeLib
                 Bones.Clear();
                 RootBones.Clear();
                 RootBones.AddRange(newRootBones);
-                var pending = new Stack<MotBone>(newRootBones);
-                while (pending.TryPop(out var next)) {
-                    Bones.Add(next);
-                    foreach (var c in next.Children.Reverse<MotBone>()) pending.Push(c);
-                }
+                FlattenBones();
                 Bones.Sort((a, b) => a.Index.CompareTo(b.Index));
             }
             else if (source.Bones != Bones)
@@ -3094,6 +3099,16 @@ namespace ReeLib
             ChangeVersion(Header.version);
 
             Header.CopyValuesFrom(source.Header);
+        }
+
+        private void FlattenBones()
+        {
+            Bones.Clear();
+            var pending = new Stack<MotBone>(RootBones);
+            while (pending.TryPop(out var next)) {
+                Bones.Add(next);
+                foreach (var c in next.Children.Reverse<MotBone>()) pending.Push(c);
+            }
         }
     }
 }

@@ -259,6 +259,8 @@ namespace ReeLib
             Clip2?.WriteOffsetContents(handler);
 
             header.Write(handler, 0);
+            // re-flush the string table because the name offset would've gotten overwritten
+            handler.StringTableFlush();
             return true;
         }
 

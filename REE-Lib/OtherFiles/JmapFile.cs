@@ -1,68 +1,81 @@
+using System.Numerics;
 using ReeLib.Common;
 using ReeLib.InternalAttributes;
 using ReeLib.Jmap;
+using ReeLib.via;
 
 namespace ReeLib.Jmap
 {
-    public class JmapHeader : BaseModel
+    public class JmapHeader : ReadWriteModel
     {
-        public uint version;
-        public uint magic = JmapFile.Magic;
+        internal uint version;
+        internal uint magic = JmapFile.Magic;
 
-        public long jointMaskGroupOffset;
-        public long jointExtraGroupDataOffset;
-        public long extraJointsOffset;
-        public long ikMotionDataOffset;
-        public long symmetryDataOffset;
-        public long extraHashesOffset;
+        internal long bonesOffset;
+        internal long bonesAfterOffset;
+
+        internal long jointMaskGroupOffset;
+        internal long jointExtraGroupDataOffset;
+        internal long extraJointsOffset;
+        internal long ikMotionDataOffset;
+        internal long symmetryDataOffset;
+        internal long extraHashesOffset;
+
         public uint attributeFlags;
-        public int jointMaskGroupCount;
+        internal ushort boneCount;
+        internal ushort jointMaskGroupCount;
 
-        protected override bool DoRead(FileHandler handler)
+        protected override bool ReadWrite<THandler>(THandler action)
         {
-            var version = handler.FileVersion;
+            action.Do(ref version);
+            action.Do(ref magic);
+            action.Null(8);
+
+            if (version <= 11)
+            {
+                action.Do(ref bonesOffset);
+                action.Do(ref bonesAfterOffset);
+            }
+
+            action.Do(ref jointMaskGroupOffset);
+            action.Do(ref jointExtraGroupDataOffset);
+            action.Do(ref extraJointsOffset);
+
             if (version >= 17)
             {
-                handler.Read(ref version);
-                handler.Read(ref magic);
-                handler.Read(ref jointMaskGroupOffset);
-                handler.Read(ref jointExtraGroupDataOffset);
-                handler.Read(ref extraJointsOffset);
-                handler.Read(ref ikMotionDataOffset);
-                handler.Read(ref symmetryDataOffset);
-                if (version >= 19) handler.Read(ref extraHashesOffset);
-                handler.Read(ref attributeFlags);
-                handler.Read(ref jointMaskGroupCount);
+                action.Do(ref ikMotionDataOffset);
+                action.Do(ref symmetryDataOffset);
+                if (version >= 19) action.Do(ref extraHashesOffset);
+                if (version >= 28) action.Null(6 * 8);
+                action.Do(ref attributeFlags);
+                action.Do(ref jointMaskGroupCount);
             }
             else
             {
-                throw new NotImplementedException();
+                action.Do(ref boneCount);
+                action.Do(ref jointMaskGroupCount);
+                int extraJointsCount = extraJointsOffset > 0 ? 1 : 0;
+                action.Do(ref extraJointsCount);
+                DataInterpretationException.DebugThrowIf(extraJointsCount > 1);
             }
-            return true;
-        }
 
-        protected override bool DoWrite(FileHandler handler)
-        {
-            var version = handler.FileVersion;
-            if (version >= 17)
-            {
-                handler.Write(ref version);
-                handler.Write(ref magic);
-                handler.Write(ref jointMaskGroupOffset);
-                handler.Write(ref jointExtraGroupDataOffset);
-                handler.Write(ref extraJointsOffset);
-                handler.Write(ref ikMotionDataOffset);
-                handler.Write(ref symmetryDataOffset);
-                if (version >= 19) handler.Write(ref extraHashesOffset);
-                handler.Write(ref attributeFlags);
-                handler.Write(ref jointMaskGroupCount);
-            }
-            else
-            {
-                throw new NotImplementedException();
-            }
             return true;
         }
+    }
+
+    [RszGenerate, RszAutoReadWrite]
+    public partial class JointData : BaseModel
+    {
+        public PaddedVec3 offset;
+        public Quaternion rotation;
+
+        [RszPaddingAfter(2)]
+        public ushort parentId;
+
+        [RszPaddingAfter(8)]
+        public uint boneHash;
+
+        public override string ToString() => $"Joint Hash: {boneHash}";
     }
 
     [RszGenerate]
@@ -70,6 +83,7 @@ namespace ReeLib.Jmap
     {
         public long jointNameHashOffset;
         public long masksOffset;
+        [RszConditional("handler.FileVersion >= 17")]
         public long weightsOffset;
         public uint groupId;
         public ushort jointCount;
@@ -116,57 +130,223 @@ namespace ReeLib.Jmap
         {
             if (jointHashes != null)
             {
+                handler.Align(16);
                 handler.Write(Start + 0, jointNameHashOffset = handler.Tell());
                 handler.WriteArray(jointHashes);
             }
             if (masks != null)
             {
+                handler.Align(16);
                 handler.Write(Start + 8, masksOffset = handler.Tell());
                 handler.WriteArray(masks);
             }
             if (weights != null)
             {
+                handler.Align(16);
                 handler.Write(Start + 16, weightsOffset = handler.Tell());
                 handler.WriteArray(weights);
             }
         }
+
+        public override string ToString() => $"MaskGroup {groupId}";
     }
 
-    public class ExtraJointGroupData : BaseModel
+    /// <summary>
+    /// via.motion.JointExType
+    /// </summary>
+    public enum JointExType : byte
     {
-        /// <summary>
-        /// Most likely via.motion.JointExType
-        /// </summary>
-        public byte[] types = [];
-        public byte[] lods = [];
-        public long[] data = [];
+        None = 0,
+        Rotation = 1,
+        RotToScale = 2,
+        RotToScaleEx = 3,
+        RotToTrans = 4,
+        RotToTransEx = 5,
+        Finger = 6,
+        Thumb = 7,
+        RotToRot = 8,
+        RotToRotEx = 9,
+        Limit = 10,
+        PointConstraint = 11,
+        ParentConstraint = 12,
+        BsplineConstraint = 13,
+        RemapValue = 14,
+        MultiRemapValue = 15,
+        Rotation2 = 16,
+    }
+
+    [RszGenerate, RszAutoReadWrite]
+    public partial class ExtraJointGroupRotation : ExtraJointGroup
+    {
+        public override JointExType JointType => JointExType.Rotation;
+
+        public uint hash;
+        public uint hash2;
+        public uint num;
+        public Vector3 localRotation;
+    }
+
+    [RszGenerate, RszAutoReadWrite]
+    public partial class ExtraJointGroupRotToTrans : ExtraJointGroup
+    {
+        public override JointExType JointType => JointExType.RotToTrans;
+
+        public uint hash;
+        public uint hash2;
+        public uint num;
+        public uint flags;
+        [RszFixedSizeArray(24)] public uint[] data = new uint[24];
+    }
+    [RszGenerate, RszAutoReadWrite]
+    public partial class ExtraJointGroupRotToTransEx : ExtraJointGroup
+    {
+        public override JointExType JointType => JointExType.RotToTransEx;
+
+        public uint hash;
+        public uint hash2;
+        public uint num;
+        public uint flags;
+        [RszFixedSizeArray(36)] public uint[] data = new uint[36];
+    }
+    [RszGenerate, RszAutoReadWrite]
+    public partial class ExtraJointGroupRotToRotEx : ExtraJointGroup
+    {
+        public override JointExType JointType => JointExType.RotToRotEx;
+
+        public uint hash;
+        public uint hash2;
+        public uint num;
+        public uint flags;
+        [RszFixedSizeArray(36)] public uint[] data = new uint[36];
+    }
+
+    [RszGenerate, RszAutoReadWrite]
+    public partial class ExtraJointGroupFinger : ExtraJointGroup
+    {
+        public override JointExType JointType => JointExType.Finger;
+
+        public uint hash;
+        public uint num;
+        public uint hash2;
+        public uint flags;
+        [RszFixedSizeArray(88)] public uint[] data = new uint[88];
+    }
+
+    [RszGenerate, RszAutoReadWrite]
+    public partial class ExtraJointGroupThumb : ExtraJointGroup
+    {
+        public override JointExType JointType => JointExType.Thumb;
+
+        public uint hash;
+        public uint num;
+        public uint hash2;
+        public uint flags;
+        [RszFixedSizeArray(76)] public uint[] data = new uint[76];
+    }
+
+    [RszGenerate, RszAutoReadWrite]
+    public partial class ExtraJointGroupRemapValue : ExtraJointGroup
+    {
+        public override JointExType JointType => JointExType.RemapValue;
+
+        public uint hash;
+        [RszFixedSizeArray(51)] public uint[] data = new uint[51];
+    }
+
+    [RszGenerate, RszAutoReadWrite]
+    public partial class ExtraJointGroupRotation2 : ExtraJointGroup
+    {
+        public override JointExType JointType => JointExType.Rotation2;
+
+        public Quaternion quat1;
+        public Quaternion quat2;
+        public uint hash1;
+        public uint hash2;
+        public uint ukn;
+        public Vector3 vec;
+    }
+
+    public abstract class ExtraJointGroup : BaseModel
+    {
+        [RszIgnore] public byte lod;
+
+        public static readonly Dictionary<JointExType, Type> ExtraJointTypeMap = new () {
+            { JointExType.Rotation, typeof(ExtraJointGroupRotation) },
+            { JointExType.RotToTrans, typeof(ExtraJointGroupRotToTrans) },
+            { JointExType.RotToTransEx, typeof(ExtraJointGroupRotToTransEx) },
+            { JointExType.Finger, typeof(ExtraJointGroupFinger) },
+            { JointExType.Thumb, typeof(ExtraJointGroupThumb) },
+            { JointExType.RotToRotEx, typeof(ExtraJointGroupRotToRotEx) },
+            { JointExType.RemapValue, typeof(ExtraJointGroupRemapValue) },
+            { JointExType.Rotation2, typeof(ExtraJointGroupRotation2) },
+        };
+
+        public abstract JointExType JointType { get; }
+    }
+
+    public class ExtraJointGroupContainer : BaseModel
+    {
+        public List<ExtraJointGroup> Groups { get; } = new();
 
         protected override bool DoRead(FileHandler handler)
         {
+            Groups.Clear();
             var typeOffset = handler.Read<long>();
             var lodOffset = handler.Read<long>();
             var dataOffset = handler.Read<long>();
             var count = handler.Read<int>();
+
             handler.Seek(typeOffset);
-            types = handler.ReadArray<byte>(count);
+            var types = handler.ReadArray<JointExType>(count);
+
             handler.Seek(lodOffset);
-            lods = handler.ReadArray<byte>(count);
+            var lods = handler.ReadArray<byte>(count);
+
             handler.Seek(dataOffset);
-            data = handler.ReadArray<long>(count);
+            var dataOffsets = handler.ReadArray<long>(count);
+
+            Groups.Clear();
+            for (int i = 0; i < count; ++i)
+            {
+                DataInterpretationException.DebugThrowIf(i > 0 && Utils.Align16((int)handler.Tell()) != dataOffsets[i]);
+                handler.Seek(dataOffsets[i]);
+                if (!ExtraJointGroup.ExtraJointTypeMap.TryGetValue(types[i], out var type)) {
+                    throw new NotSupportedException("Unsupported extra joint group type " + types[i]);
+                }
+
+                var data = (ExtraJointGroup)Activator.CreateInstance(type)!;
+                data.lod = lods[i];
+                data.Read(handler);
+                Groups.Add(data);
+
+            }
             return true;
         }
 
         protected override bool DoWrite(FileHandler handler)
         {
             handler.Skip(sizeof(long) * 3);
-            handler.Write(types.Length);
+            handler.Write((long)Groups.Count);
+
             handler.Align(16);
             handler.Write(Start, handler.Tell());
-            handler.WriteArray(types);
+            foreach (var grp in Groups) handler.Write(grp.JointType);
+
+            handler.Align(16);
             handler.Write(Start + sizeof(long), handler.Tell());
-            handler.WriteArray(lods);
-            handler.Write(Start + sizeof(long) * 2, handler.Tell());
-            handler.WriteArray(data);
+            foreach (var grp in Groups) handler.Write(grp.lod);
+
+            handler.Align(16);
+            var offsetsOffset = handler.Tell();
+            handler.Write(Start + sizeof(long) * 2, offsetsOffset);
+            handler.Skip(Groups.Count * sizeof(long));
+
+            for (int i = 0; i < Groups.Count; ++i)
+            {
+                handler.Align(16);
+                handler.Write(offsetsOffset + i * sizeof(long), handler.Tell());
+                Groups[i].Write(handler);
+            }
             return true;
         }
     }
@@ -183,11 +363,13 @@ namespace ReeLib.Jmap
         {
             parentName = handler.ReadOffsetWString();
             jointName = handler.ReadOffsetWString();
-            var parentHash = handler.Read<int>();
-            var jointHash = handler.Read<int>();
+            var parentHash = handler.Read<uint>();
+            var jointHash = handler.Read<uint>();
+            DataInterpretationException.DebugThrowIf(parentHash != MurMur3HashUtils.GetHash(parentName));
+            DataInterpretationException.DebugThrowIf(jointHash != MurMur3HashUtils.GetHash(jointName));
             handler.Read(ref symmetryHash);
             handler.Read(ref flags);
-            handler.Read(ref ukn);
+            if (handler.FileVersion >= 19) handler.Read(ref ukn);
             return true;
         }
 
@@ -199,9 +381,11 @@ namespace ReeLib.Jmap
             handler.Write(MurMur3HashUtils.GetHash(jointName));
             handler.Write(ref symmetryHash);
             handler.Write(ref flags);
-            handler.Write(ref ukn);
+            if (handler.FileVersion >= 19) handler.Write(ref ukn);
             return true;
         }
+
+        public override string ToString() => $"{parentName} => {jointName}";
     }
 
     public class ExtraJoints : BaseModel
@@ -210,12 +394,14 @@ namespace ReeLib.Jmap
 
         protected override bool DoRead(FileHandler handler)
         {
+            Joints.Clear();
             var offset = handler.Read<long>();
             var count = handler.Read<int>();
             handler.Seek(offset);
             Joints.Read(handler, count);
             return true;
         }
+
 
         protected override bool DoWrite(FileHandler handler)
         {
@@ -299,8 +485,10 @@ namespace ReeLib
     public class JmapFile(FileHandler fileHandler) : BaseFile(fileHandler)
     {
         public JmapHeader Header { get; } = new();
+        public List<JointData> Joints { get; } = new();
+        public uint[]? AfterBoneData { get; set; }
         public List<JointMaskGroup> MaskGroups { get; } = new();
-        public ExtraJointGroupData ExtraJointGroups { get; } = new();
+        public ExtraJointGroupContainer ExtraJointGroups { get; } = new();
         public ExtraJoints ExtraJoints { get; } = new();
         public IkMotionData IkMotionData { get; } = new();
         public SymmetryMirrorData SymmetryData { get; } = new();
@@ -317,11 +505,20 @@ namespace ReeLib
             }
             var version = handler.FileVersion;
 
-            if (version < 17)
+            Joints.Clear();
+            if (version <= 11)
             {
-                throw new NotSupportedException();
+                handler.Seek(Header.bonesOffset);
+                Joints.Read(handler, Header.boneCount);
+
+                handler.Seek(Header.bonesAfterOffset);
+                var afterOffset = handler.Read<long>();
+                handler.ReadNull(8 * 5);
+                handler.Seek(afterOffset);
+                AfterBoneData = handler.ReadArray<uint>(60);
             }
 
+            MaskGroups.Clear();
             if (Header.jointMaskGroupOffset > 0)
             {
                 handler.Seek(Header.jointMaskGroupOffset);
@@ -346,7 +543,7 @@ namespace ReeLib
                 IkMotionData.Read(handler);
             }
 
-            if (Header.symmetryDataOffset > 0)
+            if (Header.symmetryDataOffset > 0 && Header.symmetryDataOffset < handler.FileSize())
             {
                 handler.Seek(Header.symmetryDataOffset);
                 SymmetryData.Read(handler);
@@ -365,34 +562,60 @@ namespace ReeLib
         {
             var handler = FileHandler;
             var version = FileHandler.FileVersion;
-            if (version < 17)
-            {
-                throw new NotSupportedException();
-            }
             Header.Write(handler);
 
+            if (version <= 11)
+            {
+                Header.boneCount = (ushort)Joints.Count;
+                handler.Align(16);
+                Header.bonesOffset = handler.Tell();
+                Joints.Write(handler);
+
+                Header.bonesAfterOffset = handler.Tell();
+                handler.WriteNull(8 * 6);
+                handler.Write(Header.bonesAfterOffset, handler.Tell());
+                handler.WriteArray(AfterBoneData ??= new uint[60]);
+            }
+
+            handler.Align(16);
+            Header.jointMaskGroupCount = (ushort)MaskGroups.Count;
             Header.jointMaskGroupOffset = handler.Tell();
             MaskGroups.Write(handler);
+            foreach (var grp in MaskGroups)
+            {
+                grp.WriteData(handler);
+            }
 
+            handler.Align(16);
             Header.jointExtraGroupDataOffset = handler.Tell();
             ExtraJointGroups.Write(handler);
 
-            Header.extraJointsOffset = handler.Tell();
-            ExtraJoints.Write(handler);
-
-            Header.ikMotionDataOffset = handler.Tell();
-            IkMotionData.Write(handler);
-
-            Header.symmetryDataOffset = handler.Tell();
-            SymmetryData.Write(handler);
+            if (ExtraJoints.Joints.Count > 0) {
+                handler.Align(16);
+                Header.extraJointsOffset = handler.Tell();
+                ExtraJoints.Write(handler);
+            } else {
+                Header.extraJointsOffset = 0;
+            }
 
             if (version >= 19)
             {
+                handler.Align(16);
+                Header.ikMotionDataOffset = handler.Tell();
+                IkMotionData.Write(handler);
+
+                handler.Align(16);
+                Header.symmetryDataOffset = handler.Tell();
+                SymmetryData.Write(handler);
+
+                handler.Align(16);
                 Header.extraHashesOffset = handler.Tell();
                 ExtraHashes.Write(handler);
             }
 
-            Header.Write(handler);
+            handler.StringTableFlush();
+
+            Header.Write(handler, 0);
             return true;
         }
     }

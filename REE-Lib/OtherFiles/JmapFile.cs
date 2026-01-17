@@ -9,6 +9,7 @@ namespace ReeLib.Jmap
     public class JmapHeader : ReadWriteModel
     {
         internal uint version;
+        public uint Version => version;
         internal uint magic = JmapFile.Magic;
 
         internal long bonesOffset;
@@ -282,6 +283,8 @@ namespace ReeLib.Jmap
         };
 
         public abstract JointExType JointType { get; }
+
+        public override string ToString() => $"{JointType}";
     }
 
     public class ExtraJointGroupContainer : BaseModel

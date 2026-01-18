@@ -268,7 +268,7 @@ public class ListFileWrapper
             var next = Files[endIndex++];
             if (!next.StartsWith(folderNormalized)) break;
             // possible optimization: use binary search to find the next non-matching entry instead of doing sequential iteration
-            if ((list.Count == 0 || !next.StartsWith(list.Last()) || next[list.Last().Length] != '/') && Filter?.Invoke(next) != false) {
+            if ((list.Count == 0 || !next.StartsWith(list.Last()) || next.Length > list.Last().Length && next[list.Last().Length] != '/') && Filter?.Invoke(next) != false) {
                 list.Add(GetSubfolderPath(next, folderNormalized).ToString());
             }
         }

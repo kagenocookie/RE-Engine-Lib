@@ -344,10 +344,21 @@ namespace ReeLib.Mesh
 			handler.WriteArray(BufferHeaders);
         }
 
-		internal void RegenerateHeaders(MeshBuffer buffer, ref int offset)
+		internal void RegenerateHeaders(MeshBuffer buffer, ref int offset, bool isMainBuffer)
 		{
 			// if there's no positions, we're likely not fully loaded (streaming mesh), in which case assume the existing data is valid
-			if (buffer.Positions.Length == 0) return;
+			if (buffer.Positions.Length == 0) {
+				if (isMainBuffer && BufferHeaders.Length == 0) {
+					// for occ-only meshes, make sure we generate the empty headers to match vanilla behavior
+					// note: we might need to also include Color header if mesh has colors flag, or maybe it works anyway?
+					BufferHeaders = [
+						new MeshBufferItemHeader() { type = VertexBufferType.Position, size = 12 },
+						new MeshBufferItemHeader() { type = VertexBufferType.NormalsTangents, size = 8 },
+						new MeshBufferItemHeader() { type = VertexBufferType.UV0, size = 4 },
+					];
+				}
+				return;
+			}
 
 			var headers = new List<MeshBufferItemHeader>();
 			if (buffer.Positions.Length > 0) {
@@ -583,10 +594,10 @@ namespace ReeLib.Mesh
 			handler.Align(16);
 			elementHeadersOffset = handler.Tell();
 			int offset = 0;
-			Headers.RegenerateHeaders(this, ref offset);
+			Headers.RegenerateHeaders(this, ref offset, true);
 			handler.WriteArray(Headers.BufferHeaders);
 			foreach (var buffer in AdditionalBuffers) {
-				buffer.Headers.RegenerateHeaders(buffer, ref offset);
+				buffer.Headers.RegenerateHeaders(buffer, ref offset, false);
 				handler.WriteArray(buffer.Headers.BufferHeaders);
 			}
 		}
@@ -1106,7 +1117,6 @@ namespace ReeLib.Mesh
 
 			var offsetOffset = handler.Tell();
 			handler.Skip(8);
-			if (Version >= MeshSerializerVersion.RE4) handler.WriteNull(6 * 8);
 			var offsetsStart = handler.Tell();
 			handler.Write(offsetOffset, offsetsStart);
 			handler.Skip(8 * count);

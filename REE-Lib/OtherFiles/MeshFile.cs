@@ -79,6 +79,8 @@ namespace ReeLib.Mesh
 
 		public long dd2HashOffset = 0;
 		public long verticesOffset = 0;
+		internal long sdfTexPathOffset;
+		public string? SdfTexturePath;
 
 		public int wilds_unkn1 = 0;
 		public int wilds_unkn2 = 0;
@@ -166,7 +168,7 @@ namespace ReeLib.Mesh
 					action.Do(ref streamingInfoOffset);
 				}
 				action.Do(ref verticesOffset);
-				action.Do(ref sf6unkn4);
+				action.Do(ref sdfTexPathOffset);
 			}
 			else if (FormatVersion >= MeshSerializerVersion.Onimusha)
 			{
@@ -342,12 +344,11 @@ namespace ReeLib.Mesh
 			handler.WriteArray(BufferHeaders);
         }
 
-		internal void RegenerateHeaders(MeshBuffer buffer)
+		internal void RegenerateHeaders(MeshBuffer buffer, ref int offset)
 		{
 			// if there's no positions, we're likely not fully loaded (streaming mesh), in which case assume the existing data is valid
 			if (buffer.Positions.Length == 0) return;
 
-			var offset = 0;
 			var headers = new List<MeshBufferItemHeader>();
 			if (buffer.Positions.Length > 0) {
 				headers.Add(new MeshBufferItemHeader() { type = VertexBufferType.Position, offset = offset, size = 12 });
@@ -433,12 +434,12 @@ namespace ReeLib.Mesh
 		public long vertexBufferOffset;
 		public long shapekeyWeightBufferOffset;
 		public int totalBufferSize;
-		public long faceBufferOffset;
-		public int faceVertBufferHeaderSize;
+		public int vertexBufferSize;
+		public int faceBufferTotalSize;
 		public short elementCount;
 		public short totalElementCount;
-		public int uknSize1;
-		public int uknSize2;
+		public int shadowFaceBufferOffset;
+		public int occFaceBufferOffset;
 		public int blendShapeOffset;
 
 		public int shapekeyWeightBufferSize;
@@ -447,6 +448,8 @@ namespace ReeLib.Mesh
 		public int bufferUkn2;
 
 		public MeshBufferHeaderList Headers = new();
+
+		public List<MeshBuffer> AdditionalBuffers { get; } = new();
 
 		public Vector3[] Positions = [];
 		public Vector3[] Normals = [];
@@ -462,11 +465,6 @@ namespace ReeLib.Mesh
 
 		public Vector3[] BlendShapeData = [];
 		public VertexBoneWeights[] ShapeKeyWeights = [];
-
-		private const float ByteDenorm = 1f / 127f;
-		private const float ByteDenormNegative = 1f / 128f;
-		private const float ByteNorm = 127f;
-		private const float ByteNormNegative = 128f;
 
 		internal MeshSerializerVersion Version;
 
@@ -487,24 +485,29 @@ namespace ReeLib.Mesh
 			{
 				handler.Read(ref shapekeyWeightBufferOffset);
 				handler.Read(ref totalBufferSize);
-				var vertexBufferSize = handler.Read<int>();
-				faceBufferOffset = vertexBufferSize + vertexBufferOffset;
-				faceVertBufferHeaderSize = (int)(totalBufferSize - (faceBufferOffset - vertexBufferOffset));
+				handler.Read(ref vertexBufferSize);
+				faceBufferTotalSize = (int)(totalBufferSize - vertexBufferSize);
 			}
 			else
 			{
-				handler.Read(ref faceBufferOffset);
+				var faceBufferOffset = handler.Read<long>(); // this one is effectively useless
 				if (Version == MeshSerializerVersion.RE_RT) handler.ReadNull(8);
-				handler.Read(ref totalBufferSize);
-				handler.Read(ref faceVertBufferHeaderSize);
+				handler.Read(ref vertexBufferSize);
+				handler.Read(ref faceBufferTotalSize);
+				totalBufferSize = vertexBufferSize + faceBufferTotalSize;
 			}
 			handler.Read(ref elementCount);
 			handler.Read(ref totalElementCount);
 			if (Version >= MeshSerializerVersion.Pragmata) {
 				handler.ReadNull(16);
 			}
-			handler.Read(ref uknSize1);
-			handler.Read(ref uknSize2);
+			handler.Read(ref shadowFaceBufferOffset);
+			handler.Read(ref occFaceBufferOffset);
+			if (Version < MeshSerializerVersion.RE4)
+			{
+				shadowFaceBufferOffset += vertexBufferSize;
+				occFaceBufferOffset += vertexBufferSize;
+			}
 			handler.Read(ref blendShapeOffset);
 			if (Version >= MeshSerializerVersion.RE4)
 			{
@@ -516,7 +519,18 @@ namespace ReeLib.Mesh
 
 			using (var _ = handler.SeekJumpBack(elementHeadersOffset)) {
 				Headers.Read(handler, elementCount);
-				// TODO earlier games can have totalElementCount > elementCount as an alternative to streaming buffers
+				if (totalElementCount - elementCount > 0) {
+					var tmpHeaders = new MeshBufferHeaderList();
+					tmpHeaders.Read(handler, totalElementCount - elementCount);
+					foreach (var tt in tmpHeaders.BufferHeaders) {
+						if (tt.type == VertexBufferType.Position) {
+							AdditionalBuffers.Add(new MeshBuffer());
+							DataInterpretationException.ThrowIf(AdditionalBuffers.Count > 1, "Found multiple additional mesh buffers");
+						}
+						var buf = AdditionalBuffers[^1];
+						buf.Headers.BufferHeaders = buf.Headers.BufferHeaders.Append(tt).ToArray();
+					}
+				}
 			}
 			return true;
         }
@@ -529,23 +543,30 @@ namespace ReeLib.Mesh
 			{
 				handler.Write(ref shapekeyWeightBufferOffset);
 				handler.Write(ref totalBufferSize);
-				handler.Write((int)(faceBufferOffset - vertexBufferOffset));
+				handler.Write(ref vertexBufferSize);
 			}
 			else
 			{
-				handler.Write(ref faceBufferOffset);
+				handler.Write((long)(vertexBufferOffset + vertexBufferSize)); // face buffer start offset
 				if (Version == MeshSerializerVersion.RE_RT) handler.WriteNull(8);
-				handler.Write(ref totalBufferSize);
-				faceVertBufferHeaderSize = IntegerFaces != null ? IntegerFaces.Length * 4 : Faces!.Length * 2;
-				handler.Write(ref faceVertBufferHeaderSize);
+				handler.Write(ref vertexBufferSize);
+				handler.Write(ref faceBufferTotalSize);
 			}
 			handler.Write(ref elementCount);
 			handler.Write(ref totalElementCount);
 			if (Version >= MeshSerializerVersion.Pragmata) {
 				handler.WriteNull(16);
 			}
-			handler.Write(ref uknSize1);
-			handler.Write(ref uknSize2);
+			if (Version >= MeshSerializerVersion.RE4)
+			{
+				handler.Write(ref shadowFaceBufferOffset);
+				handler.Write(ref occFaceBufferOffset);
+			}
+			else
+			{
+				handler.Write(shadowFaceBufferOffset - vertexBufferSize);
+				handler.Write(occFaceBufferOffset - vertexBufferSize);
+			}
 			handler.Write(ref blendShapeOffset);
 			if (Version >= MeshSerializerVersion.RE4)
 			{
@@ -561,88 +582,63 @@ namespace ReeLib.Mesh
 		{
 			handler.Align(16);
 			elementHeadersOffset = handler.Tell();
-			Headers.RegenerateHeaders(this);
+			int offset = 0;
+			Headers.RegenerateHeaders(this, ref offset);
 			handler.WriteArray(Headers.BufferHeaders);
+			foreach (var buffer in AdditionalBuffers) {
+				buffer.Headers.RegenerateHeaders(buffer, ref offset);
+				handler.WriteArray(buffer.Headers.BufferHeaders);
+			}
 		}
 
-		public void ReadBufferData(FileHandler handler, BlendShapeData? blendShapes, bool integerFaces)
+		public void ReadBufferData(FileHandler handler, BlendShapeData? blendShapes, bool integerFaces, bool hasShadow, bool hasOcclusion)
 		{
 			handler.Seek(vertexBufferOffset);
 			var BufferHeaders = Headers.BufferHeaders;
-            for (int i = 0; i < BufferHeaders.Length; i++)
+            for (int i = 0; i < BufferHeaders.Length; i++) {
+                var buffHeader = BufferHeaders[i];
+                var bufferStart = buffHeader.offset;
+				var bufferEnd = i < BufferHeaders.Length - 1 ? BufferHeaders[i + 1].offset : AdditionalBuffers.FirstOrDefault()?.Headers.BufferHeaders[0].offset ?? vertexBufferSize;
+                handler.Seek(vertexBufferOffset + bufferStart);
+                var count = (int)(bufferEnd - bufferStart) / buffHeader.size;
+                ReadSingleBufferArray(handler, buffHeader, count);
+            }
+            for (int bufId = 0; bufId < AdditionalBuffers.Count; bufId++)
 			{
-                var buffer = BufferHeaders[i];
-				var bufferStart = vertexBufferOffset + buffer.offset;
-				var bufferEnd = (i == elementCount - 1 ? bufferStart + buffer.size * Positions.Length : vertexBufferOffset + BufferHeaders[i + 1].offset);
-                handler.Seek(bufferStart);
-				var count = (int)(bufferEnd - bufferStart) / buffer.size;
-				switch (buffer.type) {
-					case VertexBufferType.Position:
-						Positions = handler.ReadArray<Vector3>(count);
-						break;
-
-					case VertexBufferType.NormalsTangents:
-						Normals = new Vector3[count];
-						Tangents = new Vector3[count];
-						BiTangentSigns = new sbyte[count];
-						for (int k = 0; k < count; ++k)
-						{
-							var nortan = handler.Read<NorTanVertexBuffer>();
-							Normals[k] = nortan.Normal;
-							Tangents[k] = nortan.Tangent;
-							BiTangentSigns[k] = nortan.BiTangentSign;
-						}
-						break;
-
-					case VertexBufferType.UV0:
-						UV0 = new Vector2[count];
-						for (int k = 0; k < count; ++k)
-						{
-							var u = handler.Read<Half>();
-							var v = handler.Read<Half>();
-							UV0[k] = new Vector2((float)u, (float)v);
-						}
-						break;
-					case VertexBufferType.UV1:
-						UV1 = new Vector2[count];
-						for (int k = 0; k < count; ++k)
-						{
-							var u = handler.Read<Half>();
-							var v = handler.Read<Half>();
-							UV1[k] = new Vector2((float)u, (float)v);
-						}
-						break;
-					case VertexBufferType.Colors:
-						Colors = handler.ReadArray<Color>(count);
-						break;
-					case VertexBufferType.BoneWeights:
-						Weights = new VertexBoneWeights[count];
-						for (int k = 0; k < count; ++k)
-						{
-							Weights[k] = new();
-							Weights[k].Read(handler, Version);
-						}
-						break;
-					case VertexBufferType.BoneWeights2:
-						ExtraWeights = new VertexBoneWeights[count];
-						for (int k = 0; k < count; ++k)
-						{
-							ExtraWeights[k] = new();
-							ExtraWeights[k].Read(handler, Version);
-						}
-						break;
-					default:
-						Log.Warn($"Found unsupported mesh buffer type {buffer.type} ({(int)buffer.type})");
-						break;
+                var addBuf = AdditionalBuffers[bufId];
+                var adds = addBuf.Headers.BufferHeaders;
+				for (int i = 0; i < adds.Length; i++)
+				{
+					var buffHeader = adds[i];
+					var bufferStart = buffHeader.offset;
+					var bufferEnd = i < adds.Length - 1 ? adds[i + 1].offset : AdditionalBuffers.ElementAtOrDefault(bufId + 1)?.Headers.BufferHeaders[0].offset ?? vertexBufferSize;
+					handler.Seek(vertexBufferOffset + bufferStart);
+					var count = (int)(bufferEnd - bufferStart) / buffHeader.size;
+					addBuf.ReadSingleBufferArray(handler, buffHeader, count);
 				}
 			}
 
-			handler.Seek(faceBufferOffset);
-			if (integerFaces) {
-				IntegerFaces = handler.ReadArray<int>((int)faceVertBufferHeaderSize / 4);
-            } else {
-				Faces = handler.ReadArray<ushort>((int)faceVertBufferHeaderSize / 2);
+            handler.Seek(vertexBufferOffset + vertexBufferSize);
+            static void ReadFaces(MeshBuffer buf, FileHandler handler, bool integerFaces, int size)
+            {
+                if (integerFaces) {
+                    buf.IntegerFaces = handler.ReadArray<int>((int)size / 4);
+                } else {
+                    buf.Faces = handler.ReadArray<ushort>((int)size / 2);
+                }
             }
+			if (!hasShadow && !hasOcclusion) {
+				var mainFacesSize = shadowFaceBufferOffset > vertexBufferSize ? (int)(shadowFaceBufferOffset - vertexBufferSize) : faceBufferTotalSize;
+                ReadFaces(this, handler, integerFaces, mainFacesSize);
+            } else {
+				var mainFacesSize = (int)((hasShadow ? shadowFaceBufferOffset : occFaceBufferOffset) - vertexBufferSize);
+				var shadowFaceSize = hasShadow ? (int)((occFaceBufferOffset >= shadowFaceBufferOffset ? occFaceBufferOffset - vertexBufferSize : faceBufferTotalSize) - mainFacesSize) : 0;
+				var occFaceSize = hasOcclusion ? (int)(faceBufferTotalSize - mainFacesSize - shadowFaceSize) : 0;
+                ReadFaces(this, handler, integerFaces, mainFacesSize);
+				if (shadowFaceSize > 0) ReadFaces(AdditionalBuffers[0], handler, integerFaces, shadowFaceSize);
+				// occ is probably always short indices?
+				if (occFaceSize > 0) ReadFaces(AdditionalBuffers.Last(), handler, false, occFaceSize);
+			}
 
 			if (shapekeyWeightBufferOffset > 0)
 			{
@@ -673,69 +669,36 @@ namespace ReeLib.Mesh
 					);
 				}
 			}
-		}
+        }
 
-		public void WriteBufferData(FileHandler handler)
+        public void WriteBufferData(FileHandler handler, bool hasShadow, bool hasOcclusion)
 		{
 			var elementHeaders = Headers.BufferHeaders;
 
 			vertexBufferOffset = handler.Tell();
 			blendShapeOffset = -(int)vertexBufferOffset;
-			totalElementCount = elementCount = (short)elementHeaders.Length;
+			elementCount = (short)elementHeaders.Length;
+			totalElementCount = (short)(elementCount + AdditionalBuffers.Sum(b => b.Headers.BufferHeaders.Length));
 
-			for (int i = 0; i < elementHeaders.Length; i++)
-			{
+			for (int i = 0; i < elementHeaders.Length; i++) {
                 var buffer = elementHeaders[i];
-				var bufferStart = vertexBufferOffset + buffer.offset;
-				var bufferEnd = (i == elementCount - 1 ? bufferStart + buffer.size * Positions.Length : vertexBufferOffset + elementHeaders[i + 1].offset);
+                var bufferStart = vertexBufferOffset + buffer.offset;
+                var bufferEnd = (i == elementCount - 1 ? bufferStart + buffer.size * Positions.Length : vertexBufferOffset + elementHeaders[i + 1].offset);
                 handler.Seek(bufferStart);
-				var count = (int)(bufferEnd - bufferStart) / buffer.size;
-				switch (buffer.type) {
-					case VertexBufferType.Position:
-						handler.WriteArray(Positions);
-						break;
-
-					case VertexBufferType.NormalsTangents:
-						for (int k = 0; k < count; ++k)
-						{
-							handler.Write(SByte4.QuantizeNormal(Normals[k]));
-							handler.Write(SByte4.QuantizeNormal(Tangents[k], BiTangentSigns[k]));
-						}
-						break;
-
-					case VertexBufferType.UV0:
-						for (int k = 0; k < count; ++k)
-						{
-							handler.Write((Half)UV0[k].X);
-							handler.Write((Half)UV0[k].Y);
-						}
-						break;
-					case VertexBufferType.UV1:
-						for (int k = 0; k < count; ++k)
-						{
-							handler.Write((Half)UV1[k].X);
-							handler.Write((Half)UV1[k].Y);
-						}
-						break;
-					case VertexBufferType.Colors:
-						handler.WriteArray<Color>(Colors);
-						break;
-					case VertexBufferType.BoneWeights:
-						for (int k = 0; k < count; ++k)
-						{
-							Weights[k].Write(handler, Version);
-						}
-						break;
-					case VertexBufferType.BoneWeights2:
-						for (int k = 0; k < count; ++k)
-						{
-							ExtraWeights![k].Write(handler, Version);
-						}
-						break;
+                var count = (int)(bufferEnd - bufferStart) / buffer.size;
+                WriteSingleBufferArray(handler, buffer, count);
+            }
+			foreach (var adbuf in AdditionalBuffers) {
+				var addHdrs = adbuf.Headers.BufferHeaders;
+				for (int i = 0; i < addHdrs.Length; i++) {
+					var buffer = addHdrs[i];
+					var bufferStart = vertexBufferOffset + buffer.offset;
+					var bufferEnd = (i == addHdrs.Length - 1 ? bufferStart + buffer.size * adbuf.Positions.Length : vertexBufferOffset + addHdrs[i + 1].offset);
+					handler.Seek(bufferStart);
+					var count = (int)(bufferEnd - bufferStart) / buffer.size;
+					adbuf.WriteSingleBufferArray(handler, buffer, count);
 				}
 			}
-
-			var vertBufferSize = (int)(handler.Tell() - vertexBufferOffset);
 
 			if (BlendShapeData.Length > 0)
 			{
@@ -747,32 +710,44 @@ namespace ReeLib.Mesh
 					handler.Write((short)MathF.Round(vert.Z * (short.MaxValue + (vert.Z < 0 ? 1 : 0))));
 					handler.WriteNull(2);
 				}
-				vertBufferSize = (int)(handler.Tell() - vertexBufferOffset);
 			}
 
 			handler.Align(16);
-			faceBufferOffset = handler.Tell();
+			var facesBufferOffset = handler.Tell();
+			vertexBufferSize = (int)(facesBufferOffset - vertexBufferOffset);
+
 			if (IntegerFaces != null) {
 				handler.WriteArray(IntegerFaces);
             } else {
 				handler.WriteArray(Faces!);
             }
 
-			if (Version >= MeshSerializerVersion.RE4)
+			if (hasShadow || Version >= MeshSerializerVersion.RE4) shadowFaceBufferOffset = (int)(handler.Tell() - vertexBufferOffset);
+			else shadowFaceBufferOffset = (int)vertexBufferSize;
+
+			if (hasOcclusion || Version >= MeshSerializerVersion.RE4) occFaceBufferOffset = (int)(handler.Tell() - vertexBufferOffset);
+			else occFaceBufferOffset = (int)vertexBufferSize;
+
+			if (AdditionalBuffers.Count > 0)
 			{
-				uknSize1 = uknSize2 = vertBufferSize + (int)(handler.Tell() - faceBufferOffset);
+				occFaceBufferOffset = (int)(handler.Tell() - vertexBufferOffset);
+				if (hasShadow) shadowFaceBufferOffset = occFaceBufferOffset;
+				if (AdditionalBuffers[0].IntegerFaces != null) {
+					handler.WriteArray(AdditionalBuffers[0].IntegerFaces!);
+				} else {
+					handler.WriteArray(AdditionalBuffers[0].Faces!);
+				}
+				if (hasShadow) {
+					occFaceBufferOffset = (int)(Version >= MeshSerializerVersion.RE4 ? handler.Tell() - vertexBufferOffset : vertexBufferSize);
+				}
+				if (AdditionalBuffers.Count > 1) {
+					handler.WriteArray(AdditionalBuffers[1].Faces!);
+				}
 			}
 
+			faceBufferTotalSize = (int)(handler.Tell() - facesBufferOffset);
 			handler.WritePaddingUntil(Utils.Align16((int)handler.Tell()));
-
-			if (Version < MeshSerializerVersion.RE4)
-			{
-				totalBufferSize = (int)(faceBufferOffset - vertexBufferOffset);
-			}
-			else
-			{
-				totalBufferSize = (int)(handler.Tell() - vertexBufferOffset);
-			}
+			totalBufferSize = (int)(handler.Tell() - vertexBufferOffset);
 
 			if (ShapeKeyWeights.Length > 0)
 			{
@@ -787,6 +762,106 @@ namespace ReeLib.Mesh
 			// update header with offsets
 			this.Write(handler, Start);
 		}
+
+        private void ReadSingleBufferArray(FileHandler handler, MeshBufferItemHeader bufferHeader, int count)
+        {
+            switch (bufferHeader.type) {
+                case VertexBufferType.Position:
+                    Positions = handler.ReadArray<Vector3>(count);
+                    break;
+
+                case VertexBufferType.NormalsTangents:
+                    Normals = new Vector3[count];
+                    Tangents = new Vector3[count];
+                    BiTangentSigns = new sbyte[count];
+                    for (int k = 0; k < count; ++k) {
+                        var nortan = handler.Read<NorTanVertexBuffer>();
+                        Normals[k] = nortan.Normal;
+                        Tangents[k] = nortan.Tangent;
+                        BiTangentSigns[k] = nortan.BiTangentSign;
+                    }
+                    break;
+
+                case VertexBufferType.UV0:
+                    UV0 = new Vector2[count];
+                    for (int k = 0; k < count; ++k) {
+                        var u = handler.Read<Half>();
+                        var v = handler.Read<Half>();
+                        UV0[k] = new Vector2((float)u, (float)v);
+                    }
+                    break;
+                case VertexBufferType.UV1:
+                    UV1 = new Vector2[count];
+                    for (int k = 0; k < count; ++k) {
+                        var u = handler.Read<Half>();
+                        var v = handler.Read<Half>();
+                        UV1[k] = new Vector2((float)u, (float)v);
+                    }
+                    break;
+                case VertexBufferType.Colors:
+                    Colors = handler.ReadArray<Color>(count);
+                    break;
+                case VertexBufferType.BoneWeights:
+                    Weights = new VertexBoneWeights[count];
+                    for (int k = 0; k < count; ++k) {
+                        Weights[k] = new();
+                        Weights[k].Read(handler, Version);
+                    }
+                    break;
+                case VertexBufferType.BoneWeights2:
+                    ExtraWeights = new VertexBoneWeights[count];
+                    for (int k = 0; k < count; ++k) {
+                        ExtraWeights[k] = new();
+                        ExtraWeights[k].Read(handler, Version);
+                    }
+                    break;
+                default:
+                    Log.Warn($"Found unsupported mesh buffer type {bufferHeader.type} ({(int)bufferHeader.type})");
+                    break;
+            }
+        }
+
+        private void WriteSingleBufferArray(FileHandler handler, MeshBufferItemHeader buffer, int count)
+        {
+            switch (buffer.type) {
+                case VertexBufferType.Position:
+                    handler.WriteArray(Positions);
+                    break;
+
+                case VertexBufferType.NormalsTangents:
+                    for (int k = 0; k < count; ++k) {
+                        handler.Write(SByte4.QuantizeNormal(Normals[k]));
+                        handler.Write(SByte4.QuantizeNormal(Tangents[k], BiTangentSigns[k]));
+                    }
+                    break;
+
+                case VertexBufferType.UV0:
+                    for (int k = 0; k < count; ++k) {
+                        handler.Write((Half)UV0[k].X);
+                        handler.Write((Half)UV0[k].Y);
+                    }
+                    break;
+                case VertexBufferType.UV1:
+                    for (int k = 0; k < count; ++k) {
+                        handler.Write((Half)UV1[k].X);
+                        handler.Write((Half)UV1[k].Y);
+                    }
+                    break;
+                case VertexBufferType.Colors:
+                    handler.WriteArray<Color>(Colors);
+                    break;
+                case VertexBufferType.BoneWeights:
+                    for (int k = 0; k < count; ++k) {
+                        Weights[k].Write(handler, Version);
+                    }
+                    break;
+                case VertexBufferType.BoneWeights2:
+                    for (int k = 0; k < count; ++k) {
+                        ExtraWeights![k].Write(handler, Version);
+                    }
+                    break;
+            }
+        }
     }
 
     public class Submesh(MeshBuffer buffer) : ReadWriteModel
@@ -922,22 +997,24 @@ namespace ReeLib.Mesh
         public override string ToString() => $"Mesh Group {groupId} [Submeshes: {Submeshes.Count}]";
     }
 
-    public class MeshLOD(MeshBuffer Buffer) : BaseModel
+    public class MeshLOD(MeshBuffer buffer) : BaseModel
     {
 		public List<MeshGroup> MeshGroups { get; } = new();
 
 		public float lodFactor;
 		public byte vertexFormat;
 		public byte ukn1;
-		// public byte ukn2;
 
 		public int FaceCount => IndexCount / 3;
 		public int IndexCount => MeshGroups.Sum(g => g.indicesCount);
 		public int VertexCount => MeshGroups.Sum(g => g.vertexCount);
+		public int SubmeshCount => MeshGroups.Sum(g => g.Submeshes.Count);
 
 		public int PaddedIndexCount => MeshGroups.Sum(g => g.indicesCount + (g.indicesCount % 2 != 0 ? 1 : 0));
 
-		internal MeshSerializerVersion Version;
+        public MeshBuffer Buffer { get; } = buffer;
+
+        internal MeshSerializerVersion Version;
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -972,7 +1049,6 @@ namespace ReeLib.Mesh
 			handler.Write(ref lodFactor);
 			var offsetOffset = handler.Tell();
 			handler.Skip(8);
-			handler.Align(16);
 
 			var meshOffsetsOffset = handler.Tell();
 			handler.Write(offsetOffset, meshOffsetsOffset);
@@ -989,25 +1065,22 @@ namespace ReeLib.Mesh
         }
     }
 
-    public class OccluderMesh(MeshBuffer Buffer) : BaseModel
+    public class OccluderMesh(MeshBuffer buffer) : MeshLOD(buffer)
     {
-        public int count;
         public float uknFloat; // maybe a max draw distance?
 
-		public List<MeshGroup> Meshes { get; } = new();
-
-		internal MeshSerializerVersion Version;
 		internal MeshData? mainMesh;
+		public MeshBuffer? TargetBuffer;
 
 		public void ChangeVersion(MeshSerializerVersion version)
 		{
 			Version = version;
-			foreach (var mg in Meshes) mg.ChangeVersion(version);
+			foreach (var mg in MeshGroups) mg.ChangeVersion(version);
 		}
 
         protected override bool DoRead(FileHandler handler)
         {
-			handler.Read(ref count);
+			var count = handler.Read<int>();
 			handler.Read(ref uknFloat);
 
 			var offsetStart = handler.Read<long>();
@@ -1019,29 +1092,29 @@ namespace ReeLib.Mesh
 				handler.Seek(offsets[i]);
 				var group = new MeshGroup(Buffer) { Version = Version };
 				group.Read(handler);
-				Meshes.Add(group);
+				MeshGroups.Add(group);
 			}
 			return true;
         }
 
         protected override bool DoWrite(FileHandler handler)
         {
-        	count = Meshes.Count;
+        	var count = MeshGroups.Count;
 
 			handler.Write(ref count);
 			handler.Write(ref uknFloat);
 
 			var offsetOffset = handler.Tell();
 			handler.Skip(8);
-			handler.WriteNull(6 * 8);
+			if (Version >= MeshSerializerVersion.RE4) handler.WriteNull(6 * 8);
 			var offsetsStart = handler.Tell();
 			handler.Write(offsetOffset, offsetsStart);
 			handler.Skip(8 * count);
 
 			handler.Align(16);
-            for (int i = 0; i < Meshes.Count; i++)
+            for (int i = 0; i < MeshGroups.Count; i++)
 			{
-                var group = Meshes[i];
+                var group = MeshGroups[i];
 				handler.Write(offsetsStart + i * 8, handler.Tell());
 				group.Write(handler);
 			}
@@ -1102,7 +1175,7 @@ namespace ReeLib.Mesh
         {
         	lodCount = LODs.Count;
 			uvCount = Math.Sign(Buffer.UV0.Length) + Math.Sign(Buffer.UV1.Length);
-			totalMeshCount = (short)LODs[0].MeshGroups.Sum(mg => mg.Submeshes.Count);
+			totalMeshCount = (short)LODs.Max(lod => lod.SubmeshCount);
 			// materialCount also includes other (shadow) mesh materials as well, don't recalculate it here
 
 			handler.Write((byte)lodCount);
@@ -1223,7 +1296,7 @@ namespace ReeLib.Mesh
         {
         	lodCount = LODs.Count;
 			uvCount = Math.Sign(Buffer.UV0.Length) + Math.Sign(Buffer.UV1.Length);
-			totalMeshCount = (short)(lodCount == 0 ? 0 : LODs[0].MeshGroups.Sum(mg => mg.Submeshes.Count));
+			totalMeshCount = (short)(lodCount == 0 ? 0 : LODs.Max(lod => lod.SubmeshCount));
 
 			handler.Write((byte)lodCount);
 			handler.Write((byte)materialCount);
@@ -1501,6 +1574,10 @@ namespace ReeLib.Mesh
 
         protected override bool DoRead(FileHandler handler)
         {
+			if (Version < MeshSerializerVersion.DD2_Old)
+			{
+				return false;
+			}
 			var count = handler.Read<int>();
 			handler.ReadNull(4);
 			long offset;
@@ -1508,8 +1585,6 @@ namespace ReeLib.Mesh
 			{
 				offset = handler.Read<long>();
 				var offset2 = handler.Read<long>();
-				// throw new NotSupportedException("Older blend shapes are currently not supported");
-				return false;
 			}
 			else
 			{
@@ -1766,7 +1841,7 @@ namespace ReeLib
             for (int i = 0; i < StreamingBuffers.Count; i++)
 			{
                 var buffer = StreamingBuffers[i];
-                buffer.ReadBufferData(handler, BlendShapes, MeshData?.integerFaces ?? false);
+                buffer.ReadBufferData(handler, BlendShapes, MeshData?.integerFaces ?? false, ShadowMesh != null, OccluderMesh != null);
             }
 
 			if (MeshData == null) return;
@@ -1807,6 +1882,7 @@ namespace ReeLib
 				StreamingInfo.Read(handler);
 				DataInterpretationException.ThrowIf(StreamingInfo.Entries.Length + 1 != header.BufferCount);
 			}
+			header.SdfTexturePath = header.sdfTexPathOffset == 0 ? null : handler.ReadWString(header.sdfTexPathOffset);
 
 			if (header.meshOffset > 0)
 			{
@@ -1857,15 +1933,51 @@ namespace ReeLib
 				}
 
 				handler.Seek(header.verticesOffset);
-				MeshBuffer.ReadBufferData(handler, BlendShapes, MeshData?.integerFaces ?? false);
+				MeshBuffer.ReadBufferData(handler, BlendShapes, MeshData?.integerFaces ?? false,
+					ShadowMesh != null && !ShadowMesh.LODs.Any(l => MeshData!.LODs.Contains(l)),
+					OccluderMesh != null);
 
 				if (MeshBuffer.totalElementCount > MeshBuffer.elementCount)
 				{
-					// additional buffer seems to be used for the extra meshes in older games
-					Log.Warn("Separate shadow/occluder mesh buffer detected, this is currently not supported and will be discarded.");
-					ShadowMesh = null;
-					OccluderMesh = null;
+					DataInterpretationException.DebugThrowIf(OccluderMesh == null && ShadowMesh == null);
+					// additional buffers are only used for the extra meshes
+					if (ShadowMesh != null) {
+						foreach (var lod in ShadowMesh.LODs) {
+							foreach (var grp in lod.MeshGroups) {
+								foreach (var sub in grp.Submeshes) {
+									sub.Buffer = MeshBuffer.AdditionalBuffers.First();
+								}
+							}
+						}
+					}
+					if (OccluderMesh != null) {
+						OccluderMesh.TargetBuffer = MeshBuffer.AdditionalBuffers.Last();
+						foreach (var grp in OccluderMesh.MeshGroups) {
+							foreach (var sub in grp.Submeshes) {
+								sub.Buffer = MeshBuffer.AdditionalBuffers.Last();
+							}
+						}
+					}
 				}
+#if DEBUG
+				else
+				{
+					if (OccluderMesh != null) {
+						Log.Warn("Found occluder without separate additional buffer!");
+					} else if (ShadowMesh != null) {
+						var anyShared = ShadowMesh.LODs.Any(slod => MeshData!.LODs.Contains(slod));
+						var allShared = ShadowMesh.LODs.All(slod => MeshData!.LODs.Contains(slod));
+						if (anyShared && !allShared) {
+							Log.Warn("Mix shadow lods");
+						}
+						foreach (var lod in ShadowMesh.LODs) {
+							if (!MeshData!.LODs.Contains(lod)) {
+								Log.Warn("Found shadow mesh without separate additional buffer!");
+							}
+						}
+					}
+				}
+#endif
 			}
 
 			var strings = new string[header.nameCount];
@@ -2082,7 +2194,7 @@ namespace ReeLib
 
 			short stringOffset = 0;
 			handler.Align(16);
-			header.materialIndicesOffset = handler.Tell();
+			header.materialIndicesOffset = MaterialNames.Count > 0 ? handler.Tell() : 0;
 			foreach (var name in MaterialNames) handler.Write(stringOffset++);
 
 			header.boneIndicesOffset = 0;
@@ -2131,6 +2243,17 @@ namespace ReeLib
 			else
 			{
 				header.dd2HashOffset = 0;
+			}
+
+			if (string.IsNullOrEmpty(header.SdfTexturePath))
+			{
+				header.sdfTexPathOffset = 0;
+			}
+			else
+			 {
+				handler.Align(16);
+				header.sdfTexPathOffset = handler.Tell();
+				handler.WriteWString(header.SdfTexturePath);
 			}
 
 			if (BoneData?.Bones.Count > 0)
@@ -2187,7 +2310,7 @@ namespace ReeLib
 				}
 
 				if (Header.FormatVersion >= MeshSerializerVersion.RE4) handler.Align(16);
-				MeshBuffer.WriteBufferData(handler);
+				MeshBuffer.WriteBufferData(handler, ShadowMesh != null, OccluderMesh != null);
 				header.verticesOffset = MeshBuffer.vertexBufferOffset;
 			}
 

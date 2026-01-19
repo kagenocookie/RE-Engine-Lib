@@ -246,9 +246,6 @@ namespace ReeLib.Mdf
         public Vector4 parameter;
 
         internal int paramRelOffset;
-        internal long paramAbsOffset;
-        // for padding
-        internal int gapSize;
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -424,25 +421,14 @@ namespace ReeLib
                 {
                     ParamHeader paramHeader = new();
                     paramHeader.Read(handler);
-                    paramHeader.paramAbsOffset = matData.Header.paramsOffset + paramHeader.paramRelOffset;
-                    if (i == 0)
-                    {
-                        paramHeader.gapSize = paramHeader.paramRelOffset;
-                    }
-                    else
-                    {
-                        var prevHeader = matData.Parameters[i - 1];
-                        paramHeader.gapSize = (int)(
-                            paramHeader.paramAbsOffset - prevHeader.paramAbsOffset +
-                            prevHeader.componentCount * 4);
-                    }
+                    var paramAbsOffset = matData.Header.paramsOffset + paramHeader.paramRelOffset;
                     if (paramHeader.componentCount == 4)
                     {
-                        handler.Read(paramHeader.paramAbsOffset, ref paramHeader.parameter);
+                        handler.Read(paramAbsOffset, ref paramHeader.parameter);
                     }
                     else
                     {
-                        handler.Read(paramHeader.paramAbsOffset, ref paramHeader.parameter.X);
+                        handler.Read(paramAbsOffset, ref paramHeader.parameter.X);
                     }
                     matData.Parameters.Add(paramHeader);
                 }
@@ -500,7 +486,6 @@ namespace ReeLib
 
             handler.StringTableWriteStrings();
 
-            handler.Align(16);
             foreach (var matData in Materials)
             {
                 int size = 0;
@@ -508,10 +493,6 @@ namespace ReeLib
                 foreach (var paramHeader in matData.Parameters)
                 {
                     size += paramHeader.componentCount * 4;
-                    if (paramHeader.gapSize > 0)
-                    {
-                        handler.FillBytes(0, paramHeader.gapSize);
-                    }
                     paramHeader.paramRelOffset = (int)(handler.Tell() - matData.Header.paramsOffset);
                     if (paramHeader.componentCount == 4)
                     {
@@ -523,6 +504,7 @@ namespace ReeLib
                     }
                     paramHeader.Rewrite(handler);
                 }
+                size = Utils.Align16(size);
                 matData.Header.paramsSize = size;
                 handler.FillBytes(0, (int)(matData.Header.paramsOffset + matData.Header.paramsSize - handler.Tell()));
                 matData.Header.Rewrite(handler);

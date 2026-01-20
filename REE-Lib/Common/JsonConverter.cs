@@ -67,8 +67,40 @@ namespace ReeLib.Common
                     if (field.array) {
                         var list = new List<object>(val?.AsArray().Select(DeserializeUserdata) ?? []);
                         inst.SetFieldValue(key, list);
-                    } else {
+                    } else if ((val as JsonObject)?.TryGetPropertyValue("path", out var userPath) == true) {
                         inst.SetFieldValue(key, DeserializeUserdata(val));
+                    } else if (env.IsEmbeddedInstanceInfoUserdata || env.IsEmbeddedUserdata) {
+                        var instance = inst.GetFieldValue(key) as RszInstance;
+                        RSZFile rsz;
+                        if (instance?.RSZUserData is RSZUserDataInfo_TDB_LE_67 previousUserdataInfo && previousUserdataInfo.EmbeddedRSZ != null) {
+                            rsz = previousUserdataInfo.EmbeddedRSZ;
+                        } else {
+                            rsz = new RSZFile(env.RszFileOption, new FileHandler());
+                        }
+
+                        var newCls = (val as JsonObject)?.TryGetPropertyValue("$type", out var clsNode) == true ? clsNode?.ToString() : null;
+                        if (rsz.ObjectList.Count == 0 || rsz.ObjectList[0].RszClass.name != newCls) {
+                            var userdataRoot = val.Deserialize<RszInstance>(env.JsonOptions);
+                            if (userdataRoot == null) {
+                                // probably shouldn't happen?
+                                continue;
+                            }
+
+                            rsz.AddToObjectTable(userdataRoot);
+                            rsz.RebuildInstanceList();
+                            rsz.RebuildInstanceInfo();
+                            inst.SetFieldValue(key, new RszInstance(userdataRoot.RszClass, new RSZUserDataInfo_TDB_LE_67() {
+                                EmbeddedRSZ = rsz,
+                            }));
+                        } else {
+                            var subInst = rsz.ObjectList[0];
+                            var newInst = val.Deserialize<RszInstance>(options);
+                            rsz.ClearInstances();
+                            rsz.ClearObjects();
+                            rsz.AddToObjectTable(newInst ?? subInst);
+                            rsz.RebuildInstanceList();
+                            rsz.RebuildInstanceInfo();
+                        }
                     }
                 } else {
                     var deserialized = val?.GetValueKind() switch {
@@ -94,23 +126,25 @@ namespace ReeLib.Common
             for (var i = 0; i < value.Fields.Length; i++) {
                 var field = value.Fields[i];
                 var fieldValue = value.Values[i];
-                if (field.type == RszFieldType.Object && field.array) {
+                if (field.type == RszFieldType.UserData) {
+                    if (field.array) {
+                        var list = ((IList<object>)fieldValue).Cast<RszInstance>().Select(elem => SerializeUserdata(dict, field, elem));
+                        dict[field.name] = list.ToArray();
+                    } else if ((fieldValue as RszInstance)?.RSZUserData is not RSZUserDataInfo_TDB_LE_67 oldUD) {
+                        var data = SerializeUserdata(dict, field, (RszInstance)fieldValue);
+                        if (data != null) {
+                            dict[field.name] = data;
+                        }
+                    } else if (oldUD.EmbeddedRSZ != null) {
+                        dict[field.name] = oldUD.EmbeddedRSZ.ObjectList[0];
+                    }
+                } else if (field.type == RszFieldType.Object && field.array) {
                     // store as structure: {"$array": "base class type", "items": []}
                     // we need it for diffs, because we might have custom conditions on the base class and not subclasses
                     dict[field.name] = new Dictionary<string, object>() {
                         { "$array", field.original_type },
                         { "items", fieldValue },
                     };
-                } else if (field.type == RszFieldType.UserData) {
-                    if (field.array) {
-                        var list = ((IList<object>)fieldValue).Cast<RszInstance>().Select(elem => SerializeUserdata(dict, field, elem));
-                        dict[field.name] = list.ToArray();
-                    } else {
-                        var data = SerializeUserdata(dict, field, (RszInstance)fieldValue);
-                        if (data != null) {
-                            dict[field.name] = data;
-                        }
-                    }
                 } else {
                     dict[field.name] = fieldValue;
                 }

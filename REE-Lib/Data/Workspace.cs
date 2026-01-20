@@ -72,6 +72,7 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
 
     public bool IsEmbeddedInstanceInfoUserdata => config.Game.hash is GameNameHash.re7;
     public bool IsEmbeddedUserdata => config.Game.hash is GameNameHash.dmc5 or GameNameHash.re2;
+    public bool IsEmbeddedUserdataAny => config.Game.hash is GameNameHash.dmc5 or GameNameHash.re2 or GameNameHash.re7;
 
     public bool BasePathIsX64 => config.Game.hash is GameNameHash.re7 or GameNameHash.dmc5 or GameNameHash.re2;
     public string BasePath => BasePathIsX64 ? "natives/x64/" : "natives/stm/";

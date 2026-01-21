@@ -2678,6 +2678,8 @@ namespace ReeLib
         {
             FileHandler handler = FileHandler;
             var header = Header;
+            // ensure all objects have the right version
+            ChangeVersion(Header.version);
             header.Write(handler);
             // we'll be re-writing the header's string table at the end again, remove it for now
             handler.StringTable?.Clear();

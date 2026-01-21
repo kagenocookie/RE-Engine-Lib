@@ -36,7 +36,8 @@ namespace ReeLib.Motlist
             MotlistVersion.RE4 => MotVersion.RE4,
             MotlistVersion.DD2 => MotVersion.DD2,
             MotlistVersion.MHWILDS => MotVersion.MHWILDS,
-            _ => MotVersion.MHWILDS,
+            MotlistVersion.Pragmata => MotVersion.Pragmata,
+            _ => MotVersion.Pragmata,
         };
 
         public static MotTreeVersion GetMotTreeVersion(this MotlistVersion motlist) => motlist switch {
@@ -67,7 +68,8 @@ namespace ReeLib.Motlist
             MotVersion.RE4 => ClipVersion.RE4,
             MotVersion.DD2 => ClipVersion.DD2,
             MotVersion.MHWILDS => ClipVersion.MHWilds,
-            _ => ClipVersion.MHWilds,
+            MotVersion.Pragmata => ClipVersion.Pragmata,
+            _ => ClipVersion.Pragmata,
         };
     }
 

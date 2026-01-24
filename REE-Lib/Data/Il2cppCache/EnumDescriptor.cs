@@ -307,7 +307,7 @@ public sealed class EnumDescriptor<T> : EnumDescriptor where T : struct, IBinary
     {
         foreach (var (label, displayLabel) in labels) {
             if (!LabelToValues.TryGetValue(label, out var value)) {
-                return;
+                continue;
             }
             ValueToDisplayLabels[value] = displayLabel;
         }

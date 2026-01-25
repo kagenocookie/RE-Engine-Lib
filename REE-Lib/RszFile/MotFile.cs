@@ -362,7 +362,7 @@ namespace ReeLib.Mot
     /// </summary>
     public record struct PackedVector3(ushort X, ushort Y, ushort Z);
 
-    public class Track : BaseModel
+    public class Track : BaseModel, ICloneable
     {
         public uint flags;
         public int keyCount;
@@ -3042,7 +3042,7 @@ namespace ReeLib
             }
         }
 
-        public void CopyValuesFrom(MotFile source, bool replaceBehaviorClips, bool replaceBoneList)
+        public void CopyValuesFrom(MotFile source, bool replaceBehaviorClips, bool replaceBoneList, bool maintainExistingChannelsOnly)
         {
             if (replaceBehaviorClips)
             {
@@ -3051,8 +3051,20 @@ namespace ReeLib
             }
             EndClips.Clear();
             EndClips.AddRange(source.EndClips);
-            BoneClips.Clear();
-            BoneClips.AddRange(source.BoneClips);
+            if (!maintainExistingChannelsOnly) {
+                BoneClips.Clear();
+                BoneClips.AddRange(source.BoneClips);
+            } else {
+                foreach (var clip in source.BoneClips) {
+                    var targetClip = BoneClips.FirstOrDefault(b => b.ClipHeader.boneName == clip.ClipHeader.boneName || b.ClipHeader.boneHash == clip.ClipHeader.boneHash);
+                    if (targetClip == null) continue;
+
+                    if (targetClip.HasTranslation && clip.Translation != null) targetClip.Translation = (Track)clip.Translation.Clone();
+                    if (targetClip.HasRotation && clip.Rotation != null) targetClip.Rotation = (Track)clip.Rotation.Clone();
+                    if (targetClip.HasScale && clip.Scale != null) targetClip.Scale = (Track)clip.Scale.Clone();
+                }
+            }
+
             if (Bones.Count == 0)
             {
                 Bones.AddRange(source.Bones);

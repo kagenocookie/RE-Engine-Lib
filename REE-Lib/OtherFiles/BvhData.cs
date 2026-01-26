@@ -354,18 +354,23 @@ namespace ReeLib
             // NOTE: there seems to be some sort of varying \0 gap here before indices in vanilla game files
             // seems to be a meaningless serializer quirk
 
+            handler.Align(16);
             Header.indicesOffset = handler.Tell();
             triangles.Write(handler);
 
+            handler.Align(16);
             Header.spheresOffset = handler.Tell();
             spheres.Write(handler);
 
+            handler.Align(16);
             Header.capsulesOffset = handler.Tell();
             capsules.Write(handler);
 
+            handler.Align(16);
             Header.boxesOffset = handler.Tell();
             boxes.Write(handler);
 
+            handler.Align(16);
             Header.stringTableOffset = handler.Tell();
             WriteBvhStringTable();
             handler.Align(16);

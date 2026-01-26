@@ -535,7 +535,7 @@ namespace ReeLib.via
         {
             var aabb = AABB.MaxMin;
             // there's probably faster ways to do this but I'm no math guru ¯\_(ツ)_/¯
-            var size = extent / 2 + new Vector3(margin);
+            var size = extent + new Vector3(margin);
             aabb = aabb.Extend(coord.Multiply(new Vector3(size.X, size.Y, size.Z)));
             aabb = aabb.Extend(coord.Multiply(new Vector3(size.X, size.Y, -size.Z)));
             aabb = aabb.Extend(coord.Multiply(new Vector3(size.X, -size.Y, size.Z)));

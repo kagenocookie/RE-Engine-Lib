@@ -228,6 +228,32 @@ namespace ReeLib.Motlist
 
         public override string ToString() => $"[MotID {motNumber}] [Motion: {MotFile?.ToString() ?? "-- "}] {(MotClips.Count == 0 ? "" : $"[ExtraClips: {MotClips.Count}]")}";
     }
+
+    public class MotFileLink(FileHandler handler) : MotFileBase(handler)
+    {
+        public override KnownFileFormats MotType => throw new NotImplementedException();
+
+        public override string Name { get => Path; set => Path = value; }
+
+        public string Path { get; set; } = "";
+
+        public override string ToString() => Path;
+
+        protected override bool DoRead()
+        {
+            var num = FileHandler.Read<int>();
+            DataInterpretationException.ThrowIf(num != 1);
+            Path = FileHandler.ReadWString();
+            return true;
+        }
+
+        protected override bool DoWrite()
+        {
+            FileHandler.Write<int>(1);
+            FileHandler.WriteWString(Path);
+            return true;
+        }
+    }
 }
 
 
@@ -286,6 +312,14 @@ namespace ReeLib
                 if (motions.ContainsKey(motOffsets[i])) continue;
 
                 var fileHandler = handler.WithOffset(motOffsets[i]);
+                var version = fileHandler.ReadInt(0);
+                if (version == 1) {
+                    var f = new MotFileLink(fileHandler);
+                    f.Read();
+                    MotFiles.Add(f);
+                    motions[motOffsets[i]] = f;
+                    continue;
+                }
                 var magic = fileHandler.ReadInt(4);
                 if (magic == MotFile.Magic) {
                     MotFile motFile = new(fileHandler);

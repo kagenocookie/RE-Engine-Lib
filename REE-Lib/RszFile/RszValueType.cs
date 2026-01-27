@@ -375,7 +375,7 @@ namespace ReeLib.via
         public readonly Vector4 ToVector4() => new Vector4(R / 255f, G / 255f, B / 255f, A / 255f);
         public readonly Color Inverse() => new Color((byte)(255 - R), (byte)(255 - G), (byte)(255 - B), (byte)A);
 
-        public static Color FromVector4(Vector4 vec) => new Color((byte)(vec.X * 255), (byte)(vec.Y * 255), (byte)(vec.Z * 255), (byte)(vec.W * 255));
+        public static Color FromVector4(Vector4 vec) => new Color((byte)Math.Round(vec.X * 255), (byte)Math.Round(vec.Y * 255), (byte)Math.Round(vec.Z * 255), (byte)Math.Round(vec.W * 255));
 
         public bool Equals(Color other) => other.rgba == rgba;
         public override bool Equals(object? obj) => obj is Color col && col.rgba == rgba;

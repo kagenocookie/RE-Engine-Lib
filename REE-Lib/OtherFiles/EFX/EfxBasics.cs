@@ -348,15 +348,15 @@ public partial class EFXAttributeShaderSettings : EFXAttribute
 {
 	public EFXAttributeShaderSettings() : base(EfxAttributeType.ShaderSettings) { }
 
-	public float unkn1;
+	public float Saturation;
 	public uint unkn2;
     [RszVersion(EfxVersion.RE8, EndAt = nameof(re8_unkn2))]
 	public float re8_unkn1;
 	public float re8_unkn2;
 
-	public float unkn3;
+	public float LayerNegative;
     [RszVersion('<', EfxVersion.RE8)]
-	public uint unkn4;
+	public uint LayerPositive;
 	[RszVersionExact(EfxVersion.RE7)]
 	public uint toggle_re7;
     [RszVersion(EfxVersion.RE8)]
@@ -397,7 +397,7 @@ public partial class EFXAttributeShaderSettings : EFXAttribute
     [RszVersion(EfxVersion.DD2)]
 	public float dd2_unkn1;
     [RszVersion(EfxVersion.RE2)]
-	public float unkn20;
+	public float ColorBrightness;
 
     [RszVersion(EfxVersion.DD2)] public uint toggle_dd2;
     [RszVersion(EfxVersion.RE3, EndAt = nameof(unkn29))]

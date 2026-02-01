@@ -502,12 +502,15 @@ namespace ReeLib.Rcol
 
         object ICloneable.Clone() => Clone();
 
-        public RequestSet Clone()
+        public RequestSet Clone(bool makeUnique = false)
         {
             var clone = new RequestSet((RequestSetInfo)Info.Clone());
             clone.Instance = Instance?.Clone();
             clone.Group = Group;
-            clone.ShapeUserdata = new List<RszInstance>(ShapeUserdata);
+            clone.ShapeUserdata = ShapeUserdata.Select(su => su.Clone()).ToList();
+            if (makeUnique) {
+                clone.Group = Group?.DeepCloneGeneric();
+            }
             return clone;
         }
     }
@@ -740,6 +743,13 @@ namespace ReeLib
             header.requestSetOffset = handler.Tell();
             foreach (var item in RequestSets)
             {
+                if (item.Group != null) {
+                    item.Info.GroupIndex = Groups.IndexOf(item.Group);
+                    if (item.Info.GroupIndex == -1) {
+                        item.Info.GroupIndex = Groups.Count;
+                        Groups.Add(item.Group);
+                    }
+                }
                 item.Info.Write(handler);
                 if (item.Info.ID > header.maxRequestSetId) header.maxRequestSetId = item.Info.ID;
             }

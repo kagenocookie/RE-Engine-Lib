@@ -25,6 +25,10 @@ namespace ReeLib
         public RSZFile RSZ { get; }
         public bool ResourceChanged { get; set; } = false;
 
+        /// <summary>
+        /// The main exposed object instance of this user file.
+        /// </summary>
+        public RszInstance? Instance => RSZ.ObjectList.FirstOrDefault();
 
         public UserFile(RszFileOption option, FileHandler fileHandler) : base(option, fileHandler)
         {

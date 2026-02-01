@@ -160,6 +160,7 @@ namespace ReeLib
         public RSZFile RSZ { get; }
         public ObservableCollection<PfbGameObject> GameObjects { get; } = new();
         public bool ResourceChanged { get; set; } = false;
+        public PfbGameObject? Root => GameObjects.FirstOrDefault();
 
         public PfbFile(RszFileOption option, FileHandler fileHandler) : base(option, fileHandler)
         {

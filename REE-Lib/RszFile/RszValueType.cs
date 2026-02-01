@@ -614,6 +614,7 @@ namespace ReeLib.via
         public readonly bool IsInvalid => minpos.X == float.MaxValue;
 
         public static readonly AABB MaxMin = new ReeLib.via.AABB(new System.Numerics.Vector3(float.MaxValue), new System.Numerics.Vector3(float.MinValue));
+        public static readonly AABB MinMax = new ReeLib.via.AABB(new System.Numerics.Vector3(float.MinValue), new System.Numerics.Vector3(float.MaxValue));
         public static readonly AABB Invalid = new ReeLib.via.AABB(new System.Numerics.Vector3(float.MaxValue), new System.Numerics.Vector3(float.MaxValue));
 
         public readonly AABB Extend(Vector3 point)

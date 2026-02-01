@@ -129,6 +129,7 @@ namespace ReeLib
         public void SaveAs(string path)
         {
             FilePath = path;
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             FileStream fileStream = File.Create(path);
             long pos = Stream.Position;
             Stream.Position = 0;

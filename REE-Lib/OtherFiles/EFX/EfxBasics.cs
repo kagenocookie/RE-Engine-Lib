@@ -10,14 +10,18 @@ public partial class EFXAttributeSpawn : EFXAttribute
 	public EFXAttributeSpawn() : base(EfxAttributeType.Spawn) { }
 
 	public uint MaxParticles;
+	[RszVersion('>', EfxVersion.RE3)]
 	public uint ParticleInterval;
 	public via.Int2 SpawnNum;
 	public via.Int2 IntervalFrame;
+	[RszVersion("<=", EfxVersion.RE3)]
+	public via.RangeI LoopNumDmc5;
 
+	[RszVersion('>', EfxVersion.RE3, EndAt = nameof(UseSpawnFrame))]
 	[RszVersion('<', EfxVersion.DD2)]
 	public uint UseSpawnFrameInt;
-
 	[RszVersion(EfxVersion.DD2)] public bool UseSpawnFrame;
+
 	public via.RangeI SpawnFrame;
 
 	[RszVersion(">", EfxVersion.RE3, EndAt = nameof(OriginalMaxParticles))]

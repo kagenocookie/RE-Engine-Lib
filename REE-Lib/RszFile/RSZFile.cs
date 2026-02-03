@@ -217,6 +217,20 @@ namespace ReeLib
             InstanceList.Add(RszInstance.NULL);
         }
 
+        /// <summary>
+        /// Resets all currently stored instance indexes and clears both the instance and object lists.
+        /// </summary>
+        public void ResetInstances()
+        {
+            foreach (var instance in InstanceList) {
+                instance.Index = -1;
+                instance.ObjectTableIndex = -1;
+            }
+            ClearInstances();
+            ObjectTableList.Clear();
+            ObjectList.Clear();
+        }
+
         public void ClearObjects()
         {
             foreach (var obj in ObjectList) {
@@ -443,17 +457,19 @@ namespace ReeLib
         /// 添加到ObjectTable，会自动修正instance.ObjectTableIndex
         /// </summary>
         /// <param name="instance"></param>
-        public void AddToObjectTable(RszInstance instance)
+        /// <returns>The instance's object table index.</returns>
+        public int AddToObjectTable(RszInstance instance)
         {
             if (instance.ObjectTableIndex >= 0 && instance.ObjectTableIndex < ObjectTableList.Count &&
                 ObjectTableList[instance.ObjectTableIndex].InstanceId == instance.Index)
             {
-                return;
+                return instance.ObjectTableIndex;
             }
             if (instance.Index == -1) InsertInstance(instance);
             instance.ObjectTableIndex = ObjectTableList.Count;
             ObjectTableList.Add(new ObjectTableEntry(instance.Index));
             ObjectList.Add(instance);
+            return instance.ObjectTableIndex;
         }
 
         /// <summary>

@@ -29,7 +29,7 @@ namespace ReeLib
 
         public int ObjectTableIndex { get; set; } = -1;
         private string? name;
-        public string Name => name ??= $"{RszClass.name}[{index}]";
+        public string Name => name ??= (ObjectTableIndex == -1 ? $"{RszClass.name}[{index}]" : $"{RszClass.name}[{index}][*{ObjectTableIndex}]");
         public IRSZUserDataInfo? RSZUserData { get; set; }
         public RszField[] Fields => RszClass.fields;
         public bool HasValues => Values.Length > 0;

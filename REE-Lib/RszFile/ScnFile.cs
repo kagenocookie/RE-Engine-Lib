@@ -708,8 +708,7 @@ namespace ReeLib
             }
             var infoData = gameObject.Info!;
             // AddToObjectTable会修正ObjectTableIndex
-            RSZ.AddToObjectTable(instance);
-            infoData.objectId = instance.ObjectTableIndex;
+            infoData.objectId = RSZ.AddToObjectTable(instance);
             infoData.componentCount = (short)gameObject.Components.Count;
             infoData.parentId = gameObject.Parent?.ObjectId ?? gameObject.Folder?.ObjectId ?? -1;
             infoData.prefabId = prefabId;

@@ -113,22 +113,19 @@ namespace ReeLib.Rcol
         public string Name = string.Empty;
         public uint NameHash;
 
-        public int UserDataIndex;
-        public int NumExtraShapes;
-        public int NumShapes;
-
-        public int NumMaskGuids;
-        public long ShapesOffset;
         public int LayerIndex;
         public uint MaskBits;
-        public long MaskGuidsOffset;
         public Guid LayerGuid;
+
+        internal int NumExtraShapes;
+        internal int NumShapes;
+        internal int NumMaskGuids;
+        internal long ShapesOffset;
+        internal long MaskGuidsOffset;
 
         public List<Guid>? MaskGuids { get; set; }
 
-        public RszInstance? UserData { get; set; }
-
-        public long ShapesOffsetStart;
+        internal long ShapesOffsetStart;
 
         private void ReadWriteShared<THandler>(THandler action) where THandler : IFileHandlerAction
         {
@@ -146,13 +143,13 @@ namespace ReeLib.Rcol
             }
             else if (version > 2)
             {
-                action.Do(ref UserDataIndex);
+                action.Null(4);
                 action.Do(ref NumShapes);
                 action.Do(ref NumMaskGuids);
             }
             else // RE7
             {
-                action.Do(ref Unsafe.As<int, short>(ref UserDataIndex));
+                action.Null(2);
                 action.Do(ref Unsafe.As<int, short>(ref NumShapes));
             }
         }
@@ -182,7 +179,6 @@ namespace ReeLib.Rcol
         protected override bool DoWrite(FileHandler handler)
         {
             NameHash = MurMur3HashUtils.GetHash(Name ??= string.Empty);
-            UserDataIndex = UserData?.Index ?? UserDataIndex;
             NumMaskGuids = MaskGuids?.Count ?? 0;
             ReadWriteShared(new FileHandlerWrite(handler));
 
@@ -367,7 +363,7 @@ namespace ReeLib.Rcol
         public RcolShapeInfo Info { get; } = new();
         public object? shape = new AABB(Vector3.Zero, Vector3.One);
 
-        public RszInstance? Instance { get; set; }
+        public RszInstance? DefaultInstance { get; set; }
 
         public void UpdateShapeType()
         {
@@ -567,13 +563,46 @@ namespace ReeLib
             var set = new RequestSet();
             set.Info.ID = RequestSets.Count == 0 ? 0 : RequestSets.Max(s => s.Info.ID);
             set.Info.Name = string.IsNullOrEmpty(name) ? "NewSet" : name;
-            RequestSets.Add(set);
             set.Instance = RszInstance.CreateInstance(Option.RszParser, Option.RszParser.GetRSZClass("via.physics.RequestSetColliderUserData")!);
-            RSZ.AddToObjectTable(set.Instance);
             set.Group = new RcolGroup();
             set.Group.Info.guid = Guid.NewGuid();
             set.Group.Info.Name = string.IsNullOrEmpty(name) ? "NewGroup" : name;
+            InsertNewRequestSet(set);
             return set;
+        }
+
+        public RszInstance CreateDefaultUserdata()
+        {
+            return RszInstance.CreateInstance(Option.RszParser, Option.RszParser.GetRSZClass("via.physics.RequestSetColliderUserData")
+                ?? throw new NullReferenceException("Class via.physics.RequestSetColliderUserData was not found!"));
+        }
+
+        public void InsertNewRequestSet(RequestSet set)
+        {
+            if (!RequestSets.Contains(set)) {
+                set.Info.requestSetIndex = RequestSets.Count;
+                RequestSets.Add(set);
+
+                set.Info.ID = RequestSets.Count == 0 ? 0 : RequestSets.Max(s => s.Info.ID + 1);
+            } else {
+                if (RequestSets.Any(rs => rs.Info.ID == set.Info.ID && rs != set)) {
+                    set.Info.ID = RequestSets.Max(s => s.Info.ID) + 1;
+                }
+                set.Info.requestSetIndex = RequestSets.IndexOf(set);
+            }
+            if (set.Group != null) {
+                set.Info.GroupIndex = Groups.IndexOf(set.Group);
+                if (set.Info.GroupIndex == -1) {
+                    set.Info.GroupIndex = Groups.Count;
+                    Groups.Add(set.Group);
+                }
+            }
+
+            if (set.Instance != null && !RSZ.ObjectList.Contains(set.Instance)) {
+                set.Instance.Index = -1;
+                set.Instance.ObjectTableIndex = -1;
+                RSZ.AddToObjectTable(set.Instance);
+            }
         }
 
         public override RSZFile? GetRSZ() => RSZ;
@@ -660,47 +689,113 @@ namespace ReeLib
 
         public void SetupReferences(int fileVersion)
         {
-            foreach (var group in Groups) {
-                group.Info.UserData = group.Info.UserDataIndex == 0 ? null : RSZ.InstanceList[group.Info.UserDataIndex];
-                if (fileVersion < 25) {
+            if (fileVersion < 25) {
+                foreach (var group in Groups) {
                     foreach (var shape in group.Shapes) {
-                        shape.Instance = shape.Info.UserDataIndex == -1 ? null : RSZ.ObjectList[shape.Info.UserDataIndex];
+                        shape.DefaultInstance = shape.Info.UserDataIndex == -1 ? null : RSZ.ObjectList[shape.Info.UserDataIndex];
+                        DataInterpretationException.DebugThrowIf(shape.Info.UserDataIndex == -1);
                     }
                 }
             }
 
-            for (var i = 0; i < RequestSets.Count; i++) {
+            for (var i = 0; i < RequestSets.Count; i++)
+            {
                 RequestSet requestSet = RequestSets[i];
 
                 requestSet.Group = Groups[requestSet.Info.GroupIndex];
                 if (fileVersion >= 25)
                 {
                     requestSet.Instance = RSZ.ObjectList[requestSet.Info.requestSetUserdataIndex];
-                    for (int k = 0; k < requestSet.Group.Shapes.Count; ++k)
-                    {
-                        requestSet.ShapeUserdata.Add(RSZ.ObjectList[requestSet.Info.groupUserdataIndexStart + k]);
-                    }
-                }
-                else if (fileVersion > 2)
-                {
-                    requestSet.Instance = RSZ.ObjectList[i];
-                    for (int k = 0; k < requestSet.Group.Shapes.Count; ++k) {
-                        var shape = requestSet.Group.Shapes[k];
-                        var instanceId = RSZ.ObjectTableList[shape.Info.UserDataIndex + requestSet.Info.ShapeOffset].InstanceId;
-                        requestSet.ShapeUserdata.Add(RSZ.InstanceList[instanceId]);
-                    }
+                    requestSet.ShapeUserdata.AddRange(RSZ.ObjectList.Slice(requestSet.Info.groupUserdataIndexStart, requestSet.Group.Shapes.Count));
                 }
                 else
                 {
-                    requestSet.Info.Name = Groups[requestSet.Info.GroupIndex].Info.Name;
+                    if (fileVersion == 2) requestSet.Info.Name = Groups[requestSet.Info.GroupIndex].Info.Name;
+
                     requestSet.Instance = RSZ.ObjectList[i];
                     for (int k = 0; k < requestSet.Group.Shapes.Count; ++k) {
                         var shape = requestSet.Group.Shapes[k];
-                        var instanceId = RSZ.ObjectTableList[shape.Info.UserDataIndex + requestSet.Info.ShapeOffset].InstanceId;
-                        requestSet.ShapeUserdata.Add(RSZ.InstanceList[instanceId]);
+                        var shapeInstance = RSZ.ObjectList[shape.Info.UserDataIndex + requestSet.Info.ShapeOffset];
+                        requestSet.ShapeUserdata.Add(shapeInstance);
                     }
                 }
             }
+        }
+
+        private void FlattenRSZInstances()
+        {
+            RSZ.ResetInstances();
+            var fileVersion = FileHandler.FileVersion;
+
+            // ensure correct element counts and validate data
+            foreach (var requestSet in RequestSets)
+            {
+                if (requestSet.Group == null)
+                    throw new InvalidDataException($"Request Set {requestSet.Info.Name} is missing shape group assignment");
+
+                requestSet.Instance ??= CreateDefaultUserdata();
+                while (requestSet.ShapeUserdata.Count < requestSet.Group.Shapes.Count) {
+                    requestSet.ShapeUserdata.Add(CreateDefaultUserdata());
+                }
+                if (requestSet.ShapeUserdata.Count > requestSet.Group.Shapes.Count) {
+                    Log.Warn($"Request set {requestSet.Info.Name} has more userdata items than shapes. Removing {requestSet.ShapeUserdata.Count - requestSet.Group.Shapes.Count} extra ones...");
+                    requestSet.ShapeUserdata.RemoveRange(requestSet.ShapeUserdata.Count, requestSet.ShapeUserdata.Count - requestSet.Group.Shapes.Count);
+                }
+            }
+
+            if (fileVersion >= 25)
+            {
+                foreach (var requestSet in RequestSets)
+                {
+                    requestSet.Info.requestSetUserdataIndex = RSZ.AddToObjectTable(requestSet.Instance!);
+                    requestSet.Info.groupUserdataIndexStart = RSZ.ObjectList.Count;
+                    foreach (var userdata in requestSet.ShapeUserdata)
+                    {
+                        RSZ.AddToObjectTable(userdata);
+                    }
+                }
+            }
+            else
+            {
+                var setGroupDict = new Dictionary<RcolGroup, List<RequestSet>>();
+                foreach (var requestSet in RequestSets)
+                {
+                    RSZ.AddToObjectTable(requestSet.Instance!);
+                    if (!setGroupDict.TryGetValue(requestSet.Group!, out var setlist)) {
+                        setGroupDict[requestSet.Group!] = setlist = new();
+                    }
+                    setlist.Add(requestSet);
+                }
+
+                foreach (var group in Groups)
+                {
+                    if (!setGroupDict.TryGetValue(group, out var setlist)) {
+                        foreach (var shape in group.Shapes) {
+                            shape.Info.UserDataIndex = RSZ.ObjectList.Count;
+                            RSZ.AddToObjectTable(shape.DefaultInstance ??= CreateDefaultUserdata());
+                        }
+                        continue;
+                    }
+
+                    int shapeCount = 0;
+                    foreach (var set in setlist)
+                    {
+                        set.Info.ShapeOffset = shapeCount;
+                        foreach (var ud in set.ShapeUserdata)
+                        {
+                            if (set == setlist[0]) {
+                                group.Shapes[shapeCount].Info.UserDataIndex = RSZ.ObjectList.Count;
+                            }
+
+                            RSZ.AddToObjectTable(ud);
+                            shapeCount++;
+                        }
+                    }
+                }
+            }
+
+            RSZ.RebuildInstanceList();
+            RSZ.RebuildInstanceInfo();
         }
 
         protected override bool DoWrite()
@@ -708,6 +803,8 @@ namespace ReeLib
             FileHandler handler = FileHandler;
             handler.Clear();
             var header = Header;
+
+            FlattenRSZInstances();
 
             header.numRequestSets = RequestSets.Count;
             header.numGroups = Groups.Count;

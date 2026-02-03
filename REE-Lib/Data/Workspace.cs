@@ -346,6 +346,9 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
     public IEnumerable<string> GetFileExtensionsForFormat(KnownFileFormats format)
         => FileExtensionCache.Info.Where(kv => kv.Value.Type == format).Select(kv => kv.Key);
 
+    public KnownFileFormats GetFileFormatFromExtension(string extension)
+        => FileExtensionCache.Info.GetValueOrDefault(extension)?.Type ?? KnownFileFormats.Unknown;
+
     public string GetAbsoluteChunkFilepath(string filepath)
     {
         if (Path.IsPathFullyQualified(filepath)) return filepath;

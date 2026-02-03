@@ -118,7 +118,7 @@ namespace ReeLib
                 {
                     throw new InvalidDataException($"{field.name} count {count} < 0");
                 }
-                if (count > 15000)
+                if (count > 32768)
                 {
                     throw new InvalidDataException($"{field.name} count {count} too large");
                 }

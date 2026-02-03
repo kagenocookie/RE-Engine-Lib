@@ -207,7 +207,7 @@ public class TypeCache
         { "Definition", KnownFileFormats.DynamicsDefinition },
         { "Bank", KnownFileFormats.SoundBank },
         { "Package", KnownFileFormats.SoundPackage },
-        { "JointExprGraph", KnownFileFormats.JointExpressionGraph },
+        { "SparseShadowTree", KnownFileFormats.SparseShadowTree },
     };
     private static readonly int initialResourceNameMapsCount = resourceNameEnumMap.Count;
 
@@ -220,6 +220,14 @@ public class TypeCache
                 SetupResourceHolderMapping();
             }
             var cls = classname[(classname.LastIndexOf('.') + 1)..^("ResourceHolder".Length)];
+            if (resourceNameEnumMap.TryGetValue(cls, out var fmt)) {
+                return fmt;
+            }
+        } else if (classname.EndsWith("Holder")) {
+            if (resourceNameEnumMap.Count == initialResourceNameMapsCount) {
+                SetupResourceHolderMapping();
+            }
+            var cls = classname[(classname.LastIndexOf('.') + 1)..^("Holder".Length)];
             if (resourceNameEnumMap.TryGetValue(cls, out var fmt)) {
                 return fmt;
             }

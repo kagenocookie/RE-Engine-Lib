@@ -411,7 +411,9 @@ namespace ReeLib
         /// <summary>.psop</summary>
         PSOPatch,
         /// <summary>.sst</summary>
-        SetStateList,
+        SparseShadowTree,
+        /// <remarks>Deprecated in favor of <see cref="SparseShadowTree"/></remarks>
+        SetStateList = SparseShadowTree,
         /// <summary>.chainwnd</summary>
         ChainWind,
         /// <summary>.pog</summary>

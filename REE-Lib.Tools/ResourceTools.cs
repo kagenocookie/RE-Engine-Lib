@@ -292,7 +292,7 @@ internal sealed class ResourceFieldFinder(Workspace env, ResourceTools resourceT
     {
         var resourceHolders = new Dictionary<KnownFileFormats, string>();
         foreach (var cls in env.RszParser.ClassDict.Values) {
-            if (cls.name.EndsWith("ResourceHolder")) {
+            if (cls.name.EndsWith("Holder")) {
                 var format = TypeCache.GetResourceFormat(cls.name);
                 if (format != KnownFileFormats.Unknown) {
                     resourceHolders[format] = cls.name;

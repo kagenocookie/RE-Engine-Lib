@@ -276,7 +276,7 @@ namespace ReeLib
             return null;
         }
 
-        public string[] FindDanglingMotFiles()
+        public MotFileBase[] FindDanglingMotFiles()
         {
             var set = MotFiles.ToHashSet();
             foreach (var mot in Motions)
@@ -284,7 +284,7 @@ namespace ReeLib
                 if (mot.MotFile != null) set.Remove(mot.MotFile);
             }
 
-            return set.Select(m => m.Name).ToArray();
+            return set.ToArray();
         }
 
         protected override bool DoRead()

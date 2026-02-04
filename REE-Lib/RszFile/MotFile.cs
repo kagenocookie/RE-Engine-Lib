@@ -49,8 +49,8 @@ namespace ReeLib.Mot
         public ushort boneClipCount;
         public byte clipCount;
         public byte motEndClipCount;
-        public ushort uknExtra;
-        public ushort uknExtra2; // seems to always be either 0 or 1; natives/stm/animation/ch/ch00/motlist/ch00_001_comnm.motlist.751 - count 1, extra offset 0
+        public ushort uknAttributes;
+        public ushort uknAttributes2; // seems to always be either 0 or 1; natives/stm/animation/ch/ch00/motlist/ch00_001_comnm.motlist.751 - count 1, extra offset 0
         public ushort FrameRate;
         public ushort animatedPropertyCount;
 
@@ -84,10 +84,10 @@ namespace ReeLib.Mot
                  ?.Then(ref boneClipCount)
                  ?.Then(ref clipCount)
                  ?.Then(ref motEndClipCount)
-                 ?.Then(version >= MotVersion.RE8, ref uknExtra2)
+                 ?.Then(version >= MotVersion.RE8, ref uknAttributes2)
                  ?.Then(ref FrameRate)
                  ?.Then(ref animatedPropertyCount)
-                 ?.Then(ref uknExtra);
+                 ?.Then(ref uknAttributes);
 
             return true;
         }
@@ -104,7 +104,8 @@ namespace ReeLib.Mot
             boneCount = source.boneCount;
             boneClipCount = source.boneClipCount;
             motEndClipCount = source.motEndClipCount;
-            uknExtra = source.uknExtra;
+            uknAttributes = source.uknAttributes;
+            uknAttributes2 = source.uknAttributes2;
             animatedPropertyCount = source.animatedPropertyCount;
             jointMapPath = source.jointMapPath;
             if (string.IsNullOrEmpty(motName)) {
@@ -127,8 +128,8 @@ namespace ReeLib.Mot
         public Quaternion quaternion;
         public int Index;
         public uint boneHash;
-        public int uknValue1;
-        public int uknValue2;
+        public int attributes1;
+        public int attributes2;
 
         [field: RszIgnore] public MotBone? Parent { get; set; }
         [field: RszIgnore] public List<MotBone> Children { get; } = new();
@@ -136,7 +137,7 @@ namespace ReeLib.Mot
         public const int StructSize = 80;
 
         object ICloneable.Clone() => this.Clone();
-        public MotBone Clone()
+        public override MotBone Clone()
         {
             var newBone = new MotBone()
             {
@@ -148,8 +149,8 @@ namespace ReeLib.Mot
                 parentOffs = parentOffs,
                 quaternion = quaternion,
                 translation = translation,
-                uknValue1 = uknValue1,
-                uknValue2 = uknValue2
+                attributes1 = attributes1,
+                attributes2 = attributes2
             };
             newBone.Children.AddRange(Children.Select(c => c.Clone()));
             foreach (var ch in newBone.Children)
@@ -176,12 +177,8 @@ namespace ReeLib.Mot
     {
         public ushort boneIndex;
         public TrackFlag trackFlags;
-        public byte uknIndex = byte.MaxValue; // <= re2: always 0, dd2: always 255, other: varying
+        public float weight = 1;
         public uint boneHash;
-        /// <summary>
-        /// Unknown purpose, is always > 0 and <= 1, most often 1
-        /// </summary>
-        public float uknFloat = 1f;
         public long trackHeaderOffset;
         public string? boneName;
 
@@ -203,24 +200,25 @@ namespace ReeLib.Mot
         {
             handler.Read(ref boneIndex);
             handler.Read(ref trackFlags);
-            handler.Read(ref uknIndex);
-            handler.Read(ref boneHash);
-            if (MotVersion == MotVersion.RE2_DMC5)
-            {
-                handler.Read(ref uknFloat);
-                handler.ReadNull(4);
-                DataInterpretationException.DebugWarnIf(uknFloat <= 0 || uknFloat > 1);
-            }
 
-            if (MotVersion <= MotVersion.RE2_DMC5)
+            if (MotVersion >= MotVersion.RE3)
             {
-                handler.Read(ref trackHeaderOffset);
-            }
-            else
-            {
+                var weightByte = handler.Read<byte>();
+                weight = (float)(weightByte / 255f);
+                handler.Read(ref boneHash);
                 trackHeaderOffset = handler.ReadUInt();
+                return true;
             }
 
+            handler.ReadNull(1);
+            handler.Read(ref boneHash);
+            if (MotVersion >= MotVersion.RE2_DMC5)
+            {
+                handler.Read(ref weight);
+                handler.ReadNull(4);
+            }
+
+            handler.Read(ref trackHeaderOffset);
             return true;
         }
 
@@ -229,23 +227,22 @@ namespace ReeLib.Mot
             if (!string.IsNullOrEmpty(boneName)) boneHash = MurMur3HashUtils.GetHash(boneName);
             handler.Write(ref boneIndex);
             handler.Write(ref trackFlags);
-            handler.Write(ref uknIndex);
-            handler.Write(ref boneHash);
-            if (MotVersion == MotVersion.RE2_DMC5)
+            if (MotVersion >= MotVersion.RE3)
             {
-                handler.Write(ref uknFloat);
+                handler.Write((byte)Math.Round(weight * 255));
+                handler.Write(ref boneHash);
+                handler.Write((uint)trackHeaderOffset);
+                return true;
+            }
+
+            handler.WriteNull(1);
+            handler.Write(ref boneHash);
+            if (MotVersion >= MotVersion.RE2_DMC5) {
+                handler.Write(ref weight);
                 handler.WriteNull(4);
             }
 
-            if (MotVersion <= MotVersion.RE2_DMC5)
-            {
-                handler.Write(ref trackHeaderOffset);
-            }
-            else
-            {
-                handler.Write((uint)trackHeaderOffset);
-            }
-
+            handler.Write(ref trackHeaderOffset);
             return true;
         }
 
@@ -2278,7 +2275,7 @@ namespace ReeLib.Mot
         public override string ToString() => $"Property {propertyHash} {Track?.TrackType} ({Track?.floats?.Length})";
     }
 
-    public class MotPropertyTree : BaseModel
+    public class MotPropertyList : BaseModel
     {
         public List<InnerNode> Nodes { get; } = new();
         public List<LeafNodeRemap> HashMapping { get; } = new();
@@ -2327,13 +2324,13 @@ namespace ReeLib.Mot
 
         protected override bool DoRead(FileHandler handler)
         {
-            var innerNodeOffset = handler.Read<long>();
+            var nodesOffset = handler.Read<long>();
             var remapsOffset = handler.Read<long>();
-            var innerCount = handler.Read<int>();
-            var leafCount = handler.Read<int>();
+            var nodesCount = handler.Read<int>();
+            var hashCount = handler.Read<int>();
             handler.ReadNull(8);
-            handler.Seek(innerNodeOffset);
-            for (int i = 0; i < innerCount; ++i)
+            handler.Seek(nodesOffset);
+            for (int i = 0; i < nodesCount; ++i)
             {
                 var node = new InnerNode();
                 var leftOffset = handler.Read<long>();
@@ -2383,7 +2380,7 @@ namespace ReeLib.Mot
             }
 
             handler.Seek(remapsOffset);
-            HashMapping.ReadStructList(handler, leafCount);
+            HashMapping.ReadStructList(handler, hashCount);
             return true;
         }
 
@@ -2582,7 +2579,7 @@ namespace ReeLib
         public List<MotClip> Clips { get; } = new();
         public List<MotEndClip> EndClips { get; } = new();
         public List<MotPropertyTrack> MotPropertyTracks { get; } = new();
-        public MotPropertyTree? PropertyTree { get; set; }
+        public MotPropertyList? PropertyList { get; set; }
 
         public List<MotBone> Bones { get; internal set; } = new();
         public List<MotBone> RootBones { get; internal set; } = new();
@@ -2662,8 +2659,8 @@ namespace ReeLib
             if (header.propertyTreeOffset > 0)
             {
                 handler.Seek(header.propertyTreeOffset);
-                PropertyTree = new();
-                PropertyTree.Read(handler.WithOffset(header.propertyTreeOffset));
+                PropertyList = new();
+                PropertyList.Read(handler.WithOffset(header.propertyTreeOffset));
             }
 
             if (!IsMotlist)
@@ -2750,11 +2747,11 @@ namespace ReeLib
                 header.motPropertyTracksOffset = 0;
             }
 
-            if (PropertyTree != null)
+            if (PropertyList != null)
             {
                 handler.Align(16);
                 header.propertyTreeOffset = handler.Tell();
-                PropertyTree.Write(handler.WithOffset(header.propertyTreeOffset));
+                PropertyList.Write(handler.WithOffset(header.propertyTreeOffset));
             }
 
             header.Write(handler, 0);
@@ -3103,9 +3100,9 @@ namespace ReeLib
                         clip.ClipHeader.boneName ??= bone.boneName;
                     }
 
-                    if (Header.version <= MotVersion.RE2_DMC5)
+                    if (clip.ClipHeader.weight == 0)
                     {
-                        clip.ClipHeader.uknIndex = 0;
+                        clip.ClipHeader.weight = 1f;
                     }
                 }
             }

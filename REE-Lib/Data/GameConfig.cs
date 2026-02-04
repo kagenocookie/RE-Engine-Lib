@@ -78,6 +78,16 @@ public class GameConfig
         return Path.Combine(basepath, "il2cpp_dump.json");
     }
 
+    public GameConfig Clone()
+    {
+        return new GameConfig(Game, _resources!) {
+            GamePath = GamePath,
+            ChunkPath = ChunkPath,
+            Il2cppDumpPath = Il2cppDumpPath,
+            PakFiles = PakFiles,
+        };
+    }
+
     /// <summary>
     /// Create a new config from the public remote game resource repository.
     /// </summary>

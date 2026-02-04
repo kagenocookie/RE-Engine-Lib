@@ -392,8 +392,11 @@ namespace ReeLib
 
             var motFileDict = new Dictionary<MotFileBase, long>();
             var foundMotFile = false;
-            foreach (var mot in MotFiles)
+            foreach (var motion in Motions)
             {
+                var mot = motion.MotFile;
+                if (mot == null || motFileDict.ContainsKey(mot)) continue;
+
                 var motOffset = handler.Tell();
                 motFileDict[mot] = motOffset;
                 mot.FileHandler = handler.WithOffset(motOffset);

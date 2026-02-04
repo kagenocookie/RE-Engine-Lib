@@ -268,6 +268,7 @@ namespace ReeLib
 
         public void ChangeVersion(MotcamVersion version)
         {
+            Header.version = version;
             Clip1?.ChangeVersion(version);
             Clip2?.ChangeVersion(version);
         }

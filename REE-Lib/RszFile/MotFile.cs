@@ -3022,15 +3022,16 @@ namespace ReeLib
 
         public void ChangeVersion(MotVersion version)
         {
+            Header.version = version;
             foreach (var clip in BoneClips)
             {
                 clip.ChangeVersion(version);
             }
             foreach (var clip in EndClips)
             {
-                clip.Header.Version = Header.version;
+                clip.Header.Version = version;
             }
-            var clipVer = Header.version.GetClipVersion();
+            var clipVer = version.GetClipVersion();
             foreach (var clip in Clips)
             {
                 clip.ChangeVersion(clipVer);

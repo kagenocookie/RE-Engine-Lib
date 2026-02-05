@@ -1484,7 +1484,7 @@ namespace ReeLib.Mot
                         }
                     case QuaternionDecompression.LoadQuaternions16Bit:
                         {
-                            if (MotVersion >= MotVersion.Pragmata)
+                            if (MotVersion >= MotVersion.MHStories3)
                             {
                                 // byte order changed because why tf not (see: ch5800_attack.motlist.1057 1020_Flare)
                                 var data = ReadBytesAsUInt64(handler, 6);
@@ -1663,7 +1663,7 @@ namespace ReeLib.Mot
                                 (ushort)MathF.Round((quaternion.Y - unpackData[5]) / unpackData[1] * 0xFFFF),
                                 (ushort)MathF.Round((quaternion.Z - unpackData[6]) / unpackData[2] * 0xFFFF)
                             );
-                            if (MotVersion >= MotVersion.Pragmata)
+                            if (MotVersion >= MotVersion.MHStories3)
                             {
                                 // need to write in the right byte order
                                 handler.Write((byte)((data.Z >> 8) & 0xFF)); handler.Write((byte)data.Z);

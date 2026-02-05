@@ -141,7 +141,8 @@ namespace ReeLib
 
 			{ "DR", new (240606151, TexSerializerVersion.MHRise, [GameName.drdr]) },
 			{ "ONI2", new (240701001, TexSerializerVersion.MHRise, [GameName.oni2]) },
-			{ "MHWILDS", new (241106027, TexSerializerVersion.MHWilds, [GameName.mhwilds]) }, // TODO support tex gdeflate
+			{ "MHWILDS", new (241106027, TexSerializerVersion.MHWilds, [GameName.mhwilds]) },
+			{ "MHStories3", new (251111100, TexSerializerVersion.MHWilds, [GameName.mhsto3]) },
 			{ "PRAGMATA", new (250813143, TexSerializerVersion.MHWilds, [GameName.pragmata]) },
 		};
 

@@ -18,6 +18,7 @@ namespace ReeLib.Clip
         RE4 = 54,
         DD2 = 62,
         MHWilds = 85,
+        MHStories3 = 86,
         Pragmata = 91,
     }
 

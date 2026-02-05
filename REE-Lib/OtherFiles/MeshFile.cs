@@ -1778,6 +1778,7 @@ namespace ReeLib
 
 			{ "ONI2", new (240704828, 240827123, MeshSerializerVersion.Onimusha, [GameName.oni2]) },
 			{ "MHWilds", new (240704828, 241111606, MeshSerializerVersion.MHWILDS, [GameName.mhwilds], extraWeightBuffer: true) },
+			{ "MHStories3", new (0, 250604100, MeshSerializerVersion.Pragmata, [GameName.mhsto3], extraWeightBuffer: true) },
 			{ "Pragmata", new (250707828, 250925211, MeshSerializerVersion.Pragmata, [GameName.pragmata], extraWeightBuffer: true) },
 		};
 

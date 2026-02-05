@@ -129,6 +129,7 @@ namespace ReeLib
         oni2,
         mhwilds,
         pragmata,
+        mhsto3,
     }
 
 

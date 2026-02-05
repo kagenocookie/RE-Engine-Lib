@@ -19,6 +19,7 @@ namespace ReeLib.Motlist
         RE4 = 663,
         DD2 = 751,
         MHWILDS = 992,
+        MHStories3 = 1004,
         Pragmata = 1057,
     }
 
@@ -36,6 +37,7 @@ namespace ReeLib.Motlist
             MotlistVersion.RE4 => MotVersion.RE4,
             MotlistVersion.DD2 => MotVersion.DD2,
             MotlistVersion.MHWILDS => MotVersion.MHWILDS,
+            MotlistVersion.MHStories3 => MotVersion.MHStories3,
             MotlistVersion.Pragmata => MotVersion.Pragmata,
             _ => MotVersion.Pragmata,
         };
@@ -52,6 +54,7 @@ namespace ReeLib.Motlist
             MotlistVersion.RE4 => MotTreeVersion.RE4,
             MotlistVersion.DD2 => MotTreeVersion.DD2,
             MotlistVersion.MHWILDS => MotTreeVersion.DD2,
+            MotlistVersion.MHStories3 => MotTreeVersion.DD2,
             MotlistVersion.Pragmata => MotTreeVersion.Pragmata,
             _ => MotTreeVersion.Pragmata,
         };
@@ -68,6 +71,7 @@ namespace ReeLib.Motlist
             MotVersion.RE4 => ClipVersion.RE4,
             MotVersion.DD2 => ClipVersion.DD2,
             MotVersion.MHWILDS => ClipVersion.MHWilds,
+            MotVersion.MHStories3 => ClipVersion.MHStories3,
             MotVersion.Pragmata => ClipVersion.Pragmata,
             _ => ClipVersion.Pragmata,
         };

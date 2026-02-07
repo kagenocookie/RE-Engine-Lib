@@ -192,6 +192,7 @@ namespace ReeLib
             var headerSize = Header.Size;
 			Header.version = config.fileVersion;
             var handler = FileHandler;
+            handler.FileVersion = Header.version;
             Header.Write(handler, 0);
             if (headerSize != 0 && headerSize != Header.Size && Mips.Count > 0)
             {

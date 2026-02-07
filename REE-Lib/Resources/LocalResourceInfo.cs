@@ -65,7 +65,7 @@ public class LocalResourceCache
     }
 }
 
-public class LocalResources
+public class LocalResources : ICloneable
 {
     public string DataPath { get; set; } = string.Empty;
     [JsonIgnore]
@@ -361,6 +361,14 @@ public class LocalResources
         result = default!;
         return false;
     }
+
+    public LocalResources Clone() => new LocalResources() {
+        DataPath = DataPath,
+        Game = Game,
+        LocalPaths = LocalPaths.Clone(),
+        ResourceTypePath = ResourceTypePath,
+    };
+    object ICloneable.Clone() => Clone();
 }
 
 public class RemoteResourceConfig
@@ -378,7 +386,7 @@ public record DatedResourcePath(string Uri, DateTime LastUpdatedAt)
     public DateTime LastUpdatedAt { get; set; } = LastUpdatedAt;
 }
 
-public class ResourceMetadata
+public class ResourceMetadata : ICloneable
 {
     public DateTime LastUpdatedAtUtc { get; set; }
     public string[] RszPatchFiles { get; set; } = [];
@@ -392,4 +400,8 @@ public class ResourceMetadata
 
     [JsonIgnore]
     public bool IsFullySupported => Il2cppCache != null && RszPatchFiles.Length > 0 && EfxStructs != null;
+
+    public ResourceMetadata Clone() => (ResourceMetadata)MemberwiseClone();
+
+    object ICloneable.Clone() => Clone();
 }

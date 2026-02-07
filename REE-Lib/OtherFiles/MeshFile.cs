@@ -1815,7 +1815,7 @@ namespace ReeLib
 			return VertexBoneWeights.GetIndexCount(cfg.serializerVersion) * (cfg.extraWeightBuffer ? 2 : 1);
 		}
 
-        public static uint GetFileExtension(string exportConfig) => Versions.TryGetValue(exportConfig, out var cfg) ? cfg.fileVersion : 0;
+        public static uint GetFilePathVersion(string exportConfig) => Versions.TryGetValue(exportConfig, out var cfg) ? cfg.fileVersion : 0;
 
         public MeshFile(FileHandler fileHandler) : base(fileHandler)
         {

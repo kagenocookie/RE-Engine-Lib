@@ -172,6 +172,19 @@ public static class PathUtils
         }
         return path;
     }
+
+    public static string ChangeFileVersion(ReadOnlySpan<char> filepath, int version)
+    {
+        var fmt = ParseFileFormat(filepath);
+        if (fmt.version == version) return filepath.ToString();
+        if (fmt.version == -1) return $"{filepath}.{version}";
+
+        var extIndex = GetFilenameExtensionStartIndex(filepath);
+        var prevVersionStr = $".{fmt.version}";
+        var newVersionStr = $".{version}";
+
+        return string.Concat(filepath.Slice(0, extIndex), filepath.Slice(extIndex).ToString().Replace(prevVersionStr, newVersionStr));
+    }
 }
 
 public record struct REFileFormat(KnownFileFormats format, int version)

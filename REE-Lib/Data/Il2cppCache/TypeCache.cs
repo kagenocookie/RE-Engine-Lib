@@ -31,6 +31,7 @@ public class TypeCache
 {
     public readonly Dictionary<string, EnumDescriptor> enums = new();
     public Dictionary<string, List<string>> subclasses = new();
+    public Dictionary<string, string[]> parentClasses = new();
 
     private static Dictionary<string, Func<EnumDescriptor>> descriptorFactory = new();
 
@@ -98,6 +99,25 @@ public class TypeCache
         }
 
         return subclasses[baseclass] = new List<string>() { baseclass };
+    }
+
+    /// <summary>
+    /// Get all parent classes of the given classname in no particular order.
+    /// </summary>
+    public string[] GetParentClasses(string classname)
+    {
+        if (parentClasses.TryGetValue(classname, out var classes)) {
+            return classes;
+        }
+
+        var list = new List<string>();
+        foreach (var (cls, subs) in subclasses) {
+            if (cls == classname || !subs.Contains(classname)) continue;
+
+            list.Add(cls);
+        }
+
+        return parentClasses[classname] = list.ToArray();
     }
 
     public bool IsAssignableTo(string classname, string baseClassname)

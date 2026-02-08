@@ -347,17 +347,17 @@ namespace ReeLib.MplyMesh
         PositionDescaling4 = 1 << 20,
         PositionDescaling64 = 1 << 21,
         PositionDescaling512 = 1 << 22,
-        PositionDescaling2 = 1 << 23,
+        Exponent1 = 1 << 23,
 
-        Descale2 = 1 << 24,
-        Descale4 = 1 << 25,
-        Descale16 = 1 << 26,
-        Descale64 = 1 << 27,
+        Exponent2 = 1 << 24,
+        Exponent3 = 1 << 25,
+        Exponent4 = 1 << 26,
+        Exponent5 = 1 << 27,
 
         Unkn28 = 1 << 28,
         Unkn29 = 1 << 29,
         Unkn30 = 1 << 30,
-        Unkn31 = 1u << 31,
+        UseExponentMultiplication = 1u << 31,
     }
 
     [Flags]
@@ -459,6 +459,45 @@ namespace ReeLib.MplyMesh
             public readonly Vector3 Scale => new Vector3(scaleX, scaleY, scaleZ) * (1f / ushort.MaxValue) - new Vector3(0.5f);
         }
 
+        public class ScalingParameterData
+        {
+            // for easier debugging of multiplier values
+            public ScalingParameterValues Scaling = new() { initialScale = 4 };
+            public ScalingParameterValues Offset = new();
+        }
+
+        public class ScalingParameterValues
+        {
+            public bool useHeaderScale;
+            public float initialScale = 1f;
+            public float[] FlagScales = new float[18];
+            public int modeSwitchFlag = -1;
+
+            public ScalingParameterValues? altMode;
+
+            public float GetScale(MplyChunkFlags flags, MeshletBVH bvh)
+            {
+                var scale = initialScale;
+                var num = (uint)flags;
+                if (useHeaderScale) scale *= bvh.scale;
+
+                for (int i = 0; i < 18; ++i) {
+                    if ((num & (1u << (i + 14))) != 0) {
+                        if (modeSwitchFlag == i && altMode != null) {
+                            return altMode.GetScale(flags, bvh);
+                        }
+                        var mult = FlagScales[i];
+                        if (mult != 0) scale *= mult;
+                    }
+                }
+
+                return scale;
+            }
+        }
+
+
+        public static ScalingParameterData ScalingParameters = new();
+
         private float ScalingDD2 {
             get {
                 var scale = 4f;
@@ -467,7 +506,7 @@ namespace ReeLib.MplyMesh
                 if ((flags & MplyChunkFlags.PositionScaling16) != 0) scale *= 16;
                 if ((flags & MplyChunkFlags.PositionScaling64) != 0) scale *= 256;
 
-                if ((flags & MplyChunkFlags.PositionDescaling2) != 0) scale *= (1f / 2);
+                if ((flags & MplyChunkFlags.Exponent1) != 0) scale *= (1f / 2);
                 if ((flags & MplyChunkFlags.PositionDescaling4) != 0) scale *= (1f / 4);
                 if ((flags & MplyChunkFlags.PositionDescaling64) != 0) scale *= (1f / 64);
                 if ((flags & MplyChunkFlags.PositionDescaling512) != 0) scale *= (1f / 512);
@@ -475,52 +514,51 @@ namespace ReeLib.MplyMesh
             }
         }
 
-        private float ScalingPragmata {
-            get {
-                var scale = 8f;
-                // TODO figure out what's wrong with compressed positions, ignoring for now to make the meshes look less broken
-                if ((flags & MplyChunkFlags.Use32BitPos) != 0 || (flags & MplyChunkFlags.Use24BitPos) != 0) scale = 0;
-                // if ((flags & MplyChunkFlags.Use32BitPos) == 0 && (flags & MplyChunkFlags.Use24BitPos) == 0) scale = 0;
-
-                if ((flags & MplyChunkFlags.PositionDescaling2) != 0) scale *= 2;
-                if ((flags & MplyChunkFlags.PositionDescaling4) != 0) scale *= 4;
-                if ((flags & MplyChunkFlags.PositionDescaling64) != 0) scale *= 64;
-                if ((flags & MplyChunkFlags.PositionDescaling512) != 0) scale *= 512;
-
-                return scale;
-            }
-        }
-
-        private float OffsetScaling {
-            get {
-                var scale = 1f;
-
-                if ((flags & MplyChunkFlags.PositionScaling2) != 0) scale *= 2;
-                if ((flags & MplyChunkFlags.PositionScaling4) != 0) scale *= 4;
-                if ((flags & MplyChunkFlags.PositionScaling16) != 0) scale *= 16;
-                if ((flags & MplyChunkFlags.PositionScaling64) != 0) scale *= 64;
-
-                if ((flags & MplyChunkFlags.Descale2) != 0) scale *= (1f / 2);
-                if ((flags & MplyChunkFlags.Descale4) != 0) scale *= (1f / 4);
-                if ((flags & MplyChunkFlags.Descale16) != 0) scale *= (1f / 16);
-                if ((flags & MplyChunkFlags.Descale64) != 0) scale *= (1f / 64);
-
-                return scale;
-            }
-        }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Vector3 DecodePosition(Vector3 vertPos)
-            => Bvh.Version == MeshSerializerVersion.DD2
-                ? (vertPos - new Vector3(0.5f)) * ScalingDD2 + center
-                : (vertPos - new Vector3(0.5f) + relativeAABB.Offset * OffsetScaling) * ScalingPragmata
-        ;
+        {
+            if (Bvh.Version == MeshSerializerVersion.DD2)
+                return (vertPos - new Vector3(0.5f)) * ScalingDD2 + center;
+
+            // TODO figure out what's wrong with compressed positions, ignoring for now to make the meshes look less broken
+            // pragmata demo sm21_022_00.mesh.250925211, sm39_090_0105.mesh.250925211
+            // sm39_090_0105 looks utterly broken (and also incorret compared to ingame - see immediately after locked door to right),
+            // but looks perfect if we just drop the "compressed position" chunks
+            // so wtf are these even?
+            if ((flags & MplyChunkFlags.Use32BitPos) != 0 || (flags & MplyChunkFlags.Use24BitPos) != 0) return center;
+
+            if ((flags & MplyChunkFlags.UseExponentMultiplication) != 0)
+            {
+                var num = (uint)flags;
+                var exp = (int)((num >> 23) & 0b1111);
+                var baseVal = 1 << exp;
+                var divisor = 1
+                    * ((num & (1 << 16)) != 0 ? 2 : 1)
+                    * ((num & (1 << 17)) != 0 ? 4 : 1)
+                    * ((num & (1 << 18)) != 0 ? 16 : 1)
+                    * ((num & (1 << 19)) != 0 ? 256 : 1); // guess
+                var prescale = baseVal / divisor;
+                var offset = (prescale < divisor) ? 2 : 1;
+                var scale = prescale * offset;
+                return (vertPos - new Vector3(0.5f) + relativeAABB.Offset * offset) * scale + center;
+            }
+            else
+            {
+                // return (vertPos - new Vector3(0.5f) + relativeAABB.Offset * ScalingParameters.Offset.GetScale(flags, Bvh)) * ScalingParameters.Scaling.GetScale(flags, Bvh) + center;
+                var scale = 0.5f;
+                var offset = 1f;
+                var num = (uint)flags;
+                if ((num & (1 << 23)) != 0) offset = 2f;
+                if ((num & (1 << 16)) != 0) scale *= 2;
+
+                return (vertPos - new Vector3(0.5f) + relativeAABB.Offset * offset) * scale + center;
+            }
+        }
 
         public Vector3 GetPosition(int index)
         {
             if (PositionSize == 3)
             {
-                // vector conversion is incorrect, unknown. test case: pragmata demo sm21_022_00.mesh.250925211
                 var data = MemoryMarshal.Cast<byte, Byte3>(PositionsBuffer);
                 var item = data[index];
                 return DecodePosition(item.AsVector3);
@@ -860,7 +898,7 @@ namespace ReeLib
                     }
 
                     var sub = group.Submeshes.Count == 0 ? null : group.Submeshes[^1];
-                    // if (sub == null || sub.vertCount > 0 || sub.materialIndex != chunk.materialId) // this one will force separate submeshes per chunk, for debugging
+                    // if (sub == null || sub.vertCount > 0) // this one will force separate submeshes per chunk, for debugging
                     if (sub == null || sub.vertCount + group.vertexCount > ushort.MaxValue || sub.materialIndex != chunk.materialId)
                     {
                         // ensure 4-byte alignment padding is accounted for

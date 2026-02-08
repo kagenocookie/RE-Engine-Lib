@@ -1693,10 +1693,19 @@ namespace ReeLib.Mesh
 			return true;
         }
 
+		public MeshBone CloneWithoutRefs()
+		{
+			var c = (MeshBone)MemberwiseClone();
+			c.Parent = null;
+			c.Symmetry = null;
+			c.Children.Clear();
+			return c;
+		}
+
         public override string ToString() => name ?? $"Bone {index}";
     }
 
-	public class MeshBoneHierarchy
+	public class MeshBoneHierarchy : BaseModel
 	{
 		public List<MeshBone> Bones { get; } = new();
 		public List<MeshBone> DeformBones { get; } = new();
@@ -1719,7 +1728,98 @@ namespace ReeLib.Mesh
 			DeformBones.Clear();
 			RootBones.Clear();
 		}
-	}
+
+        protected override bool DoRead(FileHandler handler)
+        {
+			var boneCount = handler.Read<int>();
+			var boneMapCount = handler.Read<int>();
+			handler.ReadNull(8);
+			var hierarchyOff = handler.Read<long>();
+			var localTransformsOff = handler.Read<long>();
+			var globallTransformsOff = handler.Read<long>();
+			var invGloballTransformsOff = handler.Read<long>();
+			var remapIndices = handler.ReadArray<short>(boneMapCount);
+
+			handler.Seek(hierarchyOff);
+			Bones.Read(handler, boneCount);
+			handler.Seek(localTransformsOff);
+			for (int i = 0; i < boneCount; ++i) handler.Read(ref Bones[i].localTransform);
+			handler.Seek(globallTransformsOff);
+			for (int i = 0; i < boneCount; ++i) handler.Read(ref Bones[i].globalTransform);
+			handler.Seek(invGloballTransformsOff);
+			for (int i = 0; i < boneCount; ++i) handler.Read(ref Bones[i].inverseGlobalTransform);
+
+			for (int i = 0; i < boneMapCount; ++i) {
+				var bone = Bones[remapIndices[i]];
+				bone.remapIndex = i;
+				DeformBones.Add(bone);
+			}
+
+			SetupBoneHierarchy();
+            return true;
+        }
+
+		public void ReadBoneNames(FileHandler handler, string[] strings)
+		{
+			for (int i = 0; i < Bones.Count; ++i)
+			{
+				var idx = handler.Read<short>();
+				Bones[i].name = strings[idx];
+			}
+		}
+
+        protected override bool DoWrite(FileHandler handler)
+        {
+			handler.Write(Bones.Count);
+			handler.Write(DeformBones.Count);
+			handler.WriteNull(8);
+			var offsets = handler.Tell();
+			handler.Skip(32);
+			foreach (var bone in DeformBones) handler.Write((short)bone.index);
+
+			handler.Align(16);
+			handler.Write(offsets, handler.Tell()); // hierarchyOff
+			Bones.Write(handler);
+
+			handler.Write(offsets + 8, handler.Tell()); // localTransformsOff
+			foreach (var bone in Bones) handler.Write(bone.localTransform);
+			handler.Write(offsets + 16, handler.Tell()); // globallTransformsOff
+			foreach (var bone in Bones) handler.Write(bone.globalTransform);
+			handler.Write(offsets + 24, handler.Tell()); // invGloballTransformsOff
+			foreach (var bone in Bones) handler.Write(bone.inverseGlobalTransform);
+			return true;
+        }
+
+		private void SetupBoneHierarchy()
+		{
+			RootBones.Clear();
+			foreach (var bone in Bones)
+			{
+				if (bone.symmetryIndex != bone.index && bone.symmetryIndex != -1)
+				{
+					bone.Symmetry = Bones[bone.symmetryIndex];
+				}
+				if (bone.parentIndex == -1)
+				{
+					RootBones.Add(bone);
+					continue;
+				}
+				var parent = Bones[bone.parentIndex];
+				bone.Parent = parent;
+				parent.Children.Add(bone);
+			}
+		}
+
+		public override MeshBoneHierarchy Clone()
+		{
+			var clone = new MeshBoneHierarchy();
+			clone.Bones.AddRange(Bones.Select(b => b.CloneWithoutRefs()));
+			clone.RootBones.AddRange(clone.Bones.Where(b => RootBones.Any(rb => rb.name == b.name)));
+			clone.DeformBones.AddRange(clone.Bones.Where(b => DeformBones.Any(rb => rb.name == b.name)));
+			clone.SetupBoneHierarchy();
+			return clone;
+		}
+    }
 }
 
 namespace ReeLib
@@ -1878,7 +1978,7 @@ namespace ReeLib
 			var magic = handler.ReadInt(handler.Tell());
 			if (magic == MagicMply)
 			{
-				throw new NotSupportedException("MPLY meshes not yet supported");
+				throw new NotSupportedException($"MPLY meshes need to be read through {nameof(MplyMeshFile)}!");
 			}
 			MaterialNames.Clear();
 			BoneData?.Clear();
@@ -2000,31 +2100,7 @@ namespace ReeLib
 			if (header.bonesOffset > 0) {
 				BoneData ??= new();
 				handler.Seek(header.bonesOffset);
-				var boneCount = handler.Read<int>();
-				var boneMapCount = handler.Read<int>();
-				handler.ReadNull(8);
-				var hierarchyOff = handler.Read<long>();
-				var localTransformsOff = handler.Read<long>();
-				var globallTransformsOff = handler.Read<long>();
-				var invGloballTransformsOff = handler.Read<long>();
-				var remapIndices = handler.ReadArray<short>(boneMapCount);
-
-				handler.Seek(hierarchyOff);
-				BoneData.Bones.Read(handler, boneCount);
-				handler.Seek(localTransformsOff);
-				for (int i = 0; i < boneCount; ++i) handler.Read(ref BoneData.Bones[i].localTransform);
-				handler.Seek(globallTransformsOff);
-				for (int i = 0; i < boneCount; ++i) handler.Read(ref BoneData.Bones[i].globalTransform);
-				handler.Seek(invGloballTransformsOff);
-				for (int i = 0; i < boneCount; ++i) handler.Read(ref BoneData.Bones[i].inverseGlobalTransform);
-
-				for (int i = 0; i < boneMapCount; ++i) {
-					var bone = BoneData.Bones[remapIndices[i]];
-					bone.remapIndex = i;
-					BoneData.DeformBones.Add(bone);
-				}
-
-				SetupBoneHierarchy();
+				BoneData.Read(handler);
 			}
 
 			if (header.materialIndicesOffset > 0)
@@ -2060,11 +2136,7 @@ namespace ReeLib
 			if (header.boneIndicesOffset > 0 && BoneData?.Bones.Count > 0)
 			{
 				handler.Seek(header.boneIndicesOffset);
-				for (int i = 0; i < BoneData.Bones.Count; ++i)
-				{
-					var idx = handler.Read<short>();
-					BoneData.Bones[i].name = strings[idx];
-				}
+				BoneData.ReadBoneNames(handler, strings);
 			}
 
 			if (header.normalRecalcOffset > 0 && MeshData != null)
@@ -2157,23 +2229,7 @@ namespace ReeLib
 			{
 				// handler.Align(8);
 				header.bonesOffset = handler.Tell();
-				handler.Write(BoneData.Bones.Count);
-				handler.Write(BoneData.DeformBones.Count);
-				handler.WriteNull(8);
-				var offsets = handler.Tell();
-				handler.Skip(32);
-				foreach (var bone in BoneData.DeformBones) handler.Write((short)bone.index);
-
-				handler.Align(16);
-				handler.Write(offsets, handler.Tell()); // hierarchyOff
-				BoneData.Bones.Write(handler);
-
-				handler.Write(offsets + 8, handler.Tell()); // localTransformsOff
-				foreach (var bone in BoneData.Bones) handler.Write(bone.localTransform);
-				handler.Write(offsets + 16, handler.Tell()); // globallTransformsOff
-				foreach (var bone in BoneData.Bones) handler.Write(bone.globalTransform);
-				handler.Write(offsets + 24, handler.Tell()); // invGloballTransformsOff
-				foreach (var bone in BoneData.Bones) handler.Write(bone.inverseGlobalTransform);
+				BoneData.Write(handler);
 			}
 
 			header.normalRecalcOffset = 0;
@@ -2330,25 +2386,5 @@ namespace ReeLib
 
 			return true;
         }
-
-		private void SetupBoneHierarchy()
-		{
-			BoneData!.RootBones.Clear();
-			foreach (var bone in BoneData.Bones)
-			{
-				if (bone.symmetryIndex != bone.index && bone.symmetryIndex != -1)
-				{
-					bone.Symmetry = BoneData.Bones[bone.symmetryIndex];
-				}
-				if (bone.parentIndex == -1)
-				{
-					BoneData.RootBones.Add(bone);
-					continue;
-				}
-				var parent = BoneData.Bones[bone.parentIndex];
-				bone.Parent = parent;
-				parent.Children.Add(bone);
-			}
-		}
     }
 }

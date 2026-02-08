@@ -32,9 +32,9 @@ namespace ReeLib.MplyMesh
         public long unknOffset6;
 
         public long unknOffset7;
-        public long unknOffset8;
-        public long materialNameRemapOffset;
-        public long unknOffset9;
+        public long bonesOffset;
+        public long materialIndicesOffset;
+        public long boneIndicesOffset;
         public long unknOffset10;
         public long stringTableOffset;
         public long streamingChunkOffset;
@@ -80,9 +80,9 @@ namespace ReeLib.MplyMesh
                 action.Do(ref unknOffset6);
                 action.Do(ref unknOffset7);
 
-                action.Do(ref materialNameRemapOffset);
-                action.Do(ref unknOffset8);
-                action.Do(ref unknOffset9);
+                action.Do(ref materialIndicesOffset);
+                action.Do(ref boneIndicesOffset);
+                action.Do(ref bonesOffset);
                 action.Do(ref stringTableOffset);
                 action.Do(ref unknOffset10);
                 action.Do(ref streamingChunkOffset);
@@ -106,9 +106,9 @@ namespace ReeLib.MplyMesh
                 action.Do(ref unknOffset5);
                 action.Do(ref unknOffset6);
                 action.Do(ref unknOffset7);
-                action.Do(ref unknOffset8);
-                action.Do(ref materialNameRemapOffset);
-                action.Do(ref unknOffset9);
+                action.Do(ref bonesOffset);
+                action.Do(ref materialIndicesOffset);
+                action.Do(ref boneIndicesOffset);
                 action.Do(ref unknOffset10);
                 action.Do(ref stringTableOffset);
                 action.Do(ref streamingChunkOffset);
@@ -707,7 +707,6 @@ namespace ReeLib.MplyMesh
                 handler.Seek(offsets[i]);
                 var sub = Chunks[i];
                 sub.Read(handler);
-                Chunks.Add(sub);
                 DataInterpretationException.DebugThrowIf(i < count - 1 && handler.Position != offsets[i + 1] + handler.Offset);
             }
 
@@ -737,6 +736,7 @@ namespace ReeLib
         public List<MplyLodGroup> LODs { get; } = new();
         public List<string> MaterialNames { get; } = new();
         public List<int> MaterialRemaps { get; } = new();
+		public MeshBoneHierarchy? BoneData { get; set; }
 
         protected override bool DoRead()
         {
@@ -753,9 +753,27 @@ namespace ReeLib
             Layout.Read(handler);
 
             handler.Seek(header.stringTableOffset);
+            var strings = new string[header.stringCount];
             for (int i = 0; i < header.stringCount; ++i)
             {
-                MaterialNames.Add(handler.ReadOffsetAsciiString());
+                strings[i] = handler.ReadOffsetAsciiString();
+            }
+
+            if (header.bonesOffset > 0)
+            {
+                handler.Seek(header.bonesOffset);
+                BoneData ??= new();
+                BoneData.Read(handler);
+                handler.Seek(header.boneIndicesOffset);
+                BoneData.ReadBoneNames(handler, strings);
+            }
+
+            handler.Seek(header.materialIndicesOffset);
+            var matCount = header.stringCount - (BoneData?.Bones.Count ?? 0);
+            for (int i = 0; i < matCount; ++i)
+            {
+                var index = handler.Read<short>();
+                MaterialNames.Add(strings[i]);
             }
 
             handler.Seek(header.meshletPartsOffset);
@@ -780,13 +798,6 @@ namespace ReeLib
                 var lod = BVH.LODs[i];
                 lod.Read(lodsHandler);
                 LODs.Add(lod);
-            }
-
-            handler.Seek(header.materialNameRemapOffset);
-            for (int i = 0; i < header.stringCount; ++i)
-            {
-                var index = handler.Read<short>();
-                MaterialRemaps.Add(index);
             }
 
             return true;
@@ -826,6 +837,7 @@ namespace ReeLib
             mesh.Header.version = Header.version;
             mesh.Header.FormatVersion = Header.FormatVersion;
             mesh.Header.flags = Header.flags;
+            mesh.BoneData = BoneData?.Clone();
 
             for (int lodIndex = minLod; lodIndex <= maxLod; ++lodIndex)
             {
@@ -848,6 +860,7 @@ namespace ReeLib
                     }
 
                     var sub = group.Submeshes.Count == 0 ? null : group.Submeshes[^1];
+                    // if (sub == null || sub.vertCount > 0 || sub.materialIndex != chunk.materialId) // this one will force separate submeshes per chunk, for debugging
                     if (sub == null || sub.vertCount + group.vertexCount > ushort.MaxValue || sub.materialIndex != chunk.materialId)
                     {
                         // ensure 4-byte alignment padding is accounted for

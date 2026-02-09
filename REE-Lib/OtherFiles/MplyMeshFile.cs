@@ -1,7 +1,7 @@
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using ReeLib.Common;
 using ReeLib.Mesh;
 using ReeLib.via;
 
@@ -527,32 +527,42 @@ namespace ReeLib.MplyMesh
             // so wtf are these even?
             if ((flags & MplyChunkFlags.Use32BitPos) != 0 || (flags & MplyChunkFlags.Use24BitPos) != 0) return center;
 
+            var num = (uint)flags;
+            var baseVal = 1 << (int)((num >> 23) & 0b1111);
+            var divisor = 1 << (int)((num >> 16) & 0b1111);
+            var offset = 1;
+            float prescale;
             if ((flags & MplyChunkFlags.UseExponentMultiplication) != 0)
             {
-                var num = (uint)flags;
-                var exp = (int)((num >> 23) & 0b1111);
-                var baseVal = 1 << exp;
-                var divisor = 1
-                    * ((num & (1 << 16)) != 0 ? 2 : 1)
-                    * ((num & (1 << 17)) != 0 ? 4 : 1)
-                    * ((num & (1 << 18)) != 0 ? 16 : 1)
-                    * ((num & (1 << 19)) != 0 ? 256 : 1); // guess
-                var prescale = baseVal / divisor;
-                var offset = (prescale < divisor) ? 2 : 1;
-                var scale = prescale * offset;
-                return (vertPos - new Vector3(0.5f) + relativeAABB.Offset * offset) * scale + center;
+                prescale = (float)baseVal / divisor;
+                if (prescale < divisor) offset = 2;
+                if (prescale * 2 < divisor) offset *= 2;
             }
             else
             {
                 // return (vertPos - new Vector3(0.5f) + relativeAABB.Offset * ScalingParameters.Offset.GetScale(flags, Bvh)) * ScalingParameters.Scaling.GetScale(flags, Bvh) + center;
-                var scale = 0.5f;
-                var offset = 1f;
-                var num = (uint)flags;
-                if ((num & (1 << 23)) != 0) offset = 2f;
-                if ((num & (1 << 16)) != 0) scale *= 2;
 
-                return (vertPos - new Vector3(0.5f) + relativeAABB.Offset * offset) * scale + center;
+                // edge case - probably not "correct" but works (pragmata sm34_011_00.mesh)
+                if (divisor == 1) divisor = 1 << 17;
+                baseVal *= 2;
+
+                prescale = (float)baseVal / divisor;
+                // haven't managed to figure out what exactly determines this, hardcoding for now
+                switch ((baseVal, divisor)) {
+                    case (256,   8192):
+                    case (512,   8192):
+                    case (2048,  16384):
+                    case (4096,  32768):
+                    case (65536, 131072):
+                        offset = 2;
+                        break;
+                }
             }
+
+            Debug.Assert(prescale != 0);
+            var scale = prescale * offset;
+
+            return (vertPos - new Vector3(0.5f) + relativeAABB.Offset * offset) * scale + center;
         }
 
         public Vector3 GetPosition(int index)

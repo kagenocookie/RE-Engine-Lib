@@ -214,7 +214,7 @@ namespace ReeLib.Bhvt
         internal override int FieldCount => 2;
         public List<NAction> Actions { get; set; } = [];
 
-        public List<NAction> CloneActions() => Actions.Select(a => new NAction() { Action = a.Action, ActionEx = a.ActionEx, Instance = a.Instance }).ToList();
+        public List<NAction> CloneActions() => Actions.Select(a => new NAction() { Action = a.Action, ActionEx = a.ActionEx, Instance = a.Instance?.Clone() }).ToList();
 
         protected override bool LoadData(uint[,] data)
         {

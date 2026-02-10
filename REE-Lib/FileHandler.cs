@@ -774,10 +774,10 @@ namespace ReeLib
             return value;
         }
 
-        public int Read<T>(ref T value) where T : unmanaged
+        public unsafe int Read<T>(ref T value) where T : unmanaged
         {
             var bytes = Stream.Read(MemoryUtils.StructureAsBytes(ref value));
-            Debug.Assert(bytes == Marshal.SizeOf<T>());
+            Debug.Assert(bytes == sizeof(T));
             return bytes;
         }
 

@@ -776,7 +776,9 @@ namespace ReeLib
 
         public int Read<T>(ref T value) where T : unmanaged
         {
-            return Stream.Read(MemoryUtils.StructureAsBytes(ref value));
+            var bytes = Stream.Read(MemoryUtils.StructureAsBytes(ref value));
+            Debug.Assert(bytes == Marshal.SizeOf<T>());
+            return bytes;
         }
 
         public int Read<T>(long tell, ref T value, bool jumpBack = true) where T : unmanaged

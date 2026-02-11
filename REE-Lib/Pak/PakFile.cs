@@ -409,11 +409,10 @@ namespace ReeLib
 
                 var chunkIndex = (int)entry.offset;
                 var blockSize = ChunkEntries.blockSize;
-                var size = (int)entry.decompressedSize;
+                var remainingSize = (int)entry.decompressedSize;
                 var rawBlockBytes = ArrayPool<byte>.Shared.Rent(blockSize);
 
-                var bytesOffset = 0;
-                while (size - bytesOffset > 0)
+                while (remainingSize > 0)
                 {
                     var chunk = ChunkEntries!.chunks[chunkIndex];
                     readStream.Seek(chunk.offset, SeekOrigin.Begin);
@@ -422,7 +421,7 @@ namespace ReeLib
                         // raw data
                         readStream.ReadExactly(rawBlockBytes, 0, blockSize);
                         outStream.Write(rawBlockBytes, 0, blockSize);
-                        bytesOffset += blockSize;
+                        remainingSize -= blockSize;
                     }
                     else
                     {
@@ -430,9 +429,9 @@ namespace ReeLib
                         var compressedSize = (int)(chunk.attributes >> 10);
                         var compressedBytes = ArrayPool<byte>.Shared.Rent(compressedSize);
                         readStream.ReadExactly(compressedBytes, 0, compressedSize);
-                        var offsetStart = outStream.Position;
+                        var start = outStream.Position;
                         Compression.DecompressZstd(compressedBytes, compressedSize, outStream);
-                        bytesOffset += (int)(outStream.Position - offsetStart);
+                        remainingSize -= (int)(outStream.Position - start);
                         ArrayPool<byte>.Shared.Return(compressedBytes);
                     }
 

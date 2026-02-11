@@ -6,14 +6,14 @@ using Standart.Hash.xxHash;
 
 namespace ReeLib.Pak
 {
-	public enum CompressionType
+	public enum CompressionType : byte
 	{
         None = 0,
         Deflate = 1,
         Zstd = 2,
 	}
 
-    public enum EncryptionType
+    public enum EncryptionType : byte
     {
         None = 0,
         Type1 = 1,
@@ -21,6 +21,12 @@ namespace ReeLib.Pak
         Type3 = 3,
         Type4 = 4,
         Invalid = 5,
+    }
+
+    public enum ContentTableType
+    {
+        MainContents = 0,
+        ChunkContents = 1,
     }
 
     public struct Header
@@ -38,8 +44,8 @@ namespace ReeLib.Pak
     {
         EncryptEntryList = 8,
         ExtraInteger = 16,
-        UknPragmata = 32,
-        Pragmata = EncryptEntryList|UknPragmata,
+        HasChunkContentTable = 32,
+        Pragmata = EncryptEntryList|HasChunkContentTable,
         All = EncryptEntryList|ExtraInteger,
     }
 
@@ -53,6 +59,7 @@ namespace ReeLib.Pak
         public long checksum;
         public CompressionType compression;
         public EncryptionType encryption;
+        public ContentTableType offsetType;
 
         public string? path;
 
@@ -89,11 +96,18 @@ namespace ReeLib.Pak
 
             compression = (CompressionType)(attributes & 0xf);
             encryption = (EncryptionType)((attributes & 0x00ff0000) >> 16);
+            offsetType = (ContentTableType)((attributes & 0x0f000000) >> 24);
 
             if (compression != CompressionType.None && compression != CompressionType.Deflate && compression != CompressionType.Zstd)
             {
                 throw new NotImplementedException("Unsupported PAK entry compression type " + compression);
             }
+
+            // if ((attributes & 0xf000fff0) != 0)
+            // {
+            //     var otherAttrs = (attributes & 0xf000fff0);
+            //     Log.Info($"Found unknown attributes {otherAttrs.ToString("X")} at {offset}: {compressedSize}/{decompressedSize} {hashLowercase}|{hashUppercase}");
+            // }
         }
 
         public void WriteVer4(FileHandler handler)
@@ -107,6 +121,20 @@ namespace ReeLib.Pak
             handler.WriteInt64(attributes);
             handler.WriteInt64(checksum);
         }
+    }
+
+    public struct PakChunkEntry
+    {
+        public uint offset;
+        public uint attributes;
+
+        public override string ToString() => $"{offset} [{attributes:X}]";
+    }
+
+    public class ChunkPakContentTable
+    {
+        public int blockSize;
+        public PakChunkEntry[] chunks = [];
     }
 
     internal static class Encryption
@@ -229,6 +257,7 @@ namespace ReeLib.Pak
 namespace ReeLib
 {
     using System;
+    using System.Runtime.InteropServices;
     using ReeLib.Common;
     using ReeLib.Pak;
 
@@ -236,6 +265,7 @@ namespace ReeLib
     {
         public Pak.Header Header;
         public readonly List<PakEntry> Entries = new();
+        public ChunkPakContentTable? ChunkEntries { get; set; }
         public string filepath = string.Empty;
         private Stream? pakStream;
         private MemoryStream? entryTempStream;
@@ -308,6 +338,16 @@ namespace ReeLib
                 ArrayPool<byte>.Shared.Return(key);
             }
 
+            if ((Header.featureFlags & PakFeatureFlags.HasChunkContentTable) != 0)
+            {
+                ChunkEntries ??= new();
+                int chunkCount = 0;
+                stream.Read(MemoryUtils.StructureAsBytes(ref ChunkEntries.blockSize));
+                stream.Read(MemoryUtils.StructureAsBytes(ref chunkCount));
+                ChunkEntries.chunks = new PakChunkEntry[chunkCount];
+                stream.Read(MemoryMarshal.AsBytes((Span<PakChunkEntry>)ChunkEntries.chunks));
+            }
+
             using var reader = new MemoryStream(entryTable);
             var entryHandler = new FileHandler(reader);
             if (Header.majorVersion == 4)
@@ -361,8 +401,48 @@ namespace ReeLib
             ReadEntry(entry, pakStream, outStream);
         }
 
-        internal static void ReadEntry<TStream>(PakEntry entry, Stream readStream, TStream outStream) where TStream : Stream
+        internal void ReadEntry<TStream>(PakEntry entry, Stream readStream, TStream outStream) where TStream : Stream
         {
+            if (entry.offsetType == ContentTableType.ChunkContents)
+            {
+                if (ChunkEntries == null) throw new NullReferenceException("PAK file is missing expected ExtraEntries table!");
+
+                var chunkIndex = (int)entry.offset;
+                var blockSize = ChunkEntries.blockSize;
+                var size = (int)entry.decompressedSize;
+                var rawBlockBytes = ArrayPool<byte>.Shared.Rent(blockSize);
+
+                var bytesOffset = 0;
+                while (size - bytesOffset > 0)
+                {
+                    var chunk = ChunkEntries!.chunks[chunkIndex];
+                    readStream.Seek(chunk.offset, SeekOrigin.Begin);
+                    if (chunk.attributes == 0x20000000)
+                    {
+                        // raw data
+                        readStream.ReadExactly(rawBlockBytes, 0, blockSize);
+                        outStream.Write(rawBlockBytes, 0, blockSize);
+                        bytesOffset += blockSize;
+                    }
+                    else
+                    {
+                        // zstd compressed
+                        var compressedSize = (int)(chunk.attributes >> 10);
+                        var compressedBytes = ArrayPool<byte>.Shared.Rent(compressedSize);
+                        readStream.ReadExactly(compressedBytes, 0, compressedSize);
+                        var offsetStart = outStream.Position;
+                        Compression.DecompressZstd(compressedBytes, compressedSize, outStream);
+                        bytesOffset += (int)(outStream.Position - offsetStart);
+                        ArrayPool<byte>.Shared.Return(compressedBytes);
+                    }
+
+                    chunkIndex++;
+                }
+
+                ArrayPool<byte>.Shared.Return(rawBlockBytes);
+                return;
+            }
+
             readStream.Seek(entry.offset, SeekOrigin.Begin);
             if (entry.compression == CompressionType.None) {
                 var size = (int)entry.decompressedSize;

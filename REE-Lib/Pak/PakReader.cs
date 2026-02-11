@@ -317,7 +317,7 @@ public partial class PakReader
             try
             {
                 outStream = writeStreamProvider.Invoke(ctx, path);
-                PakFile.ReadEntry(entry, fs, outStream);
+                ctx.file.ReadEntry(entry, fs, outStream);
                 ctx.foundHashes.Add(entry.CombinedHash);
                 ctx.fileCount++;
                 Interlocked.Increment(ref unpackedFileCount);

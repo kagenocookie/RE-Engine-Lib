@@ -110,7 +110,7 @@ public class CachedMemoryPakReader : PakReader, IDisposable
         {
             var memoryStream = new MemoryStream();
             using var fs = File.OpenRead(entry.file.filepath);
-            PakFile.ReadEntry(entry.entry, fs, memoryStream);
+            entry.file.ReadEntry(entry.entry, fs, memoryStream);
             memoryStream.Seek(0, SeekOrigin.Begin);
             return memoryStream;
         }

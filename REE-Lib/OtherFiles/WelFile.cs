@@ -58,6 +58,8 @@ namespace ReeLib
             handler.WriteWString(BankPath);
             handler.WritePaddingUntil(512);
 
+            // items need to be sorted to work correctly
+            Events.Sort((a, b) => a.triggerId.CompareTo(b.triggerId));
             handler.Write(Events.Count);
             Events.Write(handler);
 

@@ -1159,7 +1159,7 @@ namespace ReeLib.via
             this.target = target;
         }
 
-        public GameObjectRef(ScnGameObject gameObj)
+        public GameObjectRef(IGameObjectWithGuid gameObj)
         {
             this.guid = gameObj.Guid;
             target = gameObj;
@@ -1178,10 +1178,8 @@ namespace ReeLib.via
 
         public void Set(IGameObject? target)
         {
-            if (target is ScnGameObject ss) {
-                this.guid = ss.Guid;
-            } else if (target is BhvtGameObjectReference bb) {
-                this.guid = bb.guid;
+            if (target is IGameObjectWithGuid withGuid) {
+                this.guid = withGuid.Guid;
             }
             this.target = target;
         }

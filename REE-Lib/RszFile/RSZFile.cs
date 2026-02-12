@@ -1,5 +1,6 @@
 using System.Text;
 using ReeLib.InternalAttributes;
+using ReeLib.via;
 
 namespace ReeLib
 {
@@ -135,8 +136,7 @@ namespace ReeLib
                 {
                     userDataIdx = -1;
                 }
-                RszInstance instance = new(rszClass, i, userDataIdx != -1 ?
-                    RSZUserDataInfoList[userDataIdx] : null);
+                RszInstance instance = new(rszClass, i, userDataIdx != -1 ? RSZUserDataInfoList[userDataIdx] : null);
                 if (instance.RSZUserData == null)
                 {
                     instance.Read(handler);
@@ -401,6 +401,34 @@ namespace ReeLib
             }
         }
 
+        internal void ResolveGameObjectRefs(Dictionary<Guid, IGameObject> gameObjectsLookup)
+        {
+            foreach (var obj in InstanceList)
+            {
+                if (obj.Values.Length == 0) continue;
+                var fields = obj.RszClass.fields;
+                for (int i = 0; i < fields.Length; i++)
+                {
+                    if (fields[i].type is not RszFieldType.GameObjectRef and not RszFieldType.Uri) continue;
+
+                    if (fields[i].array)
+                    {
+                        var list = (List<object>)obj.Values[i];
+                        for (int j = 0; j < list.Count; j++)
+                        {
+                            var goref = (GameObjectRef)list[j];
+                            goref.target = gameObjectsLookup.GetValueOrDefault(goref.guid);
+                        }
+                    }
+                    else
+                    {
+                        var goref = (GameObjectRef)obj.Values[i];
+                        goref.target = gameObjectsLookup.GetValueOrDefault(goref.guid);
+                    }
+                }
+            }
+        }
+
         /// <summary>
         /// 根据实例列表，重建InstanceInfo
         /// </summary>
@@ -545,6 +573,7 @@ namespace ReeLib
         int InstanceId { get; set; }
         uint TypeId { get; }
         string? ClassName { get; }
+        public string? Path { get; }
     }
 
 
@@ -606,6 +635,7 @@ namespace ReeLib
         public int InstanceId { get => instanceId; set => instanceId = value; }
         public uint TypeId => typeId;
         public string? ClassName { get; set; }
+        public string? Path => EmbeddedRSZ?.ObjectList.FirstOrDefault()?.Values[0] as string;
         public RSZFile? EmbeddedRSZ { get; set; }
 
         protected override bool DoRead(FileHandler handler)

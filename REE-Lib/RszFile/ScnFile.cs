@@ -204,7 +204,7 @@ namespace ReeLib.Scn
     }
 
 
-    public class ScnGameObject : IGameObject, ICloneable
+    public class ScnGameObject : IGameObjectWithGuid, ICloneable
     {
         private WeakReference<ScnFolderData>? folderRef;
         private WeakReference<ScnGameObject>? parentRef;
@@ -536,6 +536,8 @@ namespace ReeLib
                     folder.Prefabs.Add(info);
                 }
             }
+
+            RSZ.ResolveGameObjectRefs(GameObjectInfoList.ToDictionary(ii => ii.guid, ii => (IGameObject)gameObjectMap[ii.objectId]));
         }
 
         /// <summary>

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Numerics;
 using System.Text;
 using ReeLib.Common;
@@ -450,10 +451,22 @@ namespace ReeLib
         /// Should be cleared after the copy operation.
         /// </summary>
         private static readonly ThreadLocal<Dictionary<RszInstance, RszInstance>> CloneCache = new(() => []);
+        private static readonly ThreadLocal<Dictionary<RszInstance, IGameObject>> GameObjectCloneCache = new(() => []);
 
         public static void CleanCloneCache()
         {
             CloneCache.Value!.Clear();
+            GameObjectCloneCache.Value!.Clear();
+        }
+
+        /// <summary>
+        /// Store a GameObject's cloned instance for correctly handling GameObjectRef fields.
+        /// Should be cleared after the copy operation.
+        /// </summary>
+        public static void StoreClonedGameObject(IGameObject sourceGameObject, IGameObject newGameObject)
+        {
+            Debug.Assert(sourceGameObject.Instance != null);
+            GameObjectCloneCache.Value![sourceGameObject.Instance] = newGameObject;
         }
 
         /// <summary>
@@ -523,9 +536,9 @@ namespace ReeLib
         /// <summary>
         /// Deep clone the values from another RszInstance into this object.
         /// </summary>
-        public bool CopyValuesFrom(RszInstance other, bool cached = false)
+        public bool CopyValuesFrom(RszInstance source, bool cached = false)
         {
-            if (other.RszClass != RszClass) return false;
+            if (source.RszClass != RszClass) return false;
             if (RSZUserData == null)
             {
                 var fields = RszClass.fields;
@@ -535,34 +548,61 @@ namespace ReeLib
                     if (field.array)
                     {
                         var items = new List<object>();
-                        var otherItems = (List<object>)other.Values[i];
+                        var sourceItems = (List<object>)source.Values[i];
                         Values[i] = items;
                         if (field.IsReference)
                         {
-                            for (int j = 0; j < otherItems.Count; j++)
+                            for (int j = 0; j < sourceItems.Count; j++)
                             {
-                                items.Add(((RszInstance)otherItems[j]).CloneImpl(cached));
+                                items.Add(((RszInstance)sourceItems[j]).CloneImpl(cached));
+                            }
+                        }
+                        else if (field.type is RszFieldType.GameObjectRef or RszFieldType.Uri)
+                        {
+                            for (var j = 0; j < sourceItems.Count; j++)
+                            {
+                                var srcRef = (GameObjectRef)sourceItems[j];
+                                if (cached && srcRef.target?.Instance != null && GameObjectCloneCache.Value!.TryGetValue(srcRef.target.Instance, out var newTarget))
+                                {
+                                    srcRef = new GameObjectRef();
+                                    srcRef.Set(newTarget);
+                                    items.Add(srcRef);
+                                }
+                                else
+                                {
+                                    items.Add(new GameObjectRef(srcRef));
+                                }
                             }
                         }
                         else
                         {
-                            for (int j = 0; j < otherItems.Count; j++)
+                            for (int j = 0; j < sourceItems.Count; j++)
                             {
-                                items.Add(CloneValueType(otherItems[j]));
+                                items.Add(CloneValueType(sourceItems[j]));
                             }
                         }
                     }
                     else if (field.IsReference)
                     {
-                        Values[i] = ((RszInstance)other.Values[i]).CloneImpl(cached);
+                        Values[i] = ((RszInstance)source.Values[i]).CloneImpl(cached);
                     }
                     else if (field.type is RszFieldType.GameObjectRef or RszFieldType.Uri)
                     {
-                        Values[i] = new GameObjectRef((GameObjectRef)other.Values[i]);
+                        var srcRef = (GameObjectRef)source.Values[i];
+                        if (cached && srcRef.target?.Instance != null && GameObjectCloneCache.Value!.TryGetValue(srcRef.target.Instance, out var newTarget))
+                        {
+                            srcRef = new GameObjectRef();
+                            srcRef.Set(newTarget);
+                            Values[i] = srcRef;
+                        }
+                        else
+                        {
+                            Values[i] = new GameObjectRef(srcRef);
+                        }
                     }
                     else
                     {
-                        Values[i] = CloneValueType(other.Values[i]);
+                        Values[i] = CloneValueType(source.Values[i]);
                     }
                 }
                 ValuesChanged?.Invoke(this);

@@ -86,4 +86,9 @@ namespace ReeLib
 
         IEnumerable<IGameObject> GetChildren();
     }
+
+    public interface IGameObjectWithGuid : IGameObject
+    {
+        Guid Guid { get; }
+    }
 }

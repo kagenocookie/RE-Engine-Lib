@@ -807,7 +807,7 @@ namespace ReeLib.Bhvt
         }
     }
 
-    public class BhvtGameObjectReference : BaseModel, IGameObject
+    public class BhvtGameObjectReference : BaseModel, IGameObjectWithGuid
     {
         public Guid guid;
         public int[] values = [];
@@ -815,6 +815,7 @@ namespace ReeLib.Bhvt
         string? IGameObject.Name => guid.ToString();
         RszInstance? IGameObject.Instance => null;
         IList<RszInstance> IGameObject.Components => [];
+        Guid IGameObjectWithGuid.Guid => guid;
         IEnumerable<IGameObject> IGameObject.GetChildren() => [];
 
         protected override bool DoRead(FileHandler handler)

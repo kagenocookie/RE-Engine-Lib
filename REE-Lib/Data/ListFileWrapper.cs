@@ -74,7 +74,7 @@ public class ListFileWrapper
         Files = list.ToArray();
     }
 
-    public bool FileExists(string path) => Array.BinarySearch(Files, path) > 0;
+    public bool FileExists(string path) => Array.BinarySearch(Files, path) >= 0;
     public IEnumerable<string> GetFileExtensionVariants(string path)
     {
         path = PathUtils.GetFilepathWithoutSuffixes(path).ToString();

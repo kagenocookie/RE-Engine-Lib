@@ -359,7 +359,7 @@ namespace ReeLib.Efx
                 var attr = EFXAttribute.Create(Version, type, seqNum);
                 attr.Version = Version;
                 attr.Read(handler);
-                Log.Debug($"Read {attr.type} at {attr.Start}");
+                // Log.Debug($"Read {attr.type} at {attr.Start}");
                 if (expectedSize != -1 && expectedSize - 4 != attr.Size) {//UniqueID is included in the struct size, so subtract 4
                     throw new Exception($"EFX attribute ({attr.type}) was not properly read. Expected: {expectedSize} Actual: {attr.Size+4} Start:{attr.Start} End:{attr.Start + attr.Size}");
                 }
@@ -947,7 +947,7 @@ namespace ReeLib
                 valueCount = kv.Value.Count,
                 efxEntryIndexes = kv.Value.ToArray(),
                 conditionalEffectGroupNameHashUTF16 = MurMur3HashUtils.GetHash(kv.Key),
-                conditionalEffectGroupNameHashUTF8 = MurMur3HashUtils.GetAsciiHash(kv.Key)
+                conditionalEffectGroupNameHashUTF8 = MurMur3HashUtils.GetUTF8Hash(kv.Key)
             }).ToList();
         }
 

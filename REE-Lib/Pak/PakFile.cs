@@ -23,7 +23,7 @@ namespace ReeLib.Pak
         Invalid = 5,
     }
 
-    public enum ContentTableType
+    public enum ContentTableType : byte
     {
         MainContents = 0,
         ChunkContents = 1,
@@ -103,9 +103,9 @@ namespace ReeLib.Pak
                 throw new NotImplementedException("Unsupported PAK entry compression type " + compression);
             }
 
-            // if ((attributes & 0xf000fff0) != 0)
+            // var otherAttrs = (attributes & 0xf000fff0);
+            // if (otherAttrs != 0)
             // {
-            //     var otherAttrs = (attributes & 0xf000fff0);
             //     Log.Info($"Found unknown attributes {otherAttrs.ToString("X")} at {offset}: {compressedSize}/{decompressedSize} {hashLowercase}|{hashUppercase}");
             // }
         }

@@ -578,11 +578,11 @@ namespace ReeLib.Efx
     [RszGenerate, RszAutoReadWrite]
     public partial class EffectGroup : BaseModel
     {
-        [RszStringHash(nameof(conditionalEffectGroupName))] public uint conditionalEffectGroupNameHashUTF16;
-        [RszStringUTF8Hash(nameof(conditionalEffectGroupName))] public uint conditionalEffectGroupNameHashUTF8;
+        [RszStringHash(nameof(groupName))] public uint conditionalEffectGroupNameHashUTF16;
+        [RszStringUTF8Hash(nameof(groupName))] public uint conditionalEffectGroupNameHashUTF8;
         [RszArraySizeField(nameof(efxEntryIndexes))] public int valueCount;
         [RszFixedSizeArray(nameof(valueCount))] public int[]? efxEntryIndexes;
-        [RszIgnore] public string conditionalEffectGroupName = string.Empty;
+        [RszIgnore] public string groupName = string.Empty;
     }
 
     public class EFXBone
@@ -661,11 +661,11 @@ namespace ReeLib
         public Strings? Strings;
 
         public List<short> BoneRelations { get; } = new();
-        public List<EFXExpressionParameter> ExpressionParameters = new();
-        public List<EFXAction> Actions = new();
-        public List<EFXFieldParameterValue> FieldParameterValues = new();
-        private List<EffectGroup>? _effectGroups;
-        public List<EFXUvarGroup> UvarGroups = new();
+        public List<EFXExpressionParameter> ExpressionParameters { get; } = new();
+        public List<EFXAction> Actions { get; } = new();
+        public List<EFXFieldParameterValue> FieldParameterValues { get; } = new();
+        public List<EffectGroup> EffectGroups { get; } = new();
+        public List<EFXUvarGroup> UvarGroups { get; } = new();
 
         public EfxFile? parentFile;
 
@@ -735,7 +735,7 @@ namespace ReeLib
             Entries.Clear();
             Bones.Clear();
             UvarGroups.Clear();
-            _effectGroups?.Clear();
+            EffectGroups.Clear();
         }
 
         protected override bool DoRead()
@@ -790,11 +790,13 @@ namespace ReeLib
 
             for (int i = 0; i < Header.effectGroupsCount; ++i) {
                 var effect = new EffectGroup();
-                var groupName = Strings.GroupNames[i];
+                effect.groupName = Strings.GroupNames[i];
                 effect.Read(handler);
+                EffectGroups.Add(effect);
+
                 if (effect.efxEntryIndexes == null) continue;
                 foreach (var index in effect.efxEntryIndexes) {
-                    Entries[index].Groups.Add(groupName);
+                    Entries[index].Groups.Add(effect.groupName);
                 }
             }
 
@@ -942,13 +944,23 @@ namespace ReeLib
                 }
             }
 
-            _effectGroups = dict.Select(kv => new EffectGroup() {
-                conditionalEffectGroupName = kv.Key,
-                valueCount = kv.Value.Count,
-                efxEntryIndexes = kv.Value.ToArray(),
-                conditionalEffectGroupNameHashUTF16 = MurMur3HashUtils.GetHash(kv.Key),
-                conditionalEffectGroupNameHashUTF8 = MurMur3HashUtils.GetUTF8Hash(kv.Key)
-            }).ToList();
+            foreach (var grp in EffectGroups) {
+                if (dict.Remove(grp.groupName, out var data)) {
+                    grp.efxEntryIndexes = data.ToArray();
+                } else {
+                    grp.efxEntryIndexes = [];
+                }
+            }
+
+            foreach (var unaccounted in dict) {
+                EffectGroups.Add(new EffectGroup() {
+                    groupName = unaccounted.Key,
+                    valueCount = unaccounted.Value.Count,
+                    efxEntryIndexes = unaccounted.Value.ToArray(),
+                    conditionalEffectGroupNameHashUTF16 = MurMur3HashUtils.GetHash(unaccounted.Key),
+                    conditionalEffectGroupNameHashUTF8 = MurMur3HashUtils.GetUTF8Hash(unaccounted.Key)
+                });
+            }
         }
 
         private void UpdateHeaderData(EfxVersion version)
@@ -961,7 +973,7 @@ namespace ReeLib
             Header.expressionParameterCount = ExpressionParameters.Count;
             Header.boneCount = Bones.Count;
             Header.entryCount = Entries.Count;
-            Header.effectGroupsCount = _effectGroups?.Count ?? 0;
+            Header.effectGroupsCount = EffectGroups.Count;
             Header.actionCount = Actions.Count;
             Header.fieldParameterCount = FieldParameterValues.Count;
             Header.boneAttributeEntryCount = Bones.Count;
@@ -969,8 +981,7 @@ namespace ReeLib
             Strings ??= new(Header);
 
             Strings.EfxNames = Entries.Select(e => e.name ?? string.Empty).ToArray();
-            Strings.GroupNames = _effectGroups?.Select(e => e.conditionalEffectGroupName ?? string.Empty).ToArray()
-                ?? Array.Empty<string>();
+            Strings.GroupNames = EffectGroups.Select(e => e.groupName ?? string.Empty).ToArray();
             Strings.BoneNames = Bones.Select(b => b.name ?? string.Empty).ToArray();
             Strings.ActionNames = Actions.Select(a => a.name ?? string.Empty).ToArray();
             Strings.FieldParameterNames = FieldParameterValues.Select(a => a.name ?? string.Empty).ToArray();
@@ -1023,7 +1034,7 @@ namespace ReeLib
             Entries.Write(handler);
 
             writeStart = handler.Tell();
-            _effectGroups?.Write(handler);
+            EffectGroups.Write(handler);
             Header.effectGroupsLength = (int)(handler.Tell() - writeStart);
 
             if (Header.Version > EfxVersion.DMC5) {

@@ -29,11 +29,11 @@ public static class FileExtensionTools
             var cache = env.GenerateFileExtensionCache();
             if (cache != null) {
                 dict[item.ToString()] = cache;
-                var path = $"output/{item.name}/file_extensions.json";
-                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-                using var singleFs = File.Create(path);
-                JsonSerializer.Serialize(singleFs, dict, jsonOptions);
-                Log.Info($"File extension cache for {item.name} successfully generated to {path}");
+                // var path = $"output/{item.name}/file_extensions.json";
+                // Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                // using var singleFs = File.Create(path);
+                // JsonSerializer.Serialize(singleFs, dict, jsonOptions);
+                Log.Info($"File extension cache for {item.name} successfully generated");
             }
         }
 

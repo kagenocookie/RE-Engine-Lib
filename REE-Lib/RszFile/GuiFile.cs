@@ -283,12 +283,12 @@ namespace ReeLib
                 }
             }
 
-            header.viewOffset = handler.Tell();
-            RootViewElement.Write(handler);
-            RootViewElement.WriteAttributes(handler);
-
             if (header.GuiVersion >= GuiVersion.Pragmata)
             {
+                header.viewOffset = handler.Tell();
+                RootViewElement.Write(handler);
+                RootViewElement.WriteAttributes(handler);
+
                 foreach (var container in Containers)
                 {
                     handler.Align(16);
@@ -338,16 +338,29 @@ namespace ReeLib
                     container.Info.elementsOffset = handler.Tell();
                     handler.Write((long)container.Elements.Count);
                     handler.Skip(container.Elements.Count * 8);
-                    for (int i = 0; i < container.Elements.Count; ++i)
-                    {
-                        handler.Write(container.Info.elementsOffset + 8 + i * 8, handler.Tell());
-                        container.Elements[i].Write(handler);
-                    }
 
                     container.Info.clipsOffset = handler.Tell();
                     handler.Write(container.Clips.Count);
                     handler.Write(container.Clips.DistinctBy(c => c.name).Count()); // maybe
                     handler.Skip(container.Clips.Count * 8);
+                }
+
+                header.viewOffset = handler.Tell();
+                RootViewElement.Write(handler);
+                RootViewElement.WriteAttributes(handler);
+
+                foreach (var container in Containers)
+                {
+                    for (int i = 0; i < container.Elements.Count; ++i)
+                    {
+                        handler.Write(container.Info.elementsOffset + 8 + i * 8, handler.Tell());
+                        container.Elements[i].Write(handler);
+                        container.Elements[i].WriteAttributes(handler);
+                    }
+                }
+
+                foreach (var container in Containers)
+                {
                     for (int i = 0; i < container.Clips.Count; ++i)
                     {
                         handler.Write(container.Info.clipsOffset + 8 + i * 8, handler.Tell());
@@ -963,7 +976,8 @@ namespace ReeLib.Gui
 
         internal void WriteAttributes(FileHandler handler)
         {
-            handler.Write(attributesOffsetStart, handler.Tell());
+            var offset = attributesOffsetStart;
+            handler.Write(offset, handler.Tell());
             handler.Write((long)Attributes.Count);
 
             foreach (var attr in Attributes)
@@ -973,12 +987,12 @@ namespace ReeLib.Gui
 
             if (Version >= GuiVersion.RE4)
             {
-                handler.Write(attributesOffsetStart += 8, handler.Tell());
+                handler.Write(offset += 8, handler.Tell());
                 foreach (var attr in Attributes) handler.Write((short)attr.OrderIndex);
                 handler.Align(8);
             }
 
-            handler.Write(attributesOffsetStart + 8, handler.Tell());
+            handler.Write(offset + 8, handler.Tell());
             handler.Write((long)ExtraAttributes.Count);
             ExtraAttributes.Write(handler);
 

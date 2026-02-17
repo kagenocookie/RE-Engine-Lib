@@ -49,7 +49,7 @@ namespace ReeLib.Motlist
             MotlistVersion.MHR_DEMO => MotTreeVersion.RE8,
             MotlistVersion.RE8 => MotTreeVersion.RE8,
             MotlistVersion.RE_RT => MotTreeVersion.RE_RT,
-            MotlistVersion.MHR => MotTreeVersion.RE8,
+            MotlistVersion.MHR => MotTreeVersion.MHR,
             MotlistVersion.SF6 => MotTreeVersion.RE4,
             MotlistVersion.RE4 => MotTreeVersion.RE4,
             MotlistVersion.DD2 => MotTreeVersion.DD2,

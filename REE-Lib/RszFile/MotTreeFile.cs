@@ -15,6 +15,7 @@ namespace ReeLib.MotTree
         RE3 = 5,
         RE8 = 10,
         RE_RT = 13,
+        MHR = 14,
         RE4 = 19,
         DD2 = 20,
         Pragmata = 22,
@@ -192,13 +193,13 @@ namespace ReeLib.MotTree
             handler.Read(ref typeHash);
             handler.Read(ref nameHash);
             handler.Read(ref extraHash1);
-            if (version == MotTreeVersion.RE_RT) handler.Read(ref extraHash2);
+            if (version is MotTreeVersion.RE_RT or MotTreeVersion.MHR) handler.Read(ref extraHash2);
 
             var tagCount = handler.Read<byte>();
             var paramCount = handler.Read<byte>();
             handler.Read(ref nodeType);
             handler.Read(ref flags);
-            if (version == MotTreeVersion.RE_RT) handler.ReadNull(4);
+            if (version is MotTreeVersion.RE_RT or MotTreeVersion.MHR) handler.ReadNull(4);
 
             if (tagCount > 0)
             {
@@ -258,13 +259,13 @@ namespace ReeLib.MotTree
             handler.Write(ref typeHash);
             handler.Write(ref nameHash);
             handler.Write(ref extraHash1);
-            if (version == MotTreeVersion.RE_RT) handler.Write(ref extraHash2);
+            if (version is MotTreeVersion.RE_RT or MotTreeVersion.MHR) handler.Write(ref extraHash2);
 
             handler.Write((byte)Tags.Count);
             handler.Write((byte)Parameters.Count);
             handler.Write(ref nodeType);
             handler.Write(ref flags);
-            if (version == MotTreeVersion.RE_RT) handler.WriteNull(4);
+            if (version is MotTreeVersion.RE_RT or MotTreeVersion.MHR) handler.WriteNull(4);
 
             return true;
         }
@@ -385,7 +386,7 @@ namespace ReeLib
             Name = handler.ReadWString(nameOffset);
 
             long indicesOffset = 0;
-            if (version > MotTreeVersion.RE_RT)
+            if (version > MotTreeVersion.MHR)
             {
                 indicesOffset = handler.Read<long>();
             }
@@ -478,7 +479,7 @@ namespace ReeLib
             if (string.IsNullOrEmpty(ResourcePath)) handler.WriteNull(8); else handler.WriteOffsetWString(ResourcePath);
             var nodeOffsetOffset = handler.Tell();
             handler.Skip(24); // nodeOffset, linksOffset, nameOffset
-            if (version > MotTreeVersion.RE_RT)
+            if (version > MotTreeVersion.MHR)
             {
                 handler.Skip(8); // indicesOffset
             }
@@ -493,7 +494,7 @@ namespace ReeLib
             handler.Write(ref expandedMotionsCount);
             handler.WriteNull(4);
 
-            if (version > MotTreeVersion.RE_RT)
+            if (version > MotTreeVersion.MHR)
             {
                 handler.Align(8);
                 handler.Write(nodeOffsetOffset + 24, handler.Tell());

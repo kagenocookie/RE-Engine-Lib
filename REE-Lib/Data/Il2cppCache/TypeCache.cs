@@ -138,6 +138,8 @@ public class TypeCache
             RszFieldType.S64 => EnumDescriptor<long>.Default,
             RszFieldType.U16 => EnumDescriptor<ushort>.Default,
             RszFieldType.S16 => EnumDescriptor<short>.Default,
+            RszFieldType.U8 => EnumDescriptor<byte>.Default,
+            RszFieldType.S8 => EnumDescriptor<sbyte>.Default,
             _ => EnumDescriptor<int>.Default,
         };
     }

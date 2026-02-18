@@ -537,7 +537,13 @@ namespace ReeLib
                 }
             }
 
-            RSZ.ResolveGameObjectRefs(GameObjectInfoList.ToDictionary(ii => ii.guid, ii => (IGameObject)gameObjectMap[ii.objectId]));
+            var dict = new Dictionary<Guid, IGameObject>();
+            foreach (var ii in GameObjectInfoList) {
+                if (!dict.TryAdd(ii.guid, gameObjectMap[ii.objectId])) {
+                    Log.Warn("Found duplicate GameObject GUID: " + ii.guid);
+                }
+            }
+            RSZ.ResolveGameObjectRefs(dict);
         }
 
         /// <summary>

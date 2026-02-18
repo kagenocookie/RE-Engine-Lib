@@ -1878,12 +1878,12 @@ namespace ReeLib
 
 			{ "ONI2", new (240704828, 240827123, MeshSerializerVersion.Onimusha, [GameName.oni2]) },
 			{ "MHWilds", new (240704828, 241111606, MeshSerializerVersion.MHWILDS, [GameName.mhwilds], extraWeightBuffer: true) },
-			{ "MHStories3", new (0, 250604100, MeshSerializerVersion.Pragmata, [GameName.mhsto3], extraWeightBuffer: true) },
+			{ "MHStories3", new (250203152, 250604100, MeshSerializerVersion.Pragmata, [GameName.mhsto3], extraWeightBuffer: true) },
 			{ "Pragmata", new (250707828, 250925211, MeshSerializerVersion.Pragmata, [GameName.pragmata], extraWeightBuffer: true) },
 		};
 
-		public static readonly string[] AllVersionConfigs = Versions.OrderBy(kv => kv.Value.serializerVersion).Select(kv => kv.Key).ToArray();
-		public static readonly string[] AllVersionConfigsWithExtension = Versions.OrderBy(kv => kv.Value.serializerVersion).Select(kv => $"{kv.Key} (.mesh.{kv.Value.fileVersion} / {kv.Value.internalVersion})").ToArray();
+		public static readonly string[] AllVersionConfigs = Versions.Reverse().OrderByDescending(kv => kv.Value.serializerVersion).Select(kv => kv.Key).ToArray();
+		public static readonly string[] AllVersionConfigsWithExtension = Versions.Reverse().OrderByDescending(kv => kv.Value.serializerVersion).Select(kv => $"{kv.Key} (.mesh.{kv.Value.fileVersion} / {kv.Value.internalVersion})").ToArray();
 
 		private static readonly Dictionary<GameName, string[]> versionsPerGame = Enum.GetValues<GameName>().ToDictionary(
 			game => game,

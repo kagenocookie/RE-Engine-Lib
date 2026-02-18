@@ -146,8 +146,8 @@ namespace ReeLib
 			{ "PRAGMATA", new (250813143, TexSerializerVersion.MHWilds, [GameName.pragmata]) },
 		};
 
-		public static readonly string[] AllVersionConfigs = Versions.OrderBy(kv => kv.Value.serializerVersion).Select(kv => kv.Key).ToArray();
-		public static readonly string[] AllVersionConfigsWithExtension = Versions.OrderBy(kv => kv.Value.serializerVersion).Select(kv => $"{kv.Key} (.tex.{kv.Value.fileVersion})").ToArray();
+		public static readonly string[] AllVersionConfigs = Versions.Reverse().OrderByDescending(kv => kv.Value.serializerVersion).Select(kv => kv.Key).ToArray();
+		public static readonly string[] AllVersionConfigsWithExtension = Versions.Reverse().OrderByDescending(kv => kv.Value.serializerVersion).Select(kv => $"{kv.Key} (.tex.{kv.Value.fileVersion})").ToArray();
 
 		private static readonly Dictionary<GameName, string[]> versionsPerGame = Enum.GetValues<GameName>().ToDictionary(
 			game => game,
@@ -167,6 +167,8 @@ namespace ReeLib
 		public static TexSerializerVersion GetSerializerVersion(string exportConfig) => Versions.TryGetValue(exportConfig, out var cfg) ? cfg.serializerVersion : TexSerializerVersion.Unknown;
 
         public static int GetFileExtension(string exportConfig) => Versions.TryGetValue(exportConfig, out var cfg) ? cfg.fileVersion : 0;
+
+        public static bool GetRequiresGDeflateCompression(GameIdentifier game) => Versions[GetGameVersionConfigs(game)[0]].serializerVersion >= TexSerializerVersion.MHWilds;
 
         /// <summary>
         /// Whether this tex file's current file version expects the texture data to be GDeflate compressed.

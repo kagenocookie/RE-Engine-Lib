@@ -88,6 +88,22 @@ public static class PakUtils
         return Path.Combine(directory, nextPak);
     }
 
+    public static string GetNextSubPakFilepath(string directory)
+    {
+        var paks = Directory.EnumerateFiles(directory, "*.pak", SearchOption.TopDirectoryOnly)
+            .Select(pak => Path.GetRelativePath(directory, pak))
+            .ToHashSet();
+
+        var pakPatchTemplate = "re_chunk_000.pak.sub_000.pak.patch_{ID}.pak";
+        var nextPakId = 0;
+        string nextPak;
+        do {
+            nextPak = pakPatchTemplate.Replace("{ID}", (++nextPakId).ToString("000"));
+        } while (paks.Contains(nextPak) || File.Exists(nextPak));
+
+        return Path.Combine(directory, nextPak);
+    }
+
     private static readonly HashSet<ulong> ModFileHashes = [
         GetFilepathHash(ManifestFilepath),
         GetFilepathHash("modinfo.ini"),

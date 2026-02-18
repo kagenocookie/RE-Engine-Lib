@@ -9,46 +9,48 @@ public sealed partial class Workspace : IDisposable
 {
     private TypeCache LoadTypeCache()
     {
-        var time = Stopwatch.StartNew();
         _typeCache = new TypeCache();
         if (!config.Resources.TryGetIl2cppCachePath(out var baseCacheFile) || !TryDeserialize(baseCacheFile, out _typeCache)) {
-            RegenerateTypeCache(Config.GuessIl2cppDumpPath(), baseCacheFile);
-            Log.Info("Regenerated source il2cpp data in " + time.Elapsed);
+            if (!RegenerateTypeCache(Config.GuessIl2cppDumpPath(), baseCacheFile)) {
+                return _typeCache ??= new();
+            }
         } else {
             var cacheLastUpdate = File.GetLastWriteTimeUtc(baseCacheFile);
             var il2cppPath = Config.GuessIl2cppDumpPath();
             var il2cppLastUpdate = !File.Exists(il2cppPath) ? DateTime.MinValue : File.GetLastWriteTimeUtc(il2cppPath);
             if (il2cppLastUpdate > cacheLastUpdate) {
                 RegenerateTypeCache(Config.GuessIl2cppDumpPath(), baseCacheFile);
-                Log.Info("Regenerated source il2cpp data in " + time.Elapsed);
             }
         }
-        time.Restart();
 
         _typeCache ??= new();
         var success = TryApplyTypeCache(_typeCache, baseCacheFile);
         if (!success) {
-            RegenerateTypeCache(Config.GuessIl2cppDumpPath(), baseCacheFile);
-            Log.Info("Regenerated source il2cpp data in " + time.Elapsed);
+            if (!RegenerateTypeCache(Config.GuessIl2cppDumpPath(), baseCacheFile)) {
+                Log.Error("il2cpp data not available.");
+                return _typeCache;
+            }
+
             success = TryApplyTypeCache(_typeCache, baseCacheFile);
         }
         // TryApplyEnumOverrides(_il2cpp, paths.EnumOverridesDir);
         if (success) {
-            Log.Info("Loaded cached il2cpp data in " + time.Elapsed);
+            Log.Debug("Successfully loaded cached il2cpp data");
         } else {
-            Log.Error("Failed to load il2cpp cache data from " + baseCacheFile);
+            Log.Error($"Failed to load il2cpp cache data from {baseCacheFile}. Enums and class names won't resolve properly.");
         }
         // TryApplyTypePatches(_il2cpp, paths.TypePatchFilepath);
         return _typeCache;
     }
 
-    private void RegenerateTypeCache(string? il2cppPath, string cachePath)
+    private bool RegenerateTypeCache(string? il2cppPath, string cachePath)
     {
         if (!File.Exists(il2cppPath)) {
             Log.Error($"Il2cpp file does not exist, nor do we have a valid cache file for {Config.Game}. Enums and class names won't resolve properly.");
-            return;
+            return false;
         }
 
+        var time = Stopwatch.StartNew();
         _typeCache ??= new();
         var entries = DeserializeOrNull<Il2cppDump>(il2cppPath)
             ?? throw new Exception("File is not a valid il2cpp dump json file");
@@ -60,6 +62,8 @@ public sealed partial class Workspace : IDisposable
         using var outfs = File.Create(cachePath);
         JsonSerializer.Serialize(outfs, _typeCache.ToCacheData(), jsonOptions);
         outfs.Close();
+        Log.Info("Regenerated source il2cpp data in " + time.Elapsed);
+        return true;
     }
 
     private bool TryApplyTypePatches(TypeCache target, string patchFilename)

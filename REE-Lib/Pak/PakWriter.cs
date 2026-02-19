@@ -54,6 +54,8 @@ public class PakWriter
 
     public void AddFilesFromDirectory(string dir, bool includeSubfolders)
     {
+        if (!Directory.Exists(dir)) return;
+
         foreach (var file in Directory.EnumerateFiles(dir, "*.*", includeSubfolders ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly)) {
             var relativePath = Path.GetRelativePath(dir, file);
             fileList[PakUtils.NormalizePath(relativePath).ToLowerInvariant()] = new FileContentSource(file);

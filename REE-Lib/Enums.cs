@@ -171,8 +171,6 @@ namespace ReeLib
         UserData,
         /// <summary>.mdf2</summary>
         MeshMaterial,
-        /// <remarks>Deprecated in favor of <see cref="MeshMaterial"/></remarks>
-        MaterialDefinition = MeshMaterial,
         /// <summary>.rcol</summary>
         RequestSetCollider,
         /// <summary>.uvar</summary>
@@ -413,8 +411,6 @@ namespace ReeLib
         PSOPatch,
         /// <summary>.sst</summary>
         SparseShadowTree,
-        /// <remarks>Deprecated in favor of <see cref="SparseShadowTree"/></remarks>
-        SetStateList = SparseShadowTree,
         /// <summary>.chainwnd</summary>
         ChainWind,
         /// <summary>.pog</summary>
@@ -453,19 +449,6 @@ namespace ReeLib
         SoundStreamingLQG,
         /// <summary>.wel</summary>
         EventList,
-
-        /// <remarks>Deprecated in favor of <see cref="EffectCollision"/></remarks>
-        fxct,
-        /// <remarks>Deprecated in favor of <see cref="OodleNetworkRuntimeData"/></remarks>
-        ord,
-        /// <remarks>Deprecated in favor of <see cref="PointGraph"/></remarks>
-        pog,
-        /// <remarks>Deprecated in favor of <see cref="PointGraphList"/></remarks>
-        poglst,
-        /// <remarks>Deprecated in favor of <see cref="RenderConfigAsset"/></remarks>
-        rcfg,
-        /// <remarks>Deprecated in favor of <see cref="Shader"/></remarks>
-        sdf,
 
         TimelineBase, // Timeline or Clip
         MotionBase, // Motion or MotionTree or MotionList or GpuMotionList or MotionCamera or MotionCameraList

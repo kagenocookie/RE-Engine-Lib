@@ -80,6 +80,7 @@ public class LocalResources : ICloneable
         WriteIndented = true,
         DefaultIgnoreCondition = JsonIgnoreCondition.Never,
         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        IncludeFields = true,
     };
 
     [JsonIgnore]

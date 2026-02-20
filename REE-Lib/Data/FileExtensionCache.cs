@@ -7,23 +7,37 @@ namespace ReeLib;
 public sealed partial class FileExtensionCache
 {
     public Dictionary<string, int> Versions { get; set; }
-    public Dictionary<string, FileExtensionInfo> Info { get; set; }
+    [JsonIgnore]
+    public Dictionary<string, FileExtensionInfo> Info {
+        get {
+            if (!hasResolvedFormats) {
+                ResolveFileFormats();
+                hasResolvedFormats = true;
+            }
+            return _info;
+        }
+    }
+
+    [JsonInclude, JsonPropertyName("Info")]
+    private Dictionary<string, FileExtensionInfo> _info;
+
+    private bool hasResolvedFormats;
 
     public FileExtensionCache()
     {
         Versions = new();
-        Info = new();
+        _info = new();
     }
 
     public FileExtensionCache(Dictionary<string, int> versions)
     {
         Versions = versions;
-        Info = versions.ToDictionary(k => k.Key, v => new FileExtensionInfo() { Version = v.Value });
+        _info = versions.ToDictionary(k => k.Key, v => new FileExtensionInfo() { Version = v.Value });
     }
 
     public FileExtensionCache(Dictionary<string, FileExtensionInfo> info)
     {
-        Info = info;
+        _info = info;
         Versions = info.ToDictionary(k => k.Key, v => v.Value.Version);
     }
 
@@ -46,7 +60,7 @@ public sealed partial class FileExtensionCache
 
             HandleFilepath(line);
         }
-        foreach (var ext in Info) {
+        foreach (var ext in _info) {
             Versions[ext.Key] = ext.Value.Version;
         }
     }
@@ -82,10 +96,8 @@ public sealed partial class FileExtensionCache
         var versionStr = Path.GetExtension(filepath).Replace(".", "");
         var ext = Path.GetExtension(Path.GetFileNameWithoutExtension(filepath)).Replace(".", "");
         if (!string.IsNullOrEmpty(ext)) {
-            if (!Info.TryGetValue(ext, out var info)) {
-                Info[ext] = info = new FileExtensionInfo() {
-                    Type = FileFormatExtensions.ExtensionToEnum(ext),
-                };
+            if (!_info.TryGetValue(ext, out var info)) {
+                _info[ext] = info = new FileExtensionInfo();
             }
 
             info.CanHaveX64 = hasX64 || info.CanHaveX64;
@@ -110,11 +122,17 @@ public sealed partial class FileExtensionCache
         }
     }
 
+    private void ResolveFileFormats()
+    {
+        foreach (var (k, v) in _info) {
+            v.Type = FileFormatExtensions.ExtensionToEnum(k);
+        }
+    }
+
     public sealed class FileExtensionInfo
     {
         public List<string> Locales { get; set; } = new();
-        [JsonConverter(typeof(JsonStringEnumConverter<KnownFileFormats>))]
-        public KnownFileFormats Type { get; set; } = KnownFileFormats.Unknown;
+        [JsonIgnore] public KnownFileFormats Type { get; set; } = KnownFileFormats.Unknown;
         public int Version { get; set; }
         public bool CanHaveX64 { get; set; }
         public bool CanHaveStm { get; set; }

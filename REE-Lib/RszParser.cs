@@ -389,8 +389,7 @@ namespace ReeLib
         public string? OriginalType { get; set; }
         [JsonConverter(typeof(JsonStringEnumConverter<RszFieldType>))]
         public RszFieldType Type { get; set; }
-        [JsonConverter(typeof(JsonStringEnumConverter<KnownFileFormats>))]
-        public KnownFileFormats FileFormat { get; set; }
+        [JsonIgnore] public KnownFileFormats FileFormat { get; set; }
 
         public override string ToString() => $"{Type} {Name} => {ReplaceName ?? Name}";
     }

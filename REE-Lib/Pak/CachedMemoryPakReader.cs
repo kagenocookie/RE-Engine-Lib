@@ -316,7 +316,7 @@ public class CachedMemoryPakReader : PakReader, IDisposable
             0x67636C6A => KnownFileFormats.JointLODGroup,
             0x45445046 => KnownFileFormats.FreePolygon,
             0x504F5350 => KnownFileFormats.PSOPatch,
-            0x21545353 => KnownFileFormats.SetStateList,
+            0x21545353 => KnownFileFormats.SparseShadowTree,
             0x54435846 => KnownFileFormats.EffectCollision,
 
             // TODO

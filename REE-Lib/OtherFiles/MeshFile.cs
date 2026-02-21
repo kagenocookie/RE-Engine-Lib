@@ -1843,7 +1843,7 @@ namespace ReeLib
 		public List<uint>? Hashes { get; set; }
 		public List<Vector3>? FloatData { get; set; }
 
-		public bool RequiresStreamingData => Header.BufferCount > 1;
+		public bool RequiresStreamingData => Header.BufferCount > 1 || StreamingBuffers?.Count > 0;
 
 		public MeshBoneHierarchy? BoneData { get; set; }
 
@@ -1991,7 +1991,6 @@ namespace ReeLib
 				handler.Seek(header.streamingInfoOffset);
 				StreamingInfo = new MeshStreamingInfo();
 				StreamingInfo.Read(handler);
-				DataInterpretationException.ThrowIf(StreamingInfo.Entries.Length + 1 != header.BufferCount);
 			}
 			header.SdfTexturePath = header.sdfTexPathOffset == 0 ? null : handler.ReadWString(header.sdfTexPathOffset);
 

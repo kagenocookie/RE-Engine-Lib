@@ -739,7 +739,7 @@ namespace ReeLib
                 }
                 if (requestSet.ShapeUserdata.Count > requestSet.Group.Shapes.Count) {
                     Log.Warn($"Request set {requestSet.Info.Name} has more userdata items than shapes. Removing {requestSet.ShapeUserdata.Count - requestSet.Group.Shapes.Count} extra ones...");
-                    requestSet.ShapeUserdata.RemoveRange(requestSet.ShapeUserdata.Count, requestSet.ShapeUserdata.Count - requestSet.Group.Shapes.Count);
+                    requestSet.ShapeUserdata.RemoveRange(requestSet.Group.Shapes.Count, requestSet.ShapeUserdata.Count);
                 }
             }
 
@@ -765,6 +765,9 @@ namespace ReeLib
                         setGroupDict[requestSet.Group!] = setlist = new();
                     }
                     setlist.Add(requestSet);
+                    if (requestSet.Group != null && !Groups.Contains(requestSet.Group)) {
+                        Groups.Add(requestSet.Group);
+                    }
                 }
 
                 foreach (var group in Groups)

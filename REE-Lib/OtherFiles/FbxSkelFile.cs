@@ -1,60 +1,41 @@
 using System.Numerics;
-using ReeLib.InternalAttributes;
 
 namespace ReeLib.FbxSkel
 {
-    [RszGenerate]
-    public partial class FbxSkelBone : BaseModel
+    public class RefBone : ReadWriteModel
     {
-        [RszOffsetWString] public string name = "";
-        [RszStringHash(nameof(name))] public uint nameHash;
+        public string name = "";
+        public uint nameHash;
         public short parentIndex;
         public short symmetryIndex;
-        [RszIgnore] public Quaternion rotation;
-        [RszIgnore] public Vector3 position;
-        [RszIgnore] public Vector3 scale;
-        [RszIgnore] public int segmentScaling;
+        public Quaternion rotation;
+        public Vector3 position;
+        public Vector3 scale;
+        public bool segmentScaling;
 
-        protected override bool DoRead(FileHandler handler)
+        public override string ToString() => name;
+
+        protected override bool ReadWrite<THandler>(THandler action)
         {
-            DefaultRead(handler);
-            if (handler.FileVersion >= 5)
+            action.HandleOffsetWString(ref name);
+            action.Do(ref nameHash);
+            action.Do(ref parentIndex);
+            action.Do(ref symmetryIndex);
+            if (action.Handler.FileVersion >= 5)
             {
-                handler.Read(ref rotation);
-                handler.Read(ref position);
-                handler.Read(ref scale);
-                handler.Read(ref segmentScaling);
-                handler.ReadNull(4);
+                action.Do(ref rotation);
+                action.Do(ref position);
+                action.Do(ref scale);
+                action.Do(ref segmentScaling);
+                action.Null(7);
             }
             else
             {
-                handler.Read(ref position);
-                handler.ReadNull(4);
-                handler.Read(ref rotation);
-                handler.Read(ref scale);
-                handler.ReadNull(4);
-            }
-            return true;
-        }
-
-        protected override bool DoWrite(FileHandler handler)
-        {
-            DefaultWrite(handler);
-            if (handler.FileVersion >= 5)
-            {
-                handler.Write(ref rotation);
-                handler.Write(ref position);
-                handler.Write(ref scale);
-                handler.Write(ref scale);
-                handler.WriteNull(4);
-            }
-            else
-            {
-                handler.Write(ref position);
-                handler.WriteNull(4);
-                handler.Write(ref rotation);
-                handler.Write(ref scale);
-                handler.WriteNull(4);
+                action.Do(ref position);
+                action.Null(4);
+                action.Do(ref rotation);
+                action.Do(ref scale);
+                action.Null(4);
             }
             return true;
         }
@@ -63,6 +44,7 @@ namespace ReeLib.FbxSkel
 
 namespace ReeLib
 {
+    using ReeLib.Common;
     using ReeLib.FbxSkel;
     using ReeLib.via;
 
@@ -70,10 +52,27 @@ namespace ReeLib
     {
         public int version = 8;
 
-        public List<FbxSkelBone> Bones { get; } = new();
+        public List<RefBone> Bones { get; } = new();
         public List<Uint2> BonesLookup { get; } = new();
 
         public const int Magic = 0x6E6C6B73;
+
+        public RefBone? FindBoneByHash(uint boneHash)
+        {
+            int a = 0;
+            int b = BonesLookup.Count - 1;
+            while (a <= b) {
+                var m = a + ((b - a) / 2);
+                if (BonesLookup[m].x < boneHash) {
+                    a = m + 1;
+                } else if (BonesLookup[m].x > boneHash) {
+                    b = m - 1;
+                } else {
+                    return Bones[(int)BonesLookup[m].y];
+                }
+            }
+            return null;
+        }
 
         protected override bool DoRead()
         {
@@ -100,6 +99,8 @@ namespace ReeLib
 
         protected override bool DoWrite()
         {
+            foreach (var bone in Bones) bone.nameHash = MurMur3HashUtils.GetHash(bone.name);
+
             var handler = FileHandler;
             handler.Write(version);
             handler.Write(Magic);
@@ -114,6 +115,7 @@ namespace ReeLib
             handler.Write(offsetStart, handler.Tell());
             Bones.Write(handler);
 
+            // ensure we update the lookup in case any changes were made
             BonesLookup.Clear();
             foreach (var b in Bones.OrderBy(b => b.nameHash)) {
                 BonesLookup.Add(new Uint2() { x = b.nameHash, y = (uint)Bones.IndexOf(b) });

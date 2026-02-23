@@ -616,7 +616,7 @@ namespace ReeLib
             UserdataInfo info = new()
             {
                 typeId = typeId,
-                Path = Path,
+                Path = Path ?? "",
                 // CRC = parser.GetRSZClassCRC(typeId),
             };
             return info;

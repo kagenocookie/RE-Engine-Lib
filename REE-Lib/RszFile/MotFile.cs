@@ -3108,10 +3108,11 @@ namespace ReeLib
                 }
             }
 
-            // ensure all versions match
-            ChangeVersion(Header.version);
-
+            var currentVersion = Header.version;
             Header.CopyValuesFrom(source.Header);
+
+            // ensure we keep the current version
+            ChangeVersion(currentVersion);
         }
 
         private void FlattenBones()

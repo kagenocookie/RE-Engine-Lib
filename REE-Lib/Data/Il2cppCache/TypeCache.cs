@@ -32,6 +32,7 @@ public class TypeCache
     public readonly Dictionary<string, EnumDescriptor> enums = new();
     public Dictionary<string, List<string>> subclasses = new();
     public Dictionary<string, string[]> parentClasses = new();
+    private HashSet<string>? _componentTypes;
 
     private static Dictionary<string, Func<EnumDescriptor>> descriptorFactory = new();
 
@@ -90,6 +91,12 @@ public class TypeCache
             }
         }
         return changed;
+    }
+
+    public bool IsComponent(string classname)
+    {
+        _componentTypes ??= GetSubclasses("via.Component").ToHashSet();
+        return _componentTypes.Contains(classname);
     }
 
     public List<string> GetSubclasses(string baseclass)

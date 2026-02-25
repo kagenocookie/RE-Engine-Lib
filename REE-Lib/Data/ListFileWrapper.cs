@@ -116,8 +116,8 @@ public class ListFileWrapper
         }
 
         try {
-            ParsePattern(pattern);
-            var results = FilterAllFiles(PatternFilters, int.MaxValue).ToArray();
+            ParsePattern(PatternFilters, pattern);
+            var results = FilterAllFiles(Files, PatternFilters, int.MaxValue).ToArray();
             folderListCache[cacheKey] = results;
             return results;
         } catch (Exception) {
@@ -126,6 +126,19 @@ public class ListFileWrapper
             return [];
         }
     }
+
+    public static string[] FilterFiles(string[] fileList, string pattern)
+    {
+        try {
+            var patterns = new List<PathFilter>();
+            ParsePattern(patterns, pattern);
+            return FilterAllFiles(fileList, patterns, int.MaxValue).ToArray();
+        } catch (Exception) {
+            Log.Error("Failed to parse regex pattern: " + pattern);
+            return [];
+        }
+    }
+
     public void ResetResultCache()
     {
         folderListCache.Clear();
@@ -138,7 +151,8 @@ public class ListFileWrapper
         return false;
     }
 
-    private void ParsePattern(string pattern)
+
+    private static void ParsePattern(List<PathFilter> PatternFilters, string pattern)
     {
         PatternFilters.Clear();
         var span = pattern.AsSpan();
@@ -201,10 +215,10 @@ public class ListFileWrapper
         }
     }
 
-    public List<string> FilterAllFiles(List<PathFilter> filters, int limit)
+    private static List<string> FilterAllFiles(string[] files, List<PathFilter> filters, int limit)
     {
         var list = new List<string>();
-        foreach (var path in Files)
+        foreach (var path in files)
         {
             var allow = true;
             foreach (var filter in filters)

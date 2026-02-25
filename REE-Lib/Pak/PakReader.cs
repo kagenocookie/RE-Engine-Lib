@@ -31,7 +31,7 @@ public partial class PakReader
     public const string UnknownFilePathPrefix = "__unknown/";
 
     [GeneratedRegex("^__unknown/([a-zA-Z0-9]+)[.$]")]
-    private static partial Regex UnknownFileHashPattern();
+    protected static partial Regex UnknownFileHashPattern();
 
     public bool EnableConsoleLogging { get; set; } = true;
 

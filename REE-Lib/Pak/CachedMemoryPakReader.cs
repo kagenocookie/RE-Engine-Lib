@@ -24,7 +24,8 @@ public class CachedMemoryPakReader : PakReader, IDisposable
     public Dictionary<ulong, KnownFileFormats> UnknownFiles => _unknownFiles ??= CacheUnknownFiles();
     public string[] UnknownFilePaths => _unknownFilePaths ??= UnknownFiles
         .OrderBy(kv => kv.Key)
-        .Select(kv => PakReader.UnknownFilePathPrefix + kv.Key.ToString("X16") + "." + FileFormatExtensions.FormatToFileExtension(kv.Value)).ToArray();
+        .Select(kv => $"{PakReader.UnknownFilePathPrefix}{kv.Key.ToString("X16")}.{FileFormatExtensions.FormatToFileExtension(kv.Value)}")
+        .ToArray();
 
     private Dictionary<ulong, KnownFileFormats> CacheUnknownFiles()
     {
@@ -85,6 +86,18 @@ public class CachedMemoryPakReader : PakReader, IDisposable
     {
         var hash = PakUtils.GetFilepathHash(filepath);
         return GetFile(hash);
+    }
+
+    /// <summary>
+    /// Reads a file from a filepath formatted in the "__unknown/([a-zA-Z0-9]+)[.$]" unknown filepath pattern.
+    /// </summary>
+    public MemoryStream? GetUnknownFile(string filepath)
+    {
+        var hashMatch = UnknownFileHashPattern().Match(filepath);
+        if (hashMatch.Success && ulong.TryParse(hashMatch.Groups[1].ValueSpan, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out var hash)) {
+            return GetFile(hash);
+        }
+        return null;
     }
 
     public int GetSize(string filepath)
@@ -255,6 +268,7 @@ public class CachedMemoryPakReader : PakReader, IDisposable
             PfbFile.Magic => KnownFileFormats.Prefab,
             RcolFile.Magic => KnownFileFormats.RequestSetCollider,
             ScnFile.Magic => KnownFileFormats.Scene,
+            FbxSkelFile.Magic => KnownFileFormats.Skeleton,
             UserFile.Magic => KnownFileFormats.UserData,
             UVarFile.Magic => KnownFileFormats.UserVariables,
 
@@ -274,7 +288,6 @@ public class CachedMemoryPakReader : PakReader, IDisposable
             0x736C6375 => KnownFileFormats.UserCurveList,
             0x67727472 => KnownFileFormats.RetargetRig,
             0x736E636A => KnownFileFormats.JointConstraints,
-            0x7E7C6B73 => KnownFileFormats.Skeleton,
             0x3267656C => KnownFileFormats.IkLeg2,
             0x326C6B69 => KnownFileFormats.IkLookAt2,
             0x736C6B69 => KnownFileFormats.IkLegSpine,
@@ -285,7 +298,6 @@ public class CachedMemoryPakReader : PakReader, IDisposable
             0x61646B69 => KnownFileFormats.IkDamageAction,
             0x6B696266 => KnownFileFormats.FullBodyIKRig,
             0x64637273 => KnownFileFormats.VibrationSource,
-            0x6E6C6B73 => KnownFileFormats.FbxSkeleton,
             0x4D534C43 => KnownFileFormats.CollisionSkinningMesh,
             0x50534C43 => KnownFileFormats.CollisionShapePreset,
             0x50415257 => KnownFileFormats.WrapDeformer,
@@ -318,6 +330,8 @@ public class CachedMemoryPakReader : PakReader, IDisposable
             0x504F5350 => KnownFileFormats.PSOPatch,
             0x21545353 => KnownFileFormats.SparseShadowTree,
             0x54435846 => KnownFileFormats.EffectCollision,
+            0x44525453 => KnownFileFormats.Strands,
+            0x50524C43 => KnownFileFormats.ClothResetPose,
 
             // TODO
             // 0x00000000 => KnownFileFormats.GpuMotionList,
@@ -336,9 +350,7 @@ public class CachedMemoryPakReader : PakReader, IDisposable
             // 0x00000000 => KnownFileFormats.DialogueList,
             // 0x00000000 => KnownFileFormats.DialogueTimeline,
             // 0x00000000 => KnownFileFormats.DialogueTimelineList,
-            // 0x00000000 => KnownFileFormats.ClothResetPose,
             // 0x00000000 => KnownFileFormats.ColliderSet,
-            // 0x00000000 => KnownFileFormats.Strands,
             // 0x00000000 => KnownFileFormats.HeightTexture,
             // 0x00000000 => KnownFileFormats.ChainWind,
             // 0x00000000 => KnownFileFormats.PointGraph,

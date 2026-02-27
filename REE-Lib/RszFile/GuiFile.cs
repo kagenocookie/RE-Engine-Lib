@@ -860,6 +860,7 @@ namespace ReeLib.Gui
         public GuiObjectID ContainerID;
         public Guid guid3; // could be some sort of "group" or "tag" guid
         private ulong uknNum; // seems like a set of bools
+        private long uknOffset;
 
         public List<Attribute> Attributes { get; } = new();
         public List<Attribute> ExtraAttributes { get; } = new();
@@ -879,7 +880,8 @@ namespace ReeLib.Gui
             var attributesOffset = handler.Read<long>();
             var reordersOffset = Version >= GuiVersion.RE4 ? handler.Read<long>() : 0;
             var extraAttributesOffset = handler.Read<long>();
-            if (Version >= GuiVersion.RE_RT) handler.ReadNull(8);
+            if (Version >= GuiVersion.RE_RT) handler.Read(ref uknOffset); // TODO
+            Log.WarnIf(uknOffset > 0, "Found unsupported offset data in GUI file");
             var elementDataOffset = handler.Read<long>();
             if (Version >= GuiVersion.RE_RT) handler.Read(ref uknNum);
 
@@ -951,9 +953,9 @@ namespace ReeLib.Gui
 
             attributesOffsetStart = handler.Tell();
             handler.Skip(8);
-            if (Version >= GuiVersion.RE4) handler.Skip(8);
+            if (Version >= GuiVersion.RE4) handler.Skip(8); // reordersOffset
             handler.Skip(8);
-            if (Version >= GuiVersion.RE_RT) handler.WriteNull(8);
+            if (Version >= GuiVersion.RE_RT) handler.Write(ref uknOffset);
 
             switch (ClassName) {
                 case "via.gui.TextureSet":

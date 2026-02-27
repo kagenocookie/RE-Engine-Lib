@@ -271,6 +271,7 @@ public class CachedMemoryPakReader : PakReader, IDisposable
             FbxSkelFile.Magic => KnownFileFormats.Skeleton,
             UserFile.Magic => KnownFileFormats.UserData,
             UVarFile.Magic => KnownFileFormats.UserVariables,
+            MotpackFile.Magic => KnownFileFormats.MotionPack,
 
 
             0x00464453 => KnownFileFormats.MasterMaterial, // same as VfxShader, Shader

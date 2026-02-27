@@ -181,6 +181,8 @@ namespace ReeLib
         Motion,
         /// <summary>.mottree</summary>
         MotionTree,
+        /// <summary>.motpack</summary>
+        MotionPack,
         /// <summary>.motlist</summary>
         MotionList,
         /// <summary>.motbank</summary>

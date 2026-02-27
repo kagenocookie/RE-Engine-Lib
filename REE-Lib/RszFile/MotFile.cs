@@ -2652,7 +2652,12 @@ namespace ReeLib
 
         public MotBone? GetBoneByHash(uint hash) => Bones.FirstOrDefault(b => b.boneHash == hash);
 
-        private bool IsMotlist => PathUtils.GetFilenameExtensionWithoutSuffixes(FileHandler.FilePath ?? string.Empty).SequenceEqual("motlist") == true;
+        private bool IsMotlist {
+            get {
+                var ext = PathUtils.GetFilenameExtensionWithoutSuffixes(FileHandler.FilePath ?? string.Empty);
+                return ext.SequenceEqual("motlist") || ext.SequenceEqual("motpack");
+            }
+        }
 
         public override KnownFileFormats MotType => KnownFileFormats.Motion;
 

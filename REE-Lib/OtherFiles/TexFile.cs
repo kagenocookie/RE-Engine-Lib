@@ -143,7 +143,7 @@ namespace ReeLib
 			{ "ONI2", new (240701001, TexSerializerVersion.MHRise, [GameName.oni2]) },
 			{ "MHWILDS", new (241106027, TexSerializerVersion.MHWilds, [GameName.mhwilds]) },
 			{ "MHStories3", new (251111100, TexSerializerVersion.MHWilds, [GameName.mhsto3]) },
-			{ "PRAGMATA", new (250813143, TexSerializerVersion.MHWilds, [GameName.pragmata]) },
+			{ "RE9/PRAGMATA", new (250813143, TexSerializerVersion.MHWilds, [GameName.pragmata, GameName.re9]) },
 		};
 
 		public static readonly string[] AllVersionConfigs = Versions.Reverse().OrderByDescending(kv => kv.Value.serializerVersion).Select(kv => kv.Key).ToArray();

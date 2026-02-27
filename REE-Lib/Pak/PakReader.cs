@@ -206,7 +206,12 @@ public partial class PakReader
 
             var pak = new PakFile() { IncludeUnknowns = IncludeUnknownFilePaths };
             pak.filepath = pakfile;
-            pak.ReadContents(pakfile, assignEntryPaths ? searchedPaths : null);
+            try {
+                pak.ReadContents(pakfile, assignEntryPaths ? searchedPaths : null);
+            } catch (Exception e) {
+                Log.Error("Failed to read PAK " + Path.GetFileName(pakfile) + ": " + e.Message);
+                continue;
+            }
 
             if (pak.Entries.Count > 0) {
                 yield return pak;

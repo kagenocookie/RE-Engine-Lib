@@ -118,6 +118,7 @@ namespace ReeLib
         re7,
         re7rt,
         re8,
+        re9,
         dmc5,
         mhrise,
         sf6,
@@ -154,6 +155,7 @@ namespace ReeLib
         kunitsu,
         drdr,
         pragmata,
+        re9,
     }
 
     public enum KnownFileFormats

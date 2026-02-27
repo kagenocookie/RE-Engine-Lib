@@ -23,6 +23,7 @@ namespace ReeLib.Mot
         DD2 = 698,
         MHWILDS = 932,
         MHStories3 = 943,
+        RE9 = 983,
         Pragmata = 993,
     }
 

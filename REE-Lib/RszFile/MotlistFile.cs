@@ -20,6 +20,7 @@ namespace ReeLib.Motlist
         DD2 = 751,
         MHWILDS = 992,
         MHStories3 = 1004,
+        RE9 = 1047,
         Pragmata = 1057,
     }
 
@@ -39,6 +40,7 @@ namespace ReeLib.Motlist
             MotlistVersion.MHWILDS => MotVersion.MHWILDS,
             MotlistVersion.MHStories3 => MotVersion.MHStories3,
             MotlistVersion.Pragmata => MotVersion.Pragmata,
+            MotlistVersion.RE9 => MotVersion.RE9,
             _ => MotVersion.Pragmata,
         };
 
@@ -56,6 +58,7 @@ namespace ReeLib.Motlist
             MotlistVersion.MHWILDS => MotTreeVersion.DD2,
             MotlistVersion.MHStories3 => MotTreeVersion.DD2,
             MotlistVersion.Pragmata => MotTreeVersion.Pragmata,
+            MotlistVersion.RE9 => MotTreeVersion.Pragmata,
             _ => MotTreeVersion.Pragmata,
         };
 
@@ -73,6 +76,7 @@ namespace ReeLib.Motlist
             MotVersion.MHWILDS => ClipVersion.MHWilds,
             MotVersion.MHStories3 => ClipVersion.MHStories3,
             MotVersion.Pragmata => ClipVersion.Pragmata,
+            MotVersion.RE9 => ClipVersion.RE9,
             _ => ClipVersion.Pragmata,
         };
     }
@@ -105,7 +109,7 @@ namespace ReeLib.Motlist
                 var offset = handler.Read<long>();
                 BaseMotListPath = offset > 0 ? handler.ReadWString(offset) : null;
             }
-            if (version >= MotlistVersion.Pragmata)
+            if (version >= MotlistVersion.RE9)
             {
                 handler.Read(ref uknOffset);
                 DataInterpretationException.DebugWarnIf(uknOffset > 0);
@@ -138,7 +142,7 @@ namespace ReeLib.Motlist
                     handler.WriteNull(8);
                 }
             }
-            if (version >= MotlistVersion.Pragmata)
+            if (version >= MotlistVersion.RE9)
             {
                 handler.Write(ref uknOffset);
             }

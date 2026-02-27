@@ -22,6 +22,7 @@ namespace ReeLib.Mesh
 		Onimusha,
 		MHWILDS,
 		Pragmata,
+		RE9, // TODO add a better separator for 6/8 weights, pragmata and re9 formats are identical part from that
 	}
 
 	[Flags]
@@ -248,6 +249,7 @@ namespace ReeLib.Mesh
 		UV1 = 3,
 		BoneWeights = 4,
 		Colors = 5,
+		UnknownData = 6,
 		BoneWeights2 = 7,
 	}
 
@@ -385,6 +387,10 @@ namespace ReeLib.Mesh
 				headers.Add(new MeshBufferItemHeader() { type = VertexBufferType.Colors, offset = offset, size = 4 });
 				offset = headers.Last().CalculateNextOffset(buffer.Colors.Length);
 			}
+			if (buffer.UnknownData.Length > 0) {
+				headers.Add(new MeshBufferItemHeader() { type = VertexBufferType.UnknownData, offset = offset, size = 4 });
+				offset = headers.Last().CalculateNextOffset(buffer.UnknownData.Length);
+			}
 			if (buffer.ExtraWeights?.Length > 0) {
 				headers.Add(new MeshBufferItemHeader() { type = VertexBufferType.BoneWeights2, offset = offset, size = 16 });
 				offset = headers.Last().CalculateNextOffset(buffer.ExtraWeights.Length);
@@ -469,6 +475,7 @@ namespace ReeLib.Mesh
 		public Vector2[] UV0 = [];
 		public Vector2[] UV1 = [];
 		public Color[] Colors = [];
+		public Color[] UnknownData = [];
 		public VertexBoneWeights[] Weights = [];
 		public VertexBoneWeights[]? ExtraWeights;
 		public ushort[]? Faces;
@@ -812,6 +819,9 @@ namespace ReeLib.Mesh
                 case VertexBufferType.Colors:
                     Colors = handler.ReadArray<Color>(count);
                     break;
+                // case VertexBufferType.UnknownData:
+                //     UnknownData = handler.ReadArray<Color>(count);
+                //     break;
                 case VertexBufferType.BoneWeights:
                     Weights = new VertexBoneWeights[count];
                     for (int k = 0; k < count; ++k) {
@@ -860,6 +870,9 @@ namespace ReeLib.Mesh
                     break;
                 case VertexBufferType.Colors:
                     handler.WriteArray<Color>(Colors);
+                    break;
+                case VertexBufferType.UnknownData:
+                    handler.WriteArray<Color>(UnknownData);
                     break;
                 case VertexBufferType.BoneWeights:
                     for (int k = 0; k < count; ++k) {
@@ -1880,6 +1893,7 @@ namespace ReeLib
 			{ "MHWilds", new (240704828, 241111606, MeshSerializerVersion.MHWILDS, [GameName.mhwilds], extraWeightBuffer: true) },
 			{ "MHStories3", new (250203152, 250604100, MeshSerializerVersion.Pragmata, [GameName.mhsto3], extraWeightBuffer: true) },
 			{ "Pragmata", new (250707828, 250925211, MeshSerializerVersion.Pragmata, [GameName.pragmata], extraWeightBuffer: true) },
+			{ "RE9", new (250904410, 250925211, MeshSerializerVersion.RE9, [GameName.re9]) },
 		};
 
 		public static readonly string[] AllVersionConfigs = Versions.Reverse().OrderByDescending(kv => kv.Value.serializerVersion).Select(kv => kv.Key).ToArray();

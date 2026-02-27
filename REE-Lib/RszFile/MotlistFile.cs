@@ -88,7 +88,7 @@ namespace ReeLib.Motlist
         public int uknValue; // dmc5
         public long pointersOffset;
         public long motionIndicesOffset;
-        public long uknOffset;
+        public string? motpackFilepath;
         public int numMots;
         public short uknNum;
 
@@ -111,8 +111,12 @@ namespace ReeLib.Motlist
             }
             if (version >= MotlistVersion.RE9)
             {
-                handler.Read(ref uknOffset);
-                DataInterpretationException.DebugWarnIf(uknOffset > 0);
+                var motpackOffsetOffset = handler.Read<long>();
+                if (motpackOffsetOffset > 0)
+                {
+                    using var _ = handler.SeekJumpBack(motpackOffsetOffset);
+                    motpackFilepath = handler.ReadOffsetWStringNullable();
+                }
             }
             handler.Read(ref numMots);
             if (version >= MotlistVersion.MHR)
@@ -142,9 +146,15 @@ namespace ReeLib.Motlist
                     handler.WriteNull(8);
                 }
             }
+            var motpackPathOffsetOffset = 0L;
             if (version >= MotlistVersion.RE9)
             {
-                handler.Write(ref uknOffset);
+                if (string.IsNullOrEmpty(motpackFilepath)) {
+                    handler.WriteNull(8);
+                } else {
+                    motpackPathOffsetOffset = handler.Tell();
+                    handler.Skip(8);
+                }
             }
             handler.Write(ref numMots);
             if (version >= MotlistVersion.MHR)
@@ -152,6 +162,13 @@ namespace ReeLib.Motlist
                 handler.Write(ref uknNum);
             }
             handler.StringTableFlush();
+            if (motpackPathOffsetOffset != 0 && !string.IsNullOrEmpty(motpackFilepath))
+            {
+                handler.Align(8);
+                handler.Write(motpackPathOffsetOffset, handler.Tell());
+                handler.Write(handler.Tell() + 8);
+                handler.WriteWString(motpackFilepath);
+            }
             return true;
         }
     }

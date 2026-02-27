@@ -42,10 +42,11 @@ namespace ReeLib.Pak
     [Flags]
     public enum PakFeatureFlags : short
     {
-        UknFlag4 = 4,
+        ExtraData = 4,
         EncryptEntryList = 8,
         ExtraInteger = 16,
         HasChunkContentTable = 32,
+        KnownFlags = ExtraData|EncryptEntryList|ExtraInteger|HasChunkContentTable,
     }
 
     public class PakEntry
@@ -311,7 +312,7 @@ namespace ReeLib
                 throw new InvalidDataException($"Unsupported PAK version {Header.majorVersion}.{Header.minorVersion}");
             }
 
-            var unknownFlags = Header.featureFlags & ~PakFeatureFlags.EncryptEntryList & ~PakFeatureFlags.ExtraInteger & ~PakFeatureFlags.HasChunkContentTable;
+            var unknownFlags = Header.featureFlags & ~PakFeatureFlags.KnownFlags;
             if (unknownFlags != 0)
             {
                 throw new InvalidDataException($"Unsupported PAK feature flags {Header.featureFlags} for file {filepath}");
@@ -328,6 +329,11 @@ namespace ReeLib
             if ((Header.featureFlags & PakFeatureFlags.ExtraInteger) != 0)
             {
                 stream.Seek(4, SeekOrigin.Current);
+            }
+
+            if ((Header.featureFlags & PakFeatureFlags.ExtraData) != 0)
+            {
+                stream.Seek(9, SeekOrigin.Current);
             }
 
             if (Header.featureFlags != 0)

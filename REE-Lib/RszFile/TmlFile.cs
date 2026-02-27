@@ -55,7 +55,7 @@ namespace ReeLib.Tml
             action.Do(ref rootTracksOffset);
             action.Do(ref groupsOffset);
             action.Do(version >= ClipVersion.RE8, ref sectionsOffset);
-            action.Do(version >= ClipVersion.Pragmata, ref nodesReorderOffset2);
+            action.Do(version >= ClipVersion.RE9, ref nodesReorderOffset2);
             action.Do(ref nodesReorderOffset);
             action.Do(ref tracksOffset);
             action.Do(ref propertiesOffset);
@@ -141,6 +141,7 @@ namespace ReeLib.Tml
     {
         public byte uknByte;
         public byte uknByte2;
+        public byte uknByte3;
         public string Tag = "";
 
         public MotionTreeNodeType nodeType;
@@ -169,7 +170,7 @@ namespace ReeLib.Tml
             action.Do(ref nodeType);
             action.Do(ref uknByte);
             action.Do(ref uknByte2);
-            action.Null(1);
+            action.Do(ref uknByte3);
 
             action.Do(ref pragmataHash);
             action.Do(ref nameHash1);
@@ -244,6 +245,7 @@ namespace ReeLib.Tml
         private long nameOffset;
 
         public long uknIndex;
+        public long uknData;
 
         public string Name = "";
 
@@ -255,14 +257,14 @@ namespace ReeLib.Tml
             handler.Read(ref endFrame);
             handler.ReadNull(4);
             handler.Read(ref frameCount);
-            if (Version >= ClipVersion.Pragmata)
+            if (Version >= ClipVersion.RE9)
             {
                 handler.Read(ref uknIndex);
             }
             handler.Read(ref nameOffset);
-            if (Version >= ClipVersion.Pragmata)
+            if (Version >= ClipVersion.RE9)
             {
-                handler.ReadNull(8);
+                handler.Read(ref uknData);
             }
             return true;
         }
@@ -273,14 +275,14 @@ namespace ReeLib.Tml
             handler.Write(ref endFrame);
             handler.WriteNull(4);
             handler.Write(ref frameCount);
-            if (Version >= ClipVersion.Pragmata)
+            if (Version >= ClipVersion.RE9)
             {
                 handler.Write(ref uknIndex);
             }
             handler.Write(nameOffset = handler.StringTableAdd(Name, false).TableOffset);
-            if (Version >= ClipVersion.Pragmata)
+            if (Version >= ClipVersion.RE9)
             {
-                handler.WriteNull(8);
+                handler.Write(ref uknData);
             }
             return true;
         }
@@ -347,7 +349,6 @@ namespace ReeLib
 
             if (Header.sectionCount > 0)
             {
-                DataInterpretationException.DebugWarnIf(Header.sectionCount > 1 && Header.version >= ClipVersion.Pragmata);
                 handler.Seek(Header.sectionsOffset);
                 for (int i = 0; i < Header.sectionCount; ++i)
                 {

@@ -305,6 +305,9 @@ namespace ReeLib.Mot
         LoadVector3sXYAxis24Bit,
         LoadVector3sYZAxis24Bit,
         LoadVector3sZXAxis24Bit,
+        LoadVector3sXYAxis28Bit,
+        LoadVector3sYZAxis28Bit,
+        LoadVector3sZXAxis28Bit,
     }
 
     public enum FrameIndexSize
@@ -425,6 +428,7 @@ namespace ReeLib.Mot
                         return 3;
 
                     if (TranslationCompressionType is
+                        Vector3Decompression.LoadVector3sZXAxis28Bit or Vector3Decompression.LoadVector3sYZAxis28Bit or Vector3Decompression.LoadVector3sXYAxis28Bit or
                         Vector3Decompression.LoadVector3sZXAxis24Bit or Vector3Decompression.LoadVector3sYZAxis24Bit or Vector3Decompression.LoadVector3sXYAxis24Bit or
                         Vector3Decompression.LoadVector3sXYAxis20Bit or Vector3Decompression.LoadVector3sYZAxis20Bit or Vector3Decompression.LoadVector3sZXAxis20Bit or
                         Vector3Decompression.LoadVector3sXYAxis16Bit or Vector3Decompression.LoadVector3sXZAxis16Bit or Vector3Decompression.LoadVector3sYZAxis16Bit or
@@ -668,7 +672,7 @@ namespace ReeLib.Mot
 
         private static Dictionary<uint, Vector3Decompression> TranslationDict = new() {
             { 0x00000, Vector3Decompression.LoadVector3sFull },
-            { 0x20000, Vector3Decompression.LoadVector3s5BitB },  // 16 bits per value
+            { 0x20000, Vector3Decompression.LoadVector3s5BitB },  // 2B (16 bits) per value
             { 0x21000, Vector3Decompression.LoadVector3sXAxis16Bit },
             { 0x22000, Vector3Decompression.LoadVector3sYAxis16Bit },
             { 0x23000, Vector3Decompression.LoadVector3sZAxis16Bit },
@@ -676,14 +680,14 @@ namespace ReeLib.Mot
             { 0x25000, Vector3Decompression.LoadVector3sXYAxis8Bit },
             { 0x26000, Vector3Decompression.LoadVector3sXZAxis8Bit },
             { 0x27000, Vector3Decompression.LoadVector3sYZAxis8Bit },
-            { 0x30000, Vector3Decompression.LoadVector3s8BitB }, // 24 bits per value
+            { 0x30000, Vector3Decompression.LoadVector3s8BitB }, // 3B (24 bits) per value
             { 0x31000, Vector3Decompression.LoadVector3sXAxis24Bit },
             { 0x32000, Vector3Decompression.LoadVector3sYAxis24Bit },
             { 0x33000, Vector3Decompression.LoadVector3sZAxis24Bit },
             { 0x35000, Vector3Decompression.LoadVector3sYZAxis12Bit },
             { 0x36000, Vector3Decompression.LoadVector3sXZAxis12Bit },
             { 0x37000, Vector3Decompression.LoadVector3sXYAxis12Bit },
-            { 0x40000, Vector3Decompression.LoadVector3s10BitB }, // 32 bits per value
+            { 0x40000, Vector3Decompression.LoadVector3s10BitB }, // 4B (32 bits) per value
             { 0x41000, Vector3Decompression.LoadVector3sXAxis },
             { 0x42000, Vector3Decompression.LoadVector3sYAxis },
             { 0x43000, Vector3Decompression.LoadVector3sZAxis },
@@ -691,16 +695,19 @@ namespace ReeLib.Mot
             { 0x45000, Vector3Decompression.LoadVector3sXYAxis16Bit },
             { 0x46000, Vector3Decompression.LoadVector3sXZAxis16Bit },
             { 0x47000, Vector3Decompression.LoadVector3sYZAxis16Bit },
-            { 0x50000, Vector3Decompression.LoadVector3s13Bit }, // 40 bits per value
+            { 0x50000, Vector3Decompression.LoadVector3s13Bit }, // 5B (40 bits) per value
             { 0x55000, Vector3Decompression.LoadVector3sXYAxis20Bit },
             { 0x56000, Vector3Decompression.LoadVector3sYZAxis20Bit },
             { 0x57000, Vector3Decompression.LoadVector3sZXAxis20Bit },
-            { 0x60000, Vector3Decompression.LoadVector3s16Bit }, // 48 bits per value
+            { 0x60000, Vector3Decompression.LoadVector3s16Bit }, // 6B (48 bits) per value
             { 0x65000, Vector3Decompression.LoadVector3sXYAxis24Bit },
             { 0x66000, Vector3Decompression.LoadVector3sYZAxis24Bit },
             { 0x67000, Vector3Decompression.LoadVector3sZXAxis24Bit },
-            { 0x70000, Vector3Decompression.LoadVector3s18Bit }, // 56 bits per value
-            { 0x80000, Vector3Decompression.LoadVector3s21BitB }, // 64 bits per value
+            { 0x70000, Vector3Decompression.LoadVector3s18Bit }, // 7B (56 bits) per value
+            { 0x75000, Vector3Decompression.LoadVector3sXYAxis28Bit }, // guess
+            { 0x76000, Vector3Decompression.LoadVector3sYZAxis28Bit },
+            { 0x77000, Vector3Decompression.LoadVector3sZXAxis28Bit },
+            { 0x80000, Vector3Decompression.LoadVector3s21BitB }, // 8B (64 bits) per value
             { 0x85000, Vector3Decompression.LoadVector3sXYAxis },
             { 0x86000, Vector3Decompression.LoadVector3sYZAxis },
             { 0x87000, Vector3Decompression.LoadVector3sZXAxis },
@@ -1108,6 +1115,30 @@ namespace ReeLib.Mot
                             translation.Z = unpackData[0] * (((data >> 0) & 0xFFFFFF) * (1f / 0xFFFFFF)) + unpackData[4];
                             break;
                         }
+                    case Vector3Decompression.LoadVector3sXYAxis28Bit:
+                        {
+                            var data = ReadBytesAsUInt64(handler, 7);
+                            translation.X = unpackData[0] * ((data >> 0) & 0xFFFFFFF) * (1f / 0xFFFFFFF) + unpackData[2];
+                            translation.Y = unpackData[1] * ((data >> 28) & 0xFFFFFFF) * (1f / 0xFFFFFFF) + unpackData[3];
+                            translation.Z = unpackData[4];
+                            break;
+                        }
+                    case Vector3Decompression.LoadVector3sYZAxis28Bit:
+                        {
+                            var data = ReadBytesAsUInt64(handler, 7);
+                            translation.X = unpackData[2];
+                            translation.Y = unpackData[0] * ((data >> 00) & 0xFFFFFFF) * (1f / 0xFFFFFFF) + unpackData[3];
+                            translation.Z = unpackData[1] * ((data >> 28) & 0xFFFFFFF) * (1f / 0xFFFFFFF) + unpackData[4];
+                            break;
+                        }
+                    case Vector3Decompression.LoadVector3sZXAxis28Bit:
+                        {
+                            var data = ReadBytesAsUInt64(handler, 7);
+                            translation.X = unpackData[1] * (((data >> 28) & 0xFFFFFFF) * (1f / 0xFFFFFFF)) + unpackData[2];
+                            translation.Y = unpackData[3];
+                            translation.Z = unpackData[0] * (((data >> 0) & 0xFFFFFFF) * (1f / 0xFFFFFFF)) + unpackData[4];
+                            break;
+                        }
                     case Vector3Decompression.LoadVector3sXYZAxis:
                         translation.X = translation.Y = translation.Z = handler.Read<float>();
                         break;
@@ -1413,6 +1444,33 @@ namespace ReeLib.Mot
                                 ((ulong)MathF.Round((translation.X - unpackData[2]) / unpackData[1] * 0xFFFFFF) << 24)
                             );
                             WriteUnit64AsBytes(handler, data, 6);
+                            break;
+                        }
+                    case Vector3Decompression.LoadVector3sXYAxis28Bit:
+                        {
+                            ulong data = (
+                                ((ulong)MathF.Round((translation.X - unpackData[2]) / unpackData[0] * 0xFFFFFF) << 00) |
+                                ((ulong)MathF.Round((translation.Y - unpackData[3]) / unpackData[1] * 0xFFFFFF) << 28)
+                            );
+                            WriteUnit64AsBytes(handler, data, 7);
+                            break;
+                        }
+                    case Vector3Decompression.LoadVector3sYZAxis28Bit:
+                        {
+                            ulong data = (
+                                ((ulong)MathF.Round((translation.Y - unpackData[3]) / unpackData[0] * 0xFFFFFF) << 00) |
+                                ((ulong)MathF.Round((translation.Z - unpackData[4]) / unpackData[1] * 0xFFFFFF) << 28)
+                            );
+                            WriteUnit64AsBytes(handler, data, 7);
+                            break;
+                        }
+                    case Vector3Decompression.LoadVector3sZXAxis28Bit:
+                        {
+                            ulong data = (
+                                ((ulong)MathF.Round((translation.Z - unpackData[4]) / unpackData[0] * 0xFFFFFF) << 00) |
+                                ((ulong)MathF.Round((translation.X - unpackData[2]) / unpackData[1] * 0xFFFFFF) << 28)
+                            );
+                            WriteUnit64AsBytes(handler, data, 7);
                             break;
                         }
                     case Vector3Decompression.LoadVector3sXYZAxis:
@@ -1911,6 +1969,7 @@ namespace ReeLib.Mot
                     case Vector3Decompression.LoadVector3sXYAxis16Bit:
                     case Vector3Decompression.LoadVector3sXYAxis20Bit:
                     case Vector3Decompression.LoadVector3sXYAxis24Bit:
+                    case Vector3Decompression.LoadVector3sXYAxis28Bit:
                         unpackData[0] = scale.X; unpackData[1] = scale.Y;
                         SetVector(unpackData, 2, min);
                         break;
@@ -1921,6 +1980,8 @@ namespace ReeLib.Mot
                         SetVector(unpackData, 2, min);
                         break;
                     case Vector3Decompression.LoadVector3sZXAxis20Bit:
+                    case Vector3Decompression.LoadVector3sZXAxis24Bit:
+                    case Vector3Decompression.LoadVector3sZXAxis28Bit:
                         unpackData[0] = scale.Z; unpackData[1] = scale.X;
                         SetVector(unpackData, 2, min);
                         break;
@@ -1929,6 +1990,7 @@ namespace ReeLib.Mot
                     case Vector3Decompression.LoadVector3sYZAxis16Bit:
                     case Vector3Decompression.LoadVector3sYZAxis20Bit:
                     case Vector3Decompression.LoadVector3sYZAxis24Bit:
+                    case Vector3Decompression.LoadVector3sYZAxis28Bit:
                         unpackData[0] = scale.Y; unpackData[1] = scale.Z;
                         SetVector(unpackData, 2, min);
                         break;

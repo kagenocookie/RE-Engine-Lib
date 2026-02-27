@@ -37,6 +37,11 @@ namespace ReeLib.Aimp
         /// DD2, MHWilds
         /// </summary>
         Format46 = 46,
+
+        /// <summary>
+        /// RE9, Pragmata
+        /// </summary>
+        Format47 = 47,
     }
 
     public enum ContentGroupType
@@ -903,6 +908,8 @@ namespace ReeLib.Aimp
             public int[] Indices { get => indices; set => indices = value; }
         }
 
+        public int[] pairIndices = [];
+
         public override Vector3 GetNodeCenter(ContentGroupContainer container, int i) => (Nodes[i].min + Nodes[i].max) * 0.5f;
 
         protected override RangeI GetVertexRange(ContentGroupContainer container)
@@ -976,17 +983,32 @@ namespace ReeLib.Aimp
 
         public override bool ReadData(FileHandler handler)
         {
-            // don't even store the indices here, since they're always -1
-            for (int i = 0; i < Nodes.Count; ++i)
+            if (this.format < AimpFormat.Format47)
             {
-                DataInterpretationException.ThrowIf(handler.Read<int>() != -1, "Boundary aimp content type isn't supposed to have indices");
+                // don't even store the indices here, since they're always -1
+                handler.Skip(Nodes.Count * 4);
+            }
+            else
+            {
+                pairIndices = new int[Nodes.Count];
+                handler.ReadArray(pairIndices);
             }
             return true;
         }
 
         public override void WriteData(FileHandler handler)
         {
-            for (int i = 0; i < Nodes.Count; ++i) handler.Write(-1);
+            if (this.format < AimpFormat.Format47)
+            {
+                for (int i = 0; i < Nodes.Count; ++i) handler.Write(-1);
+            }
+            else
+            {
+                if (pairIndices.Length != Nodes.Count) {
+                    Array.Resize(ref pairIndices, Nodes.Count);
+                }
+                handler.WriteArray(pairIndices);
+            }
         }
     }
 
@@ -1742,7 +1764,8 @@ namespace ReeLib
                     14 => AimpFormat.Format41,
                     17 => AimpFormat.Format43,
                     18 => AimpFormat.Format43,
-                    >= 30 => AimpFormat.Format46,
+                    30 => AimpFormat.Format46,
+                    >= 31 => AimpFormat.Format47,
                     _ => throw new Exception($"Unsupported AIMP file format {type} {fileVersion}"),
                 },
                 AimpType.Waypoint => fileVersion switch {

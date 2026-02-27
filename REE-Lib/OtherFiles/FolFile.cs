@@ -30,6 +30,9 @@ namespace ReeLib
                 handler.Read<Vector3>(ref aabb.minpos);
                 handler.Read<Vector3>(ref aabb.maxpos);
                 handler.Read(ref ukn);
+                if (handler.FileVersion > 3) {
+                    handler.ReadNull(8);
+                }
                 transforms = new Transform[instanceCount];
                 using (handler.SeekJumpBack(handler.Read<long>())) {
                     handler.ReadArray(transforms);
@@ -46,6 +49,9 @@ namespace ReeLib
                 handler.Write(ref aabb.minpos);
                 handler.Write(ref aabb.maxpos);
                 handler.Write(ref ukn);
+                if (handler.FileVersion > 3) {
+                    handler.WriteNull(8);
+                }
                 handler.WriteOffsetContent(h => h.WriteArray(transforms ?? Array.Empty<Transform>()));
                 handler.WriteOffsetContent(h => h.WriteWString(meshPath ?? string.Empty));
                 handler.WriteOffsetContent(h => h.WriteWString(materialPath ?? string.Empty));

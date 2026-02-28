@@ -327,7 +327,7 @@ namespace ReeLib.MplyMesh
         UniformUV1 = 1 << 2,
         UniformUV2 = 1 << 3,
         UniformColor = 1 << 4,
-        Unknown5 = 1 << 5,
+        SmallNormals = 1 << 5,
         HasVertexWeights = 1 << 6,
         UniformVertexWeights = 1 << 7,
 
@@ -338,7 +338,7 @@ namespace ReeLib.MplyMesh
         Use32BitPos = 1 << 12,
         Use24BitPos = 1 << 13,
         Unknown14 = 1 << 14,
-        Unknown15 = 1 << 15,
+        HasTangentBitsBlock = 1 << 15,
 
         ScaleBit1 = 1 << 16,
         ScaleBit2 = 1 << 17,
@@ -426,7 +426,7 @@ namespace ReeLib.MplyMesh
         public HFloat2[] UV2Buffer = [];
         public Color[] ColorBuffer = [];
         public VertexBoneWeights[] WeightsBuffer = [];
-        public short[]? uknFixedSizeData;
+        public byte[]? TangentSignBits;
 
         public MeshletChunk(MeshletBVH bvh)
         {
@@ -441,7 +441,10 @@ namespace ReeLib.MplyMesh
                 return 6;
             }
         }
-        private int NormalSize => Bvh.Version == MeshSerializerVersion.DD2 && (FlagsDD2 & MplyChunkFlagsDD2.NoTangents) != 0 ? 4 : 8;
+        private int NormalSize => Bvh.Version switch {
+            MeshSerializerVersion.DD2 => (FlagsDD2 & MplyChunkFlagsDD2.NoTangents) != 0 ? 4 : 8,
+            _ => (flags & MplyChunkFlags.SmallNormals) != 0 ? 4 : 8
+        };
 
         public bool HasTangents => NormalSize == 8;
 
@@ -672,7 +675,7 @@ namespace ReeLib.MplyMesh
             handler.Read(ref relativeAABB);
             handler.Read(ref flags);
             // Log.Info("flags " + flags);
-            var hasUnknStruct = Bvh.Version == MeshSerializerVersion.DD2 && FlagsDD2.HasFlag(MplyChunkFlagsDD2.HasUnknStruct);
+            var hasTangentBits = Bvh.Version == MeshSerializerVersion.DD2 ? FlagsDD2.HasFlag(MplyChunkFlagsDD2.HasUnknStruct) : flags.HasFlag(MplyChunkFlags.SmallNormals) && flags.HasFlag(MplyChunkFlags.HasTangentBitsBlock);
             var hasWeights = Bvh.Version == MeshSerializerVersion.DD2 ? FlagsDD2.HasFlag(MplyChunkFlagsDD2.HasVertexWeights) : flags.HasFlag(MplyChunkFlags.HasVertexWeights);
             var hasUniformWeights = Bvh.Version == MeshSerializerVersion.DD2 ? FlagsDD2.HasFlag(MplyChunkFlagsDD2.UniformVertexWeights) : flags.HasFlag(MplyChunkFlags.UniformVertexWeights);
 
@@ -691,9 +694,11 @@ namespace ReeLib.MplyMesh
                 NormalsBuffer = handler.ReadArray<byte>(NormalSize * vertCount);
             }
 
-            if (hasUnknStruct)
+            if (hasTangentBits)
             {
-                uknFixedSizeData = handler.ReadArray<short>(6);
+                // note: not 100% sure if DD2 has tangent bits here or something else
+                TangentSignBits = handler.ReadArray<byte>(Bvh.Version == MeshSerializerVersion.DD2 ? 12 : ((vertCount + 7) / 8));
+                handler.Align(4);
             }
 
             UV0Buffer = handler.ReadArray<HFloat2>(flags.HasFlag(MplyChunkFlags.UniformUV0) ? 1 : vertCount);

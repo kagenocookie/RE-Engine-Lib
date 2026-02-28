@@ -329,7 +329,7 @@ internal sealed class ResourceFieldFinder(Workspace env, ResourceTools resourceT
                         static bool IsTimelineSubtype(KnownFileFormats format) => format is KnownFileFormats.Timeline or KnownFileFormats.Clip or KnownFileFormats.TimelineBase;
                         static bool IsMotionSubtype(KnownFileFormats format) => format is KnownFileFormats.Motion or KnownFileFormats.MotionList or KnownFileFormats.GpuMotionList or ReeLib.KnownFileFormats.MotionCamera or KnownFileFormats.MotionCameraList or KnownFileFormats.MotionBase;
                         static bool IsDynamicsSubtype(KnownFileFormats format) => format is KnownFileFormats.HeightField or KnownFileFormats.RigidBodyMesh or KnownFileFormats.DynamicsBase;
-                        static bool IsSkeletonSubtype(KnownFileFormats format) => format is KnownFileFormats.Skeleton or KnownFileFormats.FbxSkeleton;
+                        static bool IsSkeletonSubtype(KnownFileFormats format) => format is KnownFileFormats.Skeleton or KnownFileFormats.FbxSkeleton or KnownFileFormats.RefSkeleton;
                         static bool IsBehaviorTreeSubtype(KnownFileFormats format) => format is KnownFileFormats.BehaviorTree or KnownFileFormats.Fsm2 or KnownFileFormats.BehaviorTreeBase;
 
                         if (IsTextureSubtype(fileFormat) && IsTextureSubtype(fieldPatch.FileFormat)) {
@@ -441,7 +441,7 @@ internal sealed class DuplicateInstanceRefHandler(Workspace env)
         } }
     };
 
-    private HashSet<string>? components = new();
+    private HashSet<string>? components;
 
     public void FindDuplicateRszObjectInstances(RSZFile file, string filepath)
     {

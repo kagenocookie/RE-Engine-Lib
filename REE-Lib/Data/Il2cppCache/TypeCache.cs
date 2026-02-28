@@ -40,6 +40,52 @@ public class TypeCache
         "System.Object", "System.ValueType", "System.MulticastDelegate", "System.Delegate", "System.Array"
     };
 
+    public static Dictionary<string, Dictionary<string, JsonElement>> ParseEnumsInternal(string filepath)
+    {
+        var data = new Dictionary<string, Dictionary<string, JsonElement>>();
+        Dictionary<string, JsonElement>? currentEnum = null;
+        var lines = File.ReadAllLines(filepath);
+        string? ns = null, name = null;
+        foreach (var line in lines) {
+            var trimmed = line.AsSpan().Trim();
+            if (trimmed.StartsWith("namepace ")) {
+                var end = line.IndexOf('{');
+                if (end == -1) {
+                    throw new Exception("Invalid enums internal namespace at line " + line);
+                }
+                ns = line.Substring("namespace ".Length, end - "namespace ".Length);
+            } else if (trimmed.StartsWith("enum ")) {
+                var end = line.IndexOf('{');
+                if (end == -1 || string.IsNullOrEmpty(ns)) {
+                    throw new Exception("Invalid enums internal enum at line " + line);
+                }
+                name = line.Substring("enum ".Length, end - "enum ".Length);
+                var classname = ns.Replace("::", ".") + "." + name;
+                if (!data.TryGetValue(classname, out currentEnum)) {
+                    data[classname] = currentEnum = new Dictionary<string, JsonElement>();
+                }
+            } else if (!trimmed.StartsWith("}")) {
+                var eq = trimmed.IndexOf('=');
+                if (eq == -1 || currentEnum == null) {
+                    throw new Exception("Invalid enums internal value entry at line " + line);
+                }
+
+                var label = trimmed.Slice(0, eq).Trim();
+                var value = trimmed.Slice(eq + 1);
+                var comma = trimmed.IndexOf(';');
+                if (comma != -1) value = value[(eq + 1)..comma];
+                else value = value[(eq + 1)..];
+
+                if (value.StartsWith("-")) {
+                    currentEnum[label.ToString()] = JsonSerializer.SerializeToElement(long.Parse(value));
+                } else {
+                    currentEnum[label.ToString()] = JsonSerializer.SerializeToElement(ulong.Parse(value));
+                }
+            }
+        }
+        return data;
+    }
+
     public void ApplyIl2cppData(Il2cppDump data)
     {
         enums.Clear();

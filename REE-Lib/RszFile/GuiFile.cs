@@ -684,6 +684,32 @@ namespace ReeLib.Gui
         public override string ToString() => $"[{Name}]: {Value}";
     }
 
+    public class StateReference : BaseModel
+    {
+        public GuiObjectID StateId { get; set; }
+        public string AsciiName = "";
+        public long offsetMaybe;
+        public string TypeName = "";
+
+        protected override bool DoRead(FileHandler handler)
+        {
+            StateId = GuiObjectID.Read(handler, GuiVersion.RE9);
+            AsciiName = handler.ReadOffsetAsciiString();
+            handler.Read(ref offsetMaybe);
+            TypeName = handler.ReadOffsetWString();
+            return true;
+        }
+
+        protected override bool DoWrite(FileHandler handler)
+        {
+            StateId.Write(handler, GuiVersion.RE9);
+            handler.WriteOffsetAsciiString(AsciiName);
+            handler.Write(ref offsetMaybe);
+            handler.WriteOffsetWString(TypeName);
+            return true;
+        }
+    }
+
     public class AttributeOverride(GuiVersion version) : Attribute(version)
     {
         public string TargetPath { get; set; } = "";
@@ -860,10 +886,11 @@ namespace ReeLib.Gui
         public GuiObjectID ContainerID;
         public Guid guid3; // could be some sort of "group" or "tag" guid
         private ulong uknNum; // seems like a set of bools
-        private long uknOffset;
+        private long extraStateRefOffset;
 
         public List<Attribute> Attributes { get; } = new();
         public List<Attribute> ExtraAttributes { get; } = new();
+        public List<StateReference> ExtraStateRefs { get; } = new();
 
         public byte[] ElementData = [];
 
@@ -880,8 +907,7 @@ namespace ReeLib.Gui
             var attributesOffset = handler.Read<long>();
             var reordersOffset = Version >= GuiVersion.RE4 ? handler.Read<long>() : 0;
             var extraAttributesOffset = handler.Read<long>();
-            if (Version >= GuiVersion.RE_RT) handler.Read(ref uknOffset); // TODO
-            Log.WarnIf(uknOffset > 0, "Found unsupported offset data in GUI file");
+            if (Version >= GuiVersion.RE_RT) handler.Read(ref extraStateRefOffset);
             var elementDataOffset = handler.Read<long>();
             if (Version >= GuiVersion.RE_RT) handler.Read(ref uknNum);
 
@@ -934,6 +960,11 @@ namespace ReeLib.Gui
                 }
             }
             DataInterpretationException.DebugThrowIf(elementDataOffset == 0 && (ClassName == "via.gui.TextureSet" || ClassName == "via.gui.Scale9Grid" || ClassName == "via.gui.BlurFilter"));
+            if (extraStateRefOffset > 0) {
+                handler.Seek(extraStateRefOffset);
+                var count = (int)handler.Read<long>();
+                ExtraStateRefs.Read(handler, count);
+            }
             handler.Seek(end);
 
             return true;
@@ -952,10 +983,10 @@ namespace ReeLib.Gui
             handler.WriteOffsetAsciiString(ClassName);
 
             attributesOffsetStart = handler.Tell();
-            handler.Skip(8);
+            handler.Skip(8); // attributesOffset
             if (Version >= GuiVersion.RE4) handler.Skip(8); // reordersOffset
-            handler.Skip(8);
-            if (Version >= GuiVersion.RE_RT) handler.Write(ref uknOffset);
+            handler.Skip(8); // extraAttributesOffset
+            if (Version >= GuiVersion.RE_RT) handler.WriteNull(8); // extraStateRefOffset
 
             switch (ClassName) {
                 case "via.gui.TextureSet":
@@ -995,10 +1026,16 @@ namespace ReeLib.Gui
                 handler.Align(8);
             }
 
-            handler.Write(offset + 8, handler.Tell());
+            handler.Write(offset + 8, handler.Tell()); // extraAttributesOffset
             handler.Write((long)ExtraAttributes.Count);
             ExtraAttributes.Write(handler);
 
+            if (ExtraAttributes.Count > 0) // extraStateRefOffset
+            {
+                handler.Write(offset + 16, handler.Tell());
+                handler.Write((long)ExtraStateRefs.Count);
+                ExtraStateRefs.Write(handler);
+            }
         }
 
         public override string ToString() => $"{Name}: {ClassName}";

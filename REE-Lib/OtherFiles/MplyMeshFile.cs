@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using ReeLib.Common;
 using ReeLib.Mesh;
 using ReeLib.via;
 
@@ -339,25 +340,25 @@ namespace ReeLib.MplyMesh
         Unknown14 = 1 << 14,
         Unknown15 = 1 << 15,
 
-        PositionScaling2 = 1 << 16,
-        PositionScaling4 = 1 << 17,
-        PositionScaling16 = 1 << 18,
-        PositionScaling64 = 1 << 19,
+        ScaleBit1 = 1 << 16,
+        ScaleBit2 = 1 << 17,
+        ScaleBit3 = 1 << 18,
+        ScaleBit4 = 1 << 19,
 
-        PositionDescaling4 = 1 << 20,
-        PositionDescaling64 = 1 << 21,
-        PositionDescaling512 = 1 << 22,
-        Exponent1 = 1 << 23,
+        ScaleBit5 = 1 << 20,
+        ScaleBit6 = 1 << 21,
+        ScaleBit7 = 1 << 22,
+        ScaleBit8 = 1 << 23,
 
-        Exponent2 = 1 << 24,
-        Exponent3 = 1 << 25,
-        Exponent4 = 1 << 26,
-        Exponent5 = 1 << 27,
+        ScaleBit9 = 1 << 24,
+        ScaleBit10 = 1 << 25,
+        ScaleBit11 = 1 << 26,
+        ScaleBit12 = 1 << 27,
 
-        Unkn28 = 1 << 28,
-        Unkn29 = 1 << 29,
-        Unkn30 = 1 << 30,
-        UseExponentMultiplication = 1u << 31,
+        ScaleBit13 = 1 << 28,
+        ScaleBit14 = 1 << 29,
+        ScaleBit15 = 1 << 30,
+        ScaleBit16 = 1u << 31,
     }
 
     [Flags]
@@ -500,25 +501,31 @@ namespace ReeLib.MplyMesh
 
         private float ScalingDD2 {
             get {
-                var scale = 4f;
-                if ((flags & MplyChunkFlags.PositionScaling2) != 0) scale *= 2;
-                if ((flags & MplyChunkFlags.PositionScaling4) != 0) scale *= 4;
-                if ((flags & MplyChunkFlags.PositionScaling16) != 0) scale *= 16;
-                if ((flags & MplyChunkFlags.PositionScaling64) != 0) scale *= 256;
+                var exp1 = unchecked(((int)flags >> 16) & 0b1111);
+                var scale = 4f * (1 << exp1);
 
-                if ((flags & MplyChunkFlags.Exponent1) != 0) scale *= (1f / 2);
-                if ((flags & MplyChunkFlags.PositionDescaling4) != 0) scale *= (1f / 4);
-                if ((flags & MplyChunkFlags.PositionDescaling64) != 0) scale *= (1f / 64);
-                if ((flags & MplyChunkFlags.PositionDescaling512) != 0) scale *= (1f / 512);
+                if ((flags & MplyChunkFlags.ScaleBit8) != 0) scale *= (1f / 2);
+                if ((flags & MplyChunkFlags.ScaleBit5) != 0) scale *= (1f / 4);
+                if ((flags & MplyChunkFlags.ScaleBit6) != 0) scale *= (1f / 64);
+                if ((flags & MplyChunkFlags.ScaleBit7) != 0) scale *= (1f / 512);
                 return scale;
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Vector3 DecodePosition(Vector3 vertPos)
         {
+            float scale;
             if (Bvh.Version == MeshSerializerVersion.DD2)
-                return (vertPos - new Vector3(0.5f)) * ScalingDD2 + center;
+            {
+                var exp1 = unchecked(((int)flags >> 16) & 0b1111);
+                scale = 4f * (1 << exp1);
+
+                if ((flags & MplyChunkFlags.ScaleBit8) != 0) scale *= (1f / 2);
+                if ((flags & MplyChunkFlags.ScaleBit5) != 0) scale *= (1f / 4);
+                if ((flags & MplyChunkFlags.ScaleBit6) != 0) scale *= (1f / 64);
+                if ((flags & MplyChunkFlags.ScaleBit7) != 0) scale *= (1f / 512);
+                return (vertPos - new Vector3(0.5f)) * scale + center;
+            }
 
             // TODO figure out what's wrong with compressed positions, ignoring for now to make the meshes look less broken
             // pragmata demo sm21_022_00.mesh.250925211, sm39_090_0105.mesh.250925211
@@ -528,41 +535,49 @@ namespace ReeLib.MplyMesh
             if ((flags & MplyChunkFlags.Use32BitPos) != 0 || (flags & MplyChunkFlags.Use24BitPos) != 0) return center;
 
             var num = (uint)flags;
-            var baseVal = 1 << (int)((num >> 23) & 0b1111);
-            var divisor = 1 << (int)((num >> 16) & 0b1111);
-            var offset = 1;
-            float prescale;
-            if ((flags & MplyChunkFlags.UseExponentMultiplication) != 0)
-            {
-                prescale = (float)baseVal / divisor;
-                if (prescale < divisor) offset = 2;
-                if (prescale * 2 < divisor) offset *= 2;
-            }
-            else
-            {
-                // return (vertPos - new Vector3(0.5f) + relativeAABB.Offset * ScalingParameters.Offset.GetScale(flags, Bvh)) * ScalingParameters.Scaling.GetScale(flags, Bvh) + center;
-
-                // edge case - probably not "correct" but works (pragmata sm34_011_00.mesh)
-                if (divisor == 1) divisor = 1 << 17;
-                baseVal *= 2;
-
-                prescale = (float)baseVal / divisor;
-                // haven't managed to figure out what exactly determines this, hardcoding for now
-                switch ((baseVal, divisor)) {
-                    case (256,   8192):
-                    case (512,   8192):
-                    case (2048,  16384):
-                    case (4096,  32768):
-                    case (65536, 131072):
-                        offset = 2;
-                        break;
-                }
-            }
-
-            Debug.Assert(prescale != 0);
-            var scale = prescale * offset;
+            var divByte = (int)((num >> 24) & 0b11111111);
+            var multByte = (int)((num >> 16) & 0b11111111);
+            var divShift = (divByte - 127);
+            scale = divShift >= 0 ? (1 << divShift) : (1f / (1 << -divShift));
+            var offset = 1 << (multByte - divByte);
 
             return (vertPos - new Vector3(0.5f) + relativeAABB.Offset * offset) * scale + center;
+        }
+
+        public static void TestMplyValues()
+        {
+            static void AssertValue(uint flags, float expectedScale, float expectedOffset)
+            {
+                var flagValue = flags << 16;
+                var chunk = new MeshletChunk(new MeshletBVH());
+                chunk.relativeAABB = new CompressedAABB();
+                chunk.relativeAABB.offsetX = ushort.MaxValue;
+                chunk.flags = (MplyChunkFlags)flagValue;
+                var basePos = new Vector3(1, 0.5f, 0.5f);
+                var decodedX = chunk.DecodePosition(basePos).X;
+                var expectedX = (0.5f + 0.5f * expectedOffset) * expectedScale;
+                Debug.Assert(decodedX == expectedX, $"MPLY decode {flagValue:X} got {decodedX}, expected {expectedX} (scale {expectedScale}, offset {expectedOffset})");
+            }
+            AssertValue(0b10000011_10000011, 16,    1); // prag sm30_050_00     | 131 131
+            AssertValue(0b10000100_10000100, 32,    1); // prag sm35_043_00     | 132 132
+            AssertValue(0b10000000_10000000, 2,     1); // prag sm33_047_00     | 128 128
+            AssertValue(0b10000001_10000001, 4,     1); // prag sm31_017_00_02  | 129 129
+            AssertValue(0b10000010_10000010, 8,     1); // prag sm39_066_0001   | 130 130
+            AssertValue(0b10000010_10000011, 8,     2); // prag sm39_066_0003   | 130 131 | offset <<= 1
+            AssertValue(0b10000011_10000100, 16,    2); // prag sm26_011_01     | 131 132 | offset <<= 1
+            AssertValue(0b10000110_10000110, 128,   1); // prag sm39_090_05_Env | 134 134
+            AssertValue(0b10000000_10000010, 2,     4); // prag sm30_097_00     | 128 130 | offset <<= 2
+
+            AssertValue(0b01111111_10000000, 1,     2); // prag sm34_011_00     | 127 128 | offset <<= 1
+            AssertValue(0b01111111_01111111, 1,     1); // prag sm33_031_00     | 127 127 |
+            AssertValue(0b01111100_01111101, .125f, 2); // prag sm63_080_05     | 124 125 | offset <<= 1
+            AssertValue(0b01111101_01111101, .25f,  1); // prag sm63_080_04     | 125 125
+            AssertValue(0b01111101_01111110, .25f,  2); // prag sm63_080_03     | 125 126 | offset <<= 1
+            AssertValue(0b01111110_01111110, .5f,   1); //                      | 126 126
+
+            AssertValue(0b01111110_01111111, .5f,   2); // prag sm76_003_02     | 126 127 | offset <<= 1
+            AssertValue(0b01111111_10000010, 1,     8); // re9 sm11_006_00      | 127 130 | offset <<= 3
+            AssertValue(0b01111111_10000001, 1,     4); // re9 sm16_057_02      | 127 129 | offset <<= 2
         }
 
         public Vector3 GetPosition(int index)

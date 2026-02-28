@@ -207,7 +207,7 @@ namespace ReeLib.Mesh
 	public struct StreamingMeshEntry
 	{
 		public uint start;
-		public uint end;
+		public uint size;
 	}
 
     public partial class MeshStreamingInfo : BaseModel
@@ -2019,10 +2019,12 @@ namespace ReeLib
 					StreamingBuffers = new();
 					foreach (var entry in StreamingInfo.Entries)
 					{
-						if (entry.start == entry.end) continue;
 						var buffer = new MeshBuffer() { Version = header.FormatVersion };
-						buffer.Read(handler);
 						StreamingBuffers.Add(buffer);
+						if (entry.size == 0) {
+							continue;
+						}
+						buffer.Read(handler);
 					}
 				}
 

@@ -2019,6 +2019,7 @@ namespace ReeLib
 					StreamingBuffers = new();
 					foreach (var entry in StreamingInfo.Entries)
 					{
+						if (entry.start == entry.end) continue;
 						var buffer = new MeshBuffer() { Version = header.FormatVersion };
 						buffer.Read(handler);
 						StreamingBuffers.Add(buffer);

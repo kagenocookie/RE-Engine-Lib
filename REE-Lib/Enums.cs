@@ -187,6 +187,8 @@ namespace ReeLib
         MotionList,
         /// <summary>.motbank</summary>
         MotionBank,
+        /// <summary>.maba</summary>
+        MotionAnalyzerBank,
         /// <summary>.gpumotlist</summary>
         GpuMotionList,
         /// <summary>.cfil</summary>
@@ -453,6 +455,18 @@ namespace ReeLib
         SoundStreamingLQG,
         /// <summary>.wel</summary>
         EventList,
+        /// <summary>.nnfp</summary>
+        NFP,
+        /// <summary>.bnvib</summary>
+        Bnvib,
+        /// <summary>.psow</summary>
+        PSOWhiteList,
+        /// <summary>.auto</summary>
+        Autoplay,
+        /// <summary>.dblc</summary>
+        DepthBlocker,
+        /// <summary>.wsg</summary>
+        WwiseStreamingGeometry,
 
         TimelineBase, // Timeline or Clip
         MotionBase, // Motion or MotionTree or MotionList or GpuMotionList or MotionCamera or MotionCameraList

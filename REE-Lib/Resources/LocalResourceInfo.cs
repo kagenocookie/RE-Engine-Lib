@@ -400,7 +400,10 @@ public class ResourceMetadata : ICloneable
     public string? DynamicsDefinition { get; set; }
 
     [JsonIgnore]
-    public bool IsFullySupported => Il2cppCache != null && RszPatchFiles.Length > 0 && EfxStructs != null;
+    public bool IsRSZFullySupported => Il2cppCache != null && RszPatchFiles.Length > 0;
+
+    [JsonIgnore]
+    public bool IsFullySupported => IsRSZFullySupported && EfxStructs != null;
 
     public ResourceMetadata Clone() => (ResourceMetadata)MemberwiseClone();
 

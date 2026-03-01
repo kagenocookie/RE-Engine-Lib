@@ -62,7 +62,7 @@ namespace ReeLib
 
             var containerCount = (int)handler.Read<long>();
 
-            if (header.GuiVersion < GuiVersion.Pragmata)
+            if (header.GuiVersion < GuiVersion.MHWilds)
             {
                 var offsets = handler.ReadArray<long>(containerCount);
 
@@ -92,7 +92,7 @@ namespace ReeLib
                     handler.Seek(container.Info.elementsOffset);
                     var elemCount = (int)handler.Read<long>();
 
-                    if (header.GuiVersion >= GuiVersion.Pragmata)
+                    if (header.GuiVersion >= GuiVersion.MHWilds)
                     {
                         for (int i = 0; i < elemCount; ++i)
                         {
@@ -263,7 +263,7 @@ namespace ReeLib
             header.Write(handler);
 
             handler.Write((long)Containers.Count);
-            if (header.GuiVersion >= GuiVersion.Pragmata)
+            if (header.GuiVersion >= GuiVersion.MHWilds)
             {
                 header.offsetsStart = handler.Tell();
                 for (int i = 0; i < Containers.Count; ++i)
@@ -284,7 +284,7 @@ namespace ReeLib
                 }
             }
 
-            if (header.GuiVersion >= GuiVersion.Pragmata)
+            if (header.GuiVersion >= GuiVersion.MHWilds)
             {
                 header.viewOffset = handler.Tell();
                 RootViewElement.Write(handler);
@@ -399,7 +399,7 @@ namespace ReeLib
             handler.Write((long)AttributeOverrides.Count);
             AttributeOverrides.Write(handler);
 
-            if (header.GuiVersion is >= GuiVersion.RE_RT and < GuiVersion.Pragmata)
+            if (header.GuiVersion is >= GuiVersion.RE_RT and < GuiVersion.MHWilds)
             {
                 // NOTE: with pragmata, this data seems to be stored as an offset in elements/containers
                 header.parameterDataOffset = handler.Tell();
@@ -465,7 +465,7 @@ namespace ReeLib.Gui
 
             if (GuiVersion < GuiVersion.DD2) handler.Read(ref uknOffset);
             handler.Read(ref attributeOverridesOffset);
-            if (GuiVersion is >= GuiVersion.RE_RT and < GuiVersion.Pragmata) handler.Read(ref parameterDataOffset);
+            if (GuiVersion is >= GuiVersion.RE_RT and < GuiVersion.MHWilds) handler.Read(ref parameterDataOffset);
             handler.Read(ref guiFilesOffset);
             handler.Read(ref resourcePathsOffset);
 
@@ -484,7 +484,7 @@ namespace ReeLib.Gui
 
             if (GuiVersion < GuiVersion.DD2) handler.Write(ref uknOffset);
             handler.Write(ref attributeOverridesOffset);
-            if (GuiVersion is >= GuiVersion.RE_RT and < GuiVersion.Pragmata) handler.Write(ref parameterDataOffset);
+            if (GuiVersion is >= GuiVersion.RE_RT and < GuiVersion.MHWilds) handler.Write(ref parameterDataOffset);
             handler.Write(ref guiFilesOffset);
             handler.Write(ref resourcePathsOffset);
 
@@ -775,7 +775,7 @@ namespace ReeLib.Gui
             ClassName = handler.ReadOffsetAsciiString();
             handler.Read(ref elementsOffset);
             handler.Read(ref clipsOffset);
-            if (version >= GuiVersion.Pragmata)
+            if (version >= GuiVersion.MHWilds)
             {
                 handler.Read(ref attributesOffset1);
                 handler.Read(ref attributesOffset2);
@@ -790,7 +790,7 @@ namespace ReeLib.Gui
             handler.WriteOffsetAsciiString(ClassName);
             handler.Write(ref elementsOffset);
             handler.Write(ref clipsOffset);
-            if (version >= GuiVersion.Pragmata)
+            if (version >= GuiVersion.MHWilds)
             {
                 handler.Write(ref attributesOffset1);
                 handler.Write(ref attributesOffset2);
@@ -847,7 +847,7 @@ namespace ReeLib.Gui
 
         public static GuiObjectID Read(FileHandler handler, GuiVersion version)
         {
-            if (version >= GuiVersion.Pragmata) {
+            if (version >= GuiVersion.MHWilds) {
                 return new GuiObjectID(handler.Read<long>());
             } else {
                 return new GuiObjectID(handler.Read<Guid>());
@@ -856,7 +856,7 @@ namespace ReeLib.Gui
 
         public readonly void Write(FileHandler handler, GuiVersion version)
         {
-            if (version >= GuiVersion.Pragmata) {
+            if (version >= GuiVersion.MHWilds) {
                 handler.Write(AsID);
             } else {
                 handler.Write<Guid>(guid);

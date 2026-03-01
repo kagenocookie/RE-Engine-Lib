@@ -1492,12 +1492,19 @@ namespace ReeLib
         IFileHandlerAction Null(int count);
         IFileHandlerAction HandleOffsetWString([NotNull] ref string? value, bool writeEmptyAsNull = false);
         IFileHandlerAction HandleInlineWString([NotNull] ref string? value);
+        bool Handle<T>(ref T[] array) where T : unmanaged;
     }
 
 
     public static class IFileHandlerActionExtension
     {
         public static IFileHandlerAction Do<T>(this IFileHandlerAction action, ref T value) where T : unmanaged
+        {
+            action.Handle(ref value);
+            return action;
+        }
+
+        public static IFileHandlerAction Do<T>(this IFileHandlerAction action, ref T[] value) where T : unmanaged
         {
             action.Handle(ref value);
             return action;
@@ -1542,6 +1549,12 @@ namespace ReeLib
             return Success;
         }
 
+        public bool Handle<T>(ref T[] array) where T : unmanaged
+        {
+            Handler.ReadArray(array);
+            return true;
+        }
+
         public readonly IFileHandlerAction HandleOffsetWString([NotNull] ref string? value, bool writeEmptyAsNull)
         {
             Handler.ReadOffsetWString(out value);
@@ -1570,6 +1583,12 @@ namespace ReeLib
         {
             Success = Handler.Write(ref value);
             return Success;
+        }
+
+        public bool Handle<T>(ref T[] array) where T : unmanaged
+        {
+            Handler.WriteArray(array);
+            return true;
         }
 
         public readonly IFileHandlerAction HandleOffsetWString([NotNull] ref string? value, bool writeEmptyAsNull)

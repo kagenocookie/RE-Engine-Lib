@@ -299,6 +299,7 @@ namespace ReeLib.Rcol
         public string secondaryJointNameStr = string.Empty;
         public uint PrimaryJointNameHash;
         public uint SecondaryJointNameHash;
+        public string? cmatPath;
         public ShapeType shapeType;
 
         protected override bool ReadWrite<THandler>(THandler action)
@@ -328,7 +329,8 @@ namespace ReeLib.Rcol
                 action.Do(ref SecondaryJointNameHash);
                 if (action.Handler.FileVersion >= 28)
                 {
-                    action.Null(16);
+                    action.HandleOffsetWString(ref cmatPath);
+                    action.Null(8);
                 }
             }
             else if (action.Handler.FileVersion > 2)

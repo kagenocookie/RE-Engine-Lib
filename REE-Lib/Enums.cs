@@ -462,7 +462,7 @@ namespace ReeLib
         /// <summary>.psow</summary>
         PSOWhiteList,
         /// <summary>.auto</summary>
-        Autoplay,
+        AutoPlay,
         /// <summary>.dblc</summary>
         DepthBlocker,
         /// <summary>.wsg</summary>

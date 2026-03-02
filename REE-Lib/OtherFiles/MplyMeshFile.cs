@@ -334,7 +334,7 @@ namespace ReeLib.MplyMesh
         HasVertexColor = 1 << 8,
         HasUV1 = 1 << 9,
         HasUV2 = 1 << 10,
-        HasVertexWeightsNot = 1 << 11,
+        Unknown11 = 1 << 11,
         Use32BitPos = 1 << 12,
         Use24BitPos = 1 << 13,
         Unknown14 = 1 << 14,

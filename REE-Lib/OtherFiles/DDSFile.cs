@@ -469,11 +469,13 @@ namespace ReeLib
                 }
 
                 mip++;
-                if (h == 0 || w == 0) {
+                if (h == 0 && w == 0) {
                     data.data = Span<byte>.Empty;
                     return false;
                 }
 
+                h = Math.Max(1, h);
+                w = Math.Max(1, w);
                 var size = CurrentCompressedMipSize;
                 this.bytes ??= ArrayPool<byte>.Shared.Rent(size);
                 data.height = h;

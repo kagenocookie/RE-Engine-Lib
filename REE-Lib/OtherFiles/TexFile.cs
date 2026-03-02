@@ -354,17 +354,18 @@ namespace ReeLib
             var outHandler = new FileHandler(targetStream);
             outHandler.Seek(0);
 
-            var handler = FileHandler;
+            var srcHandler = FileHandler;
             var uncompressedBytes = ArrayPool<byte>.Shared.Rent(Mips[0].size);
             var compressedHeaders = new List<CompressedMipHeader>();
 
             try
             {
                 Header.Write(outHandler);
-                handler.Seek(Mips[0].offset);
                 Mips.Write(outHandler);
-                outHandler.Seek(Mips[0].offset);
+                srcHandler.Seek(Mips[0].offset);
 
+
+                // skip compressed header section so we can just start writing the mip data
                 var compressedMipOffset = outHandler.Tell();
                 outHandler.Skip(Mips.Count * 8);
 
@@ -372,8 +373,8 @@ namespace ReeLib
                 for (int i = 0; i < Mips.Count; i++)
                 {
                     var mip = Mips[i];
-                    handler.Seek(mip.offset);
-                    handler.ReadArray(uncompressedBytes, 0, mip.size);
+                    srcHandler.Seek(mip.offset);
+                    srcHandler.ReadArray(uncompressedBytes, 0, mip.size);
 
                     var mipBytes = new Memory<byte>(uncompressedBytes, 0, mip.size);
                     var size = compress.Invoke(mipBytes, i, outHandler);

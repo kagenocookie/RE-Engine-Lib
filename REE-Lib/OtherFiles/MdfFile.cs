@@ -475,7 +475,7 @@ namespace ReeLib
                 matData.Parameters.Write(handler);
             }
 
-            handler.Align(16);
+            handler.Align(8);
 
             foreach (var matData in Materials)
             {

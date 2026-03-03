@@ -402,6 +402,7 @@ namespace ReeLib
 
             handler.Seek(0);
             // update header data
+            Header.flags = Header.flags&~TexFlags.IsStreaming;
             Header.format = source.Header.DX10.Format;
             Header.width = (short)source.Header.width;
             Header.height = (short)source.Header.height;

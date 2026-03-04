@@ -1929,6 +1929,14 @@ namespace ReeLib
 			return VertexBoneWeights.GetIndexCount(cfg.serializerVersion) * (cfg.extraWeightBuffer ? 2 : 1);
 		}
 
+		public static int GetDeformBoneLimit(string exportConfig)
+		{
+			var maxWeightsPerVert = MeshFile.GetWeightLimit(exportConfig);
+			var isSixWeight = maxWeightsPerVert % 6 == 0;
+			bool allowExtraWeights = maxWeightsPerVert > 8;
+			return isSixWeight ? 1024 : 256;
+		}
+
         public static uint GetFilePathVersion(string exportConfig) => Versions.TryGetValue(exportConfig, out var cfg) ? cfg.fileVersion : 0;
 
         public MeshFile(FileHandler fileHandler) : base(fileHandler)

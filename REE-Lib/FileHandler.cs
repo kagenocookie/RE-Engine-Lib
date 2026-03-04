@@ -188,6 +188,7 @@ namespace ReeLib
         public void ReadNull(int count)
         {
             #if DEBUG
+            Debug.Assert(count >= 0);
             switch (count) {
                 case 0: break;
                 case 1: DataInterpretationException.ThrowIfNotZero(Read<byte>()); break;

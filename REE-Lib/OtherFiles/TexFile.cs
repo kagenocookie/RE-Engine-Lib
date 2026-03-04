@@ -606,7 +606,7 @@ namespace ReeLib
 
                 h >>= 1;
                 w >>= 1;
-                data.data = bytes.AsSpan().Slice(0, (int)size);
+                data.data = bytes.AsSpan(0, (int)size);
                 return true;
             }
 

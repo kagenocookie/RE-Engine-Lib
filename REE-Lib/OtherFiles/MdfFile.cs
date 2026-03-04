@@ -241,11 +241,13 @@ namespace ReeLib.Mdf
         public string paramName = string.Empty;
         public uint hash;
         public uint asciiHash;
-        public int componentCount;
+        public short componentCount;
+        public short extraValue;
 
         public Vector4 parameter;
 
         internal int paramRelOffset;
+        public int prefixGapSize;
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -257,10 +259,14 @@ namespace ReeLib.Mdf
             {
                 handler.Read(ref paramRelOffset);
                 handler.Read(ref componentCount);
+                // starting with at least 40, there's a second value here rarely
+                // we can just treat it the same for the previous versions since it's not a structural difference
+                handler.Read(ref extraValue);
             }
             else
             {
                 handler.Read(ref componentCount);
+                handler.Skip(2);
                 handler.Read(ref paramRelOffset);
             }
             paramName = handler.ReadWString(paramNameOffset);
@@ -282,10 +288,12 @@ namespace ReeLib.Mdf
             {
                 handler.Write(ref paramRelOffset);
                 handler.Write(ref componentCount);
+                handler.Write(ref extraValue);
             }
             else
             {
                 handler.Write(ref componentCount);
+                handler.WriteNull(2);
                 handler.Write(ref paramRelOffset);
             }
             return true;
@@ -422,6 +430,21 @@ namespace ReeLib
                     ParamHeader paramHeader = new();
                     paramHeader.Read(handler);
                     var paramAbsOffset = matData.Header.paramsOffset + paramHeader.paramRelOffset;
+                    if (i == 0)
+                    {
+                        paramHeader.prefixGapSize = 0;
+                    }
+                    else
+                    {
+                        var prevHeader = matData.Parameters[i - 1];
+                        paramHeader.prefixGapSize = (int)(
+                            paramHeader.paramRelOffset - prevHeader.paramRelOffset -
+                            prevHeader.componentCount * 4);
+#if DEBUG
+                        using var _ = handler.SeekJumpBack(paramAbsOffset - paramHeader.prefixGapSize);
+                        handler.ReadNull(paramHeader.prefixGapSize);
+#endif
+                    }
                     if (paramHeader.componentCount == 4)
                     {
                         handler.Read(paramAbsOffset, ref paramHeader.parameter);
@@ -493,6 +516,7 @@ namespace ReeLib
                 foreach (var paramHeader in matData.Parameters)
                 {
                     size += paramHeader.componentCount * 4;
+                    handler.WriteNull(paramHeader.prefixGapSize);
                     paramHeader.paramRelOffset = (int)(handler.Tell() - matData.Header.paramsOffset);
                     if (paramHeader.componentCount == 4)
                     {

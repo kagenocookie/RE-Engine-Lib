@@ -54,9 +54,9 @@ public sealed partial class Workspace : IDisposable
         _typeCache ??= new();
         var entries = DeserializeOrNull<Il2cppDump>(il2cppPath)
             ?? throw new Exception("File is not a valid il2cpp dump json file");
-        // TODO try and use Enums_Internal.hpp for values because there's no number hacks to deal with there (faster)
-        // TypeCache.ParseEnumsInternal();
-        _typeCache.ApplyIl2cppData(entries);
+        var enumsInternalPath = Path.Combine(Path.GetDirectoryName(il2cppPath)!, "Enums_Internal.hpp");
+        var enumsInternal = File.Exists(enumsInternalPath) ? TypeCache.ParseEnumsInternal(enumsInternalPath) : null;
+        _typeCache.ApplyIl2cppData(entries, enumsInternal);
         // TryApplyTypePatches(_il2cpp, paths.TypePatchFilepath);
 
         Log.Info("Updating il2cpp cache... " + cachePath);

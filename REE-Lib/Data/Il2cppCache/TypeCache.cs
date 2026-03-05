@@ -48,19 +48,19 @@ public class TypeCache
         string? ns = null, name = null;
         foreach (var line in lines) {
             var trimmed = line.AsSpan().Trim();
-            if (trimmed.StartsWith("namepace ")) {
-                var end = line.IndexOf('{');
+            if (trimmed.StartsWith("namespace ")) {
+                var end = trimmed.IndexOf('{');
                 if (end == -1) {
                     throw new Exception("Invalid enums internal namespace at line " + line);
                 }
-                ns = line.Substring("namespace ".Length, end - "namespace ".Length);
+                ns = trimmed[("namespace ".Length)..end].Trim().ToString().Replace("::", ".");
             } else if (trimmed.StartsWith("enum ")) {
-                var end = line.IndexOf('{');
+                var end = trimmed.IndexOf('{');
                 if (end == -1 || string.IsNullOrEmpty(ns)) {
                     throw new Exception("Invalid enums internal enum at line " + line);
                 }
-                name = line.Substring("enum ".Length, end - "enum ".Length);
-                var classname = ns.Replace("::", ".") + "." + name;
+                name = trimmed[("enum ".Length)..end].Trim().ToString();
+                var classname = ns + "." + name;
                 if (!data.TryGetValue(classname, out currentEnum)) {
                     data[classname] = currentEnum = new Dictionary<string, JsonElement>();
                 }
@@ -71,10 +71,11 @@ public class TypeCache
                 }
 
                 var label = trimmed.Slice(0, eq).Trim();
-                var value = trimmed.Slice(eq + 1);
-                var comma = trimmed.IndexOf(';');
-                if (comma != -1) value = value[(eq + 1)..comma];
-                else value = value[(eq + 1)..];
+                var comma = trimmed.IndexOf(',');
+
+                ReadOnlySpan<char> value;
+                if (comma != -1) value = trimmed[(eq + 1)..comma].Trim();
+                else value = trimmed[(eq + 1)..].Trim();
 
                 if (value.StartsWith("-")) {
                     currentEnum[label.ToString()] = JsonSerializer.SerializeToElement(long.Parse(value));
@@ -86,7 +87,7 @@ public class TypeCache
         return data;
     }
 
-    public void ApplyIl2cppData(Il2cppDump data)
+    public void ApplyIl2cppData(Il2cppDump data, Dictionary<string, Dictionary<string, JsonElement>>? enumsInternal)
     {
         enums.Clear();
         foreach (var (name, enumData) in data) {
@@ -101,8 +102,18 @@ public class TypeCache
                 }
 
                 var descriptor = CreateEnumDescriptor(backing.FullName!);
-                descriptor?.ParseIl2cppData(enumData);
-                enums[name] = descriptor ?? EnumDescriptor<ulong>.Default;
+                if (descriptor == null) {
+                    enums[name] = EnumDescriptor<ulong>.Default;
+                    continue;
+                }
+
+                // try and use Enums_Internal.hpp for values because there's no number hacks to deal with there (much faster)
+                if (enumsInternal?.TryGetValue(name, out var internalValue) == true) {
+                    descriptor.SetupValues(internalValue);
+                } else {
+                    descriptor.ParseIl2cppData(enumData);
+                }
+                enums[name] = descriptor;
             } else if (!name.Contains('!') && !ignoredBaseTypes.Contains(name) && !ignoredBaseTypes.Contains(enumData.parent) && !name.StartsWith("System.")) {
                 var item = enumData;
                 var parentName = name;

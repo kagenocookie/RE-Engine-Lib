@@ -41,6 +41,14 @@ public abstract class EnumDescriptor
         IsFlags = GuessIsFlags();
     }
 
+    public void SetupValues(Dictionary<string, JsonElement> valueDict)
+    {
+        foreach (var (k, v) in valueDict) {
+            AddValue(k, v);
+        }
+        IsFlags = GuessIsFlags();
+    }
+
     public void ParseCacheData(IEnumerable<EnumCacheItem> pairs)
     {
         foreach (var item in pairs) {
@@ -233,7 +241,11 @@ public sealed class EnumDescriptor<T> : EnumDescriptor where T : struct, IBinary
 
     private static T CreateSafeUnsignedConverter(JsonElement e)
     {
-        return (T)Convert.ChangeType(e.GetUInt64() & MaskBits, typeof(T));
+        try {
+            return (T)Convert.ChangeType(e.GetUInt64() & MaskBits, typeof(T));
+        } catch {
+            return (T)Convert.ChangeType(((ulong)e.GetInt64()) & MaskBits, typeof(T));
+        }
     }
 
     private static void CreateConverter()

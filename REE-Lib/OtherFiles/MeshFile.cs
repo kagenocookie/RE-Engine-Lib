@@ -1249,6 +1249,9 @@ namespace ReeLib.Mesh
 		public Sphere boundingSphere;
 		public AABB boundingBox;
 
+		public int TotalTriangleCount => LODs.Sum(lod => lod.FaceCount);
+		public int TotalVertexCount => LODs.Sum(lod => lod.VertexCount);
+
 		internal MeshSerializerVersion Version;
 		private int ExpectedSkinWeightCount => Version switch {
 			MeshSerializerVersion.SF6 => 9,
@@ -1855,6 +1858,9 @@ namespace ReeLib
 		public NormalRecalcData? NormalRecalcData { get; set; }
 		public List<uint>? Hashes { get; set; }
 		public List<Vector3>? FloatData { get; set; }
+
+		public int TotalVertexCount => (MeshData?.TotalVertexCount ?? 0);
+		public int TotalTriangleCount => (MeshData?.TotalTriangleCount ?? 0);
 
 		public bool RequiresStreamingData => Header.BufferCount > 1 || StreamingBuffers?.Count > 0;
 

@@ -1174,6 +1174,7 @@ namespace ReeLib
                     exId++;
                 }
             }
+            var originalActions = actions.ToDictionary();
 
             foreach (var node in Nodes)
             {
@@ -1289,7 +1290,10 @@ namespace ReeLib
                                 // game still loads those fine so add a failsafe here
                                 if (ex >= 50)
                                 {
-                                    Log.Warn($"could not find action {act.Action} for node {Nodes.IndexOf(node)} {node}");
+                                    // actions don't seem to be strictly unique for all games, so just try to fall back to whatever action we can find matching the ID
+                                    if (!originalActions.TryGetValue(act.Action, out matched!)) {
+                                        Log.Warn($"could not find action {act.Action} for node {Nodes.IndexOf(node)} {node}");
+                                    }
                                     break;
                                 }
                             }
@@ -1297,7 +1301,7 @@ namespace ReeLib
                         if (matched == null) continue;
 
                         act.Instance = matched;
-                        DataInterpretationException.DebugWarnIf((ActionRsz.ObjectList.Contains(matched)) == ShouldBeStaticClass(matched.RszClass.name, version), "Wrong static BHVT action");
+                        DataInterpretationException.DebugWarnIf((ActionRsz.ObjectList.Contains(matched)) == ShouldBeStaticClass(matched.RszClass.name, version), matched.RszClass.name);
                     }
 
                     foreach (var state in node.States.States)
@@ -1997,6 +2001,88 @@ namespace ReeLib
             "app.ropeway.enemy.em6300.fsmv2.transition.Em6300FsmTransitionEV_WarpState",
             "offline.enemy.common.fsmv2.transition.EmCommonMFsmTransitionEV_WarpStateRoot`1<offline.escape.enemy.em9000.ActionStatus.ID>",
             "offline.enemy.em0000.fsmv2.transition.Em0000MFsmTransitionEV_WarpState",
+
+            // MHR
+            "snow.enemy.fsm.condition.EnemyWaitMotCheck",
+            "snow.enemy.fsm.condition.EnemyMotionEnd",
+            "snow.enemy.fsm.condition.EnemyCheckGrappleMediation",
+            "snow.enemy.fsm.condition.EnemyGroundCheck",
+            "snow.enemy.fsm.condition.EnemyActionCategory",
+            "snow.enemy.fsm.condition.EnemyWaitMotType",
+            "snow.enemy.fsm.condition.EnemyMoveDistanceCheck",
+            "snow.enemy.fsm.condition.EnemyAdjustGroundCheck",
+            "snow.enemy.fsm.condition.EnemyCheckFlyBlockMoveDistance",
+            "snow.enemy.fsm.condition.EnemyNaviMoveEndCheck",
+            "snow.enemy.fsm.condition.EnemyNaviEndCheck",
+            "snow.enemy.fsm.condition.EnemyFlyNaviMoveAngleCheck",
+            "snow.enemy.fsm.condition.EnemyBlockMoveTakeOffCheck",
+            "snow.enemy.fsm.condition.EnemyNaviMoveStartCheck",
+            "snow.enemy.fsm.condition.EnemyMotLoopCheck",
+            "snow.enemy.fsm.condition.EnemyNaviMoveAngleCheck",
+            "snow.enemy.fsm.condition.EnemyActivateMoveActionControllerCheck",
+            "snow.enemy.fsm.condition.EnemyCondtionDamageLoopMotionEnd",
+            "snow.enemy.fsm.condition.EnemyTrapDamageLoopMotionEnd",
+            "snow.enemy.fsm.condition.EnemyFallTrapContinueStartCheck",
+            "snow.enemy.fsm.condition.EnemyCheckHinshiMotLoopCnt",
+            "snow.enemy.fsm.condition.EnemyCheckFlyBlockMoveDistanceLimitCheck",
+            "snow.enemy.fsm.condition.EnemySafeLandingCheck",
+            "snow.enemy.fsm.condition.EnemyMarioFreeRunEndCheck",
+            "snow.enemy.fsm.condition.EnemyMarioFinishShootDownTimerCheck",
+            "snow.enemy.fsm.condition.EnemyTargetDistanceCheck",
+            "snow.enemy.condition.EnemyMarioRideOnStartCheck",
+            "snow.enemy.condition.EnemyMarioRideOnStartFailedCheck",
+            "snow.enemy.condition.EnemyMarioRideOnSuccessCheck",
+            "snow.enemy.condition.EnemyMarioRideOnFailedCheck",
+            "snow.enemy.fsm.condition.EnemyTerrainStartAdjustEnd",
+            "snow.enemy.fsm.condition.EnemyFlyTrainStepMoveEndCheck",
+            "snow.enemy.fsm.action.EnemyLockCogRotation",
+            "snow.enemy.fsm.action.EnemyOffCliffWall",
+            "snow.enemy.fsm.action.EnemyTuneMoveDistance",
+            "snow.enemy.fsm.action.EnemyPosAccelSet",
+            "snow.enemy.fsm.action.EnemyAdjustGround",
+            "snow.enemy.fsm.action.EnemyEnableBackfaceTrianbleHit",
+            "snow.enemy.fsm.action.EnemyDisableMotTrans",
+            "snow.enemy.fsm.action.EnemyImmediateTargetTurn",
+            "snow.enemy.fsm.action.EnemyInitGravityPosAdd",
+            "snow.enemy.fsm.action.EnemyDieActionEndNotify",
+            "snow.enemy.fsm.action.EnemyTrainActive",
+            "snow.enemy.fsm.action.EnemyTrainPrioMotJointMode",
+            "snow.enemy.fsm.action.EnemyTrainRotateSpeedUp",
+            "snow.enemy.fsm.action.EnemyTrainMoveDistanceOverCheck",
+            "snow.enemy.fsm.action.EnemyFlyBlockMoveStart",
+            "snow.enemy.fsm.action.EnemyUpdateTrainTargetPosition",
+            "snow.enemy.fsm.action.EnemyConditionLoopProc",
+            "snow.enemy.fsm.action.EnemyCaptureActionEndNotify",
+            "snow.enemy.fsm.action.EnemyNaviMoveProcedure",
+            "snow.enemy.fsm.action.EnemyNaviFlyMoveMotionScale",
+            "snow.enemy.fsm.action.EnemyNaviMoveStart",
+            "snow.enemy.fsm.action.EnemyNaviMoveType",
+            "snow.enemy.fsm.action.EnemyNaviMoveInverseFlag",
+            "snow.enemy.fsm.action.EnemyNaviMoveTurn",
+            "snow.enemy.fsm.action.EnemyNaviMoveCleanup",
+            "snow.enemy.fsm.action.EnemyWetCheck",
+            "snow.enemy.fsm.action.EnemyInitGravityPosAddDirect",
+            "snow.enemy.fsm.action.EnemyAdjustSleepDamageRate",
+            "snow.enemy.fsm.action.EnemyForceOffCliffWall",
+            "snow.enemy.fsm.action.EnemyGrappleMediationUpdate",
+            "snow.enemy.fsm.action.EnemyHinshiMotLoopCounter",
+            "snow.enemy.fsm.action.EnemyInitAdjustTrapPos",
+            "snow.enemy.fsm.action.EnemyInitMotionFsmTimer",
+            "snow.enemy.fsm.action.EnemyMarioAcceptChallengeShootCommand",
+            "snow.enemy.fsm.action.EnemyMarioAcceptChallengeStartCommand",
+            "snow.enemy.fsm.action.EnemyMarioActivateStartBody",
+            "snow.enemy.fsm.action.EnemyMarioActivateStartPop",
+            "snow.enemy.fsm.action.EnemyMarioFinishShootChallengeEnd",
+            "snow.enemy.fsm.action.EnemyMarioFinishShootWallHitCheck",
+            "snow.enemy.fsm.action.EnemyMarioStartFinishShootChallenge",
+            "snow.enemy.fsm.action.EnemyMarioStartMasterChange",
+            "snow.enemy.fsm.action.EnemyMarioStartPhaseSet",
+            "snow.enemy.fsm.action.EnemyMarioStepActionCheck",
+            "snow.enemy.fsm.action.EnemyMarioUpdateRideOnReserveInfo",
+            "snow.enemy.fsm.action.EnemyOffGameSequence",
+            "snow.enemy.fsm.action.EnemyOffTurnTargetPassCheck",
+            "snow.enemy.fsm.action.EnemyStartFlyTrainStepMove",
+            "snow.enemy.fsm.action.EnemyUpdateFlyTrainStepMove",
         ];
     }
 }

@@ -133,6 +133,8 @@ namespace ReeLib.Bhvt
         public byte ukn;
         public byte idType;
 
+        public static readonly BHVTId Unset = new BHVTId(ushort.MaxValue, false);
+
         public BHVTId(int id, bool isStatic)
         {
             this.id = (ushort)id;
@@ -715,9 +717,14 @@ namespace ReeLib.Bhvt
         /// <summary>
         /// Ensures this and all child nodes have unique IDs within the file. Will create new nodes for all child nodes, but keep references to any nodes not in hierarchy.
         /// </summary>
-        public void MakeUnique(BhvtFile parentFile)
+        public List<BHVTNode> MakeUnique(BhvtFile parentFile, BHVTNode? parentNode)
         {
-            var allChildren = AllChildNodes.Append(this).ToList().ToHashSet();
+            var allChildren = AllChildNodes.Append(this)
+                .Concat(States.States.Select(s => s.TargetNode!).Where(s => s != null))
+                .Concat(AllStates.AllStates.Select(s => s.TargetNode!).Where(s => s != null))
+                .Distinct()
+                .ToHashSet();
+
             var newChildren = new Dictionary<NodeID, BHVTNode>();
 
             // ensure unique ID range
@@ -732,11 +739,19 @@ namespace ReeLib.Bhvt
                 newChildren[prevId] = child;
             }
 
+            var additionalNodes = new List<BHVTNode>();
+
             foreach (var child in allChildren) {
                 foreach (var state in child.States.States) {
                     if (newChildren.TryGetValue(state.targetNodeID, out var newNode)) {
                         state.targetNodeID = newNode.ID;
                         state.TargetNode = newNode;
+                        var parent = parentNode ??
+                            parentFile.Nodes.FirstOrDefault(p => p.ID.ID == child.ParentID.ID && p.ID.exID == child.ParentID.exID) ??
+                            parentFile.Nodes.FirstOrDefault(p => p.ID.ID == child.ParentID.ID);
+                        if (parent != null && !parent.Children.Children.Any(c => c.ChildNode == newNode)) {
+                            additionalNodes.Add(newNode);
+                        }
                     }
                 }
 
@@ -744,11 +759,23 @@ namespace ReeLib.Bhvt
                     if (newChildren.TryGetValue(state.targetNodeID, out var newNode)) {
                         state.targetNodeID = newNode.ID;
                         state.TargetNode = newNode;
+                        var parent = parentNode ??
+                            parentFile.Nodes.FirstOrDefault(p => p.ID.ID == child.ParentID.ID && p.ID.exID == child.ParentID.exID) ??
+                            parentFile.Nodes.FirstOrDefault(p => p.ID.ID == child.ParentID.ID);
+                        if (parent != null && !parent.Children.Children.Any(c => c.ChildNode == newNode)) {
+                            additionalNodes.Add(newNode);
+                        }
                     }
                 }
 
                 foreach (var act in child.Actions.Actions) act.RandomizeActionID();
             }
+
+            foreach (var add in additionalNodes.ToList()) {
+                additionalNodes.AddRange(add.MakeUnique(parentFile, parentNode));
+            }
+
+            return additionalNodes;
         }
 
         public override BHVTNode Clone()

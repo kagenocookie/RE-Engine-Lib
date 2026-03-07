@@ -247,8 +247,9 @@ namespace ReeLib
         {
             var previouslyMappedData = FindTransition(transitionId);
             var dataIndex = TransitionDatas.IndexOf(data);
-            if (!TransitionDatas.Contains(data)) {
+            if (dataIndex == -1) {
                 dataIndex = TransitionDatas.Count;
+                data.id = (uint)dataIndex;
                 TransitionDatas.Add(data);
             }
             if (previouslyMappedData != data) {
@@ -343,6 +344,9 @@ namespace ReeLib
                     }
                 }
             }
+
+            header.transitionMapCount = TransitionMaps.Count;
+            header.transitionDataCount = TransitionDatas.Count;
 
             var treeSize = handler.Tell() - header.treeDataOffset;
 

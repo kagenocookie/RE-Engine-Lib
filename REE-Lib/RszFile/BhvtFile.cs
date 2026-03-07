@@ -591,7 +591,7 @@ namespace ReeLib.Bhvt
         public int unknownAI;
         public int AI_Path;
 
-        public override string ToString() => $"[{ID}]  {(string.IsNullOrEmpty(Name) ? "-" : Name)}     <{Attributes} | {WorkFlags}> [[{referenceTreePathOffset}]]";
+        public override string ToString() => $"[{ID}]  {(string.IsNullOrEmpty(Name) ? "-" : Name)}     C:{Children.Count} | S:{States.States.Count} | T:{Transitions.Transitions.Count}";
 
         public BHVTNode(GameVersion version)
         {

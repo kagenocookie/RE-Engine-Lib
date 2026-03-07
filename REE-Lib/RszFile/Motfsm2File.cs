@@ -200,24 +200,64 @@ namespace ReeLib
         public List<TransitionMap> TransitionMaps { get; } = new();
         public List<TransitionData> TransitionDatas { get; } = new();
 
-        public void ChangeTransitionMapping(uint sourceId, uint transitionDataId)
+        public TransitionData? FindTransition(uint transitionId)
+        {
+            var idx = FindTransitionMapIndex(transitionId);
+            return idx == -1 ? null : TransitionDatas[TransitionMaps[idx].dataIndex];
+        }
+
+        public void ChangeTransitionMapping(uint sourceTransitionId, uint transitionDataId)
         {
             var dataIndex = TransitionDatas.FindIndex(d => d.id == transitionDataId);
             if (dataIndex == -1) {
                 Log.Error("Attempted to change to unknown transition ID " + transitionDataId);
                 return;
             }
-            var newMap = new TransitionMap() { transitionId = sourceId, dataIndex = dataIndex };
-            for (int i = 0; i < TransitionMaps.Count; i++) {
-                var map = TransitionMaps[i];
-                if (map.transitionId == sourceId) {
-                    TransitionMaps[i] = newMap;
-                    return;
-                }
+            var newMap = new TransitionMap() { transitionId = sourceTransitionId, dataIndex = dataIndex };
+            var mapIndex = FindTransitionMapIndex(sourceTransitionId);
+            if (mapIndex != -1)
+            {
+                TransitionMaps[mapIndex] = newMap;
+                return;
             }
 
             TransitionMaps.Add(newMap);
             TransitionMaps.Sort();
+        }
+
+        private int FindTransitionMapIndex(uint transitionId)
+        {
+            int a = 0;
+            int b = TransitionMaps.Count - 1;
+            while (a <= b) {
+                var m = a + ((b - a) / 2);
+                if (TransitionMaps[m].transitionId < transitionId) {
+                    a = m + 1;
+                } else if (TransitionMaps[m].transitionId > transitionId) {
+                    b = m - 1;
+                } else {
+                    return m;
+                }
+            }
+
+            return -1;
+        }
+
+        private void EnsureTransitionDataExists(TransitionData data, ref uint transitionId)
+        {
+            var previouslyMappedData = FindTransition(transitionId);
+            var dataIndex = TransitionDatas.IndexOf(data);
+            if (!TransitionDatas.Contains(data)) {
+                dataIndex = TransitionDatas.Count;
+                TransitionDatas.Add(data);
+            }
+            if (previouslyMappedData != data) {
+                if (previouslyMappedData != null || transitionId == 0) {
+                    transitionId = (uint)System.Random.Shared.Next(10000, int.MaxValue);
+                }
+                TransitionMaps.Add(new TransitionMap() { transitionId = transitionId, dataIndex = dataIndex });
+                TransitionMaps.Sort();
+            }
         }
 
         protected override bool DoRead()
@@ -289,6 +329,20 @@ namespace ReeLib
             header.treeDataOffset = handler.Tell();
             BhvtFile.FileHandler = handler.WithOffset(header.treeDataOffset);
             BhvtFile.Write();
+
+            foreach (var node in BhvtFile.Nodes) {
+                foreach (var state in node.States.States) {
+                    if (state.TransitionData != null) {
+                        EnsureTransitionDataExists(state.TransitionData, ref state.transitionMapID);
+                    }
+                }
+
+                foreach (var state in node.AllStates.AllStates) {
+                    if (state.TransitionData != null) {
+                        EnsureTransitionDataExists(state.TransitionData, ref state.transitionMapID);
+                    }
+                }
+            }
 
             var treeSize = handler.Tell() - header.treeDataOffset;
 

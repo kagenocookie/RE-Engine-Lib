@@ -1600,7 +1600,7 @@ namespace ReeLib.Mesh
 
         protected override bool DoRead(FileHandler handler)
         {
-			if (Version < MeshSerializerVersion.DD2_Old)
+			if (Version != MeshSerializerVersion.DD2)
 			{
 				return false;
 			}
@@ -2187,13 +2187,17 @@ namespace ReeLib
 			if (header.blendShapeIndicesOffset > 0 && BlendShapes != null)
 			{
 				handler.Seek(header.blendShapeIndicesOffset);
-				foreach (var shape in BlendShapes.Shapes)
-				{
-					foreach (var target in shape.Targets)
+				try {
+					foreach (var shape in BlendShapes.Shapes)
 					{
-						var idx = handler.Read<short>();
-						target.name = strings[idx];
+						foreach (var target in shape.Targets)
+						{
+							var idx = handler.Read<short>();
+							target.name = strings[idx];
+						}
 					}
+				} catch (Exception e) {
+					Log.Warn("Failed to load blend shape data: " + e.Message);
 				}
 			}
 

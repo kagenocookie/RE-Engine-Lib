@@ -2083,6 +2083,11 @@ namespace ReeLib
             "snow.enemy.fsm.action.EnemyOffTurnTargetPassCheck",
             "snow.enemy.fsm.action.EnemyStartFlyTrainStepMove",
             "snow.enemy.fsm.action.EnemyUpdateFlyTrainStepMove",
+            "snow.enemy.fsm.condition.EnemyCheckV15IntrusionThreatWait",
+            "snow.enemy.fsm.action.EnemyMotTransScale",
+            "snow.enemy.fsm.condition.EnemyJumpEnd",
+            "snow.enemy.fsm.action.EnemyMotSpeedChg",
+            "snow.enemy.fsm.condition.EnemyGroundNothingCheck",
         ];
     }
 }

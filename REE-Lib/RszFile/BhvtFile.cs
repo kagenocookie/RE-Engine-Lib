@@ -717,8 +717,17 @@ namespace ReeLib.Bhvt
         /// <summary>
         /// Ensures this and all child nodes have unique IDs within the file. Will create new nodes for all child nodes, but keep references to any nodes not in hierarchy.
         /// </summary>
-        public List<BHVTNode> MakeUnique(BhvtFile parentFile, BHVTNode? parentNode)
+        /// <returns>The list of added nodes, or null if an error occurred.</returns>
+        public List<BHVTNode>? MakeUnique(BhvtFile parentFile, BHVTNode? parentNode)
         {
+            return MakeUnique(parentFile, parentNode, 8);
+        }
+        private List<BHVTNode>? MakeUnique(BhvtFile parentFile, BHVTNode? parentNode, int depthLimit)
+        {
+            if (depthLimit-- < 0) {
+                return null;
+            }
+
             var allChildren = AllChildNodes.Append(this)
                 .Concat(States.States.Select(s => s.TargetNode!).Where(s => s != null))
                 .Concat(AllStates.AllStates.Select(s => s.TargetNode!).Where(s => s != null))
@@ -772,7 +781,10 @@ namespace ReeLib.Bhvt
             }
 
             foreach (var add in additionalNodes.ToList()) {
-                additionalNodes.AddRange(add.MakeUnique(parentFile, parentNode));
+                var subs = add.MakeUnique(parentFile, parentNode, depthLimit);
+                if (subs == null) return null;
+
+                additionalNodes.AddRange(subs);
             }
 
             return additionalNodes;

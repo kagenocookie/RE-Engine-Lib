@@ -1418,6 +1418,7 @@ namespace ReeLib
                     if (child.ChildNode == null) continue;
 
                     Nodes.Add(child.ChildNode);
+                    child.ChildNode.ParentID = node.ID;
                 }
 
                 foreach (var child in node.Children.Children) {

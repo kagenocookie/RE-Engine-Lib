@@ -3,6 +3,7 @@ using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using ReeLib.Pfb;
 using ReeLib.Scn;
+using ReeLib.via;
 
 namespace ReeLib.Common
 {
@@ -102,6 +103,10 @@ namespace ReeLib.Common
                             rsz.RebuildInstanceInfo();
                         }
                     }
+                } else if (field.type == RszFieldType.GameObjectRef) {
+                    var rr = new GameObjectRef();
+                    rr.guid = val?.GetValueKind() == JsonValueKind.String ? Guid.Parse(val.ToString()) : Guid.Empty;
+                    inst.SetFieldValue(key, rr);
                 } else {
                     var deserialized = val?.GetValueKind() switch {
                         JsonValueKind.True => true,
@@ -145,6 +150,8 @@ namespace ReeLib.Common
                         { "$array", field.original_type },
                         { "items", fieldValue },
                     };
+                } else if (field.type == RszFieldType.GameObjectRef) {
+                    dict[field.name] = ((GameObjectRef)fieldValue).guid.ToString();
                 } else {
                     dict[field.name] = fieldValue;
                 }

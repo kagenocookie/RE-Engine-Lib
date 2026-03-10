@@ -1479,8 +1479,8 @@ namespace ReeLib
                 {
                     var state = node.States.States[i];
                     state.targetNodeID = state.TargetNode?.ID ?? NodeID.Unset;
-                    if (state.TargetNode == null) {
-                        Log.Warn($"Removing behavior tree state without target node from node '{node}'");
+                    if (state.TargetNode == null || !Nodes.Contains(state.TargetNode)) {
+                        Log.Warn($"Removing behavior tree state with missing target from node '{node}' (target: {state.TargetNode?.ToString() ?? "NULL"})");
                         node.States.States.Remove(state);
                         i--;
                         continue;

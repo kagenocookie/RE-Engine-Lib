@@ -69,12 +69,28 @@ public partial class PakReader
 
     public bool TryReadManifestFileList(string pakFile)
     {
+        var prio = PakFilePriority;
         PakFilePriority = [pakFile];
         AddFiles(PakUtils.ManifestFilepath);
-        var file = FindFiles().SingleOrDefault();
-        if (file.stream == null) return false;
-        AddFilesFromListFile(file.stream);
-        return true;
+        var pak = new PakFile();
+        var manifestHash = PakUtils.GetFilepathHash(PakUtils.ManifestFilepath);
+        var foundFiles = EnumerateTempPaksWithSearchedFiles(pak).FirstOrDefault() != null;
+        PakFilePriority = prio;
+        if (!foundFiles) return false;
+
+        foreach (var entry in pak.Entries) {
+            if (entry.CombinedHash == manifestHash) {
+                using var memStream = new MemoryStream();
+                using var fs = File.OpenRead(pak.filepath);
+                pak.Read(entry, memStream);
+                memStream.Seek(0, SeekOrigin.Begin);
+                AddFilesFromListFile(memStream);
+                PakFilePriority = prio;
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public void AddFiles(IEnumerable<string> files)

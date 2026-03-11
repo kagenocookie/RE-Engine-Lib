@@ -131,6 +131,22 @@ public class CachedMemoryPakReader : PakReader, IDisposable
         return null;
     }
 
+    public string? GetPakFileOfEntry(ulong filepathHash)
+    {
+        if (cachedEntries == null)
+        {
+            CacheEntries();
+            if (cachedEntries == null) throw new Exception("Failed to generate cache of PAK entries");
+        }
+
+        if (cachedEntries.TryGetValue(filepathHash, out var entry))
+        {
+            return entry.file.filepath;
+        }
+
+        return null;
+    }
+
     public bool FileExists(string filepath) => FileExists(PakUtils.GetFilepathHash(filepath));
     public bool FileExists(ulong filepathHash)
     {

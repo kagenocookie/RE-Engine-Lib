@@ -16,7 +16,7 @@ public class LocalResourceCache
     public bool DisableAutoUpdates { get; set; }
 
     public static string GetDefaultLocalPathForGame(GameIdentifier game)
-        => Path.Combine(Path.GetDirectoryName(ResourceRepository.LocalResourceRepositoryFilepath)!, game.name);
+        => Path.Combine(ResourceRepository.LocalResourceRepositoryFolder, game.name);
 
     public bool EnsureUpToDate(GameIdentifier game, out LocalResources localInfo)
     {
@@ -111,7 +111,7 @@ public class LocalResources : ICloneable
     {
         var cache = ResourceRepository.Cache;
         if (cache.RemoteInfo.FileExtensions != null && (cache.FileExtensionsPath == null || cache.RemoteInfo.FileExtensions.LastUpdatedAt > cache.FileExtensionsPath.LastUpdatedAt)) {
-            var globalCacheLocalPath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(ResourceRepository.LocalResourceRepositoryFilepath)!, "global/file_extensions.json"));
+            var globalCacheLocalPath = Path.GetFullPath(Path.Combine(ResourceRepository.LocalResourceRepositoryFolder, "global/file_extensions.json"));
             if (TryCacheFile(cache.RemoteInfo.FileExtensions.Uri, globalCacheLocalPath)) {
                 cache.FileExtensions.Clear();
                 cache.FileExtensionsPath = new DatedResourcePath(globalCacheLocalPath, DateTime.UtcNow);

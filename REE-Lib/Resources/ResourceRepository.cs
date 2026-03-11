@@ -14,12 +14,25 @@ public class ResourceRepository
     /// </summary>
     internal static LocalResourceCache Cache => _cache ??= Initialize();
 
+    private static string _resourceFolder = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        "REE-Lib/resources");
+
+    /// <summary>
+    /// The local folder in which to store all the repository cache data.
+    /// </summary>
+    public static string LocalResourceRepositoryFolder {
+        get => _resourceFolder;
+        set => _resourceFolder = value;
+    }
+
     /// <summary>
     /// The local filepath to store the repository cache JSON file in. Should point to the main json filepath, requested files will be downloaded next to it.
     /// </summary>
-    public static string LocalResourceRepositoryFilepath { get; set; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "REE-Lib/resources/resource-cache.json");
+    public static string LocalResourceRepositoryFilepath {
+        get => Path.Combine(_resourceFolder, "resource-cache.json");
+        set => _resourceFolder = Path.GetDirectoryName(value) ?? _resourceFolder;
+    }
 
     /// <summary>
     /// Disable all online resource cache update features.
@@ -197,7 +210,7 @@ public class ResourceRepository
 
     public static void UpdateLocalCache()
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(LocalResourceRepositoryFilepath)!);
+        Directory.CreateDirectory(LocalResourceRepositoryFolder);
         using var fs = File.Create(LocalResourceRepositoryFilepath);
         JsonSerializer.Serialize(fs, _cache, options);
     }

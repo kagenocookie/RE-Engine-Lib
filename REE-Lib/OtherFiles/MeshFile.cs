@@ -819,9 +819,9 @@ namespace ReeLib.Mesh
                 case VertexBufferType.Colors:
                     Colors = handler.ReadArray<Color>(count);
                     break;
-                // case VertexBufferType.UnknownData:
-                //     UnknownData = handler.ReadArray<Color>(count);
-                //     break;
+                case VertexBufferType.UnknownData:
+                    // UnknownData = handler.ReadArray<Color>(count);
+                    break;
                 case VertexBufferType.BoneWeights:
                     Weights = new VertexBoneWeights[count];
                     for (int k = 0; k < count; ++k) {

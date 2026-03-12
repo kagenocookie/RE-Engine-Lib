@@ -283,6 +283,7 @@ namespace ReeLib
         public static bool IsASTCFormat(this DxgiFormat format) => (format & DxgiFormat.VIAEXTENSION) != 0 && format != DxgiFormat.FORCE_UINT;
         public static bool IsBlockCompressedFormat(this DxgiFormat format) => _bcFormats.Contains(format);
         public static bool IsRGBFormat(this DxgiFormat format) => !IsASTCFormat(format) && !IsBlockCompressedFormat(format) && format != DxgiFormat.FORCE_UINT;
+        public static bool IsSRGB(this DxgiFormat format) => _srgbFormats.Contains(format);
 
         public static int GetBitsPerPixel(this DDSFourCC format) => format switch { DDSFourCC.DXT1 or DDSFourCC.DXT4 => 8, _ => 16 };
 
@@ -327,6 +328,7 @@ namespace ReeLib
         private static readonly HashSet<DxgiFormat> _bcFormats8 = Enum.GetValues<DxgiFormat>().Where(v => v.ToString().StartsWith("BC1") || v.ToString().StartsWith("BC4")).ToHashSet();
         private static readonly HashSet<DxgiFormat> _bcFormats16 = _bcFormats.Except(_bcFormats8).ToHashSet();
         private static readonly HashSet<DxgiFormat> _rgbFormats = Enum.GetValues<DxgiFormat>().Where(v => !v.IsASTCFormat() && !v.IsBlockCompressedFormat() && v != DxgiFormat.FORCE_UINT).ToHashSet();
+        private static readonly HashSet<DxgiFormat> _srgbFormats = Enum.GetValues<DxgiFormat>().Where(v => v.ToString().Contains("SRGB")).ToHashSet();
 
         [GeneratedRegex("([RGBAX])(\\d+)")]
         private static partial Regex RgbBitsRegex();

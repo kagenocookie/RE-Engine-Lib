@@ -884,7 +884,7 @@ namespace ReeLib
             var mesh = new MeshFile(new FileHandler(new MemoryStream(), FileHandler.FilePath));
             maxLod = Math.Max(minLod, maxLod);
 
-            var buffer = new MeshBuffer();
+            var buffer = new MeshBuffer() { Version = Header.FormatVersion };
             mesh.MeshBuffer = buffer;
             var verts = new List<Vector3>(LODs[minLod].Chunks.Sum(ch => ch.vertCount));
             var normals = new List<Vector3>(verts.Capacity);
@@ -900,6 +900,7 @@ namespace ReeLib
             var data = mesh.MeshData = new MeshData(buffer) {
                 lodCount = (maxLod - minLod) + 1,
                 materialCount = MaterialNames.Count,
+                Version = Header.FormatVersion,
             };
             mesh.MaterialNames.AddRange(MaterialNames);
             mesh.Header.version = Header.version;

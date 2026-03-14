@@ -399,7 +399,7 @@ namespace ReeLib.Mot
         private long _offsetStart;
         private int DataOffsetSize => MotVersion >= MotVersion.RE3 ? 4 : 8;
 
-        public MotVersion MotVersion { get; set; }
+        public MotVersion MotVersion { get; private set; }
 
         public int UnpackDataCount
         {

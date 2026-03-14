@@ -893,7 +893,8 @@ namespace ReeLib.Mesh
         public MeshBuffer Buffer { get; set; } = buffer;
 
 		public ushort materialIndex;
-		public ushort bufferIndex;
+		public byte bufferIndex;
+		public byte uknByte;
 		public int streamingOffset;
 		public int streamingOffset2;
 		public int ukn1;
@@ -941,6 +942,7 @@ namespace ReeLib.Mesh
         {
 			action.Do(ref materialIndex);
 			action.Do(ref bufferIndex);
+			action.Do(ref uknByte);
 			action.Do(Version >= MeshSerializerVersion.Onimusha, ref ukn1);
 			action.Do(ref indicesCount);
 			action.Do(ref facesIndexOffset);

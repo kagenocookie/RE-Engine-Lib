@@ -50,9 +50,14 @@ public class ListFileWrapper
         ReadFileList(fileList);
     }
 
-    public ListFileWrapper(IEnumerable<string> files)
+    public ListFileWrapper(IEnumerable<string> files, bool ensureUniqueEntries = false)
     {
-        Files = files.Where(f => !string.IsNullOrEmpty(f)).Select(f => NormalizePath(f).ToLowerInvariant()).Order().ToArray();
+        var ordered = files.Where(f => !string.IsNullOrEmpty(f)).Select(f => NormalizePath(f).ToLowerInvariant()).Order();
+        if (ensureUniqueEntries) {
+            Files = ordered.Distinct().ToArray();
+        } else {
+            Files = ordered.ToArray();
+        }
     }
 
     public void ReadFileList(string listFilepath)

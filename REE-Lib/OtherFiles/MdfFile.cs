@@ -483,6 +483,8 @@ namespace ReeLib
 
             foreach (var matData in Materials)
             {
+                matData.Header.paramCount = matData.Parameters.Count;
+                matData.Header.texCount = matData.Textures.Count;
                 matData.Header.Write(handler);
             }
 

@@ -241,6 +241,6 @@ public record struct REFileFormatFull(KnownFileFormats format, int version, stri
             return $".{extension}.{version}";
         }
 
-        return $"{extension}.{version} {format}";
+        return $".{extension}.{version} ({format})";
     }
 }

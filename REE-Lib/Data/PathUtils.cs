@@ -25,6 +25,32 @@ public static class PathUtils
         return new REFileFormat(fmt, version);
     }
 
+    public static REFileFormatFull ParseFileFormatFull(ReadOnlySpan<char> filename)
+    {
+        filename = GetFilenameExtensionWithSuffixes(filename);
+        if (filename.IsEmpty) return REFileFormatFull.Unknown;
+        // filename: ".mesh" OR ".mesh.123" OR ".sbnk.1.x64" OR ".sbnk.1.x64.en" OR ".whatever.png"
+
+        var versionDot = filename.IndexOf('.');
+        if (versionDot == -1) return new REFileFormatFull(GetFileFormatFromExtension(filename), -1, filename.ToString());
+
+        var versionEnd = filename[(versionDot + 1)..].IndexOf('.');
+        if (versionEnd == -1) versionEnd = filename.Length;
+        else versionEnd += versionDot + 1;
+
+        if (!int.TryParse(filename[(versionDot + 1)..versionEnd], out var version)) {
+            var fmtEnum = GetFileFormatFromExtension(filename);
+            if (fmtEnum == KnownFileFormats.Unknown) {
+                return new REFileFormatFull(fmtEnum, -1, filename.Slice(filename.LastIndexOf('.') + 1).ToString());
+            } else {
+                return new REFileFormatFull(fmtEnum, -1, filename.ToString());
+            }
+        }
+
+        var fmt = GetFileFormatFromExtension(filename[..versionDot]);
+        return new REFileFormatFull(fmt, version, filename[..versionDot].ToString());
+    }
+
     public static KnownFileFormats GetFileFormatFromExtension(string extension) => GetFileFormatFromExtension(extension.AsSpan());
     public static KnownFileFormats GetFileFormatFromExtension(ReadOnlySpan<char> extension)
     {
@@ -199,4 +225,22 @@ public static class PathUtils
 public record struct REFileFormat(KnownFileFormats format, int version)
 {
     public static readonly REFileFormat Unknown = new REFileFormat(KnownFileFormats.Unknown, -1);
+
+    public static implicit operator REFileFormat(REFileFormatFull ff) => new REFileFormat(ff.format, ff.version);
+}
+
+public record struct REFileFormatFull(KnownFileFormats format, int version, string extension)
+{
+    public static readonly REFileFormatFull Unknown = new REFileFormatFull(KnownFileFormats.Unknown, -1, "");
+
+    public override string ToString()
+    {
+        if (format == KnownFileFormats.Unknown)
+        {
+            if (version == -1) return $".{extension}";
+            return $".{extension}.{version}";
+        }
+
+        return $"{extension}.{version} {format}";
+    }
 }

@@ -396,6 +396,14 @@ namespace ReeLib
             return targetStream;
         }
 
+        /// <summary>
+        /// Writes the GDeflate-enabled texture into a new file stream while not actually compressing any of the mip levels.
+        /// </summary>
+        public Stream? CompressGDeflateForceUncompressed(Stream? targetStream = null)
+        {
+            return CompressGDeflate(static (_, _, _) => 0, targetStream);
+        }
+
         public void LoadDataFromDDS(DDSFile source)
         {
             var handler = FileHandler;

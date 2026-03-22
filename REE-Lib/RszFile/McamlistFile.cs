@@ -128,12 +128,12 @@ namespace ReeLib
 {
     using ReeLib.Mcamlist;
 
-    public class McamlistFile(FileHandler fileHandler) : BaseFile(fileHandler)
+    public class McamlistFile(FileHandler fileHandler) : MotlistFileBase(fileHandler)
     {
         public const uint Magic = 0x74736C63;
 
         public Header Header { get; } = new();
-        public List<MotFileBase> MotFiles { get; } = new();
+        public override string Name { get => Header.Name; set => Header.Name = value; }
         public List<McamIndex> Motions { get; } = new();
 
         public MotFileBase? Find(string motName)

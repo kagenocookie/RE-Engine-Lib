@@ -284,12 +284,18 @@ namespace ReeLib.Motlist
 
 namespace ReeLib
 {
-    public class MotlistFile(FileHandler fileHandler) : BaseFile(fileHandler)
+    public abstract class MotlistFileBase(FileHandler fileHandler) : BaseFile(fileHandler)
+    {
+        public abstract string Name { get; set; }
+        public List<MotFileBase> MotFiles { get; } = new();
+    }
+
+    public class MotlistFile(FileHandler fileHandler) : MotlistFileBase(fileHandler)
     {
         public const uint Magic = 0x74736C6D;
 
         public Header Header { get; } = new();
-        public List<MotFileBase> MotFiles { get; } = new();
+        public override string Name { get => Header.MotListName; set => Header.MotListName = value; }
         public List<MotIndex> Motions { get; } = new();
 
         public MotFileBase? Find(string motName)

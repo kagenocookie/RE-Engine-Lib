@@ -1454,7 +1454,7 @@ namespace ReeLib.Mot
                 switch (type)
                 {
                     case QuaternionDecompression.LoadQuaternionsFull:
-                        handler.Read(ref quaternion);
+                        rotations[i] = handler.Read<Quaternion>();
                         continue;
                     case QuaternionDecompression.LoadQuaternions3Component:
                         quaternion = new(handler.Read<Vector3>(), 0);

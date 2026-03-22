@@ -1437,8 +1437,11 @@ namespace ReeLib.Mot
             }
         }
 
-        private static float ComputeQuaternionW(Vector3 v) => MathF.Sqrt(1 - v.LengthSquared());
-        private static float ComputeQuaternionW(Quaternion v) => MathF.Sqrt(1 - v.X * v.X - v.Y * v.Y - v.Z * v.Z);
+        private static float ComputeQuaternionW(Quaternion v)
+        {
+            var n = 1 - v.X * v.X - v.Y * v.Y - v.Z * v.Z;
+            return n <= 0 ? 0 : MathF.Sqrt(n);
+        }
 
         public void ReadFrameDataRotation(FileHandler handler)
         {
@@ -1452,20 +1455,16 @@ namespace ReeLib.Mot
                 {
                     case QuaternionDecompression.LoadQuaternionsFull:
                         handler.Read(ref quaternion);
-                        break;
+                        continue;
                     case QuaternionDecompression.LoadQuaternions3Component:
-                        {
-                            Vector3 vector = handler.Read<Vector3>();
-                            quaternion = new(vector, ComputeQuaternionW(vector));
-                            break;
-                        }
+                        quaternion = new(handler.Read<Vector3>(), 0);
+                        break;
                     case QuaternionDecompression.LoadQuaternions5Bit:
                         {
                             var data = handler.Read<ushort>();
                             quaternion.X = (unpackData[0] * ((data >> 00) & 0x1F) * (1f / 0x1F)) + unpackData[4];
                             quaternion.Y = (unpackData[1] * ((data >> 05) & 0x1F) * (1f / 0x1F)) + unpackData[5];
                             quaternion.Z = (unpackData[2] * ((data >> 10) & 0x1F) * (1f / 0x1F)) + unpackData[6];
-                            quaternion.W = ComputeQuaternionW(quaternion);
                             break;
                         }
                     case QuaternionDecompression.LoadQuaternions8Bit:
@@ -1473,7 +1472,6 @@ namespace ReeLib.Mot
                             quaternion.X = (unpackData[0] * (handler.ReadByte() * (1f / 0xFF))) + unpackData[4];
                             quaternion.Y = (unpackData[1] * (handler.ReadByte() * (1f / 0xFF))) + unpackData[5];
                             quaternion.Z = (unpackData[2] * (handler.ReadByte() * (1f / 0xFF))) + unpackData[6];
-                            quaternion.W = ComputeQuaternionW(quaternion);
                             break;
                         }
                     case QuaternionDecompression.LoadQuaternions10Bit:
@@ -1482,7 +1480,6 @@ namespace ReeLib.Mot
                             quaternion.X = (unpackData[0] * ((data >> 00) & 0x3FF) * (1f / 0x3FF)) + unpackData[4];
                             quaternion.Y = (unpackData[1] * ((data >> 10) & 0x3FF) * (1f / 0x3FF)) + unpackData[5];
                             quaternion.Z = (unpackData[2] * ((data >> 20) & 0x3FF) * (1f / 0x3FF)) + unpackData[6];
-                            quaternion.W = ComputeQuaternionW(quaternion);
                             break;
                         }
                     case QuaternionDecompression.LoadQuaternions13Bit:
@@ -1491,7 +1488,6 @@ namespace ReeLib.Mot
                             quaternion.X = (unpackData[0] * ((val >> 00) & 0x1FFF) / (float)0x1FFF) + unpackData[4];
                             quaternion.Y = (unpackData[1] * ((val >> 13) & 0x1FFF) / (float)0x1FFF) + unpackData[5];
                             quaternion.Z = (unpackData[2] * ((val >> 26) & 0x1FFF) / (float)0x1FFF) + unpackData[6];
-                            quaternion.W = ComputeQuaternionW(quaternion);
                             break;
                         }
                     case QuaternionDecompression.LoadQuaternions16Bit:
@@ -1511,7 +1507,6 @@ namespace ReeLib.Mot
                                 quaternion.Y = (unpackData[1] * (data.Y / (float)0xFFFF)) + unpackData[5];
                                 quaternion.Z = (unpackData[2] * (data.Z / (float)0xFFFF)) + unpackData[6];
                             }
-                            quaternion.W = ComputeQuaternionW(quaternion);
                             break;
                         }
                     case QuaternionDecompression.LoadQuaternions18Bit:
@@ -1520,7 +1515,6 @@ namespace ReeLib.Mot
                             quaternion.X = (unpackData[0] * ((val >> 00) & 0x3FFFF) / (float)0x3FFFF) + unpackData[4];
                             quaternion.Y = (unpackData[1] * ((val >> 18) & 0x3FFFF) / (float)0x3FFFF) + unpackData[5];
                             quaternion.Z = (unpackData[2] * ((val >> 36) & 0x3FFFF) / (float)0x3FFFF) + unpackData[6];
-                            quaternion.W = ComputeQuaternionW(quaternion);
                             break;
                         }
                     case QuaternionDecompression.LoadQuaternions21Bit:
@@ -1529,26 +1523,22 @@ namespace ReeLib.Mot
                             quaternion.X = (unpackData[0] * ((data >> 00) & 0x1F_FFFF) / (float)0x1F_FFFF) + unpackData[4];
                             quaternion.Y = (unpackData[1] * ((data >> 21) & 0x1F_FFFF) / (float)0x1F_FFFF) + unpackData[5];
                             quaternion.Z = (unpackData[2] * ((data >> 42) & 0x1F_FFFF) / (float)0x1F_FFFF) + unpackData[6];
-                            quaternion.W = ComputeQuaternionW(quaternion);
                             break;
                         }
                     case QuaternionDecompression.LoadQuaternionsXAxis16Bit:
                         quaternion.X = unpackData[0] * ((float)handler.Read<ushort>() * (1f / 0xFFFF)) + unpackData[1];
                         quaternion.Y = 0.0f;
                         quaternion.Z = 0.0f;
-                        quaternion.W = ComputeQuaternionW(quaternion);
                         break;
                     case QuaternionDecompression.LoadQuaternionsYAxis16Bit:
                         quaternion.X = 0.0f;
                         quaternion.Y = unpackData[0] * ((float)handler.Read<ushort>() * (1f / 0xFFFF)) + unpackData[1];
                         quaternion.Z = 0.0f;
-                        quaternion.W = ComputeQuaternionW(quaternion);
                         break;
                     case QuaternionDecompression.LoadQuaternionsZAxis16Bit:
                         quaternion.X = 0.0f;
                         quaternion.Y = 0.0f;
                         quaternion.Z = unpackData[0] * ((float)handler.Read<ushort>() * (1f / 0xFFFF)) + unpackData[1];
-                        quaternion.W = ComputeQuaternionW(quaternion);
                         break;
                     case QuaternionDecompression.LoadQuaternionsXAxis24Bit:
                         {
@@ -1556,7 +1546,6 @@ namespace ReeLib.Mot
                             quaternion.X = unpackData[0] * ((float)val * (1f / 0xFFFFFF)) + unpackData[1];
                             quaternion.Y = 0.0f;
                             quaternion.Z = 0.0f;
-                            quaternion.W = ComputeQuaternionW(quaternion);
                             break;
                         }
                     case QuaternionDecompression.LoadQuaternionsYAxis24Bit:
@@ -1565,7 +1554,6 @@ namespace ReeLib.Mot
                             quaternion.X = 0.0f;
                             quaternion.Y = unpackData[0] * ((float)val * (1f / 0xFFFFFF)) + unpackData[1];
                             quaternion.Z = 0.0f;
-                            quaternion.W = ComputeQuaternionW(quaternion);
                             break;
                         }
                     case QuaternionDecompression.LoadQuaternionsZAxis24Bit:
@@ -1574,30 +1562,27 @@ namespace ReeLib.Mot
                             quaternion.X = 0.0f;
                             quaternion.Y = 0.0f;
                             quaternion.Z = unpackData[0] * ((float)val * (1f / 0xFFFFFF)) + unpackData[1];
-                            quaternion.W = ComputeQuaternionW(quaternion);
                             break;
                         }
                     case QuaternionDecompression.LoadQuaternionsXAxis:
                         quaternion.X = handler.Read<float>();
                         quaternion.Y = 0.0f;
                         quaternion.Z = 0.0f;
-                        quaternion.W = ComputeQuaternionW(quaternion);
                         break;
                     case QuaternionDecompression.LoadQuaternionsYAxis:
                         quaternion.X = 0.0f;
                         quaternion.Y = handler.Read<float>();
                         quaternion.Z = 0.0f;
-                        quaternion.W = ComputeQuaternionW(quaternion);
                         break;
                     case QuaternionDecompression.LoadQuaternionsZAxis:
                         quaternion.X = 0.0f;
                         quaternion.Y = 0.0f;
                         quaternion.Z = handler.Read<float>();
-                        quaternion.W = ComputeQuaternionW(quaternion);
                         break;
                     default:
                         throw new NotSupportedException($"Can't read Quaternion compression type {type} ({Compression.ToString("X")})");
                 }
+                quaternion.W = ComputeQuaternionW(quaternion);
                 rotations[i] = quaternion;
             }
         }

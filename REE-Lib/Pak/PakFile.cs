@@ -339,7 +339,7 @@ namespace ReeLib
             if (Header.featureFlags != 0)
             {
                 byte[] key = ArrayPool<byte>.Shared.Rent(128);
-                stream.Read(key);
+                stream.ReadExactly(key, 0, 128);
                 Encryption.DecryptPakEntryData(entryTable, key);
                 ArrayPool<byte>.Shared.Return(key);
             }
@@ -416,35 +416,32 @@ namespace ReeLib
                 var chunkIndex = (int)entry.offset;
                 var blockSize = ChunkEntries.blockSize;
                 var remainingSize = (int)entry.decompressedSize;
-                var rawBlockBytes = ArrayPool<byte>.Shared.Rent(blockSize);
+                var chunkBytes = ArrayPool<byte>.Shared.Rent(blockSize);
 
                 while (remainingSize > 0)
                 {
                     var chunk = ChunkEntries!.chunks[chunkIndex];
-                    readStream.Seek(chunk.offset, SeekOrigin.Begin);
-                    if (chunk.attributes == 0x20000000)
+                    var overflow = chunk.attributes & 0b1111111111;
+                    var compressedSize = (int)(chunk.attributes >> 10);
+                    readStream.Seek(chunk.offset + 0x100000000L * overflow, SeekOrigin.Begin);
+                    readStream.ReadExactly(chunkBytes, 0, compressedSize);
+
+                    if (compressedSize == blockSize)
                     {
-                        // raw data
-                        readStream.ReadExactly(rawBlockBytes, 0, blockSize);
-                        outStream.Write(rawBlockBytes, 0, blockSize);
-                        remainingSize -= blockSize;
+                        outStream.Write(chunkBytes, 0, compressedSize);
+                        remainingSize -= compressedSize;
                     }
                     else
                     {
-                        // zstd compressed
-                        var compressedSize = (int)(chunk.attributes >> 10);
-                        var compressedBytes = ArrayPool<byte>.Shared.Rent(compressedSize);
-                        readStream.ReadExactly(compressedBytes, 0, compressedSize);
                         var start = outStream.Position;
-                        Compression.DecompressZstd(compressedBytes, compressedSize, outStream);
+                        Compression.DecompressZstd(chunkBytes, compressedSize, outStream);
                         remainingSize -= (int)(outStream.Position - start);
-                        ArrayPool<byte>.Shared.Return(compressedBytes);
                     }
 
                     chunkIndex++;
                 }
 
-                ArrayPool<byte>.Shared.Return(rawBlockBytes);
+                ArrayPool<byte>.Shared.Return(chunkBytes);
                 return;
             }
 

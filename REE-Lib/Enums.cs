@@ -95,18 +95,6 @@ namespace ReeLib
         Data
     };
 
-    enum MAGIC {
-        id_SCN = 5129043,
-        id_PFB = 4343376,
-        id_USR = 5395285,
-        id_RCOL = 1280262994,
-        id_mfs2 = 846423661,
-        id_BHVT = 1414940738,
-        id_uvar = 1918989941,
-        id_fchr = 1919443814,
-    }
-
-
     public enum GameName
     {
         unknown,

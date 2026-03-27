@@ -298,11 +298,11 @@ namespace ReeLib.MplyMesh
     {
         public int data;
 
-        public readonly ushort X => (ushort)((data) & 0b1111111111);
-        public readonly ushort Y => (ushort)((data >> 10) & 0b1111111111);
-        public readonly ushort Z => (ushort)((data >> 20) & 0b1111111111);
+        public readonly float X => (ushort)((data >>  0) & 0b1111111111) / (float)0b1111111111;
+        public readonly float Y => (ushort)((data >> 10) & 0b1111111111) / (float)0b1111111111;
+        public readonly float Z => (ushort)((data >> 20) & 0b1111111111) / (float)0b1111111111;
 
-        public readonly Vector3 AsVector3 => new Vector3(X / (float)0xb1111111111, Y / (float)0xb1111111111, Z / (float)0xb1111111111);
+        public readonly Vector3 AsVector3 => new Vector3(X, Y, Z);
     }
 
     public record struct Ushort3(ushort X, ushort Y, ushort Z)
@@ -380,7 +380,7 @@ namespace ReeLib.MplyMesh
         Use32BitPos = 1 << 12,
         unkn5 = 1 << 13,
         unkn6 = 1 << 14,
-        HasUnknStruct = 1 << 15,
+        Unused = 1 << 15,
 
         PositionScaling2 = 1 << 16,
         PositionScaling4 = 1 << 17,
@@ -460,59 +460,7 @@ namespace ReeLib.MplyMesh
             public ushort scaleZ;
 
             public readonly Vector3 Offset => new Vector3(offsetX, offsetY, offsetZ) * (1f / ushort.MaxValue) - new Vector3(0.5f);
-            public readonly Vector3 Scale => new Vector3(scaleX, scaleY, scaleZ) * (1f / ushort.MaxValue) - new Vector3(0.5f);
-        }
-
-        public class ScalingParameterData
-        {
-            // for easier debugging of multiplier values
-            public ScalingParameterValues Scaling = new() { initialScale = 4 };
-            public ScalingParameterValues Offset = new();
-        }
-
-        public class ScalingParameterValues
-        {
-            public bool useHeaderScale;
-            public float initialScale = 1f;
-            public float[] FlagScales = new float[18];
-            public int modeSwitchFlag = -1;
-
-            public ScalingParameterValues? altMode;
-
-            public float GetScale(MplyChunkFlags flags, MeshletBVH bvh)
-            {
-                var scale = initialScale;
-                var num = (uint)flags;
-                if (useHeaderScale) scale *= bvh.scale;
-
-                for (int i = 0; i < 18; ++i) {
-                    if ((num & (1u << (i + 14))) != 0) {
-                        if (modeSwitchFlag == i && altMode != null) {
-                            return altMode.GetScale(flags, bvh);
-                        }
-                        var mult = FlagScales[i];
-                        if (mult != 0) scale *= mult;
-                    }
-                }
-
-                return scale;
-            }
-        }
-
-
-        public static ScalingParameterData ScalingParameters = new();
-
-        private float ScalingDD2 {
-            get {
-                var exp1 = unchecked(((int)flags >> 16) & 0b1111);
-                var scale = 4f * (1 << exp1);
-
-                if ((flags & MplyChunkFlags.ScaleBit8) != 0) scale *= (1f / 2);
-                if ((flags & MplyChunkFlags.ScaleBit5) != 0) scale *= (1f / 4);
-                if ((flags & MplyChunkFlags.ScaleBit6) != 0) scale *= (1f / 64);
-                if ((flags & MplyChunkFlags.ScaleBit7) != 0) scale *= (1f / 512);
-                return scale;
-            }
+            public readonly Vector3 Size => new Vector3(scaleX, scaleY, scaleZ) * (1f / ushort.MaxValue);
         }
 
         private Vector3 DecodePosition(Vector3 vertPos)
@@ -530,13 +478,6 @@ namespace ReeLib.MplyMesh
                 return (vertPos - new Vector3(0.5f)) * scale + center;
             }
 
-            // TODO figure out what's wrong with compressed positions, ignoring for now to make the meshes look less broken
-            // pragmata demo sm21_022_00.mesh.250925211, sm39_090_0105.mesh.250925211
-            // sm39_090_0105 looks utterly broken (and also incorret compared to ingame - see immediately after locked door to right),
-            // but looks perfect if we just drop the "compressed position" chunks
-            // so wtf are these even?
-            if ((flags & MplyChunkFlags.Use32BitPos) != 0 || (flags & MplyChunkFlags.Use24BitPos) != 0) return center;
-
             var num = (uint)flags;
             var divByte = (int)((num >> 24) & 0b11111111);
             var multByte = (int)((num >> 16) & 0b11111111);
@@ -544,7 +485,15 @@ namespace ReeLib.MplyMesh
             scale = divShift >= 0 ? (1 << divShift) : (1f / (1 << -divShift));
             var offset = 1 << (multByte - divByte);
 
-            return (vertPos - new Vector3(0.5f) + relativeAABB.Offset * offset) * scale + center;
+            // good sample for compressed verts re9: sm12_129_01.mesh.250925211   --- submesh 17 = 24bit, submesh 53 = 32bit
+            var fixedScale = 1f;
+            if ((flags & (MplyChunkFlags.Use24BitPos)) != 0) {
+                fixedScale = 1f / 256;
+            }
+            if ((flags & (MplyChunkFlags.Use32BitPos)) != 0) {
+                fixedScale = 1f / 64;
+            }
+            return ((vertPos - new Vector3(0.5f)) * fixedScale + relativeAABB.Offset * offset) * scale + center;
         }
 
         public static void TestMplyValues()
@@ -675,7 +624,7 @@ namespace ReeLib.MplyMesh
             handler.Read(ref relativeAABB);
             handler.Read(ref flags);
             // Log.Info("flags " + flags);
-            var hasTangentBits = Bvh.Version == MeshSerializerVersion.DD2 ? FlagsDD2.HasFlag(MplyChunkFlagsDD2.HasUnknStruct) : flags.HasFlag(MplyChunkFlags.SmallNormals) && flags.HasFlag(MplyChunkFlags.HasTangentBitsBlock);
+            var hasTangentBits = Bvh.Version == MeshSerializerVersion.DD2 ? false : flags.HasFlag(MplyChunkFlags.SmallNormals) && flags.HasFlag(MplyChunkFlags.HasTangentBitsBlock);
             var hasWeights = Bvh.Version == MeshSerializerVersion.DD2 ? FlagsDD2.HasFlag(MplyChunkFlagsDD2.HasVertexWeights) : flags.HasFlag(MplyChunkFlags.HasVertexWeights);
             var hasUniformWeights = Bvh.Version == MeshSerializerVersion.DD2 ? FlagsDD2.HasFlag(MplyChunkFlagsDD2.UniformVertexWeights) : flags.HasFlag(MplyChunkFlags.UniformVertexWeights);
 
@@ -696,8 +645,7 @@ namespace ReeLib.MplyMesh
 
             if (hasTangentBits)
             {
-                // note: not 100% sure if DD2 has tangent bits here or something else
-                TangentSignBits = handler.ReadArray<byte>(Bvh.Version == MeshSerializerVersion.DD2 ? 12 : ((vertCount + 7) / 8));
+                TangentSignBits = handler.ReadArray<byte>(((vertCount + 7) / 8));
                 handler.Align(4);
             }
 

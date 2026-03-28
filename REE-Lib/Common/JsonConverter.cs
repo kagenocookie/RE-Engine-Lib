@@ -45,26 +45,7 @@ namespace ReeLib.Common
                 }
                 var field = cls.fields[fieldIdx];
                 var type = RszInstance.RszFieldTypeToRuntimeCSharpType(field.type);
-                if (field.array) {
-                    var list = inst.Values[fieldIdx] as List<object> ?? new List<object>();
-                    list.Clear();
-                    if (field.type == RszFieldType.Object || field.type == RszFieldType.Struct) {
-                        if (val?.GetValueKind() == JsonValueKind.Object && val.AsObject().TryGetPropertyValue("items", out var items)) {
-                            foreach (var sub in items!.AsArray()) {
-                                list.Add(sub.Deserialize<RszInstance>(options)!);
-                            }
-                        } else {
-                            foreach (var sub in val!.AsArray()) {
-                                list.Add(sub.Deserialize<RszInstance>(options)!);
-                            }
-                        }
-                    } else {
-                        foreach (var sub in val!.AsArray()) {
-                            list.Add(sub.Deserialize(type, options)!);
-                        }
-                    }
-                    inst.SetFieldValue(key, list);
-                } else if (field.type == RszFieldType.UserData) {
+                if (field.type == RszFieldType.UserData) {
                     if (field.array) {
                         var list = new List<object>(val?.AsArray().Select(DeserializeUserdata) ?? []);
                         inst.SetFieldValue(key, list);
@@ -103,10 +84,39 @@ namespace ReeLib.Common
                             rsz.RebuildInstanceInfo();
                         }
                     }
-                } else if (field.type == RszFieldType.GameObjectRef) {
-                    var rr = new GameObjectRef();
-                    rr.guid = val?.GetValueKind() == JsonValueKind.String ? Guid.Parse(val.ToString()) : Guid.Empty;
-                    inst.SetFieldValue(key, rr);
+                } else  if (field.type == RszFieldType.GameObjectRef) {
+                    if (field.array) {
+                        var srcList = val?.AsArray().Select(a => a.GetValue<string>()).ToArray() ?? [];
+                        var list = new List<object>();
+                        foreach (var rr in srcList) {
+                            var obj = new GameObjectRef();
+                            if (!Guid.TryParse(rr, out obj.guid)) obj.guid = Guid.Empty;
+                        }
+                        inst.SetFieldValue(key, list);
+                    } else {
+                        var rr = new GameObjectRef();
+                        if (!Guid.TryParse(val?.GetValueKind() == JsonValueKind.String ? val.ToString() : "", out rr.guid)) rr.guid = Guid.Empty;
+                        inst.SetFieldValue(key, rr);
+                    }
+                } else if (field.array) {
+                    var list = inst.Values[fieldIdx] as List<object> ?? new List<object>();
+                    list.Clear();
+                    if (field.type == RszFieldType.Object || field.type == RszFieldType.Struct) {
+                        if (val?.GetValueKind() == JsonValueKind.Object && val.AsObject().TryGetPropertyValue("items", out var items)) {
+                            foreach (var sub in items!.AsArray()) {
+                                list.Add(sub.Deserialize<RszInstance>(options)!);
+                            }
+                        } else {
+                            foreach (var sub in val!.AsArray()) {
+                                list.Add(sub.Deserialize<RszInstance>(options)!);
+                            }
+                        }
+                    } else {
+                        foreach (var sub in val!.AsArray()) {
+                            list.Add(sub.Deserialize(type, options)!);
+                        }
+                    }
+                    inst.SetFieldValue(key, list);
                 } else {
                     var deserialized = val?.GetValueKind() switch {
                         JsonValueKind.True => true,
@@ -151,7 +161,12 @@ namespace ReeLib.Common
                         { "items", fieldValue },
                     };
                 } else if (field.type == RszFieldType.GameObjectRef) {
-                    dict[field.name] = ((GameObjectRef)fieldValue).guid.ToString();
+                    if (field.array) {
+                        var list = ((IList<object>)fieldValue).Cast<GameObjectRef>().Select(elem => elem.guid.ToString());
+                        dict[field.name] = list.ToArray();
+                    } else {
+                        dict[field.name] = ((GameObjectRef)fieldValue).guid.ToString();
+                    }
                 } else {
                     dict[field.name] = fieldValue;
                 }

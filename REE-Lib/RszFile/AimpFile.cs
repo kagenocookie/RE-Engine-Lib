@@ -522,6 +522,8 @@ namespace ReeLib.Aimp
 
         public void Read(FileHandler handler) => DefaultRead(handler);
         public void Write(FileHandler handler) => DefaultWrite(handler);
+
+        public override string ToString() => $"[{index}] {SourceNode} => {TargetNode}";
     }
 
     public struct IndexSet
@@ -748,6 +750,21 @@ namespace ReeLib.Aimp
             return range;
         }
 
+        public List<NodeInfo> GetOverlappingNodes(ContentGroupContainer container, AABB bounds)
+        {
+            var list = new List<NodeInfo>();
+            foreach (var node in NodeInfos) {
+                var data = Nodes[node.localIndex];
+                var a = container.Vertices[data.index1].Vector3;
+                var b = container.Vertices[data.index2].Vector3;
+                var c = container.Vertices[data.index3].Vector3;
+                if (MathHelpers.ContainsTriangle(bounds, a, b, c)) {
+                    list.Add(node);
+                }
+            }
+            return list;
+        }
+
         internal override void UnpackData(ContentGroupContainer container, ContentGroupContainer? otherContainer)
         {
             UnpackVertices(container);
@@ -929,6 +946,12 @@ namespace ReeLib.Aimp
         {
             // we don't necessarily need to unpack anything - we just need the min/max on the nodes to regenerate the vert list later
             UnpackVertices(container);
+
+            if (otherContainer == null) return;
+            for (int i = 0; i < pairIndices.Length; i++) {
+                int pp = pairIndices[i];
+                NodeInfos[i].PairNodes.Add(otherContainer.NodeInfo.Nodes[pp]);
+            }
         }
 
         internal override void PackData(ContentGroupContainer container, int vertStartIndex)
@@ -942,16 +965,17 @@ namespace ReeLib.Aimp
                 var node = Nodes[i];
                 // I have no idea what the significance of these hardcoded offsets is, but that's how they look like in the files
                 var mid = (node.min + node.max) * 0.5f;
-                Vertices[i * 8 + 0] = new Vector3(node.min.X, node.min.Y, node.min.Z + 0.5f);
-                Vertices[i * 8 + 1] = new Vector3(node.min.X + 0.25f, node.min.Y, node.max.Z);
-                Vertices[i * 8 + 2] = new Vector3(node.max.X, node.max.Y, node.min.Z + 0.5f);
-                Vertices[i * 8 + 3] = new Vector3(node.max.X - 0.25f, node.max.Y, node.min.Z);
+                Vertices[i * 8 + 0] = new Vector3(node.max.X, node.min.Y, node.min.Z);
+                Vertices[i * 8 + 1] = new Vector3(node.min.X, node.max.Y, node.min.Z + 0.001f);
+                Vertices[i * 8 + 2] = new Vector3(node.min.X + 0.001f, node.min.Y, node.max.Z);
+                Vertices[i * 8 + 3] = new Vector3(node.max.X, node.min.Y, node.max.Z - 0.001f);
 
                 // TODO verify if the mid Y has any effect whatsoever (can't find a correlation in the numbers, might be meaningless, might not)
-                Vertices[i * 8 + 4] = new Vector3(node.min.X, mid.Y, node.min.Z + 0.5f);
-                Vertices[i * 8 + 5] = new Vector3(node.min.X + 0.25f, mid.Y, node.max.Z);
-                Vertices[i * 8 + 6] = new Vector3(node.max.X, mid.Y, node.min.Z + 0.5f);
-                Vertices[i * 8 + 7] = new Vector3(node.max.X - 0.25f, mid.Y, node.min.Z);
+                Vertices[i * 8 + 4] = new Vector3(node.max.X, mid.Y, node.min.Z);
+                Vertices[i * 8 + 5] = new Vector3(node.min.X, mid.Y, node.min.Z + 0.001f);
+                Vertices[i * 8 + 6] = new Vector3(node.min.X + 0.001f, mid.Y, node.max.Z);
+                Vertices[i * 8 + 7] = new Vector3(node.max.X - 0.001f, mid.Y, node.max.Z - 0.001f);
+                pairIndices[i] = NodeInfos[i].PairNodes.FirstOrDefault()?.index ?? 0;
             }
             ShiftVertexIndices(Nodes, container, vertStartIndex);
             PackVertices(container, vertStartIndex);
@@ -986,7 +1010,7 @@ namespace ReeLib.Aimp
             if (this.format < AimpFormat.Format47)
             {
                 // don't even store the indices here, since they're always -1
-                handler.Skip(Nodes.Count * 4);
+                handler.Skip(Nodes.Count * sizeof(int));
             }
             else
             {
@@ -1018,7 +1042,7 @@ namespace ReeLib.Aimp
         // 0 => if main content AABB
         // 1 => if secondary content AABB for a Boundary type main content (and sometimes for Walls too)
         // 4 => if secondary content AABB for a Wall type main content
-        public IndexSet[] data = [];
+        public IndexSet[] pairIndices = [];
 
 
         public override Vector3 GetNodeCenter(ContentGroupContainer container, int i) => container.Vertices[Nodes[i].indices[0]].Vector3;
@@ -1047,7 +1071,7 @@ namespace ReeLib.Aimp
             if (otherContainer == null) return;
             for (int i = 0; i < Nodes.Count; ++i)
             {
-                var otherNodeIndices = data[i];
+                var otherNodeIndices = pairIndices[i];
                 var nodeinfo = NodeInfos[i];
                 foreach (var index in otherNodeIndices.indices)
                 {
@@ -1063,7 +1087,7 @@ namespace ReeLib.Aimp
             for (int i = 0; i < Nodes.Count; ++i)
             {
                 var nodeinfo = NodeInfos[i];
-                data[i].indices = nodeinfo.PairNodes.Select(p => p.localIndex).ToArray();
+                pairIndices[i].indices = nodeinfo.PairNodes.Select(p => p.index).ToArray();
             }
         }
 
@@ -1097,9 +1121,9 @@ namespace ReeLib.Aimp
 
         public override bool ReadData(FileHandler handler)
         {
-            data = new IndexSet[Nodes.Count];
-            for (int i = 0; i < data.Length; ++i) {
-                data[i] = new IndexSet() {
+            pairIndices = new IndexSet[Nodes.Count];
+            for (int i = 0; i < pairIndices.Length; ++i) {
+                pairIndices[i] = new IndexSet() {
                     indices = handler.ReadArray<int>(handler.Read<int>()),
                 };
             }
@@ -1108,7 +1132,7 @@ namespace ReeLib.Aimp
 
         public override void WriteData(FileHandler handler)
         {
-            foreach (var item in data)
+            foreach (var item in pairIndices)
             {
                 handler.Write(item.indices.Length);
                 handler.WriteArray(item.indices);

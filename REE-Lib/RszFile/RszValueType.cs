@@ -633,6 +633,13 @@ namespace ReeLib.via
             return new AABB(minpos - mv, maxpos + mv);
         }
 
+        public readonly bool Contains(Vector3 point)
+        {
+            return point.X >= minpos.X && point.X <= maxpos.X &&
+                point.Y >= minpos.Y && point.Y <= maxpos.Y &&
+                point.Z >= minpos.Z && point.Z <= maxpos.Z;
+        }
+
         public static AABB Combine(IEnumerable<AABB> bounds) => bounds.Aggregate(MaxMin, (bound, item) => bound.Extend(item));
 
         public static AABB operator+(AABB aabb, Vector3 vec) => new AABB(aabb.minpos + vec, aabb.maxpos + vec);

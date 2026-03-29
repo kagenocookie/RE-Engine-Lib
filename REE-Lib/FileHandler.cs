@@ -188,7 +188,7 @@ namespace ReeLib
         public void ReadNull(int count)
         {
             #if DEBUG
-            Debug.Assert(count >= 0);
+            DataInterpretationException.Assert(count >= 0);
             switch (count) {
                 case 0: break;
                 case 1: DataInterpretationException.ThrowIfNotZero(Read<byte>()); break;
@@ -529,7 +529,7 @@ namespace ReeLib
 
         public void WriteNull(int count)
         {
-            Debug.Assert(count <= zeroes.Length);
+            DataInterpretationException.Assert(count <= zeroes.Length);
             Stream.Write(zeroes, 0, count);
         }
 
@@ -761,7 +761,7 @@ namespace ReeLib
         public T Read<T>() where T : unmanaged
         {
             T value = default;
-            Debug.Assert(Stream.Position < Stream.Length);
+            DataInterpretationException.Assert(Stream.Position < Stream.Length);
             Stream.Read(MemoryUtils.StructureAsBytes(ref value));
             return value;
         }
@@ -778,7 +778,7 @@ namespace ReeLib
         public unsafe int Read<T>(ref T value) where T : unmanaged
         {
             var bytes = Stream.Read(MemoryUtils.StructureAsBytes(ref value));
-            Debug.Assert(bytes == sizeof(T));
+            DataInterpretationException.Assert(bytes == sizeof(T));
             return bytes;
         }
 

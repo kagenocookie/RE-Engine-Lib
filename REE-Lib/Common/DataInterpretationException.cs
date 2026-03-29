@@ -23,6 +23,12 @@ namespace ReeLib
             if (condition) throw new DataInterpretationException($"[{conditionText}] {message}");
         }
 
+        [Conditional("DEBUG"), MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Assert([DoesNotReturnIf(false)] bool condition, string message = "Assertion failed", [CallerArgumentExpression(nameof(condition))] string conditionText = null!)
+        {
+            if (!condition) throw new DataInterpretationException($"[{conditionText}] {message}");
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ThrowIfNotZero<TValue>(TValue value, string message = "Found unexpected data instead of padding while reading file") where TValue : IBinaryNumber<TValue>
         {

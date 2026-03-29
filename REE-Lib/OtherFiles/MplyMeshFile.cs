@@ -291,23 +291,26 @@ namespace ReeLib.MplyMesh
         public byte Y;
         public byte Z;
 
-        public readonly Vector3 AsVector3 => new Vector3(X * (1f / 0xff), Y * (1f / 0xff), Z * (1f / 0xff));
+        public readonly Vector3 MplyPosition => new Vector3((X * (1f / 0xff) - 0.5f) / 256f, (Y * (1f / 0xff) - 0.5f) / 256f, (Z * (1f / 0xff) - 0.5f) / 256f);
     }
 
     public struct Pos10bit3
     {
         public int data;
 
-        public readonly float X => (ushort)((data >>  0) & 0b1111111111) / (float)0b1111111111;
-        public readonly float Y => (ushort)((data >> 10) & 0b1111111111) / (float)0b1111111111;
-        public readonly float Z => (ushort)((data >> 20) & 0b1111111111) / (float)0b1111111111;
+        public readonly float X => (ushort)((data >>  0) & 0b1111111111) / (float)0b1111111111 - 0.5f;
+        public readonly float Y => (ushort)((data >> 10) & 0b1111111111) / (float)0b1111111111 - 0.5f;
+        public readonly float Z => (ushort)((data >> 20) & 0b1111111111) / (float)0b1111111111 - 0.5f;
 
-        public readonly Vector3 AsVector3 => new Vector3(X, Y, Z);
+        public readonly Vector3 MplyPosition => new Vector3(X / 64f, Y / 64f, Z / 64f);
     }
 
     public record struct Ushort3(ushort X, ushort Y, ushort Z)
     {
-        public readonly Vector3 AsVector3 => new Vector3(X / (float)ushort.MaxValue, Y / (float)ushort.MaxValue, Z / (float)ushort.MaxValue);
+        public readonly Vector3 MplyPosition => new Vector3(
+            X / (float)ushort.MaxValue - 0.5f,
+            Y / (float)ushort.MaxValue - 0.5f,
+            Z / (float)ushort.MaxValue - 0.5f);
 
         public override string ToString() => $"{X}, {Y}, {Z}";
     }
@@ -463,7 +466,7 @@ namespace ReeLib.MplyMesh
             public readonly Vector3 Size => new Vector3(scaleX, scaleY, scaleZ) * (1f / ushort.MaxValue);
         }
 
-        private Vector3 DecodePosition(Vector3 vertPos)
+        private Vector3 DecodePosition(Vector3 localpos)
         {
             float scale;
             if (Bvh.Version == MeshSerializerVersion.DD2)
@@ -475,7 +478,7 @@ namespace ReeLib.MplyMesh
                 if ((flags & MplyChunkFlags.ScaleBit5) != 0) scale *= (1f / 4);
                 if ((flags & MplyChunkFlags.ScaleBit6) != 0) scale *= (1f / 64);
                 if ((flags & MplyChunkFlags.ScaleBit7) != 0) scale *= (1f / 512);
-                return (vertPos - new Vector3(0.5f)) * scale + center;
+                return localpos * scale + center;
             }
 
             var num = (uint)flags;
@@ -485,15 +488,7 @@ namespace ReeLib.MplyMesh
             scale = divShift >= 0 ? (1 << divShift) : (1f / (1 << -divShift));
             var offset = 1 << (multByte - divByte);
 
-            // good sample for compressed verts re9: sm12_129_01.mesh.250925211   --- submesh 17 = 24bit, submesh 53 = 32bit
-            var fixedScale = 1f;
-            if ((flags & (MplyChunkFlags.Use24BitPos)) != 0) {
-                fixedScale = 1f / 256;
-            }
-            if ((flags & (MplyChunkFlags.Use32BitPos)) != 0) {
-                fixedScale = 1f / 64;
-            }
-            return ((vertPos - new Vector3(0.5f)) * fixedScale + relativeAABB.Offset * offset) * scale + center;
+            return (localpos + relativeAABB.Offset * offset) * scale + center;
         }
 
         public static void TestMplyValues()
@@ -505,7 +500,7 @@ namespace ReeLib.MplyMesh
                 chunk.relativeAABB = new CompressedAABB();
                 chunk.relativeAABB.offsetX = ushort.MaxValue;
                 chunk.flags = (MplyChunkFlags)flagValue;
-                var basePos = new Vector3(1, 0.5f, 0.5f);
+                var basePos = new Vector3(0.5f, 0.5f, 0.5f);
                 var decodedX = chunk.DecodePosition(basePos).X;
                 var expectedX = (0.5f + 0.5f * expectedOffset) * expectedScale;
                 Debug.Assert(decodedX == expectedX, $"MPLY decode {flagValue:X} got {decodedX}, expected {expectedX} (scale {expectedScale}, offset {expectedOffset})");
@@ -534,23 +529,24 @@ namespace ReeLib.MplyMesh
 
         public Vector3 GetPosition(int index)
         {
+            // good sample for compressed verts re9: sm12_129_01.mesh.250925211   --- submesh 17 = 24bit, submesh 53 = 32bit
             if (PositionSize == 3)
             {
                 var data = MemoryMarshal.Cast<byte, Byte3>(PositionsBuffer);
                 var item = data[index];
-                return DecodePosition(item.AsVector3);
+                return DecodePosition(item.MplyPosition);
             }
             else if (PositionSize == 4)
             {
                 var data = MemoryMarshal.Cast<byte, Pos10bit3>(PositionsBuffer);
                 var item = data[index];
-                return DecodePosition(item.AsVector3);
+                return DecodePosition(item.MplyPosition);
             }
             else
             {
                 var data = MemoryMarshal.Cast<byte, Ushort3>(PositionsBuffer);
                 var item = data[index];
-                return DecodePosition(item.AsVector3);
+                return DecodePosition(item.MplyPosition);
             }
         }
 

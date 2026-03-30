@@ -481,7 +481,7 @@ namespace ReeLib.Aimp
 
         [field: RszIgnore] public List<LinkInfo> Links { get; } = new();
         [field: RszIgnore] public RszInstance? UserData { get; set; }
-        [field: RszIgnore] public List<NodeInfo> PairNodes { get; } = new();
+        [field: RszIgnore] public List<NodeInfo?> PairNodes { get; } = new();
 
         public Color GetColor(AimpFile file) => attributes == 0 ? new Color(0xffffffff) : file.layers![BitOperations.TrailingZeroCount(attributes)].color;
 
@@ -635,6 +635,7 @@ namespace ReeLib.Aimp
                     {
                         maxIndex = Math.Max(maxIndex, Math.Max(link.sourceNodeIndex, link.targetNodeIndex));
                     }
+                    maxIndex = Math.Max(maxIndex, node.index);
                 }
             }
         }
@@ -794,7 +795,7 @@ namespace ReeLib.Aimp
             for (int i = 0; i < Nodes.Count; ++i)
             {
                 var nodeinfo = NodeInfos[i];
-                polygonIndices[i] = nodeinfo.PairNodes[0].localIndex;
+                polygonIndices[i] = nodeinfo.PairNodes[0]?.index ?? -1;
             }
         }
 
@@ -874,7 +875,7 @@ namespace ReeLib.Aimp
             for (int i = 0; i < Nodes.Count; ++i)
             {
                 var nodeinfo = NodeInfos[i];
-                triangleIndices[i].indices = nodeinfo.PairNodes.Select(p => p.localIndex).ToArray();
+                triangleIndices[i].indices = nodeinfo.PairNodes.Select(p => p?.index ?? -1).ToArray();
             }
         }
 
@@ -950,7 +951,7 @@ namespace ReeLib.Aimp
             if (otherContainer == null) return;
             for (int i = 0; i < pairIndices.Length; i++) {
                 int pp = pairIndices[i];
-                NodeInfos[i].PairNodes.Add(otherContainer.NodeInfo.Nodes[pp]);
+                NodeInfos[i].PairNodes.Add(pp == -1 ? null : otherContainer.NodeInfo.Nodes[pp]);
             }
         }
 
@@ -975,7 +976,7 @@ namespace ReeLib.Aimp
                 Vertices[i * 8 + 5] = new Vector3(node.min.X, mid.Y, node.min.Z + 0.001f);
                 Vertices[i * 8 + 6] = new Vector3(node.min.X + 0.001f, mid.Y, node.max.Z);
                 Vertices[i * 8 + 7] = new Vector3(node.max.X - 0.001f, mid.Y, node.max.Z - 0.001f);
-                pairIndices[i] = NodeInfos[i].PairNodes.FirstOrDefault()?.index ?? 0;
+                pairIndices[i] = NodeInfos[i].PairNodes.FirstOrDefault()?.index ?? -1;
             }
             ShiftVertexIndices(Nodes, container, vertStartIndex);
             PackVertices(container, vertStartIndex);
@@ -1087,7 +1088,7 @@ namespace ReeLib.Aimp
             for (int i = 0; i < Nodes.Count; ++i)
             {
                 var nodeinfo = NodeInfos[i];
-                pairIndices[i].indices = nodeinfo.PairNodes.Select(p => p.index).ToArray();
+                pairIndices[i].indices = nodeinfo.PairNodes.Select(p => p?.index ?? -1).ToArray();
             }
         }
 

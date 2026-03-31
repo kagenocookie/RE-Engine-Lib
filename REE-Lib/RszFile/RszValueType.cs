@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -587,7 +588,7 @@ namespace ReeLib.via
 
 
     [StructLayout(LayoutKind.Explicit, Size = 32)]
-    public struct AABB
+    public struct AABB : IEquatable<AABB>
     {
         [FieldOffset(0), JsonIgnore]
         public Vector3 minpos;
@@ -646,6 +647,12 @@ namespace ReeLib.via
         public static AABB operator-(AABB aabb, Vector3 vec) => new AABB(aabb.minpos - vec, aabb.maxpos - vec);
 
         public readonly override string ToString() => $"AABB({minpos} {maxpos})";
+
+        public bool Equals(AABB other) => other == this;
+        public override bool Equals([NotNullWhen(true)] object? obj) => obj is AABB other && other == this;
+        public override int GetHashCode() => HashCode.Combine(minpos, maxpos);
+        public static bool operator==(AABB a, AABB b) => a.minpos == b.minpos && a.maxpos == b.maxpos;
+        public static bool operator!=(AABB a, AABB b) => a.minpos == b.minpos && a.maxpos == b.maxpos;
     }
 
     public record struct AABBVec4(Vector4 Minpos, Vector4 Maxpos)

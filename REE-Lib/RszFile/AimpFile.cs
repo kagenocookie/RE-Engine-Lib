@@ -318,10 +318,13 @@ namespace ReeLib.Aimp
     {
         // there are a few rare cases where it's not not just 2 indices duplicated twice (aivspc)
         // maybe the second pair is a "ground" bounds? (see RE4 loc5510.aivspc)
-        public ushort[] indices = new ushort[4];
+        internal ushort[] indices = new ushort[4];
         // these values also seem to only ever be not 0 in volume space maps (see DMC5 m02_340c_start.aimap.28, RE4 loc5500_ao.aivspc.6)
         public float[]? values;
         public int value;
+
+        public AABB bounds;
+        public AABB secondaryBounds;
 
         public int[] Indices { get => indices.Select(i => (int)i).ToArray(); set => indices = value.Select(i => (ushort)i).ToArray(); }
     }
@@ -1045,7 +1048,6 @@ namespace ReeLib.Aimp
         // 4 => if secondary content AABB for a Wall type main content
         public IndexSet[] pairIndices = [];
 
-
         public override Vector3 GetNodeCenter(ContentGroupContainer container, int i) => container.Vertices[Nodes[i].indices[0]].Vector3;
 
         protected override RangeI GetVertexRange(ContentGroupContainer container)
@@ -1069,11 +1071,15 @@ namespace ReeLib.Aimp
             UnpackVertices(container);
             // note: we can't just reconstruct this from the paired up Boundary content group because not all AABB groups have a pair
 
-            if (otherContainer == null) return;
             for (int i = 0; i < Nodes.Count; ++i)
             {
                 var otherNodeIndices = pairIndices[i];
                 var nodeinfo = NodeInfos[i];
+                var node = Nodes[i];
+                node.bounds = new AABB(container.Vertices[node.indices[0]].Vector3, container.Vertices[node.indices[1]].Vector3);
+                node.secondaryBounds = new AABB(container.Vertices[node.indices[2]].Vector3, container.Vertices[node.indices[3]].Vector3);
+
+                if (otherContainer == null) continue;
                 foreach (var index in otherNodeIndices.indices)
                 {
                     nodeinfo.PairNodes.Add(otherContainer.NodeInfo.Nodes[index]);
@@ -1083,6 +1089,23 @@ namespace ReeLib.Aimp
 
         internal override void PackData(ContentGroupContainer container, int vertStartIndex)
         {
+            var list = new List<Vector3>();
+            foreach (var info in NodeInfos) {
+                var node = Nodes[info.localIndex];
+                var index = list.Count;
+                list.Add(node.bounds.minpos);
+                list.Add(node.bounds.maxpos);
+                // note: we don't need to care about the "global" vert indices here, ShiftVertexIndices will take care of it
+                node.indices[0] = node.indices[2] = (ushort)(index + 0);
+                node.indices[1] = node.indices[3] = (ushort)(index + 1);
+                if (node.bounds != node.secondaryBounds) {
+                    list.Add(node.secondaryBounds.minpos);
+                    list.Add(node.secondaryBounds.maxpos);
+                    node.indices[2] = (ushort)(index + 2);
+                    node.indices[3] = (ushort)(index + 3);
+                }
+            }
+            Vertices = list.ToArray();
             ShiftVertexIndices(Nodes, container, vertStartIndex);
             PackVertices(container, vertStartIndex);
             for (int i = 0; i < Nodes.Count; ++i)

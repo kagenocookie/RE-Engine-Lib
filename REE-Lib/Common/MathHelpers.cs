@@ -11,6 +11,8 @@ public static class MathHelpers
         new Vector3(0,0,1)
     ];
 
+    private const float Epsilon = 0.00001f;
+
     public static bool ContainsTriangle(this AABB bounds, in Vector3 a, in Vector3 b, in Vector3 c)
     {
         // ref: https://stackoverflow.com/a/17503268
@@ -66,4 +68,39 @@ public static class MathHelpers
         return true;
     }
 
+    public static bool IntersectsTriangle(this Ray ray, in Vector3 v1, in Vector3 v2, in Vector3 v3, out Vector3 intersection)
+    {
+        // https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
+        intersection = default;
+
+        var edge1 = v2 - v1;
+        var edge2 = v3 - v1;
+
+        var ray_x_e2 = Vector3.Cross(ray.dir, edge2);
+        var det = Vector3.Dot(edge1, ray_x_e2);
+        if (det > -Epsilon && det < Epsilon) {
+            return false; // parallel
+        }
+
+        var inv_det = 1 / det;
+        var s = ray.from - v1;
+        var u = inv_det * Vector3.Dot(s, ray_x_e2);
+        if (u < -Epsilon || u - 1 > Epsilon) {
+            return false; // ray passes outside edge2's bounds
+        }
+
+        var s_x_e1 = Vector3.Cross(s, edge1);
+        var v = inv_det * Vector3.Dot(ray.dir, s_x_e1);
+        if (v < -Epsilon || u + v > 1 + Epsilon) {
+            return false; // ray passes outside edge1's bounds
+        }
+
+        var t = inv_det * Vector3.Dot(edge2, s_x_e1);
+        if (t > Epsilon) {
+            intersection = ray.from + ray.dir * t;
+            return true;
+        }
+
+        return false;
+    }
 }

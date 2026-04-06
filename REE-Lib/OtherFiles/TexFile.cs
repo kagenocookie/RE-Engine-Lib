@@ -74,6 +74,8 @@ namespace ReeLib.Tex
         public long offset;
         public int pitch;
         public int size;
+
+        public readonly override string ToString() => $"{offset}-{size} [{pitch}]";
     }
 
     [Flags]
@@ -195,7 +197,8 @@ namespace ReeLib
 			Header.version = config.fileVersion;
             var handler = FileHandler;
             handler.FileVersion = Header.version;
-            Header.Write(handler, 0);
+            // write to a dummy buffer to determine updated header size while not overwriting anything yet
+            Header.Write(new FileHandler());
             if (headerSize != 0 && headerSize != Header.Size && Mips.Count > 0)
             {
                 // relocate mip offsets and data
@@ -206,14 +209,15 @@ namespace ReeLib
                 for (int i = 0; i < Mips.Count; i++)
                 {
                     var mip = Mips[i];
-                    mip.offset -= mipOffsetsDelta;
+                    mip.offset += mipOffsetsDelta;
                     Mips[i] = mip;
                 }
 
-                handler.Seek(Mips[0].offset);
+                handler.Seek(Header.Size);
                 Mips.Write(handler);
                 handler.WriteArray(originalData);
             }
+            Header.Write(handler, 0);
         }
 
         protected override bool DoRead()

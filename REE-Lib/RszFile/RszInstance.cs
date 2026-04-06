@@ -81,7 +81,7 @@ namespace ReeLib
         /// <summary>
         /// The first RSZ file instance is usually null.
         /// </summary>
-        public static readonly RszInstance NULL = new();
+        public static readonly RszInstance NULL = new() { Index = 0 };
 
         public override string ToString()
         {

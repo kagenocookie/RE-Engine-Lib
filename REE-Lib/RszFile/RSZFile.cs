@@ -168,7 +168,7 @@ namespace ReeLib
             header.Write(handler);
             foreach (var item in ObjectTableList) handler.Write(item);
 
-            handler.Align(16);
+            handler.Align(8);
             header.instanceOffset = handler.Tell();
             InstanceInfoList.Write(handler);
 
@@ -223,6 +223,7 @@ namespace ReeLib
         public void ResetInstances()
         {
             foreach (var instance in InstanceList) {
+                if (instance == RszInstance.NULL) continue;
                 instance.Index = -1;
                 instance.ObjectTableIndex = -1;
             }

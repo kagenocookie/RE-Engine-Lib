@@ -737,7 +737,13 @@ namespace ReeLib
 
                 requestSet.Instance ??= CreateDefaultUserdata();
                 while (requestSet.ShapeUserdata.Count < requestSet.Group.Shapes.Count) {
-                    requestSet.ShapeUserdata.Add(CreateDefaultUserdata());
+                    var targetShape = requestSet.Group.Shapes[requestSet.ShapeUserdata.Count];
+                    if (targetShape.DefaultInstance != null) {
+                        // handle <.rcol.25 where userdata instances are linked to the shape object
+                        requestSet.ShapeUserdata.Add(targetShape.DefaultInstance);
+                    } else {
+                        requestSet.ShapeUserdata.Add(CreateDefaultUserdata());
+                    }
                 }
                 if (requestSet.ShapeUserdata.Count > requestSet.Group.Shapes.Count) {
                     Log.Warn($"Request set {requestSet.Info.Name} has more userdata items than shapes. Removing {requestSet.ShapeUserdata.Count - requestSet.Group.Shapes.Count} extra ones...");

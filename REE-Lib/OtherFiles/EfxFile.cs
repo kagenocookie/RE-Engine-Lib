@@ -26,6 +26,7 @@ namespace ReeLib.Efx
         DD2,
         MHWilds,
         Pragmata,
+        RE9,
     }
 
     [RszGenerate, RszVersionedObject(typeof(EfxVersion))]

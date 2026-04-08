@@ -367,35 +367,30 @@ namespace ReeLib.UVar
     public class Variable : BaseModel
     {
         public Guid guid;
-        public long nameOffset;
         public string Name { get; set; } = string.Empty;
-        public long valueOffset;
-        public long expressionOffset;
         public TypeKind type;
         public UvarFlags flags;
         public uint nameHash;
 
-        public bool IsVec3 => (flags & UvarFlags.IsVec3) != 0;
+        internal long nameOffset;
+        internal long valueOffset;
+        internal long expressionOffset;
+
+        public bool IsVec3 => (flags & UvarFlags.HasRange) != 0;
 
         public object? Value;
         public UvarExpression? Expression { get; set; }
         public Type? ValueType => GetValueType(type, flags);
         public Type? RszValueType => GetValueType(type, flags);
 
-        // likely set of flags: Const, Expression, HasRange, ReadOnly, WriteProtect, + at least 2 more (Valid?)
         [Flags]
         public enum UvarFlags
         {
-            Ukn1 = (1 << 0),
-            Ukn2 = (1 << 1),
-            Ukn3 = (1 << 2),
-            Ukn4 = (1 << 3),
-            Ukn5 = (1 << 4),
-            // ukn 1-5: unused?
+            IsConst = (1 << 5),
+            HasRange = (1 << 6),
+            Ukn = (1 << 7),
 
-            Ukn6 = (1 << 5),
-            IsVec3 = (1 << 6),
-            Ukn8 = (1 << 7), // readonly, maybe?
+            // note: Ukn|HasRange (0xC0) seems to be "HasTreeRange", but it's not an indicator of having an expression tree
         }
 
         /// <summary>
@@ -434,7 +429,7 @@ namespace ReeLib.UVar
                 case TypeKind.C8: return typeof(string);
                 case TypeKind.C16: return typeof(string);
                 case TypeKind.String: return typeof(string);
-                case TypeKind.Trigger: return (flags & UvarFlags.IsVec3) == 0 ? null : throw new Exception($"Unhandled uvar vec3 variable type " + type);
+                case TypeKind.Trigger: return (flags & UvarFlags.HasRange) == 0 ? null : throw new Exception($"Unhandled uvar vec3 variable type " + type);
                 default:
                     var vt = GetValueRszType(type, flags);
                     var baseType = RszInstance.RszFieldTypeToCSharpType(vt.type);
@@ -447,7 +442,7 @@ namespace ReeLib.UVar
 
         public static (RszFieldType type, bool array) GetValueRszType(TypeKind type, UvarFlags flags)
         {
-            if ((flags & UvarFlags.IsVec3) != 0) {
+            if ((flags & UvarFlags.HasRange) != 0) {
                 switch (type) {
                     case TypeKind.Int8: return (RszFieldType.S8, true);
                     case TypeKind.Uint8: return (RszFieldType.U8, true);

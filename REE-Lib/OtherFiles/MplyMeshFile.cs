@@ -317,6 +317,8 @@ namespace ReeLib.MplyMesh
 
     public record struct HFloat2(Half x, Half y)
     {
+        public HFloat2(float x, float y) : this((Half)x, (Half)y) { }
+
         public readonly Vector2 AsVector2 => new Vector2((float)x, (float)y);
 
         public override string ToString() => $"{x}, {y}";
@@ -550,25 +552,25 @@ namespace ReeLib.MplyMesh
             }
         }
 
-        public Vector2 GetUV(int index)
+        public HFloat2 GetUV(int index)
         {
-            if ((flags & MplyChunkFlags.UniformUV0) != 0) return UV0Buffer[0].AsVector2;
+            if ((flags & MplyChunkFlags.UniformUV0) != 0) return UV0Buffer[0];
 
-            return UV0Buffer[index].AsVector2;
+            return UV0Buffer[index];
         }
 
-        public Vector2 GetUV1(int index)
+        public HFloat2 GetUV1(int index)
         {
-            if ((flags & MplyChunkFlags.UniformUV1) != 0) return UV1Buffer[0].AsVector2;
+            if ((flags & MplyChunkFlags.UniformUV1) != 0) return UV1Buffer[0];
 
-            return UV1Buffer[index].AsVector2;
+            return UV1Buffer[index];
         }
 
-        public Vector2 GetUV2(int index)
+        public HFloat2 GetUV2(int index)
         {
-            if ((flags & MplyChunkFlags.UniformUV2) != 0) return UV2Buffer[0].AsVector2;
+            if ((flags & MplyChunkFlags.UniformUV2) != 0) return UV2Buffer[0];
 
-            return UV2Buffer[index].AsVector2;
+            return UV2Buffer[index];
         }
 
         public Vector3 GetNormal(int index)
@@ -581,29 +583,30 @@ namespace ReeLib.MplyMesh
             }
             else
             {
-                var data = MemoryMarshal.Cast<byte, NorTanVertexBuffer>(NormalsBuffer);
+                var data = MemoryMarshal.Cast<byte, QuantizedNorTan>(NormalsBuffer);
                 return data[index].Normal;
             }
         }
 
-        public (Vector3 nor, Vector3 tan, Vector3 bitan) GetNormalBiTangents(int index)
+        public QuantizedNorTan GetQuantizedNormal(int index)
         {
-            if (NormalSize == 4) throw new NotSupportedException("Mesh does not contain tangents");
-
             if ((flags & MplyChunkFlags.UniformNormal) != 0) index = 0;
-            var data = MemoryMarshal.Cast<byte, NorTanVertexBuffer>(NormalsBuffer);
-            var item = data[index];
-            return item.GetAll();
-        }
-
-        public (Vector3 nor, Vector3 tan, sbyte bitanSign) GetNormalBiTangentData(int index)
-        {
-            if (NormalSize == 4) throw new NotSupportedException("Mesh does not contain tangents");
-
-            if ((flags & MplyChunkFlags.UniformNormal) != 0) index = 0;
-            var data = MemoryMarshal.Cast<byte, NorTanVertexBuffer>(NormalsBuffer);
-            var item = data[index];
-            return (item.Normal, item.Tangent, item.BiTangentSign);
+            if (NormalSize == 4)
+            {
+                var data = MemoryMarshal.Cast<byte, SByte4>(NormalsBuffer);
+                var norm = data[index].DequantizeNormal();
+                // the tangent here is probably not correct but we mostly don't need it and these types of normals are rare
+                var tan = Vector3.Cross(norm, Vector3.Dot(norm, Vector3.UnitY) > 0.9999f ? Vector3.UnitX : Vector3.UnitY);
+                var biTanSign = TangentSignBits?.Length > 0
+                    ? (Math.Sign(TangentSignBits[index / 8] & (1 << (index % 8))) != 0 ? sbyte.MaxValue : sbyte.MinValue)
+                    : sbyte.MaxValue;
+                return new QuantizedNorTan(data[index], SByte4.QuantizeNormal(tan, biTanSign));
+            }
+            else
+            {
+                var data = MemoryMarshal.Cast<byte, QuantizedNorTan>(NormalsBuffer);
+                return data[index];
+            }
         }
 
         protected override bool DoRead(FileHandler handler)
@@ -831,11 +834,9 @@ namespace ReeLib
             var buffer = new MeshBuffer() { Version = Header.FormatVersion };
             mesh.MeshBuffer = buffer;
             var verts = new List<Vector3>(LODs[minLod].Chunks.Sum(ch => ch.vertCount));
-            var normals = new List<Vector3>(verts.Capacity);
-            var tangents = new List<Vector3>(verts.Capacity);
-            var tanSigns = new List<sbyte>(verts.Capacity);
-            var uv0 = new List<Vector2>(verts.Capacity);
-            var uv1 = new List<Vector2>(verts.Capacity);
+            var normals = new List<QuantizedNorTan>(verts.Capacity);
+            var uv0 = new List<HFloat2>(verts.Capacity);
+            var uv1 = new List<HFloat2>(verts.Capacity);
             var colors = new List<Color>(verts.Capacity);
             var weights = new List<VertexBoneWeights>(verts.Capacity);
             // add a bit of extra capacity for indices to pre-emptively account for padding
@@ -900,22 +901,9 @@ namespace ReeLib
                         uv0.Add(chunk.GetUV(i));
                     }
 
-                    if (chunk.HasTangents)
+                    for (int i = 0; i < chunk.vertCount; ++i)
                     {
-                        for (int i = 0; i < chunk.vertCount; ++i)
-                        {
-                            var (nor, tan, bi) = chunk.GetNormalBiTangentData(i);
-                            normals.Add(nor);
-                            tangents.Add(tan);
-                            tanSigns.Add(bi);
-                        }
-                    }
-                    else
-                    {
-                        for (int i = 0; i < chunk.vertCount; ++i)
-                        {
-                            normals.Add(chunk.GetNormal(i));
-                        }
+                        normals.Add(chunk.GetQuantizedNormal(i));
                     }
 
                     if (chunk.UV1Buffer.Length > 0)
@@ -953,9 +941,7 @@ namespace ReeLib
             buffer.Positions = verts.ToArray();
             buffer.UV0 = uv0.ToArray();
             buffer.UV1 = uv1.ToArray();
-            buffer.Normals = normals.ToArray();
-            buffer.Tangents = tangents.ToArray();
-            buffer.BiTangentSigns = tanSigns.ToArray();
+            buffer.NormalsTangents = normals.ToArray();
             buffer.Colors = colors.ToArray();
             buffer.Weights = weights.ToArray();
             buffer.Faces = indices.ToArray();

@@ -264,9 +264,8 @@ namespace ReeLib.Mesh
 
 	public class VertexBoneWeights
 	{
-		public int[] boneIndices = [];
-		public float[] boneWeights = [];
-		private static readonly byte[] byteArray8 = new byte[8];
+		public short[] boneIndices = [];
+		public byte[] boneWeights = [];
 
         public VertexBoneWeights()
 			: this(MeshSerializerVersion.Unknown)
@@ -275,14 +274,18 @@ namespace ReeLib.Mesh
 
         public VertexBoneWeights(MeshSerializerVersion version)
         {
-            boneIndices = new int[GetIndexCount(version)];
-			boneWeights = new float[8];
+            boneIndices = new short[GetIndexCount(version)];
+			boneWeights = new byte[8];
         }
+
+		public float GetWeight(int index) => ((float)boneWeights[index]) / 255f;
+		public float SetWeight(int index, float weight) => boneWeights[index] = (byte)MathF.Round(weight * 255f);
 
 		public void NormalizeWeights()
 		{
-			var sum = boneWeights.Sum();
-			for (int i = 0; i < boneWeights.Length; ++i) boneWeights[i] /= sum;
+			var sum = 0f;
+			for (int i = 0; i < boneWeights.Length; ++i) sum += GetWeight(i);
+			for (int i = 0; i < boneWeights.Length; ++i) SetWeight(i, (GetWeight(i) / sum));
 		}
 
 		internal static int GetIndexCount(MeshSerializerVersion version) => version is MeshSerializerVersion.SF6 or MeshSerializerVersion.MHWILDS or MeshSerializerVersion.Pragmata ? 6 : 8;
@@ -300,27 +303,26 @@ namespace ReeLib.Mesh
 			if (version is MeshSerializerVersion.SF6 or MeshSerializerVersion.MHWILDS or MeshSerializerVersion.Pragmata) {
 				var b1 = handler.Read<uint>();
 				var b2 = handler.Read<uint>();
-				boneIndices = new int[6];
-				boneIndices[0] = (int)((b1) & 0x3ff);
-				boneIndices[1] = (int)((b1 >> 10) & 0x3ff);
-				boneIndices[2] = (int)((b1 >> 20) & 0x3ff);
-				boneIndices[3] = (int)((b2) & 0x3ff);
-				boneIndices[4] = (int)((b2 >> 10) & 0x3ff);
-				boneIndices[5] = (int)((b2 >> 20) & 0x3ff);
+				boneIndices = new short[6];
+				boneIndices[0] = (short)((b1) & 0x3ff);
+				boneIndices[1] = (short)((b1 >> 10) & 0x3ff);
+				boneIndices[2] = (short)((b1 >> 20) & 0x3ff);
+				boneIndices[3] = (short)((b2) & 0x3ff);
+				boneIndices[4] = (short)((b2 >> 10) & 0x3ff);
+				boneIndices[5] = (short)((b2 >> 20) & 0x3ff);
 			} else {
-				handler.ReadArray(byteArray8);
-				boneIndices = byteArray8.Select(b => (int)b).ToArray();
+				boneIndices = new short[8];
+				for (int i = 0; i < 8; i++) boneIndices[i] = (short)handler.Read<byte>();
 			}
-			handler.ReadArray(byteArray8);
-			boneWeights = byteArray8.Select(b => ((float)b) / 255f).ToArray();
+			handler.ReadArray(boneWeights);
 		}
 
         internal void Write(FileHandler handler, MeshSerializerVersion version)
 		{
 			if (version is MeshSerializerVersion.SF6 or MeshSerializerVersion.MHWILDS or MeshSerializerVersion.Pragmata)
 			{
-				var n1 = boneIndices[0] | (boneIndices[1] << 10) | (boneIndices[2] << 20);
-				var n2 = boneIndices[3] | (boneIndices[4] << 10) | (boneIndices[5] << 20);
+				var n1 = (int)boneIndices[0] | ((int)boneIndices[1] << 10) | ((int)boneIndices[2] << 20);
+				var n2 = (int)boneIndices[3] | ((int)boneIndices[4] << 10) | ((int)boneIndices[5] << 20);
 				handler.Write(n1);
 				handler.Write(n2);
 			}
@@ -328,7 +330,7 @@ namespace ReeLib.Mesh
 			{
 				for (int i = 0; i < 8; i++) handler.Write((byte)boneIndices[i]);
 			}
-			for (int i = 0; i < 8; i++) handler.Write((byte)MathF.Round(boneWeights[i] * 255f));
+			handler.WriteArray(boneWeights);
 		}
 	}
 
@@ -367,9 +369,9 @@ namespace ReeLib.Mesh
 				headers.Add(new MeshBufferItemHeader() { type = VertexBufferType.Position, offset = offset, size = 12 });
 				offset = headers.Last().CalculateNextOffset(buffer.Positions.Length);
 			}
-			if (buffer.Normals.Length > 0) {
+			if (buffer.NormalsTangents.Length > 0) {
 				headers.Add(new MeshBufferItemHeader() { type = VertexBufferType.NormalsTangents, offset = offset, size = 8 });
-				offset = headers.Last().CalculateNextOffset(buffer.Normals.Length);
+				offset = headers.Last().CalculateNextOffset(buffer.NormalsTangents.Length);
 			}
 			if (buffer.UV0.Length > 0) {
 				headers.Add(new MeshBufferItemHeader() { type = VertexBufferType.UV0, offset = offset, size = 4 });
@@ -426,18 +428,34 @@ namespace ReeLib.Mesh
         public override string ToString() => $"{X}, {Y}, {Z}, {W}";
     }
 
-	internal struct NorTanVertexBuffer
+	public struct QuantizedNorTan
 	{
-#pragma warning disable CS0649
 		public SByte4 norm;
 		public SByte4 tan;
-#pragma warning restore CS0649
 
-		public Vector3 Normal => norm.DequantizeNormal();
-		public Vector3 Tangent => tan.DequantizeNormal();
-		public sbyte BiTangentSign => tan.W;
+		public readonly Vector3 Normal => norm.DequantizeNormal();
+		public readonly Vector3 Tangent => tan.DequantizeNormal();
+		public readonly Vector3 BiTangent => MathF.Sign(BiTangentSign) * Vector3.Cross(Normal, Tangent);
+		public readonly sbyte BiTangentSign => tan.W;
 
-		public (Vector3 nor, Vector3 tan, Vector3 bitan) GetAll()
+        public QuantizedNorTan(SByte4 norm, SByte4 tan)
+        {
+            this.norm = norm;
+            this.tan = tan;
+        }
+
+		public QuantizedNorTan(Vector3 normal, Vector3 tangent, sbyte biTangentSign)
+		{
+			norm = SByte4.QuantizeNormal(normal);
+			tan = SByte4.QuantizeNormal(tangent, biTangentSign);
+		}
+
+		public QuantizedNorTan(Vector3 normal, Vector3 tangent, Vector3 bitangent)
+			:this (normal, tangent, Vector3.Dot(bitangent, Vector3.Cross(normal, tangent)) > 0 ? sbyte.MaxValue : sbyte.MinValue)
+		{
+		}
+
+        public (Vector3 nor, Vector3 tan, Vector3 bitan) GetAll()
 		{
 			var norm = Normal;
 			var tan = Tangent;
@@ -469,11 +487,9 @@ namespace ReeLib.Mesh
 		public List<MeshBuffer> AdditionalBuffers { get; } = new();
 
 		public Vector3[] Positions = [];
-		public Vector3[] Normals = [];
-		public Vector3[] Tangents = [];
-		public sbyte[] BiTangentSigns = [];
-		public Vector2[] UV0 = [];
-		public Vector2[] UV1 = [];
+		public QuantizedNorTan[] NormalsTangents = [];
+		public HFloat2[] UV0 = [];
+		public HFloat2[] UV1 = [];
 		public Color[] Colors = [];
 		public Color[] UnknownData = [];
 		public VertexBoneWeights[] Weights = [];
@@ -487,7 +503,7 @@ namespace ReeLib.Mesh
 		internal MeshSerializerVersion Version;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Vector3 GetBiTangent(int index) => MathF.Sign(BiTangentSigns[index]) * Vector3.Cross(Normals[index], Tangents[index]);
+		public Vector3 GetBiTangent(int index) => MathF.Sign(NormalsTangents[index].BiTangentSign) * Vector3.Cross(NormalsTangents[index].Normal, NormalsTangents[index].Tangent);
 
 		public void ChangeVersion(MeshSerializerVersion version)
 		{
@@ -789,32 +805,14 @@ namespace ReeLib.Mesh
                     break;
 
                 case VertexBufferType.NormalsTangents:
-                    Normals = new Vector3[count];
-                    Tangents = new Vector3[count];
-                    BiTangentSigns = new sbyte[count];
-                    for (int k = 0; k < count; ++k) {
-                        var nortan = handler.Read<NorTanVertexBuffer>();
-                        Normals[k] = nortan.Normal;
-                        Tangents[k] = nortan.Tangent;
-                        BiTangentSigns[k] = nortan.BiTangentSign;
-                    }
+					NormalsTangents = handler.ReadArray<QuantizedNorTan>(count);
                     break;
 
                 case VertexBufferType.UV0:
-                    UV0 = new Vector2[count];
-                    for (int k = 0; k < count; ++k) {
-                        var u = handler.Read<Half>();
-                        var v = handler.Read<Half>();
-                        UV0[k] = new Vector2((float)u, (float)v);
-                    }
+                    UV0 = handler.ReadArray<HFloat2>(count);
                     break;
                 case VertexBufferType.UV1:
-                    UV1 = new Vector2[count];
-                    for (int k = 0; k < count; ++k) {
-                        var u = handler.Read<Half>();
-                        var v = handler.Read<Half>();
-                        UV1[k] = new Vector2((float)u, (float)v);
-                    }
+					UV1 = handler.ReadArray<HFloat2>(count);
                     break;
                 case VertexBufferType.Colors:
                     Colors = handler.ReadArray<Color>(count);
@@ -850,29 +848,20 @@ namespace ReeLib.Mesh
                     break;
 
                 case VertexBufferType.NormalsTangents:
-                    for (int k = 0; k < count; ++k) {
-                        handler.Write(SByte4.QuantizeNormal(Normals[k]));
-                        handler.Write(SByte4.QuantizeNormal(Tangents[k], BiTangentSigns[k]));
-                    }
+					handler.WriteArray(NormalsTangents);
                     break;
 
                 case VertexBufferType.UV0:
-                    for (int k = 0; k < count; ++k) {
-                        handler.Write((Half)UV0[k].X);
-                        handler.Write((Half)UV0[k].Y);
-                    }
+					handler.WriteArray(UV0);
                     break;
                 case VertexBufferType.UV1:
-                    for (int k = 0; k < count; ++k) {
-                        handler.Write((Half)UV1[k].X);
-                        handler.Write((Half)UV1[k].Y);
-                    }
+					handler.WriteArray(UV1);
                     break;
                 case VertexBufferType.Colors:
-                    handler.WriteArray<Color>(Colors);
+                    handler.WriteArray(Colors);
                     break;
                 case VertexBufferType.UnknownData:
-                    handler.WriteArray<Color>(UnknownData);
+                    handler.WriteArray(UnknownData);
                     break;
                 case VertexBufferType.BoneWeights:
                     for (int k = 0; k < count; ++k) {
@@ -909,11 +898,9 @@ namespace ReeLib.Mesh
 		public Span<ushort> Indices => Buffer.Faces.AsSpan(facesIndexOffset, indicesCount);
 		public Span<int> IntegerIndices => Buffer.IntegerFaces.AsSpan(facesIndexOffset, indicesCount);
 		public Span<Vector3> Positions => Buffer.Positions.AsSpan(vertsIndexOffset, vertCount);
-		public Span<Vector3> Normals => Buffer.Normals.AsSpan(vertsIndexOffset, vertCount);
-		public Span<Vector3> Tangents => Buffer.Tangents.AsSpan(vertsIndexOffset, vertCount);
-		public Span<sbyte> BiTangents => Buffer.BiTangentSigns.AsSpan(vertsIndexOffset, vertCount);
-		public Span<Vector2> UV0 => Buffer.UV0.AsSpan(vertsIndexOffset, vertCount);
-		public Span<Vector2> UV1 => Buffer.UV1.AsSpan(vertsIndexOffset, vertCount);
+		public Span<QuantizedNorTan> NormalsTangents => Buffer.NormalsTangents.AsSpan(vertsIndexOffset, vertCount);
+		public Span<HFloat2> UV0 => Buffer.UV0.AsSpan(vertsIndexOffset, vertCount);
+		public Span<HFloat2> UV1 => Buffer.UV1.AsSpan(vertsIndexOffset, vertCount);
 		public Span<Color> Colors => Buffer.Colors.AsSpan(vertsIndexOffset, vertCount);
 		public Span<VertexBoneWeights> Weights => Buffer.Weights.AsSpan(vertsIndexOffset, vertCount);
 		public Span<VertexBoneWeights> ExtraWeights => Buffer.ExtraWeights.AsSpan(vertsIndexOffset, vertCount);

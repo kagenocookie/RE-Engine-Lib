@@ -412,25 +412,8 @@ namespace ReeLib.Chain
         public CollisionFilterFlags flags;
     }
 
-    public class CollisionData : ReadWriteModel
+    public class CollisionData : CollisionDataBase
     {
-        private long nodeOffset;
-        public uint jointNameHash;
-        public uint pairJointNameHash;
-        public Vector3 position;
-        public Vector3 pairPosition;
-        public Quaternion rotationOffset = Quaternion.Identity;
-        public RotationOrderNullable rotationOrder;
-        public float radius;
-        public float lerp;
-        public float endRadius;
-
-        public ChainCollisionShape shape;
-        public byte div;
-        public byte subDataCount;
-        public CollisionFilterFlags collisionFilterFlags;
-        public int uknInt;
-
         public List<SubCollisionData> SubCollisions { get; } = new();
 
         protected override bool ReadWrite<THandler>(THandler action)
@@ -463,6 +446,8 @@ namespace ReeLib.Chain
                     // action.Null(4);
                 }
             }
+
+            UpdateJointNames();
             return true;
         }
 
@@ -478,8 +463,37 @@ namespace ReeLib.Chain
             handler.Write(Start, nodeOffset);
             SubCollisions.Write(handler);
         }
+    }
 
-        public override string ToString() => $"{jointNameHash} <=> {pairJointNameHash}";
+    public abstract class CollisionDataBase : ReadWriteModel
+    {
+        public string? jointName;
+        public string? pairJointName;
+
+        protected long nodeOffset;
+        public uint jointNameHash;
+        public uint pairJointNameHash;
+        public Vector3 position;
+        public Vector3 pairPosition;
+        public Quaternion rotationOffset = Quaternion.Identity;
+        public RotationOrderNullable rotationOrder;
+        public float radius;
+        public float lerp;
+        public float endRadius;
+
+        public ChainCollisionShape shape;
+        public byte div;
+        public byte subDataCount;
+        public CollisionFilterFlags collisionFilterFlags;
+        public int uknInt;
+
+        public void UpdateJointNames()
+        {
+            jointName = Utils.HashedBoneNames.GetValueOrDefault(jointNameHash);
+            pairJointName = Utils.HashedBoneNames.GetValueOrDefault(pairJointNameHash);
+        }
+
+        public override string ToString() => $"{jointName ?? jointNameHash.ToString()} <=> {pairJointName ?? pairJointNameHash.ToString()}";
     }
 
     public class SubCollisionData : ReadWriteModel

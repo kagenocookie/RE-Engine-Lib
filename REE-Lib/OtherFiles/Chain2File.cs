@@ -472,30 +472,14 @@ namespace ReeLib.Chain2
         public override string ToString() => $"{terminalNodeNameHashA} <=> {terminalNodeNameHashB}";
     }
 
-    public class CollisionData : ReadWriteModel
+    public class CollisionData : Chain.CollisionDataBase
     {
-        private long dataOffset;
-        public uint jointNameHash;
-        public uint pairJointNameHash;
-        public Vector3 position;
-        public Vector3 pairPosition;
-        public Quaternion rotationOffset = Quaternion.Identity;
-        public RotationOrderNullable rotationOrder;
-        public float radius;
-        public float lerp;
-        public float endRadius;
-
-        public ChainCollisionShape shape;
-        public byte div;
-        public byte subDataCount;
-        public CollisionFilterFlags collisionFilterFlags;
-
         public List<SubCollisionData> SubCollisions { get; } = new();
 
         protected override bool ReadWrite<THandler>(THandler action)
         {
             var version = action.Handler.FileVersion;
-            action.Do(ref dataOffset);
+            action.Do(ref nodeOffset);
             action.Do(ref position);
             action.Do(ref pairPosition);
             action.Do(ref rotationOffset);
@@ -512,23 +496,22 @@ namespace ReeLib.Chain2
             action.Do(ref subDataCount);
             action.Null(1);
             action.Do(ref collisionFilterFlags);
+            UpdateJointNames();
             return true;
         }
 
         internal void ReadData(FileHandler handler)
         {
-            handler.Seek(dataOffset);
+            handler.Seek(nodeOffset);
             SubCollisions.Read(handler, subDataCount);
         }
 
         internal void WriteData(FileHandler handler)
         {
-            dataOffset = SubCollisions.Count == 0 ? 0 : handler.Tell();
-            handler.Write(Start, dataOffset);
+            nodeOffset = SubCollisions.Count == 0 ? 0 : handler.Tell();
+            handler.Write(Start, nodeOffset);
             SubCollisions.Write(handler);
         }
-
-        public override string ToString() => $"{jointNameHash} <=> {pairJointNameHash}";
     }
 
     public class SubCollisionData : ReadWriteModel

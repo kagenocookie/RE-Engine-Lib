@@ -92,7 +92,7 @@ REE-Lib is under MIT license. See LICENSE for more details. Some of the original
 - [Ekey](https://github.com/Ekey/REE.PAK.Tool) - PAK file decryption algorithms
 - [alphaZomega](https://github.com/alphazolam) - RE_RSZ and many other file templates
 - [praydog](https://github.com/praydog/) - RSZ file structure research
-- [NSACloud](https://github.com/NSACloud) - RE Mesh editor, MPLY mesh research, EFX structs
+- [NSACloud](https://github.com/NSACloud) - RE Mesh editor, MPLY mesh research, EFX structs, some chain format details
 - [Battlezone](https://github.com/seifhassine) - Updated RSZ JSON files
 
 ## Disclaimer

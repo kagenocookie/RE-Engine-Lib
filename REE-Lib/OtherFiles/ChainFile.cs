@@ -1,4 +1,5 @@
 using System.Numerics;
+using ReeLib.Common;
 using ReeLib.InternalAttributes;
 
 namespace ReeLib.Chain
@@ -9,7 +10,7 @@ namespace ReeLib.Chain
         public uint magic = ChainFile.Magic;
         public uint errorFlags;
         public uint masterSize;
-        public string? collisionAttr;
+        public long collisionAttrOffset;
         internal long modelCollisionOffset;
         internal long extraDataOffset;
         internal long groupsOffset;
@@ -39,7 +40,7 @@ namespace ReeLib.Chain
             action.Do(ref magic);
             action.Do(ref errorFlags);
             action.Do(ref masterSize);
-            action.HandleOffsetWString(ref collisionAttr, true);
+            action.Do(ref collisionAttrOffset);
             action.Do(ref modelCollisionOffset);
             action.Do(ref extraDataOffset);
             action.Do(ref groupsOffset);
@@ -62,18 +63,15 @@ namespace ReeLib.Chain
             action.Do(ref legacyVersion);
             action.Do(ref uknAttr);
             action.Do(ref uknCount);
+            Log.WarnIf(extraDataOffset > 0, "Chain file contains extraDataOffset");
+            Log.WarnIf(collisionAttrOffset > 0, "Chain file contains collisionAttrOffset");
             return true;
         }
     }
 
-    public class ChainGroup : BaseModel
+    public abstract class ChainGroupBase : BaseModel
     {
         public string name = "";
-
-        public ChainSetting? Settings { get; set; }
-        public WindSetting? WindSettings { get; set; }
-        public List<ChainNode> ChainNodes { get; } = new();
-        public List<ChainSubGroupData> ChainSubGroups { get; } = new();
 
         public int settingId;
         internal byte nodeCount;
@@ -98,14 +96,25 @@ namespace ReeLib.Chain
         public uint clspFlags1;
         public uint clspFlags2;
 
-        private long subGroupDataOffset;
+        protected long nodeOffset;
+        protected long subGroupDataOffset;
+
+        public override string ToString() => $"Group {name} [{terminalNameHash}]";
+    }
+
+    public class ChainGroup : ChainGroupBase
+    {
+        public ChainSetting? Settings { get; set; }
+        public WindSetting? WindSettings { get; set; }
+        public List<ChainNode> ChainNodes { get; } = new();
+        public List<ChainSubGroupData> ChainSubGroups { get; } = new();
 
         protected override bool DoRead(FileHandler handler)
         {
             var version = handler.FileVersion;
             name = handler.ReadOffsetWString();
 
-            long nodeOffset = handler.Read<long>();
+            handler.Read(ref nodeOffset);
 
             handler.Read(ref settingId);
             handler.Read(ref nodeCount);
@@ -141,7 +150,6 @@ namespace ReeLib.Chain
                 handler.Read(ref subGroupDataOffset);
             }
 
-            ReadData(handler, nodeOffset);
             return true;
         }
 
@@ -187,7 +195,7 @@ namespace ReeLib.Chain
             return true;
         }
 
-        private void ReadData(FileHandler handler, long nodeOffset)
+        internal void ReadData(FileHandler handler)
         {
             using (var _ = handler.SeekJumpBack(nodeOffset)) {
                 ChainNodes.Read(handler, nodeCount);
@@ -211,7 +219,7 @@ namespace ReeLib.Chain
             handler.WriteWString(name);
 
             handler.Align(16);
-            handler.Write(Start + 8, handler.Tell()); // nodeOffset
+            handler.Write(Start + 8, nodeOffset = handler.Tell());
             ChainNodes.Write(handler);
 
             foreach (var node in ChainNodes) {
@@ -231,16 +239,14 @@ namespace ReeLib.Chain
                 sub.WriteNodes(handler);
             }
         }
-
-        public override string ToString() => name;
     }
 
     [RszGenerate, RszAutoReadWrite]
     public partial class ChainSubGroupData : BaseModel
     {
         private long nodeOffset;
-        public long subGroupId;
-        public long settingId;
+        public int subGroupId;
+        public int settingId;
 
         [field: RszIgnore]
         public List<ChainNode> Nodes { get; } = [];
@@ -258,7 +264,7 @@ namespace ReeLib.Chain
         }
     }
 
-    public class ChainNode : ReadWriteModel
+    public class ChainNodeBase : ReadWriteModel
     {
         public Quaternion angleLimitDirection;
         public float angleLimitRadius;
@@ -277,9 +283,8 @@ namespace ReeLib.Chain
         public byte attachType;
         public byte rotationType;
 
-        private long jiggleDataOffset;
+        protected long jiggleDataOffset;
         public float gravityCoef;
-        public ChainJiggleData? JiggleData;
 
         protected override bool ReadWrite<THandler>(THandler action)
         {
@@ -307,6 +312,11 @@ namespace ReeLib.Chain
             }
             return true;
         }
+    }
+
+    public class ChainNode : ChainNodeBase
+    {
+        public ChainJiggleData? JiggleData;
 
         public void ReadData(FileHandler handler)
         {
@@ -368,7 +378,7 @@ namespace ReeLib.Chain
             action.Do(ref terminalNodeNameHashA);
             action.Do(ref terminalNodeNameHashB);
             action.Do(ref distanceShrinkLimitCoef);
-            action.Do(ref distanceShrinkLimitCoef);
+            action.Do(ref distanceExpandLimitCoef);
             action.Do(ref linkMode);
             action.Do(ref connectFlags);
             action.Do(ref linkAttrFlags);
@@ -499,10 +509,13 @@ namespace ReeLib.Chain
         public override string ToString() => $"[{id}] {position}";
     }
 
-    public class ChainSetting : ReadWriteModel
+    public class ChainSetting : ChainSettingBase
     {
         public WindSetting? WindSettings { get; set; }
+    }
 
+    public class ChainSettingBase : ReadWriteModel
+    {
         public string? collisionFilterFilePath;
         public float sprayArc;
         public float sprayFrequency;
@@ -527,7 +540,7 @@ namespace ReeLib.Chain
 
         public float springForce;
 
-        public float springLimitRte;
+        public float springLimitRate;
         public float springMaxVelocity;
         public ChainSpringCalcType springCalcType;
         public byte springUkn1;
@@ -552,8 +565,6 @@ namespace ReeLib.Chain
         public float ukn1;
         public float ukn2;
         public float ukn3;
-        public float uknParam1;
-        public float uknParam2;
 
         protected override bool ReadWrite<THandler>(THandler action)
         {
@@ -586,7 +597,7 @@ namespace ReeLib.Chain
             action.Do(ref springForce);
 
             if (version >= 24) {
-                action.Do(ref springLimitRte);
+                action.Do(ref springLimitRate);
                 action.Do(ref springMaxVelocity);
                 action.Do(ref springCalcType);
                 action.Do(ref springUkn1);
@@ -616,10 +627,6 @@ namespace ReeLib.Chain
                     action.Do(ref ukn3);
                 }
             }
-            if (version == 13) {
-                action.Do(ref uknParam1);
-                action.Do(ref uknParam2);
-            }
 
             return true;
         }
@@ -637,6 +644,7 @@ namespace ReeLib.Chain
         public float randomDamping;
         public float randomDampingCycle;
         public float randomCycleScaling;
+        public uint uknHash;
         public Vector3[] directions = new Vector3[5];
         public float[] min = new float[5];
         public float[] max = new float[5];
@@ -654,7 +662,7 @@ namespace ReeLib.Chain
             action.Do(ref randomDamping);
             action.Do(ref randomDampingCycle);
             action.Do(ref randomCycleScaling);
-            action.Null(4);
+            action.Do(ref uknHash);
             action.Do(ref directions);
             action.Do(ref min);
             action.Do(ref max);
@@ -950,6 +958,9 @@ namespace ReeLib
             if (header.groupCount > 0) {
                 handler.Seek(header.groupsOffset);
                 Groups.Read(handler, header.groupCount);
+                foreach (var group in Groups) {
+                    group.ReadData(handler);
+                }
             }
 
             if (header.modelCollisionOffset > 0) {

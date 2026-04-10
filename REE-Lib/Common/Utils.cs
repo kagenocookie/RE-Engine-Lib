@@ -104,6 +104,11 @@ namespace ReeLib.Common
             ulong newValue = (value & ~(mask << bitOffset)) | ((data & mask) << bitOffset);
             return newValue;
         }
+
+        /// <summary>
+        /// Common dictionary storage for all known bone name hashes, intended to help editing files that only contain the hashes.
+        /// </summary>
+        public static readonly Dictionary<uint, string> HashedBoneNames = new() { {2180083513, ""} };
     }
 
     public static class Extensions

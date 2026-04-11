@@ -129,6 +129,22 @@ public sealed partial class FileExtensionCache
         }
     }
 
+    private static readonly Dictionary<KnownFileFormats, KnownFileFormats[]> formatRootToSubTypes = new () {
+        [KnownFileFormats.Texture] = [KnownFileFormats.Texture, KnownFileFormats.RenderTexture],
+        [KnownFileFormats.TimelineBase] = [KnownFileFormats.Timeline, KnownFileFormats.Clip],
+        [KnownFileFormats.MotionBase] = [KnownFileFormats.Motion, KnownFileFormats.MotionList, KnownFileFormats.GpuMotionList, ReeLib.KnownFileFormats.MotionCamera, KnownFileFormats.MotionCameraList],
+        [KnownFileFormats.DynamicsBase] = [KnownFileFormats.HeightField, KnownFileFormats.RigidBodyMesh],
+        [KnownFileFormats.BehaviorTreeBase] = [KnownFileFormats.BehaviorTree, KnownFileFormats.Fsm2],
+        [KnownFileFormats.Skeleton] = [KnownFileFormats.Skeleton, KnownFileFormats.RefSkeleton, KnownFileFormats.FbxSkeleton],
+    };
+
+    private static readonly Dictionary<KnownFileFormats, KnownFileFormats> formatBaseTypes = formatRootToSubTypes
+        .SelectMany(kv => kv.Value.Select(sub => (sub, root: kv.Key)))
+        .ToDictionary(subKey => subKey.sub, subKey => subKey.root);
+
+    public static KnownFileFormats[]? GetFormatSubTypes(KnownFileFormats format) => formatRootToSubTypes.GetValueOrDefault(format);
+    public static KnownFileFormats GetFormatRootType(KnownFileFormats format) => formatBaseTypes.GetValueOrDefault(format, format);
+
     public sealed class FileExtensionInfo
     {
         public List<string> Locales { get; set; } = new();

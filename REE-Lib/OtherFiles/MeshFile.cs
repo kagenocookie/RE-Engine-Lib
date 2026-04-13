@@ -298,12 +298,11 @@ namespace ReeLib.Mesh
 			}
 		}
 
-        internal void Read(FileHandler handler, MeshSerializerVersion version)
+        internal void Read(FileHandler handler)
 		{
-			if (version is MeshSerializerVersion.SF6 or MeshSerializerVersion.MHWILDS or MeshSerializerVersion.Pragmata) {
+			if (boneIndices.Length == 6) {
 				var b1 = handler.Read<uint>();
 				var b2 = handler.Read<uint>();
-				boneIndices = new short[6];
 				boneIndices[0] = (short)((b1) & 0x3ff);
 				boneIndices[1] = (short)((b1 >> 10) & 0x3ff);
 				boneIndices[2] = (short)((b1 >> 20) & 0x3ff);
@@ -311,7 +310,6 @@ namespace ReeLib.Mesh
 				boneIndices[4] = (short)((b2 >> 10) & 0x3ff);
 				boneIndices[5] = (short)((b2 >> 20) & 0x3ff);
 			} else {
-				boneIndices = new short[8];
 				for (int i = 0; i < 8; i++) boneIndices[i] = (short)handler.Read<byte>();
 			}
 			handler.ReadArray(boneWeights);
@@ -681,8 +679,8 @@ namespace ReeLib.Mesh
 				ShapeKeyWeights = new VertexBoneWeights[count];
 				for (int k = 0; k < count; ++k)
 				{
-					ShapeKeyWeights[k] = new();
-					ShapeKeyWeights[k].Read(handler, Version);
+					ShapeKeyWeights[k] = new(Version);
+					ShapeKeyWeights[k].Read(handler);
 				}
 			}
 
@@ -823,15 +821,15 @@ namespace ReeLib.Mesh
                 case VertexBufferType.BoneWeights:
                     Weights = new VertexBoneWeights[count];
                     for (int k = 0; k < count; ++k) {
-                        Weights[k] = new();
-                        Weights[k].Read(handler, Version);
+                        Weights[k] = new(Version);
+                        Weights[k].Read(handler);
                     }
                     break;
                 case VertexBufferType.BoneWeights2:
                     ExtraWeights = new VertexBoneWeights[count];
                     for (int k = 0; k < count; ++k) {
-                        ExtraWeights[k] = new();
-                        ExtraWeights[k].Read(handler, Version);
+                        ExtraWeights[k] = new(Version);
+                        ExtraWeights[k].Read(handler);
                     }
                     break;
                 default:
@@ -1240,6 +1238,8 @@ namespace ReeLib.Mesh
 
 		public int TotalTriangleCount => LODs.Sum(lod => lod.FaceCount);
 		public int TotalVertexCount => LODs.Sum(lod => lod.VertexCount);
+
+		public int IndexSize => integerFaces ? 4 : 2;
 
 		internal MeshSerializerVersion Version;
 		private int ExpectedSkinWeightCount => Version switch {

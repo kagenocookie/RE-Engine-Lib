@@ -667,8 +667,8 @@ namespace ReeLib.MplyMesh
                 WeightsBuffer = new VertexBoneWeights[count];
                 for (int i = 0; i < count; ++i)
                 {
-                    var w = new VertexBoneWeights();
-                    w.Read(handler, Bvh.Version);
+                    var w = new VertexBoneWeights(Bvh.Version);
+                    w.Read(handler);
                     WeightsBuffer[i] = w;
                 }
                 handler.Align(4);

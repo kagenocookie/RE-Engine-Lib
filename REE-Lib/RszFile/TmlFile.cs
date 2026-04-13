@@ -11,7 +11,7 @@ namespace ReeLib.Tml
     public class ClipHeader : ClipBaseHeader, IKeyValueContainer
     {
         public int rootTrackCount;
-        public int sectionCount;
+        public int clipGroupCount;
         public int nodeReorderCount;
         public int nodeCountPragmata;
         public int trackGroupCount;
@@ -34,7 +34,7 @@ namespace ReeLib.Tml
             action.Do(ref numFrames);
             action.Do(ref rootTrackCount);
             action.Do(ref trackGroupCount);
-            action.Do(version >= ClipVersion.RE8, ref sectionCount);
+            action.Do(version >= ClipVersion.RE8, ref clipGroupCount);
             action.Do(ref nodeReorderCount);
             action.Do(version >= ClipVersion.MHWilds, ref nodeCountPragmata);
             DataInterpretationException.DebugThrowIf(nodeCountPragmata != 0 && nodeCountPragmata != nodeReorderCount);
@@ -55,7 +55,7 @@ namespace ReeLib.Tml
             action.Do(ref rootTracksOffset);
             action.Do(ref groupsOffset);
             action.Do(version >= ClipVersion.RE8, ref sectionsOffset);
-            action.Do(version >= ClipVersion.RE9, ref nodesReorderOffset2);
+            action.Do(version >= ClipVersion.MHWilds, ref nodesReorderOffset2);
             action.Do(ref nodesReorderOffset);
             action.Do(ref tracksOffset);
             action.Do(ref propertiesOffset);
@@ -89,12 +89,13 @@ namespace ReeLib.Tml
         public string type = "";
         public string name = "";
 
-        internal int clipCount;
+        internal int clipGroupCount;
         internal int nodeCount;
         internal int nodeStartOffset;
-        internal long uknIndex;
+        internal long clipGroupStartIndex;
 
-        public List<TimelineTrack> Tracks { get; } = new();
+        // public List<TimelineTrack> Tracks { get; } = new();
+        public List<TimelineClipGroup> ClipGroups { get; } = new();
         public ClipVersion Version { get; set; } = version;
 
         internal void Read(FileHandler handler, long asciiOffset, long unicodeOffset)
@@ -102,7 +103,7 @@ namespace ReeLib.Tml
             handler.Read(ref enabled);
             handler.ReadNull(3);
             handler.Read(ref ukn);
-            handler.Read(ref clipCount);
+            handler.Read(ref clipGroupCount);
             handler.Read(ref nodeCount);
             // note: type is stored in both ascii and utf16 string tables, should be safe to ignore one of them
             type = handler.ReadAsciiString(asciiOffset + handler.Read<long>());
@@ -110,7 +111,7 @@ namespace ReeLib.Tml
             name = handler.ReadWString(unicodeOffset + handler.Read<long>() * 2);
             if (Version >= ClipVersion.RE_RT)
             {
-                handler.Read(ref uknIndex);
+                handler.Read(ref clipGroupStartIndex);
             }
             handler.Read(ref nodeStartOffset);
             handler.ReadNull(4);
@@ -121,14 +122,14 @@ namespace ReeLib.Tml
             handler.Write(ref enabled);
             handler.WriteNull(3);
             handler.Write(ref ukn);
-            handler.Write(ref clipCount);
+            handler.Write(ref clipGroupCount);
             handler.Write(ref nodeCount);
             handler.Write((long)handler.AsciiStringTableAdd(type, false).TableOffset);
             handler.Write((long)handler.StringTableAdd(type, false).TableOffset);
             handler.Write((long)handler.StringTableAdd(name, false).TableOffset);
             if (Version >= ClipVersion.RE_RT)
             {
-                handler.Write(ref uknIndex);
+                handler.Write(ref clipGroupStartIndex);
             }
             handler.Write(ref nodeStartOffset);
             handler.WriteNull(4);
@@ -237,17 +238,19 @@ namespace ReeLib.Tml
         public override string ToString() => !string.IsNullOrEmpty(Name) ? Name : guid1.ToString();
     }
 
-    public class TimelineSectionTag(ClipVersion version) : BaseModel
+    public class TimelineClipGroup(ClipVersion version) : BaseModel
     {
         public float startFrame;
         public float endFrame;
         public float frameCount;
         private long nameOffset;
 
-        public long uknIndex;
-        public long uknData;
+        internal long trackCount;
+        internal long trackStartIndex;
 
         public string Name = "";
+
+        public List<TimelineTrack> Tracks { get; } = new();
 
         public ClipVersion Version { get; set; } = version;
 
@@ -257,14 +260,14 @@ namespace ReeLib.Tml
             handler.Read(ref endFrame);
             handler.ReadNull(4);
             handler.Read(ref frameCount);
-            if (Version >= ClipVersion.RE9)
+            if (Version >= ClipVersion.MHWilds)
             {
-                handler.Read(ref uknIndex);
+                handler.Read(ref trackCount);
             }
             handler.Read(ref nameOffset);
-            if (Version >= ClipVersion.RE9)
+            if (Version >= ClipVersion.MHWilds)
             {
-                handler.Read(ref uknData);
+                handler.Read(ref trackStartIndex);
             }
             return true;
         }
@@ -277,12 +280,12 @@ namespace ReeLib.Tml
             handler.Write(ref frameCount);
             if (Version >= ClipVersion.RE9)
             {
-                handler.Write(ref uknIndex);
+                handler.Write(ref trackCount);
             }
             handler.Write(nameOffset = handler.StringTableAdd(Name, false).TableOffset);
             if (Version >= ClipVersion.RE9)
             {
-                handler.Write(ref uknData);
+                handler.Write(ref trackStartIndex);
             }
             return true;
         }
@@ -303,7 +306,6 @@ namespace ReeLib
     {
         public ClipHeader Header { get; } = new();
         public List<TimelineTrackGroup> TrackGroups { get; } = new();
-        public List<TimelineSectionTag> Sections { get; } = new();
         public List<TimelineTrack> RootTracks { get; } = new();
         public List<TimelineTrack> AllTracks { get; } = new();
 
@@ -330,7 +332,6 @@ namespace ReeLib
 
             TrackGroups.Clear();
             AllTracks.Clear();
-            Sections.Clear();
             RootTracks.Clear();
 
             handler.Seek(Header.rootTracksOffset);
@@ -347,15 +348,16 @@ namespace ReeLib
                 }
             }
 
-            if (Header.sectionCount > 0)
+            var clipGroups = new List<TimelineClipGroup>();
+            if (Header.clipGroupCount > 0)
             {
                 handler.Seek(Header.sectionsOffset);
-                for (int i = 0; i < Header.sectionCount; ++i)
+                for (int i = 0; i < Header.clipGroupCount; ++i)
                 {
-                    var item = new TimelineSectionTag(Header.version);
+                    var item = new TimelineClipGroup(Header.version);
                     item.Read(handler);
                     item.ReadName(handler, Header.unicodeNamesOffset);
-                    Sections.Add(item);
+                    clipGroups.Add(item);
                 }
             }
 
@@ -364,6 +366,12 @@ namespace ReeLib
                 handler.Seek(Header.nodesReorderOffset);
                 var childOffsets = handler.ReadArray<long>(Header.nodeReorderCount);
                 DataInterpretationException.ThrowIfArraysNotEqual<long>(childOffsets!.Order().ToArray(), rootOffsets!.Order().ToArray());
+
+                if (Header.nodesReorderOffset2 > 0) {
+                    handler.Seek(Header.nodesReorderOffset2);
+                    var offsets2 = handler.ReadArray<long>(Header.nodeReorderCount);
+                    DataInterpretationException.ThrowIfArraysNotEqual<long>(childOffsets!.Order().ToArray(), offsets2!.Order().ToArray());
+                }
             }
 
             handler.Seek(Header.tracksOffset);
@@ -396,8 +404,36 @@ namespace ReeLib
 
             foreach (var group in TrackGroups)
             {
-                if (group.nodeCount != 0)
-                    group.Tracks.AddRange(RootTracks.Slice(group.nodeStartOffset, group.nodeCount));
+                if (Header.version >= ClipVersion.MHWilds) {
+                    group.ClipGroups.AddRange(clipGroups.Slice((int)group.clipGroupStartIndex, group.clipGroupCount));
+                    foreach (var cgroup in group.ClipGroups) {
+                        cgroup.Tracks.AddRange(RootTracks.Slice((int)cgroup.trackStartIndex, (int)cgroup.trackCount));
+                    }
+                    continue;
+                }
+
+                var tracks = RootTracks.Slice(group.nodeStartOffset, group.nodeCount);
+                if (group.clipGroupCount == -1) {
+                    DataInterpretationException.DebugWarnIf(Header.version >= ClipVersion.RE8);
+                    var cgroup = new TimelineClipGroup(Header.version);
+                    group.ClipGroups.Add(cgroup);
+                    cgroup.Tracks.AddRange(tracks);
+                    continue;
+                }
+
+                var cgroups = clipGroups.Slice((int)group.clipGroupStartIndex, group.clipGroupCount);
+                if (cgroups.Count == 1) {
+                    // some games have weird shit going on (re4 natives/stm/_chainsaw/ui/ui3000/mot/ac_timeline.tml.54002)
+                    cgroups[0].Tracks.AddRange(tracks);
+                } else {
+                    foreach (var track in tracks) {
+                        // note: in some cases there's an overlap in clip groups (tags) frame ranges, hence First() rather than Single()
+                        // example re7rt: sm1324_fluorescentlight04a_lighted_rightareab1fhallway1_dynamic_03.tml.43001
+                        var cgroup = cgroups.First(cg => (track.startFrame == -1 || track.startFrame >= cg.startFrame) && track.endFrame <= cg.endFrame);
+                        cgroup.Tracks.Add(track);
+                    }
+                }
+                group.ClipGroups.AddRange(cgroups);
             }
 
             return true;
@@ -406,7 +442,7 @@ namespace ReeLib
         protected override bool DoWrite()
         {
             Header.trackGroupCount = TrackGroups.Count;
-            Header.sectionCount = Sections.Count;
+            Header.clipGroupCount = TrackGroups.Count == 0 || Header.version < ClipVersion.RE8 ? 0 : TrackGroups.Sum(g => g.ClipGroups.Count);
             Header.rootTrackCount = Header.nodeReorderCount = RootTracks.Count;
             Header.trackCount = AllTracks.Count;
             Header.propertyCount = Clip.Properties.Count;
@@ -427,18 +463,25 @@ namespace ReeLib
             }
             AllTracks.Clear();
             RootTracks.Clear();
+            var clipGroups = new List<TimelineClipGroup>();
             foreach (var group in TrackGroups) {
-                group.nodeCount = group.Tracks.Count;
+                group.nodeCount = group.ClipGroups.Sum(cg => cg.Tracks.Count);
                 group.nodeStartOffset = RootTracks.Count;
-                // RootTracks.AddRange(group.Tracks);
-                // FlattenTracks(group.Tracks, AllTracks);
-                foreach (var track in group.Tracks)
+                group.clipGroupCount = Header.version < ClipVersion.RE8 ? -1 : group.ClipGroups.Count;
+                group.clipGroupStartIndex = clipGroups.Count;
+                clipGroups.AddRange(group.ClipGroups);
+                foreach (var cgroup in group.ClipGroups)
                 {
-                    RootTracks.Add(track);
-                    AllTracks.Add(track);
-                    track.childCount = track.TimelineChildTracks.Count;
-                    track.childIndex = track.childCount > 0 ? AllTracks.Count : 0;
-                    FlattenTracks(track.TimelineChildTracks, AllTracks);
+                    cgroup.trackCount = cgroup.Tracks.Count;
+                    cgroup.trackStartIndex = RootTracks.Count;
+                    foreach (var track in cgroup.Tracks)
+                    {
+                        RootTracks.Add(track);
+                        AllTracks.Add(track);
+                        track.childCount = track.TimelineChildTracks.Count;
+                        track.childIndex = track.childCount > 0 ? AllTracks.Count : 0;
+                        FlattenTracks(track.TimelineChildTracks, AllTracks);
+                    }
                 }
             }
 
@@ -453,11 +496,19 @@ namespace ReeLib
                 group.Write(handler);
             }
 
-            if (Sections.Count > 0)
+            if (clipGroups.Count > 0 && Header.version >= ClipVersion.RE8)
             {
                 handler.Tell();
                 Header.sectionsOffset = handler.Tell();
-                Sections.Write(handler);
+                clipGroups.Write(handler);
+            }
+
+            Header.nodesReorderOffset2 = handler.Tell();
+            if (Header.version >= ClipVersion.MHWilds)
+            {
+                // the new version has a second block that seems to be identical to the normal nodesReorderOffset
+                // doing it this way should work for all versions, we'll just write the offsets to the same spot twice on older ones
+                handler.Skip(RootTracks.Count * sizeof(long));
             }
 
             Header.nodesReorderOffset = handler.Tell();
@@ -474,6 +525,7 @@ namespace ReeLib
                 {
                     handler.Write(Header.rootTracksOffset + rootIndex * 8, node.Start);
                     handler.Write(Header.nodesReorderOffset + rootIndex * 8, node.Start);
+                    handler.Write(Header.nodesReorderOffset2 + rootIndex * 8, node.Start);
                 }
             }
 

@@ -693,8 +693,19 @@ namespace ReeLib.Clip
 
         public int ExtraKeyCount
         {
-            get => Version is >= ClipVersion.RE4 and <= ClipVersion.DD2 ? flags & 0b1111 : 0;
-            set => flags = Version is >= ClipVersion.RE4 and <= ClipVersion.DD2 ? (byte)(((value & 0b1111)) | (flags & 0b11110000)) : flags;
+            get {
+                if (Version < ClipVersion.RE4) return 0;
+                if (Version <= ClipVersion.DD2) return flags & 0b1111;
+                return (flags & 0b1000) != 0 ? 1 : 0;
+            }
+            set {
+                if (Version < ClipVersion.RE4) return;
+                if (Version <= ClipVersion.DD2) flags = (byte)(((value & 0b1111)) | (flags & 0b11110000));
+                else {
+                    Log.WarnIf(value > 1, "Unexpected extra key count > 1");
+                    flags = (byte)(flags & 0b1000);
+                }
+            }
         }
 
         public int KeyType
@@ -1600,6 +1611,7 @@ namespace ReeLib.Clip
                     }
                 }
             }
+            // var totalExtraKeys = Properties.Sum(p => p.ExtraKeys?.Count ?? 0);
 
             if (speedPointCount > 0)
             {

@@ -1,6 +1,7 @@
 using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using ReeLib.Common;
 using ReeLib.InternalAttributes;
 using ReeLib.MplyMesh;
@@ -264,8 +265,14 @@ namespace ReeLib.Mesh
 
 	public class VertexBoneWeights
 	{
-		public short[] boneIndices = [];
-		public byte[] boneWeights = [];
+		public uint[] boneIndices = new uint[2];
+		public byte[] boneWeights = new byte[8];
+
+		public int IndexCount { get; private set; }
+
+		private const int Mask10b_0 = 0x3ff;
+		private const int Mask10b_1 = 0x3ff << 10;
+		private const int Mask10b_2 = 0x3ff << 20;
 
         public VertexBoneWeights()
 			: this(MeshSerializerVersion.Unknown)
@@ -274,12 +281,47 @@ namespace ReeLib.Mesh
 
         public VertexBoneWeights(MeshSerializerVersion version)
         {
-            boneIndices = new short[GetIndexCount(version)];
-			boneWeights = new byte[8];
+			IndexCount = GetIndexCount(version);
         }
 
 		public float GetWeight(int index) => ((float)boneWeights[index]) / 255f;
 		public float SetWeight(int index, float weight) => boneWeights[index] = (byte)MathF.Round(weight * 255f);
+
+		public int GetIndex(int index)
+		{
+			if (IndexCount == 6) {
+				return index switch {
+					0 => ((int)boneIndices[0] & Mask10b_0) >> 0,
+					1 => ((int)boneIndices[0] & Mask10b_1) >> 10,
+					2 => ((int)boneIndices[0] & Mask10b_2) >> 20,
+					3 => ((int)boneIndices[1] & Mask10b_0) >> 0,
+					4 => ((int)boneIndices[1] & Mask10b_1) >> 10,
+					5 => ((int)boneIndices[1] & Mask10b_2) >> 20,
+					_ => throw new IndexOutOfRangeException(),
+				};
+			} else {
+				var arr = MemoryMarshal.AsBytes(boneIndices);
+				return (int)arr[index];
+			}
+		}
+
+		public void SetIndex(int index, int value)
+		{
+			if (IndexCount == 6) {
+				switch (index) {
+					case 0: boneIndices[0] = (uint)((boneIndices[0] & ~Mask10b_0) | (uint)value & Mask10b_0); break;
+					case 1: boneIndices[0] = (uint)((boneIndices[0] & ~Mask10b_1) | (uint)value & Mask10b_0) << 10; break;
+					case 2: boneIndices[0] = (uint)((boneIndices[0] & ~Mask10b_2) | (uint)value & Mask10b_0) << 20; break;
+					case 3: boneIndices[1] = (uint)((boneIndices[1] & ~Mask10b_0) | (uint)value & Mask10b_0); break;
+					case 4: boneIndices[1] = (uint)((boneIndices[1] & ~Mask10b_1) | (uint)value & Mask10b_0) << 10; break;
+					case 5: boneIndices[1] = (uint)((boneIndices[1] & ~Mask10b_2) | (uint)value & Mask10b_0) << 20; break;
+					default: throw new IndexOutOfRangeException();
+				};
+			} else {
+				var arr = MemoryMarshal.AsBytes(boneIndices.AsSpan());
+				arr[index] = (byte)(value & 0xff);
+			}
+		}
 
 		public void NormalizeWeights()
 		{
@@ -293,41 +335,43 @@ namespace ReeLib.Mesh
 		public void ChangeVersion(MeshSerializerVersion version)
 		{
 			var expectedCount = GetIndexCount(version);
-			if (expectedCount != boneIndices.Length) {
-				Array.Resize(ref boneIndices, expectedCount);
+			if (expectedCount != IndexCount) {
+				if (expectedCount == 8) {
+					// 6 => 8
+					boneIndices[0] = (byte)GetIndex(0);
+					boneIndices[1] = (byte)GetIndex(1);
+					boneIndices[2] = (byte)GetIndex(2);
+					boneIndices[3] = (byte)GetIndex(3);
+					boneIndices[4] = (byte)GetIndex(4);
+					boneIndices[5] = (byte)GetIndex(5);
+					boneIndices[6] = 0;
+					boneIndices[7] = 0;
+				} else {
+					// 8 => 6
+					var n1 = (uint)GetIndex(0) | ((uint)GetIndex(1) << 10) | (uint)((uint)GetIndex(2) << 20);
+					var n2 = (uint)GetIndex(3) | ((uint)GetIndex(4) << 10) | (uint)((uint)GetIndex(5) << 20);
+					boneIndices[0] = n1;
+					boneIndices[1] = n2;
+				}
+				IndexCount = expectedCount;
 			}
+		}
+
+		public void CopyTo(Span<byte> target)
+		{
+			boneIndices.CopyTo(MemoryMarshal.Cast<byte, uint>(target));
+			boneWeights.CopyTo(target.Slice(8));
 		}
 
         internal void Read(FileHandler handler)
 		{
-			if (boneIndices.Length == 6) {
-				var b1 = handler.Read<uint>();
-				var b2 = handler.Read<uint>();
-				boneIndices[0] = (short)((b1) & 0x3ff);
-				boneIndices[1] = (short)((b1 >> 10) & 0x3ff);
-				boneIndices[2] = (short)((b1 >> 20) & 0x3ff);
-				boneIndices[3] = (short)((b2) & 0x3ff);
-				boneIndices[4] = (short)((b2 >> 10) & 0x3ff);
-				boneIndices[5] = (short)((b2 >> 20) & 0x3ff);
-			} else {
-				for (int i = 0; i < 8; i++) boneIndices[i] = (short)handler.Read<byte>();
-			}
+			handler.ReadArray(boneIndices);
 			handler.ReadArray(boneWeights);
 		}
 
         internal void Write(FileHandler handler, MeshSerializerVersion version)
 		{
-			if (version is MeshSerializerVersion.SF6 or MeshSerializerVersion.MHWILDS or MeshSerializerVersion.Pragmata)
-			{
-				var n1 = (int)boneIndices[0] | ((int)boneIndices[1] << 10) | ((int)boneIndices[2] << 20);
-				var n2 = (int)boneIndices[3] | ((int)boneIndices[4] << 10) | ((int)boneIndices[5] << 20);
-				handler.Write(n1);
-				handler.Write(n2);
-			}
-			else
-			{
-				for (int i = 0; i < 8; i++) handler.Write((byte)boneIndices[i]);
-			}
+			handler.WriteArray(boneIndices);
 			handler.WriteArray(boneWeights);
 		}
 	}
@@ -405,6 +449,14 @@ namespace ReeLib.Mesh
         public sbyte Y;
         public sbyte Z;
         public sbyte W;
+
+        public SByte4(sbyte x, sbyte y, sbyte z, sbyte w)
+        {
+            X = x;
+            Y = y;
+            Z = z;
+            W = w;
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly Vector3 DequantizeNormal() => new Vector3(

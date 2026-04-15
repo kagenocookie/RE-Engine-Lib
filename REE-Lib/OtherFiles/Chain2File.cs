@@ -183,7 +183,7 @@ namespace ReeLib.Chain2
     {
         public Chain2Setting? Settings { get; set; }
         public WindSetting? WindSettings { get; set; }
-        public List<Chain2Node> ChainNodes { get; } = new();
+        public override List<Chain2Node> ChainNodes { get; } = new();
         public List<ChainSubGroupData> ChainSubGroups { get; } = new();
 
         public int interpCount;

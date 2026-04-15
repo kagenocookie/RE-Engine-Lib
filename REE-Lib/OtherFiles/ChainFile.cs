@@ -72,6 +72,7 @@ namespace ReeLib.Chain
     public abstract class ChainGroupBase : BaseModel
     {
         public string name = "";
+        public abstract IEnumerable<ChainNodeBase> ChainNodes { get; }
 
         public int settingId;
         internal byte nodeCount;
@@ -106,7 +107,7 @@ namespace ReeLib.Chain
     {
         public ChainSetting? Settings { get; set; }
         public WindSetting? WindSettings { get; set; }
-        public List<ChainNode> ChainNodes { get; } = new();
+        public override List<ChainNode> ChainNodes { get; } = new();
         public List<ChainSubGroupData> ChainSubGroups { get; } = new();
 
         protected override bool DoRead(FileHandler handler)
@@ -279,7 +280,7 @@ namespace ReeLib.Chain
         public uint constraintJntNameHash;
         public float windCoef;
         public AngleMode angleMode;
-        public ChainNodeCollisionShape collisionShape;
+        public ChainNodeCollisionShape collisionShape = ChainNodeCollisionShape.Sphere;
         public byte attachType;
         public byte rotationType;
 
@@ -312,6 +313,8 @@ namespace ReeLib.Chain
             }
             return true;
         }
+
+        public override string ToString() => $"{collisionShape} Radius={collisionRadius}";
     }
 
     public class ChainNode : ChainNodeBase

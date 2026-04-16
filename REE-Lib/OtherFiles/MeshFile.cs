@@ -310,11 +310,11 @@ namespace ReeLib.Mesh
 			if (IndexCount == 6) {
 				switch (index) {
 					case 0: boneIndices[0] = (uint)((boneIndices[0] & ~Mask10b_0) | (uint)value & Mask10b_0); break;
-					case 1: boneIndices[0] = (uint)((boneIndices[0] & ~Mask10b_1) | (uint)value & Mask10b_0) << 10; break;
-					case 2: boneIndices[0] = (uint)((boneIndices[0] & ~Mask10b_2) | (uint)value & Mask10b_0) << 20; break;
+					case 1: boneIndices[0] = (uint)((boneIndices[0] & ~Mask10b_1) | ((uint)value & Mask10b_0) << 10); break;
+					case 2: boneIndices[0] = (uint)((boneIndices[0] & ~Mask10b_2) | ((uint)value & Mask10b_0) << 20); break;
 					case 3: boneIndices[1] = (uint)((boneIndices[1] & ~Mask10b_0) | (uint)value & Mask10b_0); break;
-					case 4: boneIndices[1] = (uint)((boneIndices[1] & ~Mask10b_1) | (uint)value & Mask10b_0) << 10; break;
-					case 5: boneIndices[1] = (uint)((boneIndices[1] & ~Mask10b_2) | (uint)value & Mask10b_0) << 20; break;
+					case 4: boneIndices[1] = (uint)((boneIndices[1] & ~Mask10b_1) | ((uint)value & Mask10b_0) << 10); break;
+					case 5: boneIndices[1] = (uint)((boneIndices[1] & ~Mask10b_2) | ((uint)value & Mask10b_0) << 20); break;
 					default: throw new IndexOutOfRangeException();
 				};
 			} else {
@@ -1939,7 +1939,8 @@ namespace ReeLib
 			{ "ONI2", new (240704828, 240827123, MeshSerializerVersion.Onimusha, [GameName.oni2]) },
 			{ "MHWilds", new (240704828, 241111606, MeshSerializerVersion.MHWILDS, [GameName.mhwilds], extraWeightBuffer: true) },
 			{ "MHStories3", new (250203152, 250604100, MeshSerializerVersion.Pragmata, [GameName.mhsto3], extraWeightBuffer: true) },
-			{ "Pragmata", new (250707828, 250925211, MeshSerializerVersion.Pragmata, [GameName.pragmata], extraWeightBuffer: true) },
+			{ "Pragmata", new (250707828, 251121828, MeshSerializerVersion.Pragmata, [GameName.pragmata], extraWeightBuffer: true) },
+			{ "Pragmata Demo", new (250707828, 250925211, MeshSerializerVersion.Pragmata, [GameName.pragmata], extraWeightBuffer: true) },
 			{ "RE9", new (250904410, 250925211, MeshSerializerVersion.RE9, [GameName.re9]) },
 		};
 

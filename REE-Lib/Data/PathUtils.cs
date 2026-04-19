@@ -182,6 +182,36 @@ public static class PathUtils
         return RemoveNativesFolder(GetFilepathWithoutSuffixes(nativePath).ToString());
     }
 
+    public static string GetStreamingNativePath(string nativePath)
+    {
+        return nativePath
+            .Replace("natives/stm/", "natives/stm/streaming/", StringComparison.OrdinalIgnoreCase)
+            .Replace("natives/x64/", "natives/x64/streaming/", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public static string GetNonStreamingNativePath(string nativePath)
+    {
+        return nativePath
+            .Replace("natives/stm/streaming/", "natives/stm/", StringComparison.OrdinalIgnoreCase)
+            .Replace("natives/x64/streaming/", "natives/x64/", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public static string GetStreamingInternalPath(string internalPath)
+    {
+        if (internalPath.StartsWith("streaming/", StringComparison.OrdinalIgnoreCase)) {
+            return internalPath;
+        }
+        return "streaming/" + internalPath;
+    }
+
+    public static string GetNonStreamingInternalPath(string internalPath)
+    {
+        if (internalPath.StartsWith("streaming/", StringComparison.OrdinalIgnoreCase)) {
+            return internalPath.Substring("streaming/".Length);
+        }
+        return internalPath;
+    }
+
     /// <summary>
     /// Removes a natives/ prefix or suffix from the path and normalizes it with forward slashes.
     /// </summary>

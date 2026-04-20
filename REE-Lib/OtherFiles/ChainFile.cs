@@ -32,7 +32,7 @@ namespace ReeLib.Chain
         public bool modelCollisionSearch;
         public LegacyVersion legacyVersion;
         public byte uknAttr;
-        public byte uknCount;
+        internal byte uknCount;
 
         protected override bool ReadWrite<THandler>(THandler action)
         {

@@ -74,6 +74,8 @@ namespace ReeLib.Chain
         public string name = "";
         public abstract IEnumerable<ChainNodeBase> ChainNodes { get; }
 
+        public WindSetting? WindSettings { get; set; }
+
         public int settingId;
         internal byte nodeCount;
         public RotationOrder rotationOrder;
@@ -90,7 +92,7 @@ namespace ReeLib.Chain
         public float endRotConstMax;
         public byte tagCount;
         public byte angleLimitDirectionMode;
-        public short subGroupCount;
+        protected short subGroupCount;
         public int[] hierarchyHashes = new int[4];
 
         public uint colliderQualityLevel;
@@ -106,7 +108,6 @@ namespace ReeLib.Chain
     public class ChainGroup : ChainGroupBase
     {
         public ChainSetting? Settings { get; set; }
-        public WindSetting? WindSettings { get; set; }
         public override List<ChainNode> ChainNodes { get; } = new();
         public List<ChainSubGroupData> ChainSubGroups { get; } = new();
 
@@ -360,7 +361,10 @@ namespace ReeLib.Chain
 
     public class ChainLink : ReadWriteModel
     {
-        private long nodeOffset;
+        public string? nodeName1;
+        public string? nodeName2;
+
+        protected long nodeOffset;
         public uint terminalNodeNameHashA;
         public uint terminalNodeNameHashB;
         public float distanceShrinkLimitCoef;
@@ -374,6 +378,12 @@ namespace ReeLib.Chain
         public RotationOrder linkOrder;
 
         public List<ChainLinkNode> Links { get; } = new();
+
+        public void UpdateJointNames()
+        {
+            nodeName1 = Utils.HashedBoneNames.GetValueOrDefault(terminalNodeNameHashA);
+            nodeName2 = Utils.HashedBoneNames.GetValueOrDefault(terminalNodeNameHashB);
+        }
 
         protected override bool ReadWrite<THandler>(THandler action)
         {
@@ -406,7 +416,7 @@ namespace ReeLib.Chain
             Links.Write(handler);
         }
 
-        public override string ToString() => $"{terminalNodeNameHashA} <=> {terminalNodeNameHashB}";
+        public override string ToString() => $"{nodeName1 ?? terminalNodeNameHashA.ToString()} <=> {nodeName2 ?? terminalNodeNameHashB.ToString()}";
     }
 
     public struct ChainLinkNode
@@ -528,60 +538,25 @@ namespace ReeLib.Chain
 
     public class ChainSetting : ChainSettingBase
     {
-        public WindSetting? WindSettings { get; set; }
-    }
-
-    public class ChainSettingBase : ReadWriteModel
-    {
-        public string? collisionFilterFilePath;
         public float sprayArc;
         public float sprayFrequency;
         public float sprayCurve1;
         public float sprayCurve2;
-        public int id;
         public ChainType chainType;
-        public SettingAttrFlags settingAttrFlags;
         public EmissionDirection muzzleDirection;
-        public byte windId;
-        public Vector3 gravity;
         public Vector3 muzzleVelocity;
-        public float damping;
-        public float secondDamping;
-        public float secondDampingSpeed;
-
-        public float minDamping;
-        public float secondMinDamping;
-        public float dampingPow;
-        public float secondDampingPow;
-        public float collideMaxVelocity;
-
-        public float springForce;
-
-        public float springLimitRate;
-        public float springMaxVelocity;
-        public ChainSpringCalcType springCalcType;
-        public byte springUkn1;
-
-
-        public float reduceSelfDistanceRate;
-        public float secondReduceDistanceRate;
-        public float secondReduceDistanceSpeed;
-        public float friction;
-        public float shockAbsorptionRate;
-        public float coefOfElasticity;
-        public float coefOfExternalForces;
-        public float stretchInteractionRatio;
-        public float angleLimitInteractionRatio;
-        public float shootingElasticLimitRate;
-        public AttrFlags groupDefaultAttr;
-        public float windEffectCoef;
-        public float velocityLimit;
-        public float hardness;
 
         public float ukn0;
         public float ukn1;
         public float ukn2;
         public float ukn3;
+
+        public void EnsureUniqueId(List<ChainSetting> settings)
+        {
+            if (settings.Any(s => s != this && s.id == id)) {
+                id = settings.Max(s => s.id) + 1;
+            }
+        }
 
         protected override bool ReadWrite<THandler>(THandler action)
         {
@@ -647,6 +622,49 @@ namespace ReeLib.Chain
 
             return true;
         }
+    }
+
+    public abstract class ChainSettingBase : ReadWriteModel
+    {
+        public WindSetting? WindSettings { get; set; }
+
+        public string? collisionFilterFilePath;
+        public int id;
+        public SettingAttrFlags settingAttrFlags;
+        public byte windId;
+        public Vector3 gravity;
+        public float damping;
+        public float secondDamping;
+        public float secondDampingSpeed;
+
+        public float minDamping;
+        public float secondMinDamping;
+        public float dampingPow;
+        public float secondDampingPow;
+        public float collideMaxVelocity;
+
+        public float springForce;
+
+        public float springLimitRate;
+        public float springMaxVelocity;
+        public ChainSpringCalcType springCalcType;
+        public byte springUkn1;
+
+
+        public float reduceSelfDistanceRate;
+        public float secondReduceDistanceRate;
+        public float secondReduceDistanceSpeed;
+        public float friction;
+        public float shockAbsorptionRate;
+        public float coefOfElasticity;
+        public float coefOfExternalForces;
+        public float stretchInteractionRatio;
+        public float angleLimitInteractionRatio;
+        public float shootingElasticLimitRate;
+        public AttrFlags groupDefaultAttr;
+        public float windEffectCoef;
+        public float velocityLimit;
+        public float hardness;
 
         public override string ToString() => $"Chain Settings {id}  {collisionFilterFilePath}";
     }
@@ -668,6 +686,13 @@ namespace ReeLib.Chain
         public float[] phaseShift = new float[5];
         public float[] cycle = new float[5];
         public float[] interval = new float[5];
+
+        public void EnsureUniqueId(List<WindSetting> windSettings)
+        {
+            if (windSettings.Any(s => s != this && s.id == id)) {
+                id = windSettings.Max(s => s.id) + 1;
+            }
+        }
 
         protected override bool ReadWrite<THandler>(THandler action)
         {

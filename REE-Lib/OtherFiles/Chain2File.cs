@@ -78,9 +78,14 @@ namespace ReeLib.Chain2
         private uint ukn4;
         private uint ukn5;
 
-        public WindSetting? WindSettings { get; set; }
-
         public List<Chain2SettingSubData> SubData { get; } = new();
+
+        public void EnsureUniqueId(List<Chain2Setting> settings)
+        {
+            if (settings.Any(s => s != this && s.id == id)) {
+                id = settings.Max(s => s.id) + 1;
+            }
+        }
 
         protected override bool ReadWrite<THandler>(THandler action)
         {
@@ -182,7 +187,6 @@ namespace ReeLib.Chain2
     public class Chain2Group : Chain.ChainGroupBase
     {
         public Chain2Setting? Settings { get; set; }
-        public WindSetting? WindSettings { get; set; }
         public override List<Chain2Node> ChainNodes { get; } = new();
         public List<ChainSubGroupData> ChainSubGroups { get; } = new();
 
@@ -414,24 +418,10 @@ namespace ReeLib.Chain2
         public float windCoef;
     }
 
-    public class ChainLink : ReadWriteModel
+    public class Chain2Link : ChainLink
     {
-        private long nodeOffset;
-        public uint terminalNodeNameHashA;
-        public uint terminalNodeNameHashB;
-        public float distanceShrinkLimitCoef;
-        public float distanceExpandLimitCoef;
-        public LinkMode linkMode;
-        public ConnectFlags connectFlags;
-        public LinkAttrFlags linkAttrFlags;
-        public byte linkNodeCount;
-        public byte skipGroupA;
-        public byte skipGroupB;
-        public RotationOrder linkOrder;
         public uint clspFlags1;
         public uint clspFlags2;
-
-        public List<ChainLinkNode> Links { get; } = new();
 
         protected override bool ReadWrite<THandler>(THandler action)
         {
@@ -455,21 +445,7 @@ namespace ReeLib.Chain2
             return true;
         }
 
-        internal void ReadLinks(FileHandler handler)
-        {
-            handler.Seek(nodeOffset);
-            Links.ReadStructList(handler, linkNodeCount);
-        }
-
-        internal void WriteLinks(FileHandler handler)
-        {
-            handler.Align(16);
-            nodeOffset = Links.Count == 0 ? 0 : handler.Tell();
-            handler.Write(Start, nodeOffset);
-            Links.Write(handler);
-        }
-
-        public override string ToString() => $"{terminalNodeNameHashA} <=> {terminalNodeNameHashB}";
+        public override string ToString() => $"{nodeName1 ?? terminalNodeNameHashA.ToString()} <=> {nodeName2 ?? terminalNodeNameHashB.ToString()}";
     }
 
     public class CollisionData : Chain.CollisionDataBase
@@ -603,7 +579,7 @@ namespace ReeLib
         public Header Header { get; } = new();
         public List<Chain2Group> Groups { get; } = [];
         public List<CollisionData> Collisions { get; } = [];
-        public List<ChainLink> ChainLinks { get; } = [];
+        public List<Chain2Link> ChainLinks { get; } = [];
         public List<WindSetting> WindSettings { get; } = [];
         public List<Chain2Setting> Settings { get; } = [];
         public List<UknExtraData> ExtraData { get; } = [];

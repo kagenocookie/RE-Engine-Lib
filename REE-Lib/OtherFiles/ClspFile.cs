@@ -1,14 +1,31 @@
+using System.Numerics;
+using ReeLib.via;
 
 namespace ReeLib.Clsp
 {
     public class CollisionPreset : BaseModel
     {
-        public CollisionShapeType shapeType;
+        private CollisionShapeType shapeType;
         public uint hash1;
         public uint hash2;
-        public int flags;
+        public int flags1;
         public int flags2;
         public object? shape;
+
+        public CollisionShapeType ShapeType {
+            get => shapeType;
+            set {
+                if (shapeType == value) return;
+                shapeType = value;
+                switch (value) {
+                    case CollisionShapeType.Sphere: shape = new Sphere(default, 1); break;
+                    case CollisionShapeType.Capsule: shape = new Capsule(-Vector3.UnitY, Vector3.UnitY, 0.5f); break;
+                    case CollisionShapeType.TaperedCapsule: shape = new TaperedCapsule(-Vector3.UnitY, 0.5f, Vector3.UnitY, 0.5f); break;
+                    case CollisionShapeType.Box: shape = new OBB(Matrix4x4.Identity, Vector3.One); break;
+                    case CollisionShapeType.Plane: shape = new via.Plane(); break;
+                }
+            }
+        }
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -16,7 +33,7 @@ namespace ReeLib.Clsp
             handler.Read(ref hash1);
             handler.Read(ref hash2);
             handler.ReadNull(4);
-            handler.Read(ref flags);
+            handler.Read(ref flags1);
             handler.Read(ref flags2);
             handler.ReadNull(8);
             var pos = handler.Tell();
@@ -39,7 +56,7 @@ namespace ReeLib.Clsp
             handler.Write(ref hash1);
             handler.Write(ref hash2);
             handler.WriteNull(4);
-            handler.Write(ref flags);
+            handler.Write(ref flags1);
             handler.Write(ref flags2);
             handler.WriteNull(8);
             var pos = handler.Tell();

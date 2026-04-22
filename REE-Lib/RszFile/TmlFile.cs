@@ -278,12 +278,12 @@ namespace ReeLib.Tml
             handler.Write(ref endFrame);
             handler.WriteNull(4);
             handler.Write(ref frameCount);
-            if (Version >= ClipVersion.RE9)
+            if (Version >= ClipVersion.MHWilds)
             {
                 handler.Write(ref trackCount);
             }
             handler.Write(nameOffset = handler.StringTableAdd(Name, false).TableOffset);
-            if (Version >= ClipVersion.RE9)
+            if (Version >= ClipVersion.MHWilds)
             {
                 handler.Write(ref trackStartIndex);
             }

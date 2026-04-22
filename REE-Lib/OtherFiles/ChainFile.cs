@@ -96,8 +96,8 @@ namespace ReeLib.Chain
         public int[] hierarchyHashes = new int[4];
 
         public uint colliderQualityLevel;
-        public uint clspFlags1;
-        public uint clspFlags2;
+        public GenericFlagsU32 clspFlags1;
+        public GenericFlagsU32 clspFlags2;
 
         protected long nodeOffset;
         protected long subGroupDataOffset;
@@ -268,7 +268,7 @@ namespace ReeLib.Chain
 
     public class ChainNodeBase : ReadWriteModel
     {
-        public Quaternion angleLimitDirection;
+        public Quaternion angleLimitDirection = Quaternion.Identity;
         public float angleLimitRadius;
         public float angleLimitDistance;
         public float angleLimitRestitution;
@@ -350,13 +350,13 @@ namespace ReeLib.Chain
         public Vector3 range;
         [RszPaddingAfter(4)]
         public Vector3 rangeOffset;
-        public Quaternion rangeAxis;
+        public Quaternion rangeAxis = Quaternion.Identity;
         public ChainJiggleRangeShape rangeShape;
         public float springForce;
         public float gravityCoef;
         public float damping;
         public AttrFlags flags;
-        public float flt;
+        public float windCoef;
     }
 
     public class ChainLink : ReadWriteModel
@@ -831,6 +831,45 @@ namespace ReeLib.Chain
         AngleLimitRestitution = 0x1000,
         StretchBoth = 0x2000,
         EndRotConstraint = 0x4000,
+        Uknown16 = 0x8000,
+    };
+
+    [Flags]
+    public enum GenericFlagsU32 : uint
+    {
+        V1 = (1 << 0),
+        V2 = (1 << 1),
+        V3 = (1 << 2),
+        V4 = (1 << 3),
+        V5 = (1 << 4),
+        V6 = (1 << 5),
+        V7 = (1 << 6),
+        V8 = (1 << 7),
+        V9 = (1 << 8),
+        V10 = (1 << 9),
+        V11 = (1 << 10),
+        V12 = (1 << 11),
+        V13 = (1 << 12),
+        V14 = (1 << 13),
+        V15 = (1 << 14),
+        V16 = (1 << 15),
+        V17 = (1 << 16),
+        V18 = (1 << 17),
+        V19 = (1 << 18),
+        V20 = (1 << 19),
+        V21 = (1 << 20),
+        V22 = (1 << 21),
+        V23 = (1 << 22),
+        V24 = (1 << 23),
+        V25 = (1 << 24),
+        V26 = (1 << 25),
+        V27 = (1 << 26),
+        V28 = (1 << 27),
+        V29 = (1 << 28),
+        V30 = (1 << 29),
+        V31 = (1 << 30),
+        V32 = (1u << 31),
+        All = ~0u
     };
 
     [Flags]

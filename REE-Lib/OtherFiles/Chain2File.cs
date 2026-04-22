@@ -261,7 +261,6 @@ namespace ReeLib.Chain2
 
             handler.WriteNull(4);
 
-
             return true;
         }
 
@@ -402,26 +401,32 @@ namespace ReeLib.Chain2
         }
     }
 
-    [RszAutoReadWrite, RszGenerate]
-    public partial class Chain2JiggleData : BaseModel
+    public partial class Chain2JiggleData : ChainJiggleData
     {
-        [RszPaddingAfter(4)]
-        public Vector3 range;
-        [RszPaddingAfter(4)]
-        public Vector3 rangeOffset;
-        public Quaternion rangeAxis;
-        public ChainJiggleRangeShape rangeShape;
-        public AttrFlags flags;
-        public float springForce;
-        public float gravityCoef;
-        public float damping;
-        public float windCoef;
+        private bool ReadWrite<THandler>(THandler action) where THandler : IFileHandlerAction
+        {
+            action.Do(ref range);
+            action.Null(4);
+            action.Do(ref rangeOffset);
+            action.Null(4);
+            action.Do(ref rangeAxis);
+            action.Do(ref rangeShape);
+            action.Do(ref flags);
+            action.Do(ref springForce);
+            action.Do(ref gravityCoef);
+            action.Do(ref damping);
+            action.Do(ref windCoef);
+            return true;
+        }
+
+        protected override bool DoRead(FileHandler handler) => ReadWrite(new FileHandlerRead(handler));
+        protected override bool DoWrite(FileHandler handler) => ReadWrite(new FileHandlerWrite(handler));
     }
 
     public class Chain2Link : ChainLink
     {
-        public uint clspFlags1;
-        public uint clspFlags2;
+        public GenericFlagsU32 clspFlags1;
+        public GenericFlagsU32 clspFlags2;
 
         protected override bool ReadWrite<THandler>(THandler action)
         {

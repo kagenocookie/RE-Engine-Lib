@@ -288,6 +288,11 @@ public class CachedMemoryPakReader : PakReader, IDisposable
             UserFile.Magic => KnownFileFormats.UserData,
             UVarFile.Magic => KnownFileFormats.UserVariables,
             MotpackFile.Magic => KnownFileFormats.MotionPack,
+            UCurveListFile.Magic => KnownFileFormats.UserCurveList,
+            ClspFile.Magic => KnownFileFormats.CollisionShapePreset,
+            ClsmFile.Magic => KnownFileFormats.CollisionSkinningMesh,
+            ChainFile.Magic => KnownFileFormats.Chain,
+            Chain2File.Magic => KnownFileFormats.Chain2,
 
 
             0x00464453 => KnownFileFormats.MasterMaterial, // same as VfxShader, Shader
@@ -295,14 +300,11 @@ public class CachedMemoryPakReader : PakReader, IDisposable
             0x58455452 => KnownFileFormats.RenderTexture,
             0x4D534648 => KnownFileFormats.Fsm,
             0x6D73666D => KnownFileFormats.MotionFsm,
-            0x6E616863 => KnownFileFormats.Chain,
-            0x326E6863 => KnownFileFormats.Chain2,
             0x4252504E => KnownFileFormats.LightProbes,
             0x59444F42 => KnownFileFormats.RigidBodySet, // same as Ragdoll
             0x54464453 => KnownFileFormats.SDFTexture,
             0x204D4252 => KnownFileFormats.RigidBodyMesh,
             0x5443504D => KnownFileFormats.MaterialPointCloud,
-            0x736C6375 => KnownFileFormats.UserCurveList,
             0x67727472 => KnownFileFormats.RetargetRig,
             0x736E636A => KnownFileFormats.JointConstraints,
             0x3267656C => KnownFileFormats.IkLeg2,
@@ -315,8 +317,6 @@ public class CachedMemoryPakReader : PakReader, IDisposable
             0x61646B69 => KnownFileFormats.IkDamageAction,
             0x6B696266 => KnownFileFormats.FullBodyIKRig,
             0x64637273 => KnownFileFormats.VibrationSource,
-            0x4D534C43 => KnownFileFormats.CollisionSkinningMesh,
-            0x50534C43 => KnownFileFormats.CollisionShapePreset,
             0x50415257 => KnownFileFormats.WrapDeformer,
             0x52554653 => KnownFileFormats.ShellFur,
             0x464E4946 => KnownFileFormats.FilterInfo,

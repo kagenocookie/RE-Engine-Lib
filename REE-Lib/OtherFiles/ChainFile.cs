@@ -28,7 +28,7 @@ namespace ReeLib.Chain
         public CalculateMode calculateMode;
         public ChainAttrFlags attributeFlags;
         public ChainParamFlags paramFlags;
-        public float calculateStepTime;
+        public float calculateStepTime = 1;
         public bool modelCollisionSearch;
         public LegacyVersion legacyVersion;
         public byte uknAttr;
@@ -82,22 +82,22 @@ namespace ReeLib.Chain
         public byte autoBlendCheckNodeNo;
         public byte windId;
         public uint terminalNameHash;
-        public AttrFlags attrFlags;
+        public AttrFlags attrFlags = AttrFlags.RootRotation|AttrFlags.AngleLimit|AttrFlags.CollisionDefault|AttrFlags.WindDefault;
         public CollisionFilterFlags collisionFilterFlags;
         public Vector3 extraNodeLocalPos;
 
         public uint[] tags = new uint[4];
         public float dampingNoiseMin;
         public float dampingNoiseMax;
-        public float endRotConstMax;
+        public float endRotConstMax = 12.566f;
         public byte tagCount;
         public byte angleLimitDirectionMode;
         protected short subGroupCount;
         public int[] hierarchyHashes = new int[4];
 
         public uint colliderQualityLevel;
-        public GenericFlagsU32 clspFlags1;
-        public GenericFlagsU32 clspFlags2;
+        public GenericFlagsU32 clspFlags1 = GenericFlagsU32.All;
+        public GenericFlagsU32 clspFlags2 = GenericFlagsU32.All;
 
         protected long nodeOffset;
         protected long subGroupDataOffset;
@@ -272,21 +272,21 @@ namespace ReeLib.Chain
         public float angleLimitRadius;
         public float angleLimitDistance;
         public float angleLimitRestitution;
-        public float angleLimitRestituteStopSpeed;
+        public float angleLimitRestituteStopSpeed = 0.1f;
         public float collisionRadius;
-        public CollisionFilterFlags collisionFilterFlags;
-        public float capsuleStretchRate;
-        public float capsuleStretchRate2;
+        public CollisionFilterFlags collisionFilterFlags = CollisionFilterFlags.All;
+        public float capsuleStretchRate = 1;
+        public float capsuleStretchRate2 = 1;
         public AttrFlags attributeFlag;
         public uint constraintJntNameHash;
-        public float windCoef;
-        public AngleMode angleMode;
-        public ChainNodeCollisionShape collisionShape = ChainNodeCollisionShape.Sphere;
+        public float windCoef = 1;
+        public AngleMode angleMode = AngleMode.LimitCone;
+        public ChainNodeCollisionShape collisionShape = ChainNodeCollisionShape.Capsule;
         public byte attachType;
         public byte rotationType;
 
         protected long jiggleDataOffset;
-        public float gravityCoef;
+        public float gravityCoef = 1;
 
         protected override bool ReadWrite<THandler>(THandler action)
         {
@@ -630,39 +630,38 @@ namespace ReeLib.Chain
 
         public string? collisionFilterFilePath;
         public int id;
-        public SettingAttrFlags settingAttrFlags;
+        public SettingAttrFlags settingAttrFlags = SettingAttrFlags.Default;
         public byte windId;
-        public Vector3 gravity;
-        public float damping;
-        public float secondDamping;
+        public Vector3 gravity = new Vector3(0, -9.8f, 0);
+        public float damping = 0.047f;
+        public float secondDamping = 0.05f;
         public float secondDampingSpeed;
 
-        public float minDamping;
-        public float secondMinDamping;
-        public float dampingPow;
-        public float secondDampingPow;
+        public float minDamping = 0.047f;
+        public float secondMinDamping = 0.05f;
+        public float dampingPow = 1;
+        public float secondDampingPow = 1;
         public float collideMaxVelocity;
 
-        public float springForce;
+        public float springForce = 0.03f;
 
         public float springLimitRate;
         public float springMaxVelocity;
         public ChainSpringCalcType springCalcType;
         public byte springUkn1;
 
-
-        public float reduceSelfDistanceRate;
-        public float secondReduceDistanceRate;
+        public float reduceSelfDistanceRate = 0.73f;
+        public float secondReduceDistanceRate = 0.5f;
         public float secondReduceDistanceSpeed;
         public float friction;
         public float shockAbsorptionRate;
         public float coefOfElasticity;
         public float coefOfExternalForces;
-        public float stretchInteractionRatio;
-        public float angleLimitInteractionRatio;
+        public float stretchInteractionRatio = 0.5f;
+        public float angleLimitInteractionRatio = 0.5f;
         public float shootingElasticLimitRate;
         public AttrFlags groupDefaultAttr;
-        public float windEffectCoef;
+        public float windEffectCoef = 1f;
         public float velocityLimit;
         public float hardness;
 
@@ -913,6 +912,7 @@ namespace ReeLib.Chain
         Model = 1,
         Collider = 2,
         VGround = 3,
+        All = -1,
     }
 
     public enum ChainJiggleRangeShape
@@ -1107,6 +1107,7 @@ namespace ReeLib
                     WindSettings.Add(grp.WindSettings);
                     grp.windId = (byte)grp.WindSettings.id;
                 }
+                grp.nodeCount = (byte)grp.ChainNodes.Count;
             }
 
             foreach (var setting in Settings) {

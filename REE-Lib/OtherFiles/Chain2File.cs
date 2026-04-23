@@ -8,6 +8,7 @@ namespace ReeLib.Chain2
 
     public class Header : Chain.Header
     {
+        public Header() { magic = Chain2File.Magic; }
         internal long freeLinksOffset;
 
         public byte taperedCollideMethod;
@@ -67,13 +68,13 @@ namespace ReeLib.Chain2
     public class Chain2Setting : Chain.ChainSettingBase
     {
         public float motionForce;
-        public byte windDelayType;
+        public byte windDelayType = 1;
         public float windDelaySpeed;
 
-        public float envWindEffectCoef;
+        public float envWindEffectCoef = 1f;
 
         private int subDataCount;
-        public Quaternion subDataRotation;
+        public Quaternion subDataRotation = Quaternion.Identity;
         private long subDataOffset;
         private uint ukn4;
         private uint ukn5;
@@ -349,7 +350,7 @@ namespace ReeLib.Chain2
 
     public class Chain2Node : Chain.ChainNodeBase
     {
-        public uint jointHash;
+        public uint jointHash = 2180083513; // empty string hash
         public Vector3 basePos;
 
         public Chain2JiggleData? JiggleData;
@@ -425,8 +426,8 @@ namespace ReeLib.Chain2
 
     public class Chain2Link : ChainLink
     {
-        public GenericFlagsU32 clspFlags1;
-        public GenericFlagsU32 clspFlags2;
+        public GenericFlagsU32 clspFlags1 = GenericFlagsU32.All;
+        public GenericFlagsU32 clspFlags2 = GenericFlagsU32.All;
 
         protected override bool ReadWrite<THandler>(THandler action)
         {
@@ -679,6 +680,7 @@ namespace ReeLib
                     WindSettings.Add(grp.WindSettings);
                     grp.windId = (byte)grp.WindSettings.id;
                 }
+                grp.nodeCount = (byte)grp.ChainNodes.Count;
             }
 
             foreach (var setting in Settings) {

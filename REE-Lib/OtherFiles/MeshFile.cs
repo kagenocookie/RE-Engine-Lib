@@ -261,6 +261,8 @@ namespace ReeLib.Mesh
 		public int offset;
 
 		public int CalculateNextOffset(int count) => offset + size * count;
+
+        public readonly override string ToString() => type.ToString();
 	}
 
 	public class VertexBoneWeights
@@ -679,26 +681,26 @@ namespace ReeLib.Mesh
 		{
 			handler.Seek(vertexBufferOffset);
 			var BufferHeaders = Headers.BufferHeaders;
+			var vertCount = (BufferHeaders[1].offset - BufferHeaders[0].offset) / BufferHeaders[0].size;
+			DataInterpretationException.DebugThrowIf(BufferHeaders[0].offset != 0); // maybe just take offset[1] instead of doing - 0 every time for no reason?
             for (int i = 0; i < BufferHeaders.Length; i++) {
                 var buffHeader = BufferHeaders[i];
                 var bufferStart = buffHeader.offset;
-				var bufferEnd = i < BufferHeaders.Length - 1 ? BufferHeaders[i + 1].offset : AdditionalBuffers.FirstOrDefault()?.Headers.BufferHeaders[0].offset ?? vertexBufferSize;
                 handler.Seek(vertexBufferOffset + bufferStart);
-                var count = (int)(bufferEnd - bufferStart) / buffHeader.size;
-                ReadSingleBufferArray(handler, buffHeader, count);
+                ReadSingleBufferArray(handler, buffHeader, vertCount);
             }
             for (int bufId = 0; bufId < AdditionalBuffers.Count; bufId++)
 			{
                 var addBuf = AdditionalBuffers[bufId];
                 var adds = addBuf.Headers.BufferHeaders;
+				var bufferEnd = adds.Length >= 2 ? adds[1].offset : AdditionalBuffers.ElementAtOrDefault(bufId + 1)?.Headers.BufferHeaders[0].offset ?? vertexBufferSize;
+				var addVertCount = (bufferEnd - adds[0].offset) / adds[0].size;
 				for (int i = 0; i < adds.Length; i++)
 				{
 					var buffHeader = adds[i];
 					var bufferStart = buffHeader.offset;
-					var bufferEnd = i < adds.Length - 1 ? adds[i + 1].offset : AdditionalBuffers.ElementAtOrDefault(bufId + 1)?.Headers.BufferHeaders[0].offset ?? vertexBufferSize;
 					handler.Seek(vertexBufferOffset + bufferStart);
-					var count = (int)(bufferEnd - bufferStart) / buffHeader.size;
-					addBuf.ReadSingleBufferArray(handler, buffHeader, count);
+					addBuf.ReadSingleBufferArray(handler, buffHeader, addVertCount);
 				}
 			}
 
@@ -764,23 +766,20 @@ namespace ReeLib.Mesh
 			elementCount = (short)elementHeaders.Length;
 			totalElementCount = (short)(elementCount + AdditionalBuffers.Sum(b => b.Headers.BufferHeaders.Length));
 
+			var vertCount = (elementHeaders[1].offset - elementHeaders[0].offset) / elementHeaders[0].size;
 			for (int i = 0; i < elementHeaders.Length; i++) {
                 var buffer = elementHeaders[i];
                 var bufferStart = vertexBufferOffset + buffer.offset;
-                var bufferEnd = (i == elementCount - 1 ? bufferStart + buffer.size * Positions.Length : vertexBufferOffset + elementHeaders[i + 1].offset);
                 handler.Seek(bufferStart);
-                var count = (int)(bufferEnd - bufferStart) / buffer.size;
-                WriteSingleBufferArray(handler, buffer, count);
+                WriteSingleBufferArray(handler, buffer, vertCount);
             }
 			foreach (var adbuf in AdditionalBuffers) {
 				var addHdrs = adbuf.Headers.BufferHeaders;
 				for (int i = 0; i < addHdrs.Length; i++) {
 					var buffer = addHdrs[i];
 					var bufferStart = vertexBufferOffset + buffer.offset;
-					var bufferEnd = (i == addHdrs.Length - 1 ? bufferStart + buffer.size * adbuf.Positions.Length : vertexBufferOffset + addHdrs[i + 1].offset);
 					handler.Seek(bufferStart);
-					var count = (int)(bufferEnd - bufferStart) / buffer.size;
-					adbuf.WriteSingleBufferArray(handler, buffer, count);
+					adbuf.WriteSingleBufferArray(handler, buffer, vertCount);
 				}
 			}
 
@@ -1983,6 +1982,11 @@ namespace ReeLib
 			var isSixWeight = maxWeightsPerVert % 6 == 0;
 			bool allowExtraWeights = maxWeightsPerVert > 8;
 			return isSixWeight ? 1024 : 256;
+		}
+
+		public static bool RequireNullWeights(string exportConfig)
+		{
+			return GetSerializerVersion(exportConfig) >= MeshSerializerVersion.Pragmata;
 		}
 
         public static uint GetFilePathVersion(string exportConfig) => Versions.TryGetValue(exportConfig, out var cfg) ? cfg.fileVersion : 0;

@@ -84,7 +84,7 @@ namespace ReeLib.Common
                             rsz.RebuildInstanceInfo();
                         }
                     }
-                } else  if (field.type == RszFieldType.GameObjectRef) {
+                } else  if (field.type is RszFieldType.GameObjectRef or RszFieldType.Uri) {
                     if (field.array) {
                         var srcList = val?.AsArray().Select(a => a.GetValue<string>()).ToArray() ?? [];
                         var list = new List<object>();
@@ -160,7 +160,7 @@ namespace ReeLib.Common
                         { "$array", field.original_type },
                         { "items", fieldValue },
                     };
-                } else if (field.type == RszFieldType.GameObjectRef) {
+                } else if (field.type is RszFieldType.GameObjectRef or RszFieldType.Uri) {
                     if (field.array) {
                         var list = ((IList<object>)fieldValue).Cast<GameObjectRef>().Select(elem => elem.guid.ToString());
                         dict[field.name] = list.ToArray();

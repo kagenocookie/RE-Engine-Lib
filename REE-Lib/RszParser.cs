@@ -284,11 +284,11 @@ namespace ReeLib
 
         public static readonly RszClass Empty = new();
 
-        public int IndexOfField(string name)
+        public int IndexOfField(ReadOnlySpan<char> name)
         {
             for (int i = 0; i < fields.Length; i++)
             {
-                if (fields[i].name == name)
+                if (name.SequenceEqual(fields[i].name))
                 {
                     return i;
                 }

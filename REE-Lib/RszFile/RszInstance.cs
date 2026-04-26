@@ -424,6 +424,41 @@ namespace ReeLib
             return Values[index];
         }
 
+        /// <summary>
+        /// Find a child value based on a period-separated field path (field.array.1.field1.field2...).
+        /// </summary>
+        public object? GetNestedFieldValue(ReadOnlySpan<char> path)
+        {
+            var sep = path.IndexOf('.');
+            if (sep == -1) return RszClass.IndexOfField(path);
+
+            int index = RszClass.IndexOfField(path.Slice(0, sep));
+            if (index == -1) return null;
+
+            var val = Values[index];
+            var field = Fields[index];
+            if (val is List<object> list)
+            {
+                var sep2 = path.Slice(sep + 1).IndexOf('.');
+                if (sep2 == -1) return val;
+
+                if (!int.TryParse(path.Slice(sep, sep2 + 1), out var itemIndex))
+                {
+                    return null;
+                }
+
+                val = list[itemIndex];
+                sep += sep2;
+            }
+
+            if (val is RszInstance rsz)
+            {
+                return rsz.GetNestedFieldValue(path.Slice(sep + 1));
+            }
+
+            return null;
+        }
+
         public bool TryGetFieldValue(string name, out object? value)
         {
             int index = RszClass.IndexOfField(name);

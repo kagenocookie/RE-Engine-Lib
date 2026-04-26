@@ -191,6 +191,11 @@ namespace ReeLib.Chain2
         public override List<Chain2Node> ChainNodes { get; } = new();
         public List<ChainSubGroupData> ChainSubGroups { get; } = new();
 
+        public Group2AttrFlags AttrFlags {
+            get => (Group2AttrFlags)attrFlags;
+            set => attrFlags = (uint)value;
+        }
+
         public int interpCount;
         public int nodeInterpolationMode;
 
@@ -207,8 +212,7 @@ namespace ReeLib.Chain2
             handler.Read(ref windId);
             handler.ReadArray(tags);
             handler.ReadArray(hierarchyHashes);
-            handler.Read(ref dampingNoiseMin);
-            handler.Read(ref dampingNoiseMax);
+            handler.Read(ref dampingNoiseRange);
             handler.Read(ref endRotConstMax);
             handler.Read(ref tagCount);
             handler.Read(ref angleLimitDirectionMode);
@@ -243,8 +247,7 @@ namespace ReeLib.Chain2
             handler.Write(ref windId);
             handler.WriteArray(tags);
             handler.WriteArray(hierarchyHashes);
-            handler.Write(ref dampingNoiseMin);
-            handler.Write(ref dampingNoiseMax);
+            handler.Write(ref dampingNoiseRange);
             handler.Write(ref endRotConstMax);
             handler.Write(ref tagCount);
             handler.Write(ref angleLimitDirectionMode);
@@ -365,7 +368,6 @@ namespace ReeLib.Chain2
             action.Do(ref collisionRadius);
             action.Do(ref collisionFilterFlags);
             action.Do(ref capsuleStretchRate);
-            action.Do(ref capsuleStretchRate2);
             action.Do(ref attributeFlag);
             action.Do(ref constraintJntNameHash);
             action.Do(ref windCoef);

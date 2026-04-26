@@ -1,3 +1,6 @@
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+
 namespace ReeLib.Common
 {
     public static class Log
@@ -63,6 +66,44 @@ namespace ReeLib.Common
         public static void Error(Exception e)
         {
             Error(e.Message);
+        }
+
+        [Conditional("DEBUG")]
+        internal static void UniqueValue<T>(T value) => ValueLog<T>.RecordUnique(value);
+
+        [Conditional("DEBUG")]
+        internal static void UniqueValueKeyed<T>(T value, [CallerArgumentExpression(nameof(value))] string? valueKey = null) => ValueLog<T>.RecordUniqueKeyed(value, true, valueKey);
+
+        internal static class ValueLog<T>
+        {
+            private static readonly HashSet<T> _values = new();
+            private static readonly Dictionary<string, HashSet<T>> _keyedValues = new();
+
+            public static HashSet<T> UniqueValues => _values;
+            public static HashSet<T> GetUnique(string key) => _keyedValues.GetValueOrDefault(key) ?? new();
+
+            [Conditional("DEBUG")]
+            public static void RecordUnique(T value, bool logNew = true)
+            {
+                if (_values.Add(value)) {
+                    if (logNew) {
+                        Log.Debug($"{typeof(T).Name}: {value}");
+                    }
+                }
+            }
+
+            [Conditional("DEBUG")]
+            public static void RecordUniqueKeyed(T value, bool logNew = true, [CallerArgumentExpression(nameof(value))] string? valueKey = null)
+            {
+                if (!_keyedValues.TryGetValue(valueKey ?? "", out var set)) {
+                    _keyedValues[valueKey ?? ""] = set = new HashSet<T>();
+                }
+                if (set.Add(value)) {
+                    if (logNew) {
+                        Log.Debug($"{valueKey}: {value}");
+                    }
+                }
+            }
         }
     }
 }

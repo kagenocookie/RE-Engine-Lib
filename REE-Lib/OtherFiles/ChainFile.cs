@@ -82,16 +82,16 @@ namespace ReeLib.Chain
         public byte autoBlendCheckNodeNo;
         public byte windId;
         public uint terminalNameHash;
-        public AttrFlags attrFlags = AttrFlags.RootRotation|AttrFlags.AngleLimit|AttrFlags.CollisionDefault|AttrFlags.WindDefault;
-        public CollisionFilterFlags collisionFilterFlags;
+        // note: is uint because we're using this class for both chain1 and 2, but they have slightly different flag enums
+        internal uint attrFlags = (uint)(GroupAttrFlags.RootRotation|GroupAttrFlags.AngleLimit|GroupAttrFlags.CollisionDefault|GroupAttrFlags.WindDefault);
+        public GenericFlagsU32 collisionFilterFlags;
         public Vector3 extraNodeLocalPos;
 
         public uint[] tags = new uint[4];
-        public float dampingNoiseMin;
-        public float dampingNoiseMax;
+        public Vector2 dampingNoiseRange;
         public float endRotConstMax = 12.566f;
         public byte tagCount;
-        public byte angleLimitDirectionMode;
+        public AngleLimitDirectionMode angleLimitDirectionMode;
         protected short subGroupCount;
         public int[] hierarchyHashes = new int[4];
 
@@ -107,6 +107,10 @@ namespace ReeLib.Chain
 
     public class ChainGroup : ChainGroupBase
     {
+        public GroupAttrFlags AttrFlags {
+            get => (GroupAttrFlags)attrFlags;
+            set => attrFlags = (uint)value;
+        }
         public ChainSetting? Settings { get; set; }
         public override List<ChainNode> ChainNodes { get; } = new();
         public List<ChainSubGroupData> ChainSubGroups { get; } = new();
@@ -133,8 +137,7 @@ namespace ReeLib.Chain
                 if (version >= 48) {
                     handler.ReadArray(hierarchyHashes);
                 }
-                handler.Read(ref dampingNoiseMin);
-                handler.Read(ref dampingNoiseMax);
+                handler.Read(ref dampingNoiseRange);
                 handler.Read(ref endRotConstMax);
                 handler.Read(ref tagCount);
                 handler.Read(ref angleLimitDirectionMode);
@@ -175,8 +178,7 @@ namespace ReeLib.Chain
                 if (version >= 48) {
                     handler.WriteArray(hierarchyHashes);
                 }
-                handler.Write(ref dampingNoiseMin);
-                handler.Write(ref dampingNoiseMax);
+                handler.Write(ref dampingNoiseRange);
                 handler.Write(ref endRotConstMax);
                 handler.Write(ref tagCount);
                 handler.Write(ref angleLimitDirectionMode);
@@ -274,10 +276,9 @@ namespace ReeLib.Chain
         public float angleLimitRestitution;
         public float angleLimitRestituteStopSpeed = 0.1f;
         public float collisionRadius;
-        public CollisionFilterFlags collisionFilterFlags = CollisionFilterFlags.All;
-        public float capsuleStretchRate = 1;
-        public float capsuleStretchRate2 = 1;
-        public AttrFlags attributeFlag;
+        public GenericFlagsU32 collisionFilterFlags = GenericFlagsU32.All;
+        public Vector2 capsuleStretchRate = Vector2.One;
+        public NodeAttrFlags attributeFlag;
         public uint constraintJntNameHash;
         public float windCoef = 1;
         public AngleMode angleMode = AngleMode.LimitCone;
@@ -298,7 +299,6 @@ namespace ReeLib.Chain
             action.Do(ref collisionRadius);
             action.Do(ref collisionFilterFlags);
             action.Do(ref capsuleStretchRate);
-            action.Do(ref capsuleStretchRate2);
             action.Do(ref attributeFlag);
             action.Do(ref constraintJntNameHash);
             action.Do(ref windCoef);
@@ -355,8 +355,8 @@ namespace ReeLib.Chain
         public float springForce;
         public float gravityCoef;
         public float damping;
-        public AttrFlags flags;
-        public float windCoef;
+        public JiggleAttrFlags flags;
+        public float windCoef; // used by chain2, is padding for chain1 (<=re8, unknown after)
     }
 
     public class ChainLink : ReadWriteModel
@@ -422,7 +422,7 @@ namespace ReeLib.Chain
     public struct ChainLinkNode
     {
         public float collisionRadius;
-        public CollisionFilterFlags flags;
+        public GenericFlagsU32 flags;
     }
 
     public class CollisionData : CollisionDataBase
@@ -454,9 +454,8 @@ namespace ReeLib.Chain
                 action.Do(ref subDataCount);
                 action.Null(1);
                 action.Do(ref collisionFilterFlags);
-                if (version is 39 or 46 or 44) {
+                if (version is 39 or 46) { // re8, re_rt
                     action.Do(ref uknInt);
-                    // action.Null(4);
                 }
             }
 
@@ -497,7 +496,7 @@ namespace ReeLib.Chain
         public ChainCollisionShape shape;
         public byte div;
         public byte subDataCount;
-        public CollisionFilterFlags collisionFilterFlags;
+        public GenericFlagsU32 collisionFilterFlags;
         public int uknInt;
 
         public void UpdateJointNames()
@@ -660,7 +659,7 @@ namespace ReeLib.Chain
         public float stretchInteractionRatio = 0.5f;
         public float angleLimitInteractionRatio = 0.5f;
         public float shootingElasticLimitRate;
-        public AttrFlags groupDefaultAttr;
+        public GroupAttrFlags groupDefaultAttr;
         public float windEffectCoef = 1f;
         public float velocityLimit;
         public float hardness;
@@ -812,7 +811,7 @@ namespace ReeLib.Chain
     }
 
     [Flags]
-    public enum AttrFlags : int
+    public enum GroupAttrFlags : int
     {
         None = 0x0,
         RootRotation = 0x1,
@@ -830,8 +829,57 @@ namespace ReeLib.Chain
         AngleLimitRestitution = 0x1000,
         StretchBoth = 0x2000,
         EndRotConstraint = 0x4000,
-        Uknown16 = 0x8000,
-    };
+        EnableEnvWind = 0x8000,
+        ScaleAnimation = 0x10000,
+        CollisionCharacter = 0x20000,
+    }
+
+    [Flags]
+    public enum Group2AttrFlags : int
+    {
+        None = 0x0,
+        RootRotation = 0x1,
+        AngleLimit = 0x2,
+        ScaleAnimation = 0x4,
+        CollisionDefault = 0x8,
+        CollisionSelf = 0x10,
+        CollisionModel = 0x20,
+        CollisionVGround = 0x40,
+        CollisionCollider = 0x80,
+        CollisionGroup = 0x100,
+        EnablePartBlend = 0x200,
+        WindDefault = 0x400,
+        TransAnimation = 0x800,
+        AngleLimitRestitution = 0x1000,
+        StretchBoth = 0x2000,
+        EndRotConstraint = 0x4000,
+        EnableEnvWind = 0x8000,
+        CollisionCharacter = 0x10000,
+        ExtraNode = 0x20000,
+        UseBitFlag = 0x40000,
+        StretchBothAutoScale = 0x80000,
+    }
+
+    [Flags]
+    public enum NodeAttrFlags : int
+    {
+        None = 0,
+        PartMotionBlend = 1,
+        Jiggle = 2,
+    }
+
+    [Flags]
+    public enum JiggleAttrFlags : int
+    {
+        None = 0,
+        OverrideDamping = 1,
+    }
+
+    public enum AngleLimitDirectionMode : byte
+    {
+        BasePose = 0,
+        MotionPose = 1,
+    }
 
     [Flags]
     public enum GenericFlagsU32 : uint
@@ -904,15 +952,6 @@ namespace ReeLib.Chain
     {
         None = 0,
         ReflectEnviromental = 1,
-    }
-
-    public enum CollisionFilterFlags
-    {
-        Self = 0,
-        Model = 1,
-        Collider = 2,
-        VGround = 3,
-        All = -1,
     }
 
     public enum ChainJiggleRangeShape

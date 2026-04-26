@@ -417,7 +417,14 @@ namespace ReeLib
             }
         }
 
-        public object? GetFieldValue(string name)
+        public object? GetFieldValue(RszField field)
+        {
+            int index = Array.IndexOf(RszClass.fields, field);
+            if (index == -1) return null;
+            return Values[index];
+        }
+
+        public object? GetFieldValue(ReadOnlySpan<char> name)
         {
             int index = RszClass.IndexOfField(name);
             if (index == -1) return null;
@@ -430,7 +437,7 @@ namespace ReeLib
         public object? GetNestedFieldValue(ReadOnlySpan<char> path)
         {
             var sep = path.IndexOf('.');
-            if (sep == -1) return RszClass.IndexOfField(path);
+            if (sep == -1) return GetFieldValue(path);
 
             int index = RszClass.IndexOfField(path.Slice(0, sep));
             if (index == -1) return null;
@@ -440,7 +447,7 @@ namespace ReeLib
             if (val is List<object> list)
             {
                 var sep2 = path.Slice(sep + 1).IndexOf('.');
-                if (sep2 == -1) return val;
+                if (sep2 == -1) sep = path.Length - sep;
 
                 if (!int.TryParse(path.Slice(sep, sep2 + 1), out var itemIndex))
                 {
@@ -449,6 +456,9 @@ namespace ReeLib
 
                 val = list[itemIndex];
                 sep += sep2;
+                if (sep >= path.Length) {
+                    return val;
+                }
             }
 
             if (val is RszInstance rsz)
@@ -457,6 +467,52 @@ namespace ReeLib
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Find a child value based on a period-separated field path (field.array.1.field1.field2...).
+        /// </summary>
+        public void SetNestedFieldValue(ReadOnlySpan<char> path, object value)
+        {
+            var sep = path.IndexOf('.');
+            if (sep == -1) {
+                SetFieldValue(path, value);
+                return;
+            }
+
+            int index = RszClass.IndexOfField(path.Slice(0, sep));
+            if (index == -1) return;
+
+            var val = Values[index];
+            var field = Fields[index];
+
+            if (val is List<object> list)
+            {
+                var sep2 = path.Slice(sep + 1).IndexOf('.');
+                if (sep2 == -1) sep = path.Length - sep;
+
+                if (!int.TryParse(path.Slice(sep, sep2 + 1), out var itemIndex))
+                {
+                    // invalid path - needs to be an array index
+                    return;
+                }
+
+                sep += sep2;
+                if (sep >= path.Length) {
+                    list[itemIndex] = value;
+                    return;
+                }
+
+                val = list[itemIndex];
+            }
+
+            if (val is RszInstance rsz)
+            {
+                rsz.SetNestedFieldValue(path.Slice(sep + 1), value);
+                return;
+            }
+
+            Debug.Fail("This should never happen");
         }
 
         public bool TryGetFieldValue(string name, out object? value)
@@ -473,7 +529,7 @@ namespace ReeLib
             // TODO ValueChangedEvent
         }
 
-        public bool SetFieldValue(string name, object value)
+        public bool SetFieldValue(ReadOnlySpan<char> name, object value)
         {
             int index = RszClass.IndexOfField(name);
             if (index == -1) return false;

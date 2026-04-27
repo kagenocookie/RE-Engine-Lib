@@ -667,7 +667,7 @@ namespace ReeLib.Mesh
 		public void WriteElementHeaders(FileHandler handler)
 		{
 			handler.Align(16);
-			elementHeadersOffset = handler.Tell();
+			handler.Write(Start, elementHeadersOffset = handler.Tell());
 			int offset = 0;
 			Headers.RegenerateHeaders(this, ref offset, true);
 			handler.WriteArray(Headers.BufferHeaders);

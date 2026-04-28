@@ -250,7 +250,7 @@ namespace ReeLib.Mesh
 		UV1 = 3,
 		BoneWeights = 4,
 		Colors = 5,
-		UnknownData = 6,
+		UV2 = 6,
 		BoneWeights2 = 7,
 	}
 
@@ -433,9 +433,9 @@ namespace ReeLib.Mesh
 				headers.Add(new MeshBufferItemHeader() { type = VertexBufferType.Colors, offset = offset, size = 4 });
 				offset = headers.Last().CalculateNextOffset(buffer.Colors.Length);
 			}
-			if (buffer.UnknownData.Length > 0) {
-				headers.Add(new MeshBufferItemHeader() { type = VertexBufferType.UnknownData, offset = offset, size = 4 });
-				offset = headers.Last().CalculateNextOffset(buffer.UnknownData.Length);
+			if (buffer.UV2.Length > 0) {
+				headers.Add(new MeshBufferItemHeader() { type = VertexBufferType.UV2, offset = offset, size = 4 });
+				offset = headers.Last().CalculateNextOffset(buffer.UV2.Length);
 			}
 			if (buffer.ExtraWeights?.Length > 0) {
 				headers.Add(new MeshBufferItemHeader() { type = VertexBufferType.BoneWeights2, offset = offset, size = 16 });
@@ -543,7 +543,7 @@ namespace ReeLib.Mesh
 		public HFloat2[] UV0 = [];
 		public HFloat2[] UV1 = [];
 		public Color[] Colors = [];
-		public Color[] UnknownData = [];
+		public HFloat2[] UV2 = [];
 		public VertexBoneWeights[] Weights = [];
 		public VertexBoneWeights[]? ExtraWeights;
 		public ushort[]? Faces;
@@ -866,8 +866,8 @@ namespace ReeLib.Mesh
                 case VertexBufferType.Colors:
                     Colors = handler.ReadArray<Color>(count);
                     break;
-                case VertexBufferType.UnknownData:
-                    // UnknownData = handler.ReadArray<Color>(count);
+                case VertexBufferType.UV2:
+                    UV2 = handler.ReadArray<HFloat2>(count);
                     break;
                 case VertexBufferType.BoneWeights:
                     Weights = new VertexBoneWeights[count];
@@ -909,8 +909,8 @@ namespace ReeLib.Mesh
                 case VertexBufferType.Colors:
                     handler.WriteArray(Colors);
                     break;
-                case VertexBufferType.UnknownData:
-                    handler.WriteArray(UnknownData);
+                case VertexBufferType.UV2:
+                    handler.WriteArray(UV2);
                     break;
                 case VertexBufferType.BoneWeights:
                     for (int k = 0; k < count; ++k) {
@@ -950,6 +950,7 @@ namespace ReeLib.Mesh
 		public Span<QuantizedNorTan> NormalsTangents => Buffer.NormalsTangents.AsSpan(vertsIndexOffset, vertCount);
 		public Span<HFloat2> UV0 => Buffer.UV0.AsSpan(vertsIndexOffset, vertCount);
 		public Span<HFloat2> UV1 => Buffer.UV1.AsSpan(vertsIndexOffset, vertCount);
+		public Span<HFloat2> UV2 => Buffer.UV2.AsSpan(vertsIndexOffset, vertCount);
 		public Span<Color> Colors => Buffer.Colors.AsSpan(vertsIndexOffset, vertCount);
 		public Span<VertexBoneWeights> Weights => Buffer.Weights.AsSpan(vertsIndexOffset, vertCount);
 		public Span<VertexBoneWeights> ExtraWeights => Buffer.ExtraWeights.AsSpan(vertsIndexOffset, vertCount);

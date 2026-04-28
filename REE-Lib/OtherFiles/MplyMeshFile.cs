@@ -837,6 +837,7 @@ namespace ReeLib
             var normals = new List<QuantizedNorTan>(verts.Capacity);
             var uv0 = new List<HFloat2>(verts.Capacity);
             var uv1 = new List<HFloat2>(verts.Capacity);
+            var uv2 = new List<HFloat2>(verts.Capacity);
             var colors = new List<Color>(verts.Capacity);
             var weights = new List<VertexBoneWeights>(verts.Capacity);
             // add a bit of extra capacity for indices to pre-emptively account for padding
@@ -911,6 +912,11 @@ namespace ReeLib
                         for (int i = 0; i < chunk.vertCount; ++i) uv1.Add(chunk.GetUV1(i));
                     }
 
+                    if (chunk.UV2Buffer.Length > 0)
+                    {
+                        for (int i = 0; i < chunk.vertCount; ++i) uv2.Add(chunk.GetUV2(i));
+                    }
+
                     if (chunk.ColorBuffer.Length == 1)
                     {
                         for (int i = 0; i < chunk.vertCount; ++i) colors.Add(chunk.ColorBuffer[0]);
@@ -941,6 +947,7 @@ namespace ReeLib
             buffer.Positions = verts.ToArray();
             buffer.UV0 = uv0.ToArray();
             buffer.UV1 = uv1.ToArray();
+            buffer.UV2 = uv2.ToArray();
             buffer.NormalsTangents = normals.ToArray();
             buffer.Colors = colors.ToArray();
             buffer.Weights = weights.ToArray();

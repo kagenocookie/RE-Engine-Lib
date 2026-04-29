@@ -32,8 +32,7 @@ namespace ReeLib.Mdf
         // tdbVersion >= 69, RE8+
         public long gpbfOffset;
         public long paramsOffset; // 10
-        public long mmtrPathOffset; // 11
-        public string? mmtrPath;
+        public string mmtrPath = "";
         // tdbVersion >= 71, SF6+
         public long texIDsOffset;
 
@@ -95,8 +94,7 @@ namespace ReeLib.Mdf
                 handler.Read(ref gpbfOffset);
             }
             handler.Read(ref paramsOffset);
-            handler.Read(ref mmtrPathOffset);
-            mmtrPath = handler.ReadWString(mmtrPathOffset);
+            mmtrPath = handler.ReadOffsetWString();
             if (Version >= 32) handler.Read(ref texIDsOffset);
             return true;
         }
@@ -131,8 +129,7 @@ namespace ReeLib.Mdf
                 handler.Write(ref gpbfOffset);
             }
             handler.Write(ref paramsOffset);
-            handler.StringTableAdd(mmtrPath);
-            handler.Write(ref mmtrPathOffset);
+            handler.WriteOffsetWString(mmtrPath);
             if (Version >= 32) handler.Write(ref texIDsOffset);
             return true;
         }
@@ -193,41 +190,41 @@ namespace ReeLib.Mdf
 
     public class TexHeader : BaseModel
     {
-        public long texTypeOffset;
         public string texType = string.Empty;
         public uint hash;
         public uint asciiHash;
-        public long texPathOffset;
-        public string? texPath;
+        public string texPath = string.Empty;
+
+        public TexHeader()
+        {
+        }
+
+        public TexHeader(string type, string path)
+        {
+            texType = type;
+            texPath = path;
+        }
 
         public override TexHeader Clone() => (TexHeader)base.Clone();
 
         protected override bool DoRead(FileHandler handler)
         {
-            handler.Read(ref texTypeOffset);
+            texType = handler.ReadOffsetWString();
             handler.Read(ref hash);
             handler.Read(ref asciiHash);
-            handler.Read(ref texPathOffset);
-            texType = handler.ReadWString(texTypeOffset);
-            texPath = handler.ReadWString(texPathOffset);
-            // RE3R+
+            texPath = handler.ReadOffsetWString();
             if (handler.FileVersion >= 13) handler.Skip(8);
             return true;
         }
 
         protected override bool DoWrite(FileHandler handler)
         {
-            if (texType != null)
-            {
-                handler.StringTableAdd(texType);
-                hash = MurMur3HashUtils.GetHash(texType);
-                asciiHash = MurMur3HashUtils.GetAsciiHash(texType);
-            }
-            handler.Write(ref texTypeOffset);
+            hash = MurMur3HashUtils.GetHash(texType);
+            asciiHash = MurMur3HashUtils.GetAsciiHash(texType);
+            handler.WriteOffsetWString(texType);
             handler.Write(ref hash);
             handler.Write(ref asciiHash);
-            handler.StringTableAdd(texPath);
-            handler.Write(ref texPathOffset);
+            handler.WriteOffsetWString(texPath);
             if (handler.FileVersion >= 13) handler.Skip(8);
             return true;
         }
@@ -353,6 +350,16 @@ namespace ReeLib.Mdf
         public MaterialData(MaterialHeader matHeader)
         {
             Header = matHeader;
+        }
+
+        public string Name {
+            get => Header.matName;
+            set => Header.matName = value;
+        }
+
+        public string MasterMaterial {
+            get => Header.mmtrPath;
+            set => Header.mmtrPath = value;
         }
 
         public MaterialHeader Header = new();

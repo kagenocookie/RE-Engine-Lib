@@ -1,6 +1,7 @@
 using System.Numerics;
 using ReeLib.Common;
 using ReeLib.Mdf;
+using ReeLib.via;
 
 
 namespace ReeLib.Mdf
@@ -246,6 +247,8 @@ namespace ReeLib.Mdf
         internal int paramRelOffset;
         public int prefixGapSize;
 
+        public Color Color => Color.FromVector4(parameter);
+
         protected override bool DoRead(FileHandler handler)
         {
             handler.Read(ref paramNameOffset);
@@ -390,7 +393,7 @@ namespace ReeLib
         {
         }
 
-        public short version;
+        public short version = 1;
         public long uknValue;
         public List<MaterialData> Materials = new();
 

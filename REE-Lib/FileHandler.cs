@@ -1488,11 +1488,13 @@ namespace ReeLib
     public interface IFileHandlerAction
     {
         FileHandler Handler { get; }
+        int Version => Handler.FileVersion;
         bool Success { get; }
         bool Handle<T>(ref T value) where T : unmanaged;
         IFileHandlerAction Null(int count);
         IFileHandlerAction HandleOffsetWString([NotNull] ref string? value, bool writeEmptyAsNull = false);
         IFileHandlerAction HandleInlineWString([NotNull] ref string? value);
+        IFileHandlerAction Handle<T>(T value) where T : IModel;
         bool Handle<T>(ref T[] array) where T : unmanaged;
     }
 
@@ -1572,6 +1574,12 @@ namespace ReeLib
             Handler.ReadNull(count);
             return this;
         }
+
+        public IFileHandlerAction Handle<T>(T value) where T : IModel
+        {
+            value.Read(Handler);
+            return this;
+        }
     }
 
 
@@ -1590,6 +1598,12 @@ namespace ReeLib
         {
             Handler.WriteArray(array);
             return true;
+        }
+
+        public IFileHandlerAction Handle<T>(T value) where T : IModel
+        {
+            value.Write(Handler);
+            return this;
         }
 
         public readonly IFileHandlerAction HandleOffsetWString([NotNull] ref string? value, bool writeEmptyAsNull)

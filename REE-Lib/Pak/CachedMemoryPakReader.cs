@@ -293,10 +293,10 @@ public class CachedMemoryPakReader : PakReader, IDisposable
             ClsmFile.Magic => KnownFileFormats.CollisionSkinningMesh,
             ChainFile.Magic => KnownFileFormats.Chain,
             Chain2File.Magic => KnownFileFormats.Chain2,
+            GpucFile.Magic => KnownFileFormats.GpuCloth,
 
 
             0x00464453 => KnownFileFormats.MasterMaterial, // same as VfxShader, Shader
-            0x4F4C4347 => KnownFileFormats.GpuCloth,
             0x58455452 => KnownFileFormats.RenderTexture,
             0x4D534648 => KnownFileFormats.Fsm,
             0x6D73666D => KnownFileFormats.MotionFsm,

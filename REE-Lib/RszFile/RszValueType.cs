@@ -505,6 +505,13 @@ namespace ReeLib.via
         public override string ToString() => $"[Pos: {m30} {m31} {m32}]";
     }
 
+    public struct Float3x4
+    {
+        public Vector4 row1;
+        public Vector4 row2;
+        public Vector4 row3;
+    }
+
 
     [StructLayout(LayoutKind.Explicit, Size = 80)]
     public struct OBB
@@ -1100,6 +1107,7 @@ namespace ReeLib.via
         public Half inNormalY;
         public Half inNormalX;
         public Half outNormalY;
+        public Half outNormalX;
 
         public override string ToString() => $"{time}: {value}";
     }

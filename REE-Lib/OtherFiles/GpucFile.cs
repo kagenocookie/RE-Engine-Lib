@@ -43,6 +43,7 @@ namespace ReeLib.Gpuc
         internal int numTotalRenderVertices;
         public int lodCount;
         public int numUkn;
+        public int numUkn1;
         public int numUkn2;
         internal int numBatchSubRange;
         public int numUkn4;
@@ -133,7 +134,7 @@ namespace ReeLib.Gpuc
                 action.Do(ref numDeformWeights);
                 action.Do(ref numUkn);
                 action.Do(ref numTotalRenderVertices);
-                action.Null(4);
+                action.Do(ref numUkn1);
                 action.Do(ref numBatchSubRange);
                 action.Null(8);
                 action.Do(ref lodCount);
@@ -235,6 +236,7 @@ namespace ReeLib.Gpuc
         public float maxDistance;
         public float backstopRadius;
         public float backstopOffset;
+        public Vector2 uknFloats;
         public int deltaPositionOffset;
         public int numDeltaPositions;
         public uint collisionPlaneBits;
@@ -243,13 +245,14 @@ namespace ReeLib.Gpuc
         public int partId;
         public int configId;
         public short[] controlPointIndices = new short[4];
-        public int[] extraIndices = new int[2];
         public int[] initialDistances = new int[4];
         public Vector3 position;
         public uint normal;
         public int directionControlPointIndex;
         public byte[] jointIndices = new byte[8];
         public byte[] jointWeights = new byte[8];
+
+        public ConfigInfo? Config { get; set; }
 
         public DebugControlPoint DebugData { get; } = new DebugControlPoint();
 
@@ -263,6 +266,9 @@ namespace ReeLib.Gpuc
             action.Do(ref backstopRadius);
             if (version >= GpucVersion.DD2) {
                 action.Do(ref backstopOffset);
+                if (version >= GpucVersion.RE9) {
+                    action.Do(ref uknFloats);
+                }
                 action.Do(ref deltaPositionOffset);
                 action.Do(ref numDeltaPositions);
             } else {
@@ -273,9 +279,6 @@ namespace ReeLib.Gpuc
             action.Do(ref partId);
             action.Do(ref configId);
             action.Do(ref controlPointIndices);
-            if (version >= GpucVersion.RE9) {
-                action.Do(ref extraIndices);
-            }
             action.Do(ref initialDistances);
             action.Do(ref position);
             action.Do(ref normal);
@@ -362,6 +365,13 @@ namespace ReeLib.Gpuc
 		public GenericFlagsU32 resourceCollisionCapsuleBits;
         public GenericFlagsU32 resourceCollisionOBBBits;
 
+        public ConfigInfo? Config { get; internal set; }
+
+        public void UpdateJointNames()
+        {
+            baseJointName = Utils.HashedBoneNames.GetValueOrDefault(baseJointNameHash);
+        }
+
         protected override bool ReadWrite<THandler>(THandler action)
         {
             var version = (GpucVersion)action.Version;
@@ -423,10 +433,10 @@ namespace ReeLib.Gpuc
         public AnimationCurveData blendAmountTranslationCurve = new();
         public AnimationCurveData blendAmountRotationCurve = new();
 
-        public uint moreUknInt1;
-        public uint moreUknFloat1;
-        public uint moreUknInt2;
-        public uint moreUknFloat2;
+        public bool useSpeedLimit;
+        public float speedLimit;
+        public bool useAngularSpeedLimit;
+        public float angularSpeedLimit;
 
         protected override bool ReadWrite<THandler>(THandler action)
         {
@@ -456,10 +466,12 @@ namespace ReeLib.Gpuc
                 action.Handle(blendAmountTranslationCurve);
                 action.Handle(blendAmountRotationCurve);
                 if (version >= GpucVersion.RE9) {
-                    action.Do(ref moreUknInt1);
-                    action.Do(ref moreUknFloat1);
-                    action.Do(ref moreUknInt2);
-                    action.Do(ref moreUknFloat2);
+                    action.Do(ref useSpeedLimit);
+                    action.Null(3);
+                    action.Do(ref speedLimit);
+                    action.Do(ref useAngularSpeedLimit);
+                    action.Null(3);
+                    action.Do(ref angularSpeedLimit);
                 }
             }
             action.Do(ref simulationStrength);
@@ -591,6 +603,8 @@ namespace ReeLib.Gpuc
             primaryJointName = Utils.HashedBoneNames.GetValueOrDefault(primaryJointNameHash);
             secondaryJointName = Utils.HashedBoneNames.GetValueOrDefault(secondaryJointNameHash);
         }
+
+        public override string ToString() => $"{primaryJointName ?? primaryJointNameHash.ToString()} <=> {secondaryJointName ?? secondaryJointNameHash.ToString()}";
     }
 
     public class CollisionPlane : CollisionShape
@@ -708,7 +722,7 @@ namespace ReeLib.Gpuc
     }
 
     [RszGenerate, RszAutoReadWrite]
-    public partial class BatchSubRange : BaseModel
+    public partial class BatchGroup : BaseModel
     {
         public RangeI controlPointRange;
         public RangeI triangleRange;
@@ -801,7 +815,7 @@ namespace ReeLib.Gpuc
     public class TriangleDeformInfo : DeformInfo
     {
         public int configId;
-        public TriangleBlendInfoCompressed blendInfo;
+        public TriangleBlendInfoCompressed[] blendInfos = [];
     }
 
     public class ControlPointDeformInfo : DeformInfo
@@ -851,7 +865,7 @@ namespace ReeLib.Gpuc
             set => weight = (byte)Math.Round(value * 255f);
         }
 
-        public readonly override string ToString() => $"{triangleIndex}: {weight}";
+        public readonly override string ToString() => $"{triangleIndex}: {Weight}";
     }
 
     public class VertexDeformInfo : DeformInfo
@@ -964,7 +978,7 @@ namespace ReeLib
         public Header Header { get; } = new();
         public List<Batch> Batches { get; } = [];
         public List<BatchSubInfo> BatchSubInfos { get; } = [];
-        public List<BatchSubRange> BatchSubRanges { get; } = [];
+        public List<BatchGroup> BatchGroups { get; } = [];
         public List<PartInfo> Parts { get; } = [];
         public List<ConfigInfo> Configs { get; } = [];
         public List<ClothTriangle> Triangles { get; } = [];
@@ -991,7 +1005,7 @@ namespace ReeLib
             Configs.Clear();
             Triangles.Clear();
             BatchSubInfos.Clear();
-            BatchSubRanges.Clear();
+            BatchGroups.Clear();
             CollisionPlanes.Clear();
             CollisionSpheres.Clear();
             CollisionCapsules.Clear();
@@ -1070,7 +1084,7 @@ namespace ReeLib
 
             if (header.batchSubRangeTbl > 0) {
                 handler.Seek(header.batchSubRangeTbl);
-                BatchSubRanges.Read(handler, header.numBatchSubRange);
+                BatchGroups.Read(handler, header.numBatchSubRange);
             }
 
             handler.Seek(header.collisionPlaneTbl);
@@ -1093,6 +1107,14 @@ namespace ReeLib
             handler.Seek(header.debugDistanceLinkTbl);
             for (int i = 0; i < header.numDistanceLinks; i++) {
                 distanceLinks[i].DebugID = handler.Read<int>();
+            }
+
+            foreach (var cp in Parts) {
+                cp.Config = Configs[cp.configId];
+            }
+
+            foreach (var cp in controlPoints) {
+                cp.Config = Configs[cp.configId];
             }
 
             // attempt to guess which struct to use
@@ -1130,7 +1152,7 @@ namespace ReeLib
                     }
                     break;
                 case ClothDeformType.MultiJoint:
-                    // re9, pragmata
+                    // re9
                     for (int i = 0; i < header.numDeformInfos; i++) {
                         var v = new MeshMultiJointDeformInfo();
                         v.BlendInfo = new MeshMultiJointBlendInfo[header.numDeformWeights];
@@ -1154,15 +1176,16 @@ namespace ReeLib
                     ControlPointMatrices.ReadStructList(handler, header.numControlPoints);
                     break;
                 case ClothDeformType.PerTriangle:
-                    // dd2
+                    // dd2, pragmata
                     for (int i = 0; i < header.numDeformInfos; i++) {
                         var v = new TriangleDeformInfo();
                         handler.Read(ref v.configId);
+                        v.blendInfos = new TriangleBlendInfoCompressed[header.numDeformWeights];
                         DeformInfos.Add(v);
                     }
                     handler.Seek(header.blendInfoTbl);
                     for (int i = 0; i < header.numDeformInfos; i++) {
-                        handler.Read(ref ((TriangleDeformInfo)DeformInfos[i]).configId);
+                        handler.ReadArray(((TriangleDeformInfo)DeformInfos[i]).blendInfos);
                     }
                     handler.Seek(header.vertexIdToDeformInfoIndexTbl);
                     VertexIdToDeformIndex.ReadStructList(handler, header.numTotalRenderVertices);

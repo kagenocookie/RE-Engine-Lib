@@ -119,6 +119,11 @@ namespace ReeLib
         public List<TimelineBhvt> BehaviorTrees { get; private set; } = new();
         public List<TimelineClip> Clips { get; private set; } = new();
 
+        public override IEnumerable<RSZFile> GetAllRSZFiles()
+        {
+            return BehaviorTrees.SelectMany(b => b.Bhvt?.GetAllRSZFiles() ?? []);
+        }
+
         protected override bool DoRead()
         {
             var handler = FileHandler;

@@ -200,6 +200,9 @@ namespace ReeLib
         public List<TransitionMap> TransitionMaps { get; } = new();
         public List<TransitionData> TransitionDatas { get; } = new();
 
+        public override RSZFile? GetRSZ() => BhvtFile.GetRSZ();
+        public override IEnumerable<RSZFile> GetAllRSZFiles() => BhvtFile.GetAllRSZFiles();
+
         public TransitionData? FindTransition(uint transitionId)
         {
             var idx = FindTransitionMapIndex(transitionId);

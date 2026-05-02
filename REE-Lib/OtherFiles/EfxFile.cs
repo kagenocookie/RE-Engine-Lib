@@ -176,13 +176,6 @@ namespace ReeLib.Efx
     {
         public EfxAttributeType type;
         public int UniqueID;
-        /*
-        public via.Int3 NodePosition => new via.Int3() {
-            x = (UniqueID % 0xff),
-            y = (UniqueID % 0xff00) >> 8,
-            z = (UniqueID & 0xff0000) >> 16,
-        };
-        */
         public EfxVersion Version;
         public bool IsTypeAttribute => type.ToString().StartsWith("Type") && this is not IExpressionAttribute and not IClipAttribute and not IMaterialExpressionAttribute;
 

@@ -981,7 +981,7 @@ namespace ReeLib
             yield return StaticTransitionEventRsz;
         }
 
-        private IEnumerable<RSZFile> GetAllRSZFiles()
+        public override IEnumerable<RSZFile> GetAllRSZFiles()
         {
             yield return ActionRsz;
             yield return StaticActionRsz;

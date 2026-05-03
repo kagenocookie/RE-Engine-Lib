@@ -264,6 +264,11 @@ public class ResourceTools(Workspace workspace)
 
     internal void SaveRszPatchFile()
     {
+        foreach (var (k, v) in rszTypePatches.ToArray()) {
+            if ((v.FieldPatches == null || v.FieldPatches.Length == 0) && v.ReplaceName == null) {
+                rszTypePatches.Remove(k);
+            }
+        }
         var path = Path.GetFullPath($"{BaseOutputPath}/rsz_patch.json");
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         using var file = File.Create(path);
@@ -320,8 +325,8 @@ internal sealed class ResourceFieldFinder(Workspace env, ResourceTools resourceT
                     patch ??= resourceTools.FindOrCreateClassPatch(cls);
                     if (fieldPatch == null) {
                         fieldPatch = new RszFieldPatch() { Name = field };
-                        patch.AddFieldPatch(fieldPatch);
                     }
+                    var needAdd = false;
                     if (fileFormat == KnownFileFormats.Unknown) fileFormat = fieldPatch.FileFormat;
                     if (fieldPatch.FileFormat != KnownFileFormats.Unknown && fieldPatch.FileFormat != fileFormat) {
                         // handle conflicts
@@ -331,6 +336,7 @@ internal sealed class ResourceFieldFinder(Workspace env, ResourceTools resourceT
                         static bool IsDynamicsSubtype(KnownFileFormats format) => format is KnownFileFormats.HeightField or KnownFileFormats.RigidBodyMesh or KnownFileFormats.DynamicsBase;
                         static bool IsSkeletonSubtype(KnownFileFormats format) => format is KnownFileFormats.Skeleton or KnownFileFormats.FbxSkeleton or KnownFileFormats.RefSkeleton;
                         static bool IsBehaviorTreeSubtype(KnownFileFormats format) => format is KnownFileFormats.BehaviorTree or KnownFileFormats.Fsm2 or KnownFileFormats.BehaviorTreeBase;
+                        static bool IsRigidBodySetSubtype(KnownFileFormats format) => format is KnownFileFormats.RigidBodySet or KnownFileFormats.Ragdoll;
 
                         if (IsTextureSubtype(fileFormat) && IsTextureSubtype(fieldPatch.FileFormat)) {
                             fileFormat = KnownFileFormats.Texture;
@@ -344,25 +350,35 @@ internal sealed class ResourceFieldFinder(Workspace env, ResourceTools resourceT
                             fileFormat = KnownFileFormats.Skeleton;
                         } else if (IsBehaviorTreeSubtype(fileFormat) && IsBehaviorTreeSubtype(fieldPatch.FileFormat)) {
                             fileFormat = KnownFileFormats.BehaviorTreeBase;
+                        } else if (IsRigidBodySetSubtype(fileFormat) && IsRigidBodySetSubtype(fieldPatch.FileFormat)) {
+                            fileFormat = KnownFileFormats.RigidBodySet;
                         } else {
                             Log.Error($"Warning: Resource type conflict on field {cls} {field}: {fieldPatch.FileFormat} and {fileFormat}. Manually verify please.");
                         }
                     }
                     fieldPatch.FileFormat = fileFormat;
                     if (fileFormat is KnownFileFormats.Scene or KnownFileFormats.Prefab) {
+                        needAdd = rszField.type != RszFieldType.String;
                         // leave these as string
                         fieldPatch.Type = RszFieldType.String;
                     } else {
+                        needAdd = rszField.type != RszFieldType.Resource;
                         fieldPatch.Type = RszFieldType.Resource;
                         if (fileFormat != KnownFileFormats.Unknown && (string.IsNullOrEmpty(rszField.original_type) || rszField.original_type == "via.resource_handle")) {
                             if (resourceHolders.TryGetValue(fileFormat, out var holderClassname)) {
+                                needAdd = needAdd || rszField.original_type != holderClassname;
                                 fieldPatch.OriginalType = holderClassname;
                             } else {
                                 Log.Error($"Failed to map resource file format {fileFormat} to classname");
                             }
                         }
                     }
-                    changes++;
+                    if (needAdd) {
+                        if (patch.FieldPatches == null || !patch.FieldPatches.Contains(fieldPatch)) {
+                            patch.AddFieldPatch(fieldPatch);
+                        }
+                        changes++;
+                    }
                 }
             }
         }

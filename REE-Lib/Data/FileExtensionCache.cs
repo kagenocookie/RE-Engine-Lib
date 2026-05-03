@@ -136,6 +136,7 @@ public sealed partial class FileExtensionCache
         [KnownFileFormats.DynamicsBase] = [KnownFileFormats.HeightField, KnownFileFormats.RigidBodyMesh],
         [KnownFileFormats.BehaviorTreeBase] = [KnownFileFormats.BehaviorTree, KnownFileFormats.Fsm2],
         [KnownFileFormats.Skeleton] = [KnownFileFormats.Skeleton, KnownFileFormats.RefSkeleton, KnownFileFormats.FbxSkeleton],
+        [KnownFileFormats.RigidBodySet] = [KnownFileFormats.RigidBodySet, KnownFileFormats.Ragdoll],
     };
 
     private static readonly Dictionary<KnownFileFormats, KnownFileFormats> formatBaseTypes = formatRootToSubTypes

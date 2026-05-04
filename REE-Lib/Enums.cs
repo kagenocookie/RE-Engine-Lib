@@ -456,6 +456,11 @@ namespace ReeLib
         /// <summary>.wsg</summary>
         WwiseStreamingGeometry,
 
+        /// <summary>.ecob</summary>
+        EcotopeBiome, // Guessed from magic bytes
+        /// <summary>.gnpt</summary>
+        GeneratePattern, // Guessed from magic bytes
+
         TimelineBase, // Timeline or Clip
         MotionBase, // Motion or MotionTree or MotionList or GpuMotionList or MotionCamera or MotionCameraList
         DynamicsBase, // RigidBodyMesh or HeightField

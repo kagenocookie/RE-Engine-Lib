@@ -349,6 +349,11 @@ public class CachedMemoryPakReader : PakReader, IDisposable
             0x54435846 => KnownFileFormats.EffectCollision,
             0x44525453 => KnownFileFormats.Strands,
             0x50524C43 => KnownFileFormats.ClothResetPose,
+            0x444F4C54 => KnownFileFormats.StrandsLod,
+
+            // purely guessed formats, not in a known file list
+            0x424F4345 => KnownFileFormats.EcotopeBiome,
+            0x54504E47 => KnownFileFormats.GeneratePattern,
 
             // TODO
             // 0x00000000 => KnownFileFormats.GpuMotionList,

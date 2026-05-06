@@ -659,7 +659,7 @@ namespace ReeLib.via
         public override bool Equals([NotNullWhen(true)] object? obj) => obj is AABB other && other == this;
         public override int GetHashCode() => HashCode.Combine(minpos, maxpos);
         public static bool operator==(AABB a, AABB b) => a.minpos == b.minpos && a.maxpos == b.maxpos;
-        public static bool operator!=(AABB a, AABB b) => a.minpos == b.minpos && a.maxpos == b.maxpos;
+        public static bool operator!=(AABB a, AABB b) => a.minpos != b.minpos || a.maxpos != b.maxpos;
     }
 
     public record struct AABBVec4(Vector4 Minpos, Vector4 Maxpos)

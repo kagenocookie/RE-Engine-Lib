@@ -979,7 +979,9 @@ namespace ReeLib.Aimp
                 Vertices[i * 8 + 5] = new Vector3(node.min.X, mid.Y, node.min.Z + 0.001f);
                 Vertices[i * 8 + 6] = new Vector3(node.min.X + 0.001f, mid.Y, node.max.Z);
                 Vertices[i * 8 + 7] = new Vector3(node.max.X - 0.001f, mid.Y, node.max.Z - 0.001f);
-                pairIndices[i] = NodeInfos[i].PairNodes.FirstOrDefault()?.index ?? -1;
+                if (pairIndices.Length != 0) {
+                    pairIndices[i] = NodeInfos[i].PairNodes.FirstOrDefault()?.index ?? -1;
+                }
             }
             ShiftVertexIndices(Nodes, container, vertStartIndex);
             PackVertices(container, vertStartIndex);

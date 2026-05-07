@@ -31,6 +31,7 @@ namespace ReeLib
         }
 
         public long Position => Stream.Position;
+        public bool IsEnd => Stream.Position >= Stream.Length;
 
         private static readonly byte[] zeroes = new byte[512];
 
@@ -177,6 +178,12 @@ namespace ReeLib
 
         public long Tell()
         {
+            return Stream.Position - Offset;
+        }
+
+        public long AlignTell(int align = 16)
+        {
+            Align(align);
             return Stream.Position - Offset;
         }
 

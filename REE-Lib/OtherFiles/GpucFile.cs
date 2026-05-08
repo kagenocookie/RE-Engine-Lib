@@ -61,7 +61,7 @@ namespace ReeLib.Gpuc
         public uint maxDeformWeightCount;
         public int numPointTriangleContactDescs;
         public int numEdgeEdgeContactDescs;
-        public int uknNum; // re4 only, tends to be either equal to numDeformInfos or 0
+        public int numVertexDeformInfos;
         public uint status;
 
         public AABB domain;
@@ -92,7 +92,6 @@ namespace ReeLib.Gpuc
         internal long offsUnused1;
         internal long offsUnused2;
         internal long offsUnused3;
-        internal long offsUnused4;
         internal long debugDistanceLinkTbl;
         internal long pointTriangleContactDescTbl;
         internal long edgeEdgeContactDescTbl;
@@ -199,7 +198,7 @@ namespace ReeLib.Gpuc
                 action.Do(ref pointTriangleContactDescTbl);
                 action.Do(ref edgeEdgeContactDescTbl);
                 if (version == GpucVersion.RE4) {
-                    action.Do(ref uknNum);
+                    action.Do(ref numVertexDeformInfos);
                 }
             } else {
                 if (version >= GpucVersion.RE9) {
@@ -210,7 +209,7 @@ namespace ReeLib.Gpuc
                 if (version >= GpucVersion.RE9) {
                     action.Do(ref offsUnused3);
                 }
-                action.Do(ref offsUnused4);
+                action.Do(ref edgeEdgeContactDescTbl);
                 action.Do(ref deformInfoTbl);
                 action.Do(ref blendInfoTbl);
                 if (version >= GpucVersion.RE9) {
@@ -552,10 +551,9 @@ namespace ReeLib.Gpuc
         public override string ToString() => $"[{groupIndex}] {indexA} <=> {indexB}";
     }
 
-    [RszGenerate, RszAutoReadWrite]
-    public partial class CollisionEdge : BaseModel
+    public class CollisionEdge : ReadWriteModel
     {
-        [RszIgnore] public int groupIndex;
+        public int groupIndex;
 
         public ushort indexA;
         public ushort indexB;
@@ -563,6 +561,17 @@ namespace ReeLib.Gpuc
         public ushort deltaPositionIndexB;
 
         public override string ToString() => $"[{groupIndex}] {indexA} <=> {indexB} <{deltaPositionIndexA} <=> {deltaPositionIndexB}>";
+
+        protected override bool ReadWrite<THandler>(THandler action)
+        {
+            action.Do(ref indexA);
+            action.Do(ref indexB);
+            if (action.Version >= (int)GpucVersion.DD2) {
+                action.Do(ref deltaPositionIndexA);
+                action.Do(ref deltaPositionIndexB);
+            }
+            return true;
+        }
     }
 
     public class CollisionShape : BaseModel
@@ -915,6 +924,7 @@ namespace ReeLib.Gpuc
         PerTriangle = 2,
         PerVertex = 3,
         MultiJoint = 4,
+        MultiJoint_Linear = 5,
     }
 
     public enum ClothCalculateMode
@@ -1130,7 +1140,11 @@ namespace ReeLib
                     DeformType = ClothDeformType.MultiJoint;
                 }
             } else if (version == GpucVersion.RE4) {
-                DeformType = ClothDeformType.PerVertex;
+                if (header.numVertexDeformInfos > 0) {
+                    DeformType = ClothDeformType.PerVertex;
+                } else {
+                    DeformType = ClothDeformType.MultiJoint_Linear;
+                }
             } else if (header.numControlPoints == header.numDeformInfos) {
                 DeformType = ClothDeformType.PerControlPoint;
             } else {
@@ -1139,7 +1153,7 @@ namespace ReeLib
             handler.Seek(header.deformInfoTbl);
             switch (DeformType) {
                 case ClothDeformType.PerVertex:
-                    // re4, re8
+                    // re8, re4
                     for (int i = 0; i < header.numDeformInfos; i++) {
                         var v = new VertexDeformInfo();
                         v.Read(handler);
@@ -1177,6 +1191,16 @@ namespace ReeLib
                     }
                     handler.Seek(header.blendControlPointMatricesTbl);
                     ControlPointMatrices.ReadStructList(handler, header.numControlPoints);
+                    break;
+                case ClothDeformType.MultiJoint_Linear:
+                    // re4
+                    for (int i = 0; i < header.numDeformInfos; i++) {
+                        var v = new MeshMultiJointDeformInfo();
+                        handler.Read(ref v.jointIndex);
+                        v.BlendInfo = new MeshMultiJointBlendInfo[8];
+                        handler.ReadArray(v.BlendInfo);
+                        DeformInfos.Add(v);
+                    }
                     break;
                 case ClothDeformType.PerTriangle:
                     // dd2, pragmata
@@ -1241,9 +1265,16 @@ namespace ReeLib
             var distanceLinks = Batches.SelectMany(b => b.DistanceLinks).ToList();
             var collisionEdges = Batches.SelectMany(b => b.CollisionEdges).ToList();
 
-            header.partInfoTbl = handler.Tell();
-            header.numPartInfos = Parts.Count;
-            Parts.Write(handler);
+            static void WriteList<T>(List<T> list, FileHandler handler, ref int count, ref long offset, int align = 16) where T : BaseModel
+            {
+                offset = handler.AlignTell(align);
+                count = list.Count;
+                list.Write(handler);
+            }
+
+            if (version >= GpucVersion.DD2) {
+                WriteList(Parts, handler, ref header.numPartInfos, ref header.partInfoTbl);
+            }
 
             header.batchInfoTbl = handler.Tell();
             header.numBatchInfos = Batches.Count;
@@ -1251,16 +1282,16 @@ namespace ReeLib
                 batch.Info.Write(handler);
             }
 
-            header.configInfoTbl = handler.Tell();
-            header.numConfigInfos = Configs.Count;
-            Configs.Write(handler);
+            if (version < GpucVersion.DD2) {
+                WriteList(Parts, handler, ref header.numPartInfos, ref header.partInfoTbl, 1);
+            }
 
-            header.batchSubInfoTbl = handler.Tell();
-            header.numBatchSubInfos = BatchSubInfos.Count;
-            BatchSubInfos.Write(handler);
+            WriteList(Configs, handler, ref header.numConfigInfos, ref header.configInfoTbl, 1);
 
-            header.deformBonesTbl = handler.AlignTell();
             if (version >= GpucVersion.RE9) {
+                WriteList(BatchSubInfos, handler, ref header.numBatchSubInfos, ref header.batchSubInfoTbl);
+
+                header.deformBonesTbl = handler.AlignTell();
                 DeformBoneIndices.Write(handler);
             }
 
@@ -1270,27 +1301,17 @@ namespace ReeLib
                     config.blendAmountTranslationCurve.WriteKeys(handler);
                     config.blendAmountRotationCurve.WriteKeys(handler);
                 }
+                WriteList(BatchGroups, handler, ref header.numBatchGroup, ref header.batchGroupTbl);
             }
 
-            header.batchGroupTbl = handler.Tell();
-            header.numBatchGroup = BatchGroups.Count;
-            BatchGroups.Write(handler);
-
-            header.controlPointTbl = handler.Tell();
-            header.numControlPoints = controlPoints.Count;
-            controlPoints.Write(handler);
-
-            header.distanceLinkTbl = handler.AlignTell();
-            header.numDistanceLinks = distanceLinks.Count;
-            distanceLinks.Write(handler);
-
-            header.triangleTbl = handler.AlignTell();
-            header.numTriangles = Triangles.Count;
-            Triangles.Write(handler);
-
-            header.collisionEdgeTbl = handler.Tell();
-            header.numCollisionEdges = collisionEdges.Count;
-            collisionEdges.Write(handler);
+            WriteList(controlPoints, handler, ref header.numControlPoints, ref header.controlPointTbl, 1);
+            if (version < GpucVersion.DD2) {
+                handler.Align(16);
+                WriteDeformData();
+            }
+            WriteList(distanceLinks, handler, ref header.numDistanceLinks, ref header.distanceLinkTbl);
+            WriteList(Triangles, handler, ref header.numTriangles, ref header.triangleTbl);
+            WriteList(collisionEdges, handler, ref header.numCollisionEdges, ref header.collisionEdgeTbl, 8);
 
             if (version < GpucVersion.RE9) {
                 header.numTrianglesInGroupTbl = handler.Tell();
@@ -1314,9 +1335,11 @@ namespace ReeLib
             header.numPointTriangleContactDescs = PointTriangleContactDescs.Count;
             PointTriangleContactDescs.Write(handler);
 
-            header.edgeEdgeContactDescTbl = handler.Tell();
-            header.numEdgeEdgeContactDescs = EdgeEdgeContactDescs.Count;
-            EdgeEdgeContactDescs.Write(handler);
+            if (EdgeEdgeContactDescs.Count > 0) {
+                header.edgeEdgeContactDescTbl = handler.AlignTell(8);
+                header.numEdgeEdgeContactDescs = EdgeEdgeContactDescs.Count;
+                EdgeEdgeContactDescs.Write(handler);
+            }
 
             header.collisionPlaneTbl = CollisionPlanes.Count == 0 ? 0 : handler.AlignTell();
             header.numCollisionPlanes = (ushort)CollisionPlanes.Count;
@@ -1334,13 +1357,14 @@ namespace ReeLib
             header.numCollisionOBBs = (ushort)CollisionOBBs.Count;
             CollisionOBBs.Write(handler);
 
-            header.offsUnused1 = header.offsUnused3 = header.offsUnused4 = handler.Tell();
-            handler.StringTableFlush();
-            handler.Align(16);
+            if (version >= GpucVersion.DD2) {
+                handler.Align(16);
+                header.offsUnused1 = header.offsUnused3 = handler.Tell();
+                handler.StringTableFlush();
+                handler.Align(16);
 
-            header.cpuMemorySize = (int)handler.AlignTell();
-
-            WriteDeformData(handler, header);
+                WriteDeformData();
+            }
 
             header.debugControlPointTbl = handler.AlignTell();
             foreach (var cp in controlPoints) {
@@ -1352,15 +1376,21 @@ namespace ReeLib
                 handler.Write(distanceLinks[i].DebugID);
             }
 
+            handler.Align(16);
+            handler.StringTableFlush();
+
             header.Rewrite(handler);
             return true;
         }
 
-        private void WriteDeformData(FileHandler handler, Header header)
+        private void WriteDeformData()
         {
+            var handler = FileHandler;
+            var header = Header;
             header.deformInfoTbl = handler.Tell();
             header.numDeformInfos = DeformInfos.Count;
             header.numTotalRenderVertices = VertexIdToDeformIndex.Count;
+            header.numVertexDeformInfos = 0;
 
             header.blendInfoTbl = header.deformInfoTbl;
             header.blendMultiMatricesTbl = header.deformInfoTbl;
@@ -1369,7 +1399,10 @@ namespace ReeLib
 
             switch (DeformType) {
                 case ClothDeformType.PerVertex:
-                    // re4, re8
+                    // re8, re4
+                    if ((GpucVersion)handler.FileVersion == GpucVersion.RE4) {
+                        header.numVertexDeformInfos = header.numDeformInfos;
+                    }
                     foreach (var item in DeformInfos.Cast<VertexDeformInfo>()) {
                         item.Write(handler);
                     }
@@ -1403,10 +1436,20 @@ namespace ReeLib
                         }
                     }
                     header.blendControlPointMatricesTbl = handler.AlignTell();
+                    header.cpuMemorySize = (int)handler.Tell();
                     ControlPointMatrices.Write(handler);
+                    header.vertexIdToDeformInfoIndexTbl = handler.AlignTell();
+                    break;
+                case ClothDeformType.MultiJoint_Linear:
+                    // re4
+                    foreach (var item in DeformInfos.Cast<MeshMultiJointDeformInfo>()) {
+                        handler.Write(ref item.jointIndex);
+                        handler.WriteArray(item.BlendInfo);
+                    }
                     break;
                 case ClothDeformType.PerTriangle:
                     // dd2, pragmata
+                    header.cpuMemorySize = (int)handler.AlignTell();
                     foreach (var item in DeformInfos.Cast<TriangleDeformInfo>()) {
                         handler.Write(ref item.configId);
                     }
@@ -1414,7 +1457,7 @@ namespace ReeLib
                     foreach (var item in DeformInfos.Cast<TriangleDeformInfo>()) {
                         handler.WriteArray(item.blendInfos);
                     }
-                    header.blendMultiMatricesTbl = header.blendControlPointMatricesTbl = header.vertexIdToDeformInfoIndexTbl = handler.Tell();
+                    header.blendMultiMatricesTbl = header.blendControlPointMatricesTbl = header.vertexIdToDeformInfoIndexTbl = handler.AlignTell();
                     VertexIdToDeformIndex.Write(handler);
                     break;
                 default:

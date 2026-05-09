@@ -456,6 +456,10 @@ public class FileListGenerator(string gameDirectory)
                     var line = proc.StandardOutput.ReadLine();
                     if (line != null && IsFilePath(line)) {
                         yield return CleanFilePath(line);
+                        // sometimes we end up grabbing paths like "aConfig/...", try to handle those as well
+                        if (char.IsLower(line[0]) && char.IsUpper(line[1])) {
+                            yield return line.Substring(1);
+                        }
                     }
                 }
                 yield break;
@@ -510,6 +514,10 @@ public class FileListGenerator(string gameDirectory)
                         var str = sb.ToString();
                         if (IsFilePath(str)) {
                             strings.Add(CleanFilePath(str));
+                            // sometimes we end up grabbing paths like "aConfig/...", try to handle those as well
+                            if (char.IsLower(str[0]) && char.IsUpper(str[1])) {
+                                strings.Add(str.Substring(1));
+                            }
                         }
                     }
                     sb.Clear();

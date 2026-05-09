@@ -275,12 +275,15 @@ public class ListFileWrapper
             startIndex = ~startIndex;
             if (startIndex > Files.Length) return [];
         }
-        // TODO may have to handle invalid filepaths here as well - maybe a StartsWith check
         var count = Files.Length;
         var list = new List<string>();
 
         if (startIndex >= 0 && startIndex < Files.Length && Filter?.Invoke(Files[startIndex]) != false) {
-            list.Add(GetSubfolderPath(Files[startIndex], folderNormalized).ToString());
+            var subpath = GetSubfolderPath(Files[startIndex], folderNormalized).ToString();
+            var commonLen = Math.Min(subpath.Length, folderNormalized.Length) - 1;
+            if (subpath.Substring(0, commonLen).Equals(folderNormalized.Substring(0, commonLen), StringComparison.OrdinalIgnoreCase)) {
+                list.Add(subpath);
+            }
         }
         int endIndex = startIndex + 1;
         while (endIndex < count) {

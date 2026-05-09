@@ -1,3 +1,5 @@
+using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -26,12 +28,12 @@ namespace ReeLib.Common
                     _ => 0
                 };
                 k1 *= c1;
-                k1 = Rotl32(k1, 15);
+                k1 = BitOperations.RotateLeft(k1, 15);
                 k1 *= c2;
                 h1 ^= k1;
                 if (chunkLength == 4)
                 {
-                    h1 = Rotl32(h1, 13);
+                    h1 = BitOperations.RotateLeft(h1, 13);
                     h1 = h1 * 5 + 0xe6546b64;
                 }
             }
@@ -42,11 +44,7 @@ namespace ReeLib.Common
             return h1;
         }
 
-        private static uint Rotl32(uint x, byte r)
-        {
-            return (x << r) | (x >> (32 - r));
-        }
-
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static uint Fmix(uint h)
         {
             h ^= h >> 16;

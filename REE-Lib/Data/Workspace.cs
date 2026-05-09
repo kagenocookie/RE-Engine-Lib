@@ -161,7 +161,7 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
 
     public int GetFileVersion(ReadOnlySpan<char> relativePath)
     {
-        var ext = relativePath.GetExtensionWithoutPeriod();
+        var ext = relativePath.GetExtensionWithoutPeriod().ToString();
         if (FileExtensionCache.Info.TryGetValue(ext, out var version)) {
             return version.Version;
         }

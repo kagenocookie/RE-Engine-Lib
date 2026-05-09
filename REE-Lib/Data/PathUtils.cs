@@ -148,11 +148,11 @@ public static class PathUtils
         return Path.Combine(chunkBasePath, filepath);
     }
 
-    public static string GetExtensionWithoutPeriod(this string path) => path.AsSpan().GetExtensionWithoutPeriod();
-    public static string GetExtensionWithoutPeriod(this ReadOnlySpan<char> path)
+    public static string GetExtensionWithoutPeriod(this string path) => path.AsSpan().GetExtensionWithoutPeriod().ToString();
+    public static ReadOnlySpan<char> GetExtensionWithoutPeriod(this ReadOnlySpan<char> path)
     {
         var ext = Path.GetExtension(path);
-        return ext.IsEmpty ? string.Empty : ext[1..].ToString();
+        return ext.IsEmpty ? Span<char>.Empty : ext[1..];
     }
 
     public static bool IsNativePath(this string path)

@@ -173,6 +173,30 @@ public partial class PakReader
         return unpackedFileCount;
     }
 
+    public IEnumerable<(Stream, PakEntry)> ReadAllFiles(Func<PakEntry, bool>? condition = null)
+    {
+        using var mem = new MemoryStream();
+        foreach (var pak in EnumeratePaks(true))
+        {
+            using var pakFs = File.OpenRead(pak.filepath);
+            foreach (var entry in pak.Entries)
+            {
+                if (condition?.Invoke(entry) == false) continue;
+
+                mem.Seek(0, SeekOrigin.Begin);
+                mem.SetLength(0);
+                try {
+                    pak.ReadEntry(entry, pakFs, mem);
+                } catch (Exception) {
+                    Log.Error("Failed to read PAK entry " + entry.CombinedHash.ToString("X16"));
+                    continue;
+                }
+                mem.Seek(0, SeekOrigin.Begin);
+                yield return (mem, entry);
+            }
+        }
+    }
+
     /// <summary>
     /// Unpack requested files to the given path.
     /// </summary>

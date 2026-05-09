@@ -21,11 +21,13 @@ public class CachedMemoryPakReader : PakReader, IDisposable
 
     private Dictionary<ulong, KnownFileFormats>? _unknownFiles;
     private string[]? _unknownFilePaths;
+
     public Dictionary<ulong, KnownFileFormats> UnknownFiles => _unknownFiles ??= CacheUnknownFiles();
     public string[] UnknownFilePaths => _unknownFilePaths ??= UnknownFiles
         .OrderBy(kv => kv.Key)
         .Select(kv => $"{PakReader.UnknownFilePathPrefix}{kv.Key.ToString("X16")}.{FileFormatExtensions.FormatToFileExtension(kv.Value)}")
         .ToArray();
+    public IEnumerable<ulong> UnknownPathHashes => cachedEntries?.Values.Where(e => string.IsNullOrEmpty(e.entry.path)).Select(e => e.entry.CombinedHash).ToArray() ?? [];
 
     private Dictionary<ulong, KnownFileFormats> CacheUnknownFiles()
     {
@@ -244,7 +246,7 @@ public class CachedMemoryPakReader : PakReader, IDisposable
         GC.SuppressFinalize(this);
     }
 
-    private static KnownFileFormats GuessFileFormatFromMagic(uint magic)
+    internal static KnownFileFormats GuessFileFormatFromMagic(uint magic)
     {
         return magic switch {
             AimapAttrFile.Magic => KnownFileFormats.AIMapAttribute,

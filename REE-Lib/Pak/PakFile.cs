@@ -63,6 +63,8 @@ namespace ReeLib.Pak
 
         public string? path;
 
+        public override string ToString() => path ?? $"Entry: {CombinedHash.ToString("X16")}";
+
         public PakEntry()
         {
         }

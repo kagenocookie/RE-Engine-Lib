@@ -39,21 +39,11 @@ namespace ReeLib.Motpack
         }
     }
 
-    public class MotpackItem
+    public class MotpackMotFile(FileHandler f) : MotFile(f)
     {
         public int index;
-        public MotFile? motion;
 
-        public MotpackItem()
-        {
-        }
-
-        public MotpackItem(MotFile motion)
-        {
-            this.motion = motion;
-        }
-
-        public override string ToString() => $"[{index}] {motion}";
+        public override string ToString() => $"[{index}] {base.ToString()}";
     }
 }
 
@@ -68,13 +58,13 @@ namespace ReeLib
         public const uint Magic = 0x6B63706D;
 
         public Header Header { get; } = new();
-        public List<MotpackItem> Motions { get; } = new();
+        public List<MotpackMotFile> Motions { get; } = new();
 
-        public MotpackItem? Find(string motName)
+        public MotpackMotFile? Find(string motName)
         {
             foreach (var mot in Motions)
             {
-                if (mot.motion?.Name == motName) return mot;
+                if (mot?.Name == motName) return mot;
             }
             return null;
         }
@@ -101,12 +91,12 @@ namespace ReeLib
                 var magic = fileHandler.ReadInt(4);
                 DataInterpretationException.DebugThrowIf(magic != MotFile.Magic);
                 if (magic == MotFile.Magic) {
-                    MotFile motFile = new(fileHandler);
+                    MotpackMotFile motFile = new(fileHandler);
                     motFile.Embedded = true;
                     motFile.Read();
                     motFile.ReadBones(headerMot);
                     headerMot ??= motFile;
-                    Motions.Add(new MotpackItem(motFile));
+                    Motions.Add(motFile);
                 }
             }
 
@@ -140,14 +130,14 @@ namespace ReeLib
                 handler.Align(16);
                 var motOffset = handler.Tell();
                 handler.Write(header.pointersOffset + i * 8, motOffset);
-                mot.motion!.FileHandler = handler.WithOffset(motOffset);
-                mot.motion.Write();
+                mot!.FileHandler = handler.WithOffset(motOffset);
+                mot.Write();
 
-                if (!didWriteMot && mot.motion is MotFile)
+                if (!didWriteMot)
                 {
-                    mot.motion.WriteBones();
-                    mot.motion.Header.motSize = 0;
-                    mot.motion.FileHandler.Write(12, 0);
+                    mot.WriteBones();
+                    mot.Header.motSize = 0;
+                    mot.FileHandler.Write(12, 0);
                     didWriteMot = true;
                 }
             }

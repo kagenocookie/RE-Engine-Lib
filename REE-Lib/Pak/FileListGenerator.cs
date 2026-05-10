@@ -394,7 +394,7 @@ public class FileListGenerator(string gameDirectory)
         if (!hasSlash) return false;
 
         var ext = PathUtils.GetExtensionWithoutPeriod(str.AsSpan());
-        if (ext.IsEmpty || ext.Length > MaxExtensionLength || IgnoreExtHashes.Contains(MurMur3HashUtils.GetHash(ext))) return false;
+        if (ext.IsEmpty || ext.Length > MaxExtensionLength || int.TryParse(ext, out _) || IgnoreExtHashes.Contains(MurMur3HashUtils.GetHash(ext))) return false;
         return true;
     }
 

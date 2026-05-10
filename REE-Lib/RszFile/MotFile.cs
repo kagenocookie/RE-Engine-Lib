@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using ReeLib.Clip;
@@ -6,6 +5,7 @@ using ReeLib.Common;
 using ReeLib.InternalAttributes;
 using ReeLib.Mot;
 using ReeLib.Motlist;
+using ReeLib.MplyMesh;
 
 namespace ReeLib.Mot
 {
@@ -51,12 +51,14 @@ namespace ReeLib.Mot
         public ushort boneClipCount;
         public byte clipCount;
         public byte motEndClipCount;
-        public ushort uknAttributes;
+        public MotFlags attributes;
         public ushort uknAttributes2; // seems to always be either 0 or 1; natives/stm/animation/ch/ch00/motlist/ch00_001_comnm.motlist.751 - count 1, extra offset 0
         public ushort FrameRate;
         public ushort animatedPropertyCount;
 
         public string motName = string.Empty;
+        internal long dataOffset;
+
         public string? jointMapPath = string.Empty;
 
         internal long BoneHeaderOffsetStartOffset => Start + 16;
@@ -72,8 +74,7 @@ namespace ReeLib.Mot
                  ?.Then(ref motPropertyTracksOffset)
                  ?.Null(8)
                  ?.Then(ref clipFileOffset)
-                 // TODO standalone mots _usually_ have some sort of offset data here instead
-                 ?.HandleOffsetWString(ref jointMapPath, true)
+                 ?.Then(ref dataOffset)
                  ?.Then(ref motEndClipDataOffset)
                  ?.Then(version >= MotVersion.MHR_DEMO, ref motEndClipFrameValuesOffset)
                  ?.Then(ref propertyTreeOffset)
@@ -89,7 +90,7 @@ namespace ReeLib.Mot
                  ?.Then(version >= MotVersion.RE8, ref uknAttributes2)
                  ?.Then(ref FrameRate)
                  ?.Then(ref animatedPropertyCount)
-                 ?.Then(ref uknAttributes);
+                 ?.Then(ref attributes);
 
             return true;
         }
@@ -106,13 +107,138 @@ namespace ReeLib.Mot
             boneCount = source.boneCount;
             boneClipCount = source.boneClipCount;
             motEndClipCount = source.motEndClipCount;
-            uknAttributes = source.uknAttributes;
+            attributes = source.attributes;
             uknAttributes2 = source.uknAttributes2;
             animatedPropertyCount = source.animatedPropertyCount;
             jointMapPath = source.jointMapPath;
             if (string.IsNullOrEmpty(motName)) {
                 motName = source.motName;
             }
+        }
+    }
+
+    public class VertexAnimationContainer : BaseModel
+    {
+        public int fps;
+        public bool flag1;
+        public bool flag2;
+
+        public VertexAnimationData Animation1 { get; } = new VertexAnimationData();
+        public VertexAnimationData Animation2 { get; } = new VertexAnimationData();
+        public List<uint> BoneHashes { get; } = new();
+
+        protected override bool DoRead(FileHandler handler)
+        {
+            // struct verified for DMC5, unknown for other games
+            var framesOffset = handler.Read<long>();
+            var frames2Offset = handler.Read<long>();
+            var boneInfoOffset = handler.Read<long>();
+            var boneInfo2Offset = handler.Read<long>();
+            handler.ReadNull(8);
+            var boneHashesOffset = handler.Read<long>();
+            var boneCount = handler.Read<int>();
+            var frameCount = handler.Read<int>();
+            handler.Read(ref fps);
+            handler.ReadNull(4);
+            handler.Read(ref flag1);
+            handler.Read(ref flag2);
+            handler.ReadNull(14);
+
+            handler.Seek(boneHashesOffset);
+            BoneHashes.ReadStructList(handler, boneCount);
+
+            Animation1.Bones = new VertexAnimationBoneInfo[boneCount];
+            Animation2.Bones = new VertexAnimationBoneInfo[boneCount];
+
+            handler.Seek(framesOffset);
+            for (int i = 0; i < frameCount; i++) {
+                Animation1.Frames.Add(new VertexAnimationFrame() { Frames = handler.ReadArray<Ushort3>(boneCount) });
+            }
+
+            handler.Seek(boneInfoOffset);
+            handler.ReadArray(Animation1.Bones);
+
+            handler.Seek(frames2Offset);
+            for (int i = 0; i < frameCount; i++) {
+                Animation2.Frames.Add(new VertexAnimationFrame() { Frames = handler.ReadArray<Ushort3>(boneCount) });
+            }
+
+            handler.Seek(boneInfo2Offset);
+            handler.ReadArray(Animation2.Bones);
+            return true;
+        }
+
+        protected override bool DoWrite(FileHandler handler)
+        {
+            handler.WriteNull(6 * 8);
+            handler.Write(BoneHashes.Count);
+            handler.Write(Animation1.Frames.Count);
+            handler.Write(ref fps);
+            handler.WriteNull(4);
+            handler.Write(ref flag1);
+            handler.Write(ref flag2);
+
+            handler.Write(Start + 8 * 5, handler.AlignTell()); // boneHashesOffset
+            BoneHashes.Write(handler);
+
+            handler.Write(Start + 8 * 0, handler.AlignTell()); // framesOffset
+            foreach (var frame in Animation1.Frames) {
+                handler.WriteArray(frame.Frames);
+            }
+
+            handler.Write(Start + 8 * 2, handler.AlignTell()); // boneInfoOffset
+            Animation1.Bones.Write(handler);
+
+            handler.Write(Start + 8 * 1, handler.AlignTell()); // frames2Offset
+            foreach (var frame in Animation2.Frames) {
+                handler.WriteArray(frame.Frames);
+            }
+
+            handler.Write(Start + 8 * 3, handler.AlignTell()); // boneInfo2Offset
+            Animation2.Bones.Write(handler);
+            return true;
+        }
+
+        public override VertexAnimationContainer Clone()
+        {
+            var clone = new VertexAnimationContainer();
+            clone.flag1 = flag1;
+            clone.flag2 = flag2;
+            clone.fps = fps;
+            clone.Animation1.Bones = new VertexAnimationBoneInfo[Animation1.Bones.Length];
+            clone.Animation2.Bones = new VertexAnimationBoneInfo[Animation2.Bones.Length];
+            Array.Copy(Animation1.Bones, clone.Animation1.Bones, Animation1.Bones.Length);
+            Array.Copy(Animation2.Bones, clone.Animation2.Bones, Animation2.Bones.Length);
+            foreach (var frame in Animation1.Frames) {
+                clone.Animation1.Frames.Add(frame.Clone());
+            }
+            foreach (var frame in Animation2.Frames) {
+                clone.Animation2.Frames.Add(frame.Clone());
+            }
+            return clone;
+        }
+    }
+
+    public class VertexAnimationData
+    {
+        public VertexAnimationBoneInfo[] Bones { get; set; } = [];
+        public List<VertexAnimationFrame> Frames { get; } = new();
+    }
+
+    public struct VertexAnimationBoneInfo
+    {
+        public uint a, b, c, d, e, f;
+    }
+
+    public class VertexAnimationFrame
+    {
+        public Ushort3[] Frames = [];
+
+        public VertexAnimationFrame Clone()
+        {
+            var copy = new Ushort3[Frames.Length];
+            Array.Copy(Frames, copy, Frames.Length);
+            return new VertexAnimationFrame() { Frames = copy };
         }
     }
 
@@ -163,7 +289,13 @@ namespace ReeLib.Mot
         }
 
         public override string ToString() => $"[{Index}] {boneName}";
-        // public override string ToString() => Header.boneName;
+    }
+
+    [Flags]
+    public enum MotFlags : ushort
+    {
+        None = 0,
+        HasGpuMotion = 1,
     }
 
     [Flags]
@@ -259,6 +391,7 @@ namespace ReeLib.Mot
         UnknownType,
         LoadFloatsFull,
         LoadFloats8Bit,
+        LoadFloats16Bit,
     }
 
     public enum Vector3Decompression
@@ -439,7 +572,7 @@ namespace ReeLib.Mot
 
                 if (TrackType == TrackValueType.Float)
                 {
-                    if (FloatCompressionType is FloatDecompression.LoadFloats8Bit)
+                    if (FloatCompressionType is FloatDecompression.LoadFloats8Bit or FloatDecompression.LoadFloats16Bit)
                         return 2;
                 }
 
@@ -755,6 +888,7 @@ namespace ReeLib.Mot
         private static Dictionary<uint, FloatDecompression> FloatDict = new() {
             { 0x00000, FloatDecompression.LoadFloatsFull },
             { 0x10000, FloatDecompression.LoadFloats8Bit },
+            { 0x20000, FloatDecompression.LoadFloats16Bit },
         };
 
         public Vector3Decompression TranslationCompressionType
@@ -1758,6 +1892,9 @@ namespace ReeLib.Mot
                     case FloatDecompression.LoadFloats8Bit:
                         value = unpackData[0] * ((float)handler.Read<byte>() * (1f / 0xFF)) + unpackData[1];
                         break;
+                    case FloatDecompression.LoadFloats16Bit:
+                        value = unpackData[0] * ((float)handler.Read<ushort>() * (1f / 0xFFFF)) + unpackData[1];
+                        break;
 
                     default:
                         throw new NotSupportedException("Can't read float compression type " + type);
@@ -1781,6 +1918,9 @@ namespace ReeLib.Mot
                         break;
                     case FloatDecompression.LoadFloats8Bit:
                         handler.Write((byte)MathF.Round((value - unpackData[1]) / unpackData[0] * 0xFF));
+                        break;
+                    case FloatDecompression.LoadFloats16Bit:
+                        handler.Write((ushort)MathF.Round((value - unpackData[1]) / unpackData[0] * 0xFFFF));
                         break;
                     default:
                         throw new NotSupportedException($"Can't write float compression type {type} ({Compression.ToString("X")})");
@@ -1939,6 +2079,7 @@ namespace ReeLib.Mot
                 switch (FloatCompressionType)
                 {
                     case FloatDecompression.LoadFloats8Bit:
+                    case FloatDecompression.LoadFloats16Bit:
                         unpackData[0] = scale;
                         unpackData[1] = minN;
                         break;
@@ -2562,6 +2703,7 @@ namespace ReeLib
         public List<MotEndClip> EndClips { get; } = new();
         public List<MotPropertyTrack> MotPropertyTracks { get; } = new();
         public MotPropertyList? PropertyList { get; set; }
+        public VertexAnimationContainer? VertexAnimation { get; set; }
 
         public List<MotBone> Bones { get; internal set; } = new();
         public List<MotBone> RootBones { get; internal set; } = new();
@@ -2593,6 +2735,20 @@ namespace ReeLib
 
             // if (header.boneClipCount > header.boneCount)
             //     throw new InvalidDataException($"boneClipCount {header.boneClipCount} > boneCount {header.boneCount}");
+
+            if (header.dataOffset > 0)
+            {
+                if (header.attributes.HasFlag(MotFlags.HasGpuMotion))
+                {
+                    VertexAnimation = new VertexAnimationContainer();
+                    VertexAnimation.Read(handler, header.dataOffset);
+                    header.jointMapPath = null;
+                }
+                else
+                {
+                    header.jointMapPath = handler.ReadWString(header.dataOffset);
+                }
+            }
 
             if (header.boneClipCount > 0)
             {
@@ -2687,6 +2843,25 @@ namespace ReeLib
             foreach (var clip in BoneClips)
             {
                 clip.WriteOffsetContents(handler);
+            }
+
+            if (VertexAnimation != null)
+            {
+                Header.dataOffset = handler.Tell();
+                Header.attributes |= MotFlags.HasGpuMotion;
+                handler.Align(16);
+                VertexAnimation.Write(handler);
+            }
+            else if (!string.IsNullOrEmpty(Header.jointMapPath))
+            {
+                Header.dataOffset = handler.Tell();
+                handler.WriteWString(Header.jointMapPath);
+                Header.attributes &= ~MotFlags.HasGpuMotion;
+            }
+            else
+            {
+                Header.dataOffset = 0;
+                Header.attributes &= ~MotFlags.HasGpuMotion;
             }
 
             handler.Align(16);
@@ -3107,6 +3282,8 @@ namespace ReeLib
                     }
                 }
             }
+
+            VertexAnimation = source.VertexAnimation?.Clone();
 
             var currentVersion = Header.version;
             Header.CopyValuesFrom(source.Header);

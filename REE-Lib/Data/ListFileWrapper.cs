@@ -281,7 +281,7 @@ public class ListFileWrapper
         if (startIndex >= 0 && startIndex < Files.Length && Filter?.Invoke(Files[startIndex]) != false) {
             var subpath = GetSubfolderPath(Files[startIndex], folderNormalized).ToString();
             var commonLen = Math.Min(subpath.Length, folderNormalized.Length) - 1;
-            if (subpath.Substring(0, commonLen).Equals(folderNormalized.Substring(0, commonLen), StringComparison.OrdinalIgnoreCase)) {
+            if (commonLen != -1 && subpath.Substring(0, commonLen).Equals(folderNormalized.Substring(0, commonLen), StringComparison.OrdinalIgnoreCase)) {
                 list.Add(subpath);
             }
         }

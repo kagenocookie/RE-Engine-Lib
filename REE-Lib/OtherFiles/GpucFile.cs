@@ -16,8 +16,8 @@ namespace ReeLib.Gpuc
         SF6 = 230110953,
         MHWILDS = 241111744,
         MHST3 = 250604242,
-        RE9 = 250925365,
         PragmataDemo = 250925361,
+        RE9 = 250925365,
         Pragmata = 251121978,
     }
 

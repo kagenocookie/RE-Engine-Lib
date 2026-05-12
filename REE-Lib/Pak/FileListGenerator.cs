@@ -133,7 +133,7 @@ public class FileListGenerator(string gameDirectory)
         "_nrro", "_rocm", "_occ", "_lymo", "_alba", "_nrca", "_alp", "_nmr", "_rgh", "_met",
         "_iam", "_lut", "_fbi", "_add", "_emm", "_lym", "_cvt", "_vns", "_lin", "_pos", "_fur", "_im", "_disp"];
 
-    private static readonly HashSet<string> IgnoredExtensions = ["json", "dll", "pdb", "ini", "cpp", "hpp", "h", "cs", "technology", "com", "com0C", "com0\\", "com0A", "fffff", "0"];
+    private static readonly HashSet<string> IgnoredExtensions = ["json", "dll", "pdb", "ini", "cpp", "hpp", "h", "cs", "technology", "com", "com0", "com07", "com0N", "com0X", "com0C", "com0\\", "com0A", "fffff", "0", "iconTagEvent", "messageTagEvent"];
     private static readonly HashSet<uint> IgnoreExtHashes = IgnoredExtensions.Select(x => MurMur3HashUtils.GetHash(x)).ToHashSet();
     private static readonly string[] GuessDates = ["251111", "251112", "251121", "250925"];
 
@@ -379,6 +379,7 @@ public class FileListGenerator(string gameDirectory)
 
 
     private static readonly SearchValues<char> PathyChars = SearchValues.Create("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _-.:@\\/");
+    private static readonly SearchValues<char> Numeric = SearchValues.Create("0123456789-");
 
     private static bool IsPathyCharacter(char ch) => PathyChars.Contains(ch);
 
@@ -394,7 +395,7 @@ public class FileListGenerator(string gameDirectory)
         if (!hasSlash) return false;
 
         var ext = PathUtils.GetExtensionWithoutPeriod(str.AsSpan());
-        if (ext.IsEmpty || ext.Length > MaxExtensionLength || int.TryParse(ext, out _) || IgnoreExtHashes.Contains(MurMur3HashUtils.GetHash(ext))) return false;
+        if (ext.IsEmpty || ext.Length > MaxExtensionLength || !ext.ContainsAnyExcept(Numeric) || IgnoreExtHashes.Contains(MurMur3HashUtils.GetHash(ext))) return false;
         return true;
     }
 

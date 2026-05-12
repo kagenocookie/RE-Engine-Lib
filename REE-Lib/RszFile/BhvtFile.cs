@@ -74,28 +74,6 @@ namespace ReeLib.Bhvt
         }
     }
 
-
-    public enum BHVTlvl
-    {
-        All = -1,
-        Actions = 0,
-        Selectors = 1,
-        SelectorCallers = 2,
-        Conditions = 3,
-        TransitionEvents = 4,
-        ExpressionTreeConditions = 5,
-        StaticActions = 6,
-        StaticSelectorCallers = 7,
-        StaticConditions = 8,
-        StaticTransitionEvents = 9,
-        StaticExpressionTreeConditions = 10,
-        Transition = 11,
-        Paths = 12,
-        Tags = 13,
-        NameHash = 14
-    }
-
-
     [Flags]
     public enum NodeAttribute : ushort
     {
@@ -561,7 +539,15 @@ namespace ReeLib.Bhvt
     {
         public NodeID ID;
         internal int nameOffset;
-        public string Name { get; set; } = string.Empty;
+
+        public string Name {
+            get => field;
+            set { field = value; _fullName = null; }
+        } = "";
+
+        private string? _fullName;
+        public string FullName => _fullName ??= (Parent == null ? Name : $"{Parent.FullName}.{Name}");
+
         public NodeID ParentID;
         internal int SelectorID;
         internal List<BHVTId> SelectorCallerIDs { get; } = new();
@@ -570,6 +556,7 @@ namespace ReeLib.Bhvt
         public NodeAttribute Attributes = NodeAttribute.IsEnabled|NodeAttribute.IsRestartable|NodeAttribute.IsFSMNode;
         internal int referenceTreePathOffset;
 
+        public BHVTNode? Parent { get; set; }
         public NActions Actions { get; } = new();
         public RszInstance? Selector { get; set; }
         public RszInstance? SelectorCallerCondition { get; set; }
@@ -761,6 +748,7 @@ namespace ReeLib.Bhvt
                         if (parent != null && !parent.Children.Children.Any(c => c.ChildNode == newNode)) {
                             additionalNodes.Add(newNode);
                         }
+                        newNode.Parent = parent ?? newNode.Parent;
                     }
                 }
 
@@ -774,6 +762,7 @@ namespace ReeLib.Bhvt
                         if (parent != null && !parent.Children.Children.Any(c => c.ChildNode == newNode)) {
                             additionalNodes.Add(newNode);
                         }
+                        newNode.Parent = parent ?? newNode.Parent;
                     }
                 }
 
@@ -996,6 +985,35 @@ namespace ReeLib
             yield return StaticExpressionTreeConditionsRsz;
         }
 
+        /// <summary>
+        /// Attempts to insert a set of nodes into a suitable position in the full nodes list.
+        /// </summary>
+        /// <param name="nodes">Nodes to insert.</param>
+        /// <param name="fallbackInsertIndex">Fallback insert index</param>
+        public void InsertNodes(IEnumerable<BHVTNode> nodes, int fallbackInsertIndex = -1)
+        {
+            foreach (var child in nodes) {
+                if (Nodes.Contains(child)) continue;
+
+                var parent = child.Parent;
+                if (parent == null) {
+                    continue;
+                }
+
+                var childIndex = parent.Children.Children.FindIndex(c => c.ChildNode == child);
+                if (childIndex > 0) {
+                    var previousChildIndex = Nodes.IndexOf(parent.Children.Children[childIndex - 1].ChildNode!);
+                    Nodes.Insert(previousChildIndex + 1, child);
+                } else {
+                    if (fallbackInsertIndex == -1) {
+                        Nodes.Add(child);
+                    } else {
+                        Nodes.Insert(fallbackInsertIndex + 1, child);
+                    }
+                }
+            }
+        }
+
         protected override bool DoRead()
         {
             SubVariables.Clear();
@@ -1192,7 +1210,7 @@ namespace ReeLib
             {
                 if (node.ParentID.IsUnset) continue;
 
-                var parent = nodeDict[(ulong)node.ParentID];
+                var parent = node.Parent = nodeDict[(ulong)node.ParentID];
                 var parentNchild = parent.Children.Children.FindIndex(ch => (ulong)ch.ChildId == (ulong)node.ID);
                 if (parentNchild == -1)
                 {
@@ -1405,26 +1423,38 @@ namespace ReeLib
                     }
                 }
             }
+
+            if (actions.Count > 0) {
+                Log.Warn("Some actions weren't able to be resolved. Expect data loss on resave!");
+            }
         }
 
         private void FlattenInstances()
         {
             var version = Header.Version;
-            Nodes.Clear();
-            Nodes.Add(RootNode);
-            void RecurseHandleChildren(BHVTNode node)
+            if (Nodes.FirstOrDefault() != RootNode) {
+                Nodes.Add(RootNode);
+            }
+            // keep nodes list unchanged except in case any nodes aren't in the list
+            // that way we can keep the original node order as much as possible
+            void RecurseHandleChildren(BHVTNode node, int insertAfterIndex = -1)
             {
                 foreach (var child in node.Children.Children) {
                     if (child.ChildNode == null) continue;
 
-                    Nodes.Add(child.ChildNode);
+                    if (!Nodes.Contains(child.ChildNode)) {
+                        InsertNodes([child.ChildNode], insertAfterIndex);
+                    }
                     child.ChildNode.ParentID = node.ID;
+                    child.ChildNode.Parent = node;
                 }
+                var lastChild = node.Children.Children.LastOrDefault()?.ChildNode;
+                var lastChildIndex = lastChild == null ? -1 : Nodes.IndexOf(lastChild);
 
                 foreach (var child in node.Children.Children) {
                     if (child.ChildNode == null) continue;
 
-                    RecurseHandleChildren(child.ChildNode);
+                    RecurseHandleChildren(child.ChildNode, lastChildIndex);
                 }
             }
             RecurseHandleChildren(RootNode);

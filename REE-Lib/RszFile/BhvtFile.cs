@@ -704,7 +704,7 @@ namespace ReeLib.Bhvt
         /// <summary>
         /// Ensures this and all child nodes have unique IDs within the file. Will create new nodes for all child nodes, but keep references to any nodes not in hierarchy.
         /// </summary>
-        /// <returns>The list of added nodes, or null if an error occurred.</returns>
+        /// <returns>The list of added additional referenced nodes (States, not normal child nodes), or null if an error occurred while resolving them.</returns>
         public List<BHVTNode>? MakeUnique(BhvtFile parentFile, BHVTNode? parentNode)
         {
             return MakeUnique(parentFile, parentNode, 8);
@@ -715,11 +715,15 @@ namespace ReeLib.Bhvt
                 return null;
             }
 
+            var normalChildren = AllChildNodes.Append(this).ToHashSet();
             var allChildren = AllChildNodes.Append(this)
                 .Concat(States.States.Select(s => s.TargetNode!).Where(s => s != null))
                 .Concat(AllStates.AllStates.Select(s => s.TargetNode!).Where(s => s != null))
                 .Distinct()
                 .ToHashSet();
+
+            ParentID = parentNode?.ID ?? NodeID.Unset;
+            Parent = parentNode;
 
             var newChildren = new Dictionary<NodeID, BHVTNode>();
 
@@ -735,13 +739,28 @@ namespace ReeLib.Bhvt
                 newChildren[prevId] = child;
             }
 
+            foreach (var child in allChildren) {
+                if (newChildren.TryGetValue(child.ParentID, out var newParent)) {
+                    child.Parent = newParent;
+                    child.ParentID = newParent.ID;
+                }
+            }
+
             var additionalNodes = new List<BHVTNode>();
 
             foreach (var child in allChildren) {
+                // states target nodes aren't necessarily part of the base node hierarchy, handle separately
+                // ensure they also get their own MakeUnique call
                 foreach (var state in child.States.States) {
                     if (newChildren.TryGetValue(state.targetNodeID, out var newNode)) {
                         state.targetNodeID = newNode.ID;
                         state.TargetNode = newNode;
+                        if (normalChildren.Contains(state.TargetNode.Parent!)) {
+                            if (!state.TargetNode.Parent!.Children.Children.Any(c => c.ChildNode == newNode)) {
+                                state.TargetNode.Parent!.Children.Children.Add(new NChild() { ChildNode = newNode });
+                            }
+                            continue;
+                        }
                         var parent = parentNode ??
                             parentFile.Nodes.FirstOrDefault(p => p.ID.ID == child.ParentID.ID && p.ID.exID == child.ParentID.exID) ??
                             parentFile.Nodes.FirstOrDefault(p => p.ID.ID == child.ParentID.ID);
@@ -756,6 +775,12 @@ namespace ReeLib.Bhvt
                     if (newChildren.TryGetValue(state.targetNodeID, out var newNode)) {
                         state.targetNodeID = newNode.ID;
                         state.TargetNode = newNode;
+                        if (normalChildren.Contains(state.TargetNode.Parent!)) {
+                            if (!state.TargetNode.Parent!.Children.Children.Any(c => c.ChildNode == newNode)) {
+                                state.TargetNode.Parent!.Children.Children.Add(new NChild() { ChildNode = newNode });
+                            }
+                            continue;
+                        }
                         var parent = parentNode ??
                             parentFile.Nodes.FirstOrDefault(p => p.ID.ID == child.ParentID.ID && p.ID.exID == child.ParentID.exID) ??
                             parentFile.Nodes.FirstOrDefault(p => p.ID.ID == child.ParentID.ID);
@@ -771,7 +796,9 @@ namespace ReeLib.Bhvt
 
             foreach (var add in additionalNodes.ToList()) {
                 var subs = add.MakeUnique(parentFile, parentNode, depthLimit);
-                if (subs == null) return null;
+                if (subs == null) {
+                    return null;
+                }
 
                 additionalNodes.AddRange(subs);
             }
@@ -783,6 +810,8 @@ namespace ReeLib.Bhvt
         {
             var node = new BHVTNode(Transitions.Version)
             {
+                ID = ID,
+                ParentID = ParentID,
                 Selector = Selector,
                 SelectorID = SelectorID,
                 Name = Name,

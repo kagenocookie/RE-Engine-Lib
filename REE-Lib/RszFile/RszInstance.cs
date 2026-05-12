@@ -211,7 +211,6 @@ namespace ReeLib
                     long stringStart = handler.Tell();
                     string value = charCount <= 1 ? "" : handler.ReadWString(charCount: charCount);
                     handler.Seek(stringStart + charCount * 2);
-                    // TODO checkOpenResource
                     return value;
                 }
                 case RszFieldType.RuntimeType:
@@ -243,9 +242,14 @@ namespace ReeLib
         {
             switch (field.type) {
                 case RszFieldType.String:
+                    {
+                        string valueStr = (string)value;
+                        return handler.Write(valueStr.Length + 1) && handler.WriteWString(valueStr);
+                    }
                 case RszFieldType.Resource:
                     {
                         string valueStr = (string)value;
+                        if (valueStr.Length == 0) return handler.Write(0);
                         return handler.Write(valueStr.Length + 1) && handler.WriteWString(valueStr);
                     }
                 case RszFieldType.RuntimeType:

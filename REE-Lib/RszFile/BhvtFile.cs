@@ -1208,34 +1208,9 @@ namespace ReeLib
 
             foreach (var node in Nodes)
             {
-                if (node.ParentID.IsUnset) continue;
-
-                var parent = node.Parent = nodeDict[(ulong)node.ParentID];
-                var parentNchild = parent.Children.Children.FindIndex(ch => (ulong)ch.ChildId == (ulong)node.ID);
-                if (parentNchild == -1)
-                {
-                    Log.Warn("Invalid BHVT node parent ID " + node.ParentID);
-                    continue;
-                }
-                parent.Children.Children[parentNchild].ChildNode = node;
-                var firstUnsetChildNodeIndex = parent.Children.Children.FindIndex(ch => ch.ChildNode == null);
-                if (firstUnsetChildNodeIndex != -1 && firstUnsetChildNodeIndex < parentNchild)
-                {
-                    // swap the NChild order so we can later more easily re-serialize in the same order
-                    // the flattened Nodes list order matters, but the children list's order doesn't seem to
-                    // maybe the ordering of the children list is different because of editor display shenanigans, or maybe it's just arbitrary and never re-sorted
-                    var tmp = parent.Children.Children[firstUnsetChildNodeIndex];
-                    parent.Children.Children[firstUnsetChildNodeIndex] = parent.Children.Children[parentNchild];
-                    parent.Children.Children[parentNchild] = tmp;
-                }
-            }
-
-            foreach (var node in Nodes)
-            {
                 foreach (var ch in node.Children.Children)
                 {
-                    // just in case any of the child nodes didn't get picked up in the first loop, try it again here
-                    if (ch.ChildNode == null) ch.ChildNode = nodeDict[(ulong)ch.ChildId];
+                    ch.ChildNode = nodeDict[(ulong)ch.ChildId];
 
                     if (ch.ConditionID.HasValue)
                     {

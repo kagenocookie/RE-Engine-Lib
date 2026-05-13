@@ -40,12 +40,19 @@ public class TypeCache
         "System.Object", "System.ValueType", "System.MulticastDelegate", "System.Delegate", "System.Array"
     };
 
-    public static Dictionary<string, Dictionary<string, JsonElement>> ParseEnumsInternal(string filepath)
+    public class EnumsInternalMetadata
     {
-        var data = new Dictionary<string, Dictionary<string, JsonElement>>();
-        Dictionary<string, JsonElement>? currentEnum = null;
+        public bool IsConfirmedFlags { get; set; }
+        public Dictionary<string, JsonElement> Entries { get; } = new();
+    }
+
+    public static Dictionary<string, EnumsInternalMetadata> ParseEnumsInternal(string filepath)
+    {
+        var data = new Dictionary<string, EnumsInternalMetadata>();
+        EnumsInternalMetadata? currentEnum = null;
         var lines = File.ReadAllLines(filepath);
         string? ns = null, name = null;
+        bool nextIsFlags = false;
         foreach (var line in lines) {
             var trimmed = line.AsSpan().Trim();
             if (trimmed.StartsWith("namespace ")) {
@@ -62,9 +69,16 @@ public class TypeCache
                 name = trimmed[("enum ".Length)..end].Trim().ToString();
                 var classname = ns + "." + name;
                 if (!data.TryGetValue(classname, out currentEnum)) {
-                    data[classname] = currentEnum = new Dictionary<string, JsonElement>();
+                    data[classname] = currentEnum = new EnumsInternalMetadata() { IsConfirmedFlags = nextIsFlags };
+                    nextIsFlags = false;
                 }
             } else if (!trimmed.StartsWith("}")) {
+                if (trimmed.StartsWith("//")) {
+                    if (trimmed.IndexOf("[Flags]") != -1) {
+                        nextIsFlags = true;
+                    }
+                    continue;
+                }
                 var eq = trimmed.IndexOf('=');
                 if (eq == -1 || currentEnum == null) {
                     throw new Exception("Invalid enums internal value entry at line " + line);
@@ -78,16 +92,16 @@ public class TypeCache
                 else value = trimmed[(eq + 1)..].Trim();
 
                 if (value.StartsWith("-")) {
-                    currentEnum[label.ToString()] = JsonSerializer.SerializeToElement(long.Parse(value));
+                    currentEnum.Entries[label.ToString()] = JsonSerializer.SerializeToElement(long.Parse(value));
                 } else {
-                    currentEnum[label.ToString()] = JsonSerializer.SerializeToElement(ulong.Parse(value));
+                    currentEnum.Entries[label.ToString()] = JsonSerializer.SerializeToElement(ulong.Parse(value));
                 }
             }
         }
         return data;
     }
 
-    public void ApplyIl2cppData(Il2cppDump data, Dictionary<string, Dictionary<string, JsonElement>>? enumsInternal)
+    public void ApplyIl2cppData(Il2cppDump data, Dictionary<string, EnumsInternalMetadata>? enumsInternal)
     {
         enums.Clear();
         foreach (var (name, enumData) in data) {

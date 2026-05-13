@@ -3,6 +3,7 @@ namespace ReeLib.Il2cpp;
 using System.Numerics;
 using System.Text.Json;
 using ReeLib;
+using ReeLib.Common;
 
 public abstract class EnumDescriptor
 {
@@ -41,12 +42,13 @@ public abstract class EnumDescriptor
         IsFlags = GuessIsFlags();
     }
 
-    public void SetupValues(Dictionary<string, JsonElement> valueDict)
+    public void SetupValues(TypeCache.EnumsInternalMetadata valueDict)
     {
-        foreach (var (k, v) in valueDict) {
+        foreach (var (k, v) in valueDict.Entries) {
             AddValue(k, v);
         }
-        IsFlags = GuessIsFlags();
+
+        IsFlags = valueDict.IsConfirmedFlags || GuessIsFlags();
     }
 
     public void ParseCacheData(IEnumerable<EnumCacheItem> pairs)

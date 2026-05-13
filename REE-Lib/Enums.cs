@@ -121,31 +121,6 @@ namespace ReeLib
         mhsto3,
     }
 
-
-    public enum GameVersion
-    {
-        unknown,
-        re7 = 1,
-        re2 = 2,
-        dmc5 = 3,
-        re3 = 4,
-        re8 = 5,
-        mhrise = 6,
-        re2rt = 7,
-        re3rt = re2rt,
-        re7rt = re2rt,
-        re4 = 8,
-        dd2 = re4,
-        mhwilds = re4,
-        sf6 = 9,
-        gtrick,
-        apollo,
-        kunitsu,
-        drdr,
-        pragmata,
-        re9,
-    }
-
     public enum KnownFileFormats
     {
         Unknown,

@@ -42,8 +42,8 @@ namespace ReeLib
 
         public RSZFile(RszFileOption option, FileHandler fileHandler) : base(option, fileHandler)
         {
-            Header.version = option.Version == GameVersion.re7 ? 3u
-                : option.Version <= GameVersion.dmc5 ? 8u
+            Header.version = option.Version == GameName.re7 ? 3u
+                : option.Version is GameName.re2 or GameName.dmc5 ? 8u
                 : 16u;
         }
 
@@ -524,14 +524,14 @@ namespace ReeLib
         public uint userPathHashRe7;
         public string? ClassName { get; set; }
 
-        public GameVersion Version;
+        public GameName Version;
 
         public InstanceInfo()
         {
-            Version = GameVersion.unknown;
+            Version = GameName.unknown;
         }
 
-        public InstanceInfo(GameVersion version)
+        public InstanceInfo(GameName version)
         {
             Version = version;
         }
@@ -541,7 +541,7 @@ namespace ReeLib
             handler.Read(ref typeId);
             handler.Read(ref CRC);
 
-            if (Version == GameVersion.re7) {
+            if (Version == GameName.re7) {
                 handler.Read(ref userPathHashRe7);
                 handler.Skip(4);
             }
@@ -553,7 +553,7 @@ namespace ReeLib
             handler.Write(typeId);
             handler.Write(CRC);
 
-            if (Version == GameVersion.re7) {
+            if (Version == GameName.re7) {
                 handler.Write(ref userPathHashRe7);
                 handler.Skip(4);
             }

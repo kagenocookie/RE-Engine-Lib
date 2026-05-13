@@ -32,20 +32,42 @@ namespace ReeLib.Bhvt
 
         public long referencePrefabGameObjectsOffset;
 
-        public GameVersion Version { get; set; }
+        public GameName Version { get; set; }
 
-        public Header(GameVersion version)
+        public Header(GameName version)
         {
             Version = version;
         }
 
+        internal static int ToBhvtVersion(string? filepath)
+        {
+            // map whatever external file format we're dealing with into a unified bhvt version id
+            // this way we can make consistent version checks for everything
+            var fmt = PathUtils.ParseFileFormat(filepath);
+            return fmt.format switch {
+                KnownFileFormats.BehaviorTree => fmt.version,
+                KnownFileFormats.Fsm2 => fmt.version,
+                KnownFileFormats.MotionFsm2 => fmt.version switch {
+                    >= 45 => fmt.version - 3, // re9/pragmata: 45 => bhvt 42
+                    >= 36 => fmt.version - 2, // re3: 36 => bhvt 34, sf6: 43 => bvht 41
+                    >= 31 => fmt.version - 1, // dmc5: 31 => bhvt 30
+                    _ => fmt.version, // re2: 30 => bhvt 30
+                },
+                // the tmlfsm2 version has so far been a concat of bhvt_version * 1000000 + clip_version * 1000 + tmlfsm2 version
+                // fall back to latest known version in case they randomly decide to break the pattern
+                KnownFileFormats.TimelineFsm2 => fmt.version >= 40000000 ? (fmt.version / 1000000) : 42,
+                _ => 41,
+            };
+        }
+
         protected override bool DoRead(FileHandler handler)
         {
+            var version = ToBhvtVersion(handler.FilePath);
             handler.Read(ref magic);
             handler.Read(ref hash);
-            if (Version >= GameVersion.pragmata) handler.ReadNull(4);
+            if (version >= 42) handler.ReadNull(4);
             handler.ReadRange(ref nodeOffset, ref resourcePathsOffset);
-            if (Version >= GameVersion.re3)
+            if (version >= 34)
             {
                 handler.Read(ref userdataPathsOffset);
             }
@@ -58,11 +80,12 @@ namespace ReeLib.Bhvt
 
         protected override bool DoWrite(FileHandler handler)
         {
+            var version = ToBhvtVersion(handler.FilePath);
             handler.Write(ref magic);
             handler.Write(ref hash);
-            if (Version >= GameVersion.pragmata) handler.WriteNull(4);
+            if (version >= 42) handler.WriteNull(4);
             handler.WriteRange(ref nodeOffset, ref resourcePathsOffset);
-            if (Version >= GameVersion.re3)
+            if (version >= 34)
             {
                 handler.Write(ref userdataPathsOffset);
             }
@@ -451,11 +474,11 @@ namespace ReeLib.Bhvt
     }
 
 
-    public class NTransitions(GameVersion version) : BaseModel
+    public class NTransitions(GameName version) : BaseModel
     {
         public List<NTransition> Transitions { get; } = [];
 
-        public GameVersion Version { get; } = version;
+        public GameName Version { get; } = version;
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -466,7 +489,7 @@ namespace ReeLib.Bhvt
             for (int i = 0; i < count; i++)
             {
                 var transition = new NTransition();
-                if (Version >= GameVersion.re3)
+                if (Version.RszHasUserdata())
                 {
                     var eventCount = handler.Read<int>();
                     transition.transitionEvents.ReadStructList(handler, eventCount);
@@ -491,12 +514,12 @@ namespace ReeLib.Bhvt
         {
             handler.Write(Transitions.Count);
             if (Transitions.Count == 0) return true;
-            var hasStartEx = Version >= GameVersion.re3;
+            var hasStartEx = Version.RszHasUserdata();
             uint[,] data = new uint[3, Transitions.Count];
             for (int i = 0; i < Transitions.Count; i++)
             {
                 var transition = Transitions[i];
-                if (Version >= GameVersion.re3)
+                if (Version.RszHasUserdata())
                 {
                     handler.Write(transition.transitionEvents.Count);
                     transition.transitionEvents.Write(handler);
@@ -582,7 +605,7 @@ namespace ReeLib.Bhvt
 
         public override string ToString() => $"[{ID}]  {(string.IsNullOrEmpty(Name) ? "-" : Name)}     C:{Children.Count} | S:{States.States.Count} | T:{Transitions.Transitions.Count}";
 
-        public BHVTNode(GameVersion version)
+        public BHVTNode(GameName version)
         {
             Transitions = new(version);
         }
@@ -1177,7 +1200,7 @@ namespace ReeLib
             foreach (var resource in resourceList) handler.WriteWString(resource.Path);
             handler.Write(stringStart - 4, (int)(handler.Tell() - stringStart) / 2);
 
-            if (Option.Version >= GameVersion.re3)
+            if (Option.Version.RszHasUserdata())
             {
                 List<UserdataInfo> userdataList = new();
                 foreach (var rsz in GetAllRSZFiles()) RszUtils.AddUserDataFromRsz(userdataList, rsz);
@@ -1473,7 +1496,7 @@ namespace ReeLib
                 }
             }
 
-            static BHVTId StoreRszObject(RszInstance? instance, RSZFile staticRsz, RSZFile nonStaticRsz, GameVersion version)
+            static BHVTId StoreRszObject(RszInstance? instance, RSZFile staticRsz, RSZFile nonStaticRsz, GameName version)
             {
                 if (instance == null) return (BHVTId)uint.MaxValue;
                 var rsz = ShouldBeStaticClass(instance.RszClass.name, version) ? staticRsz : nonStaticRsz;
@@ -1584,10 +1607,10 @@ namespace ReeLib
             }
         }
 
-        private static bool ShouldBeStaticClass(string classname, GameVersion game)
+        private static bool ShouldBeStaticClass(string classname, GameName game)
         {
             if (StaticClasses.Contains(classname)) return true;
-            if (game == GameVersion.dmc5) return Dmc5StaticClasses.Contains(classname);
+            if (game == GameName.dmc5) return Dmc5StaticClasses.Contains(classname);
             return false;
         }
 

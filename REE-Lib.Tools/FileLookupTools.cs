@@ -10,7 +10,7 @@ public class FileLookupTools
         public uint typeId;
         public uint CRC;
 
-        public InstanceInfo GetInstanceInfo() => new InstanceInfo(GameVersion.unknown) { typeId = typeId, CRC = CRC };
+        public InstanceInfo GetInstanceInfo() => new InstanceInfo(GameName.unknown) { typeId = typeId, CRC = CRC };
     }
 
     public static IEnumerable<InstanceInfoStruct>? GetRSZInstanceInfos(string filepath)

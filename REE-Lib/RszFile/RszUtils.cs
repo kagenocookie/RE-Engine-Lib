@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using ReeLib.Common;
 
 namespace ReeLib
@@ -110,5 +111,8 @@ namespace ReeLib
             resourcesInfos.Clear();
             ScanRszForResources(resourcesInfos, rsz);
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool RszHasUserdata(this GameName game) => game is not GameName.dmc5 and not GameName.re2 and not GameName.re7;
     }
 }

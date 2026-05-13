@@ -12,9 +12,9 @@ namespace ReeLib
         {
         }
 
-        public ResourceInfo(GameVersion version, bool isPfb)
+        public ResourceInfo(GameName version, bool isPfb)
         {
-            HasOffset = !(version == GameVersion.re7 || isPfb && (version is GameVersion.re2 or GameVersion.dmc5));
+            HasOffset = !(version == GameName.re7 || isPfb && (version is GameName.re2 or GameName.dmc5));
         }
 
         protected override bool DoRead(FileHandler handler)

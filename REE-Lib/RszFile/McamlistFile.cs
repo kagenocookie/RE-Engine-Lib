@@ -209,11 +209,11 @@ namespace ReeLib
 
             foreach (var motIndex in Motions)
             {
-                DataInterpretationException.DebugThrowIf(motIndex.extraClipCount > 0);
-                if (motIndex.motClipOffset > 0 && motIndex.extraClipCount > 0)
+                DataInterpretationException.DebugThrowIf(motIndex.overrideClipCount > 0);
+                if (motIndex.overrideClipOffset > 0 && motIndex.overrideClipCount > 0)
                 {
-                    handler.Seek(motIndex.motClipOffset);
-                    var headerOffsets = handler.ReadArray<long>(motIndex.extraClipCount);
+                    handler.Seek(motIndex.overrideClipOffset);
+                    var headerOffsets = handler.ReadArray<long>(motIndex.overrideClipCount);
                     foreach (var off in headerOffsets)
                     {
                         handler.Seek(off);
@@ -224,7 +224,7 @@ namespace ReeLib
                         }
                         var clip = new MotClip();
                         clip.Read(motclipHandler);
-                        motIndex.MotClips.Add(clip);
+                        motIndex.OverrideClips.Add(clip);
                     }
                 }
             }
@@ -280,25 +280,25 @@ namespace ReeLib
 
             foreach (var motIndex in Motions)
             {
-                if (motIndex.MotClips.Count != 0)
+                if (motIndex.OverrideClips.Count != 0)
                 {
                     handler.Align(8);
-                    motIndex.extraClipCount = (byte)motIndex.MotClips.Count;
-                    motIndex.motClipOffset = handler.Tell();
-                    handler.Skip(motIndex.extraClipCount * 8);
+                    motIndex.overrideClipCount = (byte)motIndex.OverrideClips.Count;
+                    motIndex.overrideClipOffset = handler.Tell();
+                    handler.Skip(motIndex.overrideClipCount * 8);
                     handler.Align(16);
-                    for (int i = 0; i < motIndex.MotClips.Count; ++i)
+                    for (int i = 0; i < motIndex.OverrideClips.Count; ++i)
                     {
-                        handler.Write(motIndex.motClipOffset + i * 8, handler.Tell());
+                        handler.Write(motIndex.overrideClipOffset + i * 8, handler.Tell());
                         var motclipHandler = handler;
                         if (header.version >= McamlistVersion.Pragmata)
                         {
                             motclipHandler = handler.WithOffset(handler.Tell());
                         }
-                        motIndex.MotClips[i].Write(motclipHandler);
+                        motIndex.OverrideClips[i].Write(motclipHandler);
                     }
 
-                    handler.Write(motIndex.Start, motIndex.motClipOffset);
+                    handler.Write(motIndex.Start, motIndex.overrideClipOffset);
                     motIndex.Rewrite(handler);
                 }
             }

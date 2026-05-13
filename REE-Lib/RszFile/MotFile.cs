@@ -2171,19 +2171,20 @@ namespace ReeLib.Mot
     {
         internal long clipOffset;
         internal long endClipStructsRelocation;
-        public int lastTrackIndex; // 99.9% of the time equal to last track index
-        public int mainTrackIndex = 1; // always equal to 1 (first non-root track)
-        public byte[] uknBytes28 = new byte[28];
+        internal int tracksDataCount;
+        public int useFlags = 1;
+        public int category;
+        public byte[] uknBytes = new byte[24];
         public EmbeddedClip ClipEntry { get; set; } = new();
-        public EndClipStruct[]? EndClipStructs { get; set; }
+        public TracksData[]? TrackData { get; set; }
 
         public string MainTrackName
         {
             get
             {
                 if (ClipEntry == null) return "";
-                if (ClipEntry.Tracks.Count <= mainTrackIndex) return "";
-                return ClipEntry.Tracks[mainTrackIndex].Name;
+                if (ClipEntry.Tracks.Count <= 1) return "";
+                return ClipEntry.Tracks[1].Name;
             }
         }
 
@@ -2193,46 +2194,49 @@ namespace ReeLib.Mot
             handler.Read(ref clipOffset);
             handler.Read(ref endClipStructsRelocation);
             handler.ReadNull(4);
-            handler.Read(ref lastTrackIndex);
-            handler.Read(ref mainTrackIndex);
-            handler.ReadBytes(uknBytes28);
+            handler.Read(ref tracksDataCount);
+            handler.Read(ref useFlags);
+            handler.Read(ref category);
+            handler.ReadBytes(uknBytes);
 
             ClipEntry.Read(handler);
-            if (ClipEntry.Header.version > ClipVersion.RE7 && ClipEntry.Header.trackCount > 1)
+            if (ClipEntry.Header.version > ClipVersion.RE7 && tracksDataCount > 0)
             {
                 handler.Seek(endClipStructsRelocation);
-                EndClipStructs = new EndClipStruct[ClipEntry.Header.trackCount - 1];
-                for (int i = 0; i < ClipEntry.Header.trackCount - 1; ++i)
+                TrackData = new TracksData[tracksDataCount];
+                for (int i = 0; i < tracksDataCount; ++i)
                 {
-                    EndClipStructs[i] = new EndClipStruct() { Version = ClipEntry.Header.version };
-                    EndClipStructs[i].Read(handler);
+                    TrackData[i] = new TracksData() { Version = ClipEntry.Header.version };
+                    TrackData[i].Read(handler);
                 }
             }
-            DataInterpretationException.ThrowIfDifferent(mainTrackIndex, 1);
+            DataInterpretationException.ThrowIfDifferent(useFlags, 1);
 
             return true;
         }
 
         protected override bool DoWrite(FileHandler handler)
         {
+            tracksDataCount = TrackData?.Length ?? 0;
             handler.WriteNull(8);
             handler.Write(ref clipOffset);
             handler.Write(ref endClipStructsRelocation);
             handler.WriteNull(4);
-            handler.Write(ref lastTrackIndex);
-            handler.Write(ref mainTrackIndex);
-            handler.WriteBytes(uknBytes28);
+            handler.Write(ref tracksDataCount);
+            handler.Write(ref useFlags);
+            handler.Write(ref category);
+            handler.WriteBytes(uknBytes);
 
             clipOffset = handler.Tell();
             ClipEntry.Write(handler);
 
-            if (ClipEntry.Header.version > ClipVersion.RE7 && ClipEntry.Header.trackCount > 1)
+            if (ClipEntry.Header.version > ClipVersion.RE7 && tracksDataCount > 0)
             {
                 handler.Align(16);
                 endClipStructsRelocation = handler.Tell();
-                for (int i = 0; i < EndClipStructs!.Length; ++i)
+                for (int i = 0; i < TrackData!.Length; ++i)
                 {
-                    EndClipStructs[i].Write(handler);
+                    TrackData[i].Write(handler);
                 }
             }
             handler.Write(Start + 8, clipOffset);

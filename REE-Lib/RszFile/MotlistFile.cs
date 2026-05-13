@@ -24,6 +24,16 @@ namespace ReeLib.Motlist
         Pragmata = 1057,
     }
 
+    [Flags]
+    public enum MotListElementFlags : byte
+    {
+        Mirror = 1,
+        LocalTree = 2,
+        Reverse = 4,
+        RefPath = 8,
+        SeqOnly = 128,
+    }
+
     public static class MotlistExtensions
     {
         public static MotVersion GetMotVersion(this MotlistVersion motlist) => motlist switch {
@@ -176,20 +186,20 @@ namespace ReeLib.Motlist
 
     public class MotIndex : BaseModel
     {
-        public long motClipOffset;  // may point to MotClip
+        internal long overrideClipOffset;
         public ushort motNumber;
         public ushort Switch;
 
-        public uint uknData1;
-        public uint uknData2;
-        public byte uknCount1 = 1; // seems to be 1 for most of the files, setting it as default for now
-        public byte ukn2;
-        public byte ukn3;
-        public byte extraClipCount;
+        public uint jointMaskId;
+        public uint tagHash;
+        public byte type = 1; // seems to be 1 for most of the files, setting it as default for now
+        public MotListElementFlags flags;
+        public byte physicsFlags;
+        internal byte overrideClipCount;
         public uint[] data;
 
         public MotFileBase? MotFile { get; set; }
-        public List<MotClip> MotClips { get; set; } = new (0);
+        public List<MotClip> OverrideClips { get; set; } = new (0);
 
         public MotlistVersion Version { get; set; }
 
@@ -208,40 +218,40 @@ namespace ReeLib.Motlist
 
         protected override bool DoRead(FileHandler handler)
         {
-            if (Version > MotlistVersion.RE7) handler.Read(ref motClipOffset);
+            if (Version > MotlistVersion.RE7) handler.Read(ref overrideClipOffset);
             handler.Read(ref motNumber);
             handler.Read(ref Switch);
             if (Version >= MotlistVersion.RE8)
             {
-                handler.Read(ref uknData1);
-                handler.Read(ref uknData2);
-                handler.Read(ref uknCount1);
-                handler.Read(ref ukn2);
-                handler.Read(ref ukn3);
-                handler.Read(ref extraClipCount);
+                handler.Read(ref jointMaskId);
+                handler.Read(ref tagHash);
+                handler.Read(ref type);
+                handler.Read(ref flags);
+                handler.Read(ref physicsFlags);
+                handler.Read(ref overrideClipCount);
                 data = handler.ReadArray<uint>(UnknownDataCount);
             }
             else if (Version > MotlistVersion.RE7)
             {
                 data = handler.ReadArray<uint>(UnknownDataCount);
-                extraClipCount = (byte)(motClipOffset > 0 ? 1 : 0);
+                overrideClipCount = (byte)(overrideClipOffset > 0 ? 1 : 0);
             }
             return true;
         }
 
         protected override bool DoWrite(FileHandler handler)
         {
-            if (Version > MotlistVersion.RE7) handler.Write(ref motClipOffset);
+            if (Version > MotlistVersion.RE7) handler.Write(ref overrideClipOffset);
             handler.Write(ref motNumber);
             handler.Write(ref Switch);
             if (Version >= MotlistVersion.RE8)
             {
-                handler.Write(ref uknData1);
-                handler.Write(ref uknData2);
-                handler.Write(ref uknCount1);
-                handler.Write(ref ukn2);
-                handler.Write(ref ukn3);
-                handler.Write(ref extraClipCount);
+                handler.Write(ref jointMaskId);
+                handler.Write(ref tagHash);
+                handler.Write(ref type);
+                handler.Write(ref flags);
+                handler.Write(ref physicsFlags);
+                handler.Write(ref overrideClipCount);
                 handler.WriteArray(data);
             }
             else if (Version > MotlistVersion.RE7)
@@ -251,7 +261,7 @@ namespace ReeLib.Motlist
             return true;
         }
 
-        public override string ToString() => $"[MotID {motNumber}] [Motion: {MotFile?.ToString() ?? "-- "}] {(MotClips.Count == 0 ? "" : $"[ExtraClips: {MotClips.Count}]")}";
+        public override string ToString() => $"[MotID {motNumber}] [Motion: {MotFile?.ToString() ?? "-- "}] {(OverrideClips.Count == 0 ? "" : $"[ExtraClips: {OverrideClips.Count}]")}";
     }
 
     public class MotFileLink(FileHandler handler) : MotFileBase(handler)
@@ -385,10 +395,10 @@ namespace ReeLib
 
             foreach (var motIndex in Motions)
             {
-                if (motIndex.motClipOffset > 0 && motIndex.extraClipCount > 0)
+                if (motIndex.overrideClipOffset > 0 && motIndex.overrideClipCount > 0)
                 {
-                    handler.Seek(motIndex.motClipOffset);
-                    var headerOffsets = handler.ReadArray<long>(motIndex.extraClipCount);
+                    handler.Seek(motIndex.overrideClipOffset);
+                    var headerOffsets = handler.ReadArray<long>(motIndex.overrideClipCount);
                     foreach (var off in headerOffsets)
                     {
                         handler.Seek(off);
@@ -399,7 +409,7 @@ namespace ReeLib
                         }
                         var clip = new MotClip();
                         clip.Read(motclipHandler);
-                        motIndex.MotClips.Add(clip);
+                        motIndex.OverrideClips.Add(clip);
                     }
                 }
             }
@@ -471,25 +481,25 @@ namespace ReeLib
 
             foreach (var motIndex in Motions)
             {
-                if (motIndex.MotClips.Count != 0)
+                if (motIndex.OverrideClips.Count != 0)
                 {
                     handler.Align(8);
-                    motIndex.extraClipCount = (byte)motIndex.MotClips.Count;
-                    motIndex.motClipOffset = handler.Tell();
-                    handler.Skip(motIndex.extraClipCount * 8);
+                    motIndex.overrideClipCount = (byte)motIndex.OverrideClips.Count;
+                    motIndex.overrideClipOffset = handler.Tell();
+                    handler.Skip(motIndex.overrideClipCount * 8);
                     handler.Align(16);
-                    for (int i = 0; i < motIndex.MotClips.Count; ++i)
+                    for (int i = 0; i < motIndex.OverrideClips.Count; ++i)
                     {
-                        handler.Write(motIndex.motClipOffset + i * 8, handler.Tell());
+                        handler.Write(motIndex.overrideClipOffset + i * 8, handler.Tell());
                         var motclipHandler = handler;
                         if (header.version >= MotlistVersion.MHWILDS)
                         {
                             motclipHandler = handler.WithOffset(handler.Tell());
                         }
-                        motIndex.MotClips[i].Write(motclipHandler);
+                        motIndex.OverrideClips[i].Write(motclipHandler);
                     }
 
-                    handler.Write(motIndex.Start, motIndex.motClipOffset);
+                    handler.Write(motIndex.Start, motIndex.overrideClipOffset);
                     motIndex.Rewrite(handler);
                 }
             }

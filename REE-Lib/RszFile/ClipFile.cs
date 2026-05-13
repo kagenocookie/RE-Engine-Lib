@@ -1132,47 +1132,47 @@ namespace ReeLib.Clip
     }
 
 
-    public class EndClipStruct : BaseModel
+    public class TracksData : BaseModel
     {
-        public int ukn = -1;
+        public int id = -1;
         // these values could be byte flags of some sort, no idea
-        public uint ukn1;
-        public uint ukn2;
-        public uint ukn3;
-        public uint ukn4;
-        public uint ukn5;
-        public uint ukn6;
+        public uint filter0;
+        public uint filter1;
+        public uint filter2;
+        public uint invalidFilter0;
+        public uint invalidFilter1;
+        public uint invalidFilter2;
 
         public ClipVersion Version;
 
-        public override string ToString() => $"{ukn} {ukn1} {ukn2} {ukn3}";
+        public override string ToString() => $"{id} {filter0} {filter1} {filter2}";
 
         protected override bool DoRead(FileHandler handler)
         {
-            handler.Read(ref ukn);
-            handler.Read(ref ukn1);
-            handler.Read(ref ukn2);
-            handler.Read(ref ukn3);
+            handler.Read(ref id);
+            handler.Read(ref filter0);
+            handler.Read(ref filter1);
+            handler.Read(ref filter2);
             if (Version >= ClipVersion.RE8)
             {
-                handler.Read(ref ukn4);
-                handler.Read(ref ukn5);
-                handler.Read(ref ukn6);
+                handler.Read(ref invalidFilter0);
+                handler.Read(ref invalidFilter1);
+                handler.Read(ref invalidFilter2);
             }
             return true;
         }
 
         protected override bool DoWrite(FileHandler handler)
         {
-            handler.Write(ref ukn);
-            handler.Write(ref ukn1);
-            handler.Write(ref ukn2);
-            handler.Write(ref ukn3);
+            handler.Write(ref id);
+            handler.Write(ref filter0);
+            handler.Write(ref filter1);
+            handler.Write(ref filter2);
             if (Version >= ClipVersion.RE8)
             {
-                handler.Write(ref ukn4);
-                handler.Write(ref ukn5);
-                handler.Write(ref ukn6);
+                handler.Write(ref invalidFilter0);
+                handler.Write(ref invalidFilter1);
+                handler.Write(ref invalidFilter2);
             }
             return true;
         }

@@ -20,11 +20,13 @@ namespace ReeLib.Jmap
         internal long extraJointsOffset;
         internal long ikMotionDataOffset;
         internal long symmetryDataOffset;
-        internal long extraHashesOffset;
+        internal long skeletonMaskDataPtr;
+        internal long symmetryData2Offset;
 
         public uint attributeFlags;
         internal ushort boneCount;
         internal ushort jointMaskGroupCount;
+        internal byte ikMotionCount;
 
         protected override bool ReadWrite<THandler>(THandler action)
         {
@@ -44,12 +46,17 @@ namespace ReeLib.Jmap
 
             if (version >= 17)
             {
+                if (version >= 28) action.Null(8);
                 action.Do(ref ikMotionDataOffset);
                 action.Do(ref symmetryDataOffset);
-                if (version >= 19) action.Do(ref extraHashesOffset);
-                if (version >= 28) action.Null(6 * 8);
+                if (version >= 28) {
+                    action.Do(ref symmetryData2Offset);
+                    action.Null(4 * 8);
+                }
+                if (version >= 19) action.Do(ref skeletonMaskDataPtr);
                 action.Do(ref attributeFlags);
                 action.Do(ref jointMaskGroupCount);
+                action.Do(ref ikMotionCount);
             }
             else
             {
@@ -62,6 +69,15 @@ namespace ReeLib.Jmap
 
             return true;
         }
+    }
+
+    [Flags]
+    public enum JointMapAttributes
+    {
+        Deform = 1,
+        JointWeight = 2,
+        Attr3 = 4,
+        Attr4 = 8,
     }
 
     [RszGenerate, RszAutoReadWrite]
@@ -82,39 +98,22 @@ namespace ReeLib.Jmap
     [RszGenerate]
     public partial class JointMaskGroup : BaseModel
     {
-        public long jointNameHashOffset;
-        public long masksOffset;
+        internal long jointNameHashOffset;
+        internal long masksOffset;
         [RszConditional("handler.FileVersion >= 17")]
-        public long weightsOffset;
+        internal long weightsOffset;
         public uint groupId;
-        public ushort jointCount;
-        public ushort empty;
-        [RszIgnore]
-        public uint[]? jointHashes;
-        [RszIgnore]
-        public byte[]? masks;
-        [RszIgnore]
-        public float[]? weights;
+        [RszPaddingAfter(2)]
+        internal ushort jointCount;
+
+        [field: RszIgnore]
+        public List<JointMask> Masks { get; } = new();
 
         protected override bool DoRead(FileHandler handler)
         {
             DefaultRead(handler);
             var pos = handler.Tell();
-            if (jointNameHashOffset > 0)
-            {
-                handler.Seek(jointNameHashOffset);
-                jointHashes = handler.ReadArray<uint>(jointCount);
-            }
-            if (masksOffset > 0)
-            {
-                handler.Seek(masksOffset);
-                masks = handler.ReadArray<byte>(jointCount);
-            }
-            if (weightsOffset > 0)
-            {
-                handler.Seek(weightsOffset);
-                weights = handler.ReadArray<float>(jointCount);
-            }
+            ReadData(handler);
             handler.Seek(pos);
             return true;
         }
@@ -127,29 +126,70 @@ namespace ReeLib.Jmap
             return DefaultWrite(handler);
         }
 
+        private void ReadData(FileHandler handler)
+        {
+            Masks.Clear();
+            for (int i = 0; i < jointCount; i++) {
+                Masks.Add(new JointMask());
+            }
+            if (jointNameHashOffset > 0) {
+                handler.Seek(jointNameHashOffset);
+                for (int i = 0; i < jointCount; i++) {
+                    handler.Read(ref Masks[i].jointHash);
+                }
+            }
+            if (masksOffset > 0) {
+                handler.Seek(masksOffset);
+                for (int i = 0; i < jointCount; i++) {
+                    handler.Read(ref Masks[i].mask);
+                }
+            }
+            if (weightsOffset > 0) {
+                handler.Seek(weightsOffset);
+                for (int i = 0; i < jointCount; i++) {
+                    handler.Read(ref Masks[i].weight);
+                }
+            }
+            DataInterpretationException.DebugWarnIf(jointNameHashOffset == 0);
+            DataInterpretationException.DebugWarnIf(masksOffset == 0);
+        }
+
         public void WriteData(FileHandler handler)
         {
-            if (jointHashes != null)
-            {
-                handler.Align(16);
-                handler.Write(Start + 0, jointNameHashOffset = handler.Tell());
-                handler.WriteArray(jointHashes);
+            var hasWeights = false;
+            handler.Align(16);
+            handler.Write(Start + 0, jointNameHashOffset = handler.Tell());
+            foreach (var mask in Masks) {
+                handler.Write(mask.jointHash);
+                hasWeights |= mask.weight != 0;
             }
-            if (masks != null)
-            {
-                handler.Align(16);
-                handler.Write(Start + 8, masksOffset = handler.Tell());
-                handler.WriteArray(masks);
+
+            handler.Align(16);
+            handler.Write(Start + 8, masksOffset = handler.Tell());
+            foreach (var mask in Masks) {
+                handler.Write(mask.mask);
             }
-            if (weights != null)
+
+            if (hasWeights)
             {
                 handler.Align(16);
                 handler.Write(Start + 16, weightsOffset = handler.Tell());
-                handler.WriteArray(weights);
+                foreach (var mask in Masks) {
+                    handler.Write(mask.weight);
+                }
             }
         }
 
         public override string ToString() => $"MaskGroup {groupId}";
+    }
+
+    public class JointMask
+    {
+        public int jointHash;
+        public byte mask;
+        public float weight;
+
+        public override string ToString() => $"[{jointHash}] {mask} (w = {weight})";
     }
 
     /// <summary>
@@ -421,10 +461,27 @@ namespace ReeLib.Jmap
     {
         public uint ikJointNameHash;
         public uint fkJointNameHash;
-        public byte ikType;
-        public char descendantLevelFromIkHandle;
-        public byte ikDirection;
-        public byte ikUpvector;
+        public IkType ikType;
+        public byte descendantLevelFromIkHandle;
+        public AxisDirection ikDirection;
+        public AxisDirection ikUpvector;
+    }
+
+    public enum IkType : byte
+    {
+        TwoBone = 0,
+        ThreeBoneTypeC = 1,
+    }
+
+    public enum AxisDirection : byte
+    {
+        Undef = 0,
+        X = 1,
+        Y = 2,
+        Z = 3,
+        NX = 5,
+        NY = 6,
+        NZ = 7,
     }
 
     public partial class SymmetryMirrorData : BaseModel
@@ -459,7 +516,7 @@ namespace ReeLib.Jmap
         }
     }
 
-    public partial class ExtraHashData : BaseModel
+    public partial class SkeletonMaskData : BaseModel
     {
         public uint[] hashes = [];
 
@@ -493,9 +550,10 @@ namespace ReeLib
         public List<JointMaskGroup> MaskGroups { get; } = new();
         public ExtraJointGroupContainer ExtraJointGroups { get; } = new();
         public ExtraJoints ExtraJoints { get; } = new();
-        public IkMotionData IkMotionData { get; } = new();
+        public List<IkMotionData> IkMotionData { get; } = new();
         public SymmetryMirrorData SymmetryData { get; } = new();
-        public ExtraHashData ExtraHashes { get; } = new();
+        public SymmetryMirrorData SymmetryData2 { get; } = new();
+        public SkeletonMaskData SkeletonMaskData { get; } = new();
 
         public const int Magic = 0x70616D6A;
 
@@ -509,6 +567,7 @@ namespace ReeLib
             var version = handler.FileVersion;
 
             Joints.Clear();
+            IkMotionData.Clear();
             if (version <= 11)
             {
                 handler.Seek(Header.bonesOffset);
@@ -540,22 +599,28 @@ namespace ReeLib
                 ExtraJoints.Read(handler);
             }
 
-            if (Header.ikMotionDataOffset > 0)
+            if (Header.ikMotionDataOffset > 0 && Header.ikMotionCount > 0)
             {
                 handler.Seek(Header.ikMotionDataOffset);
-                IkMotionData.Read(handler);
+                IkMotionData.Read(handler, Header.ikMotionCount);
             }
 
-            if (Header.symmetryDataOffset > 0 && Header.symmetryDataOffset < handler.FileSize())
+            if (Header.symmetryDataOffset > 0)
             {
                 handler.Seek(Header.symmetryDataOffset);
                 SymmetryData.Read(handler);
             }
 
-            if (Header.extraHashesOffset > 0)
+            if (Header.skeletonMaskDataPtr > 0)
             {
-                handler.Seek(Header.extraHashesOffset);
-                ExtraHashes.Read(handler);
+                handler.Seek(Header.skeletonMaskDataPtr);
+                SkeletonMaskData.Read(handler);
+            }
+
+            if (Header.symmetryData2Offset > 0)
+            {
+                handler.Seek(Header.symmetryData2Offset);
+                SymmetryData2.Read(handler);
             }
 
             return true;
@@ -565,6 +630,7 @@ namespace ReeLib
         {
             var handler = FileHandler;
             var version = FileHandler.FileVersion;
+            Header.ikMotionCount = (byte)IkMotionData.Count;
             Header.Write(handler);
 
             if (version <= 11)
@@ -612,8 +678,14 @@ namespace ReeLib
                 SymmetryData.Write(handler);
 
                 handler.Align(16);
-                Header.extraHashesOffset = handler.Tell();
-                ExtraHashes.Write(handler);
+                Header.skeletonMaskDataPtr = handler.Tell();
+                SkeletonMaskData.Write(handler);
+
+                if (version >= 28) {
+                    handler.Align(16);
+                    Header.symmetryData2Offset = handler.Tell();
+                    SymmetryData2.Write(handler);
+                }
             }
 
             handler.StringTableFlush();

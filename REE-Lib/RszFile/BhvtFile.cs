@@ -1306,20 +1306,16 @@ namespace ReeLib
 
                     foreach (var act in node.Actions.Actions)
                     {
-                        if (actionsDict.Remove(act.Action, out var instance)) {
+                        if (actionsDict.TryGetValue(act.Action, out var instance)) {
                             act.Instance = instance;
                             DataInterpretationException.DebugWarnIf(ShouldBeStaticClass(instance.RszClass.name, version), instance.RszClass.name);
-                        } else if (staticActionsDict.Remove(act.Action, out instance)) {
+                        } else if (staticActionsDict.TryGetValue(act.Action, out instance)) {
                             act.Instance = instance;
                             DataInterpretationException.DebugWarnIf(!ShouldBeStaticClass(instance.RszClass.name, version), instance.RszClass.name);
                         } else {
                             throw new InvalidDataException("BHVT file missing action ID " + act.Action);
                         }
                     }
-                }
-
-                if (actionsDict.Count > 0 || staticActionsDict.Count > 0) {
-                    Log.Warn("Some actions weren't able to be resolved. Expect data loss on resave!");
                 }
             }
             else

@@ -33,6 +33,9 @@ namespace ReeLib.Common
         {
             var dict = JsonSerializer.Deserialize<JsonObject>(ref reader, options);
             if (dict?.Remove("$type", out var classnameField) != true || classnameField?.GetValue<string>() is not string classname) {
+                if (dict?.TryGetPropertyValue("path", out var userPath) == true && userPath?.GetValue<string>().StartsWith("assets:") == true) {
+                    return DeserializeUserdata(dict);
+                }
                 throw new Exception("Missing $type property in JSON for RSZ instance");
             }
             var cls = env.RszParser.GetRSZClass(classname!) ?? throw new Exception("Can't deserialize unknown RSZ class ");

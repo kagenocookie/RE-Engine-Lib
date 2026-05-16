@@ -233,7 +233,6 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
 
             var format = FileFormatExtensions.ExtensionHashToEnum(MurMur3HashUtils.GetHash(ext));
 
-
             var suffixes = IsLocalizableFormat(format) ? FileSuffixesLocalized : FileSuffixes;
             var foundNewFile = false;
             var matchesExisting = false;
@@ -364,7 +363,8 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
 
 
     private static readonly SearchValues<char> PathyChars = SearchValues.Create("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _-.:@\\/");
-    private static readonly SearchValues<char> Numeric = SearchValues.Create("0123456789-");
+    private static readonly SearchValues<char> Numeric = SearchValues.Create("0123456789");
+    private static readonly SearchValues<char> ExtensionChars = SearchValues.Create("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789");
 
     private static bool IsPathyCharacter(char ch) => PathyChars.Contains(ch);
 
@@ -380,7 +380,7 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
         if (!hasSlash) return false;
 
         var ext = PathUtils.GetExtensionWithoutPeriod(str.AsSpan());
-        if (ext.IsEmpty || ext.Length > MaxExtensionLength || !ext.ContainsAnyExcept(Numeric) || IgnoreExtHashes.Contains(MurMur3HashUtils.GetHash(ext))) return false;
+        if (ext.Length <= 1 || ext.Length > MaxExtensionLength || !ext.ContainsAnyExcept(Numeric) || ext.ContainsAnyExcept(ExtensionChars) || IgnoreExtHashes.Contains(MurMur3HashUtils.GetHash(ext))) return false;
         return true;
     }
 

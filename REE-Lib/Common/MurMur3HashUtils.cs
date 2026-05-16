@@ -27,10 +27,8 @@ namespace ReeLib.Common
                     1 => bytes[i],
                     _ => 0
                 };
-                k1 *= c1;
-                k1 = BitOperations.RotateLeft(k1, 15);
-                k1 *= c2;
-                h1 ^= k1;
+                k1 = BitOperations.RotateLeft(k1 * c1, 15);
+                h1 ^= k1 * c2;
                 if (chunkLength == 4)
                 {
                     h1 = BitOperations.RotateLeft(h1, 13);
@@ -38,10 +36,68 @@ namespace ReeLib.Common
                 }
             }
 
-            h1 ^= (uint)bytes.Length;
-            h1 = Fmix(h1);
+            h1 = Fmix(h1 ^ (uint)bytes.Length);
 
             return h1;
+        }
+
+        /// <summary>
+        /// Extra optimized method for calculating the PAK hash of a UTF16 file path string. Assumes no non-ascii base characters.
+        /// </summary>
+        public static ulong PakFilepathHash(ReadOnlySpan<char> path)
+        {
+            const uint c1 = 0xcc9e2d51;
+            const uint c2 = 0x1b873593;
+            const uint seed = 0xffffffff;
+
+            uint hLow = seed;
+            uint hHigh = seed;
+            uint kLow;
+            uint kHigh;
+
+            var bytes = MemoryMarshal.AsBytes(path);
+            var byteCount = bytes.Length;
+            Span<byte> bufLow = stackalloc byte[byteCount];
+            Span<byte> bufHigh = stackalloc byte[byteCount];
+            Ascii.ToLower(bytes, bufLow, out _);
+            Ascii.ToUpper(bytes, bufHigh, out _);
+
+            int i = 0;
+            while (byteCount - i >= 4) {
+                kLow = (uint)(bufLow[i] | (bufLow[i + 2] << 16)) * c1;
+                kHigh = (uint)(bufHigh[i] | (bufHigh[i + 2] << 16)) * c1;
+                hLow ^= BitOperations.RotateLeft(kLow, 15) * c2;
+                hHigh ^= BitOperations.RotateLeft(kHigh, 15) * c2;
+
+                hLow = BitOperations.RotateLeft(hLow, 13) * 5 + 0xe6546b64;
+                hHigh = BitOperations.RotateLeft(hHigh, 13) * 5 + 0xe6546b64;
+                i += 4;
+            }
+
+            if (byteCount - i == 2) {
+                kLow = (uint)(bufLow[i]) * c1;
+                kHigh = (uint)(bufHigh[i]) * c1;
+                hLow ^= BitOperations.RotateLeft(kLow, 15) * c2;
+                hHigh ^= BitOperations.RotateLeft(kHigh, 15) * c2;
+            }
+
+            hLow = Fmix(hLow ^ (uint)byteCount);
+            hHigh = Fmix(hHigh ^ (uint)byteCount);
+            return (ulong)hHigh << 32 | hLow;
+        }
+
+        /// <summary>
+        /// Calculate the PAK hash (lowercase + uppercase hash) of a UTF16 file path string. Works with non-ascii characters, but is about 50% slower than <see cref="PakFilepathHash"/>.
+        /// </summary>
+        public static ulong PakFilepathHash_SafeUTF16(ReadOnlySpan<char> path)
+        {
+            Span<char> strLow = stackalloc char[path.Length];
+            Span<char> strHigh = stackalloc char[path.Length];
+            path.ToLowerInvariant(strLow);
+            path.ToUpperInvariant(strHigh);
+            var hLow = GetHash(strLow);
+            var hHigh = GetHash(strHigh);
+            return (ulong)hHigh << 32 | hLow;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

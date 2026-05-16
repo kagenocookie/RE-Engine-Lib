@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Text.RegularExpressions;
 using ReeLib.Common;
 
@@ -7,7 +8,7 @@ public class ListFileWrapper
 {
     public string[] Files { get; private set; } = Array.Empty<string>();
 
-    private Dictionary<string, string[]> folderListCache = new();
+    private Dictionary<ulong, string[]> folderListCache = new();
 
     private PathFilter? _filter;
 
@@ -94,7 +95,7 @@ public class ListFileWrapper
             var line = f.ReadLine();
             if (!string.IsNullOrWhiteSpace(line)) {
                 var norm = NormalizePath(line);
-                isCorrectPlatform ??= norm.StartsWith(platformPrefix!);
+                isCorrectPlatform ??= norm.StartsWith(platformPrefix!, StringComparison.OrdinalIgnoreCase);
                 if (isCorrectPlatform == false) {
                     norm = PathUtils.SwapPlatformPrefix(norm, platform);
                 }
@@ -105,12 +106,13 @@ public class ListFileWrapper
         Files = list.ToArray();
     }
 
-    public bool FileExists(string path) => Array.BinarySearch(Files, path) >= 0;
+    public bool FileExists(string path) => Array.BinarySearch(Files, path, CaseInsensitiveComparer.DefaultInvariant) >= 0;
+
     public IEnumerable<string> GetFileExtensionVariants(string path)
     {
         path = PathUtils.GetFilepathWithoutSuffixes(path).ToString();
         path = NormalizePath(path).ToLowerInvariant();
-        var index = Array.BinarySearch(Files, path);
+        var index = Array.BinarySearch(Files, path, CaseInsensitiveComparer.DefaultInvariant);
         if (index < 0) {
             index = ~index;
             if (index >= Files.Length || !Files[index].StartsWith(path)) yield break;
@@ -141,7 +143,7 @@ public class ListFileWrapper
     public string[] FilterAllFiles(string pattern)
     {
         pattern = pattern.ToLowerInvariant().Trim();
-        var cacheKey = pattern.ToLowerInvariant();
+        var cacheKey = MurMur3HashUtils.PakFilepathHash(pattern);
         if (folderListCache.TryGetValue(cacheKey, out var names)) {
             return names;
         }
@@ -273,11 +275,10 @@ public class ListFileWrapper
     public string[] GetFilesInFolder(string folder)
     {
         folder = NormalizePath(folder);
-        var lower = folder.ToLowerInvariant();
-        if (string.IsNullOrEmpty(lower)) {
+        if (string.IsNullOrEmpty(folder)) {
             return GetFolderFileNames(string.Empty);
         }
-        return GetFolderFileNames(lower);
+        return GetFolderFileNames(folder);
     }
 
     private string[] GetFolderFileNames(string folderNormalized)
@@ -285,18 +286,18 @@ public class ListFileWrapper
         if (folderNormalized.EndsWith('/')) {
             folderNormalized = folderNormalized[..^1];
         }
-        if (folderListCache.TryGetValue(folderNormalized, out var names)) {
+        var cacheKey = MurMur3HashUtils.PakFilepathHash(folderNormalized);
+        if (folderListCache.TryGetValue(cacheKey, out var names)) {
             return names;
         }
 
-        var cacheKey = folderNormalized;
-        var startIndex = Array.BinarySearch(Files, folderNormalized);
+        var startIndex = Array.BinarySearch(Files, folderNormalized, CaseInsensitiveComparer.DefaultInvariant);
         if (startIndex < 0 && folderNormalized.Length > 0 && !folderNormalized.EndsWith('/')) {
             folderNormalized += "/";
-            startIndex = Array.BinarySearch(Files, folderNormalized);
+            startIndex = Array.BinarySearch(Files, folderNormalized, CaseInsensitiveComparer.DefaultInvariant);
         }
         if (startIndex >= 0) {
-            return folderListCache[folderNormalized] = names = [folderNormalized];
+            return folderListCache[cacheKey] = names = [folderNormalized];
         } else {
             startIndex = ~startIndex;
             if (startIndex > Files.Length) return [];
@@ -314,9 +315,9 @@ public class ListFileWrapper
         int endIndex = startIndex + 1;
         while (endIndex < count) {
             var next = Files[endIndex++];
-            if (!next.StartsWith(folderNormalized)) break;
+            if (!next.StartsWith(folderNormalized, StringComparison.OrdinalIgnoreCase)) break;
             // possible optimization: use binary search to find the next non-matching entry instead of doing sequential iteration
-            if ((list.Count == 0 || !next.StartsWith(list.Last()) || next.Length > list.Last().Length && next[list.Last().Length] != '/') && Filter?.Invoke(next) != false) {
+            if ((list.Count == 0 || !next.StartsWith(list.Last(), StringComparison.OrdinalIgnoreCase) || next.Length > list.Last().Length && next[list.Last().Length] != '/') && Filter?.Invoke(next) != false) {
                 list.Add(GetSubfolderPath(next, folderNormalized).ToString());
             }
         }
@@ -335,8 +336,8 @@ public class ListFileWrapper
     private static string NormalizePath(string path)
     {
         path = path.Replace('\\', '/').TrimEnd();
-        if (path.StartsWith('/')) path = path[1..];
-        return path.ToLowerInvariant();
+        if (path.StartsWith('/')) return path[1..];
+        return path;
     }
 
     public virtual string? GetPathInfo(string path, string field)
@@ -353,7 +354,7 @@ public class ListFileWrapper
 
     private PathType GetPathType(string path)
     {
-        var exactMatch = Array.BinarySearch(Files, NormalizePath(path));
+        var exactMatch = Array.BinarySearch(Files, NormalizePath(path), CaseInsensitiveComparer.DefaultInvariant);
         return exactMatch < 0 ? PathType.Folder : PathType.File;
     }
 }

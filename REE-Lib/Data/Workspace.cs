@@ -70,14 +70,12 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
     /// </summary>
     public bool CanUseListFile => ListFile?.Files.Length > 0;
 
-    public bool IsEmbeddedInstanceInfoUserdata => config.Game.hash is GameNameHash.re7;
-    public bool IsEmbeddedUserdata => config.Game.hash is GameNameHash.dmc5 or GameNameHash.re2;
-    public bool IsEmbeddedUserdataAny => config.Game.hash is GameNameHash.dmc5 or GameNameHash.re2 or GameNameHash.re7;
+    public bool UsesEmbeddedInstanceInfoUserdata => config.Game.hash is GameNameHash.re7;
+    public bool UsesEmbeddedUserdata => config.Game.hash is GameNameHash.dmc5 or GameNameHash.re2;
+    public bool UsesEmbeddedUserdataAny => config.Game.hash is GameNameHash.dmc5 or GameNameHash.re2 or GameNameHash.re7;
     public bool RequiresSubPaksForTextures => TexFile.GetRequiresGDeflateCompression(config.Game);
 
-    public bool BasePathIsX64 => config.Game.hash is GameNameHash.re7 or GameNameHash.dmc5 or GameNameHash.re2;
-    public string BasePath => BasePathIsX64 ? "natives/x64/" : "natives/stm/";
-    public string BasePathBackslash => BasePathIsX64 ? "natives\\x64\\" : "natives\\stm\\";
+    public string BasePath => Config.Platform.basePath;
 
     public IEnumerable<string> GameFileExtensions => FileExtensionCache.Versions.Keys;
     public IEnumerable<REFileFormat> GameFileFormats => FileExtensionCache.Versions.Select(kv => new REFileFormat(PathUtils.ParseFileFormat(kv.Key).format, kv.Value));
@@ -117,7 +115,7 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
         var ext = PathUtils.GetFilenameExtensionWithoutSuffixes(filepath);
         var extInfo = FileExtensionCache.Info.GetValueOrDefault(ext.ToString());
         if (extInfo == null) {
-            yield return AppendFileVersion(basepath);
+            yield return AppendFileVersion(basepath.ToString());
             yield break;
         }
 
@@ -144,19 +142,19 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
         }
     }
 
-    public string AppendFileVersion(ReadOnlySpan<char> filename)
+    public string AppendFileVersion(string filename)
     {
         var fmt = PathUtils.ParseFileFormat(filename);
         if (fmt.version != -1) {
-            return filename.ToString();
+            return filename;
         }
 
         var version = GetFileVersion(filename);
         if (version == -1) {
-            return filename.ToString();
+            return filename;
         }
 
-        return $"{filename.ToString()}.{version}";
+        return $"{filename}.{version}";
     }
 
     public int GetFileVersion(ReadOnlySpan<char> relativePath)
@@ -198,17 +196,17 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
     /// </summary>
     public Stream? FindSingleFile(string filepath, [MaybeNull] out string resolvedNativeFilepath, FileSourceType sourceTypes = FileSourceType.Original)
     {
-        filepath = PrependBasePath(filepath);
+        filepath = PrependBasePath(filepath.NormalizeFilepath());
         var match = GetFile(filepath, sourceTypes);
         if (match != null) {
-            resolvedNativeFilepath = filepath;
+            resolvedNativeFilepath = filepath.NormalizeFilepath();
             return match;
         }
 
         foreach (var candidate in FindPossibleFilepaths(filepath)) {
             match = GetFile(candidate, sourceTypes);
             if (match != null) {
-                resolvedNativeFilepath = candidate;
+                resolvedNativeFilepath = candidate.NormalizeFilepath();
                 return match;
             }
         }
@@ -304,7 +302,7 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
     /// </summary>
     public string? GetExtractedFilepath(string filepath, string extractionPath)
     {
-        var outputPath = PathUtils.CombineChunkSubpath(extractionPath, filepath, BasePathIsX64);
+        var outputPath = CombineChunkSubpath(extractionPath, filepath);
         if (File.Exists(outputPath)) return outputPath;
 
         var file = GetFile(filepath);
@@ -368,17 +366,55 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
             path = path[1..];
         }
 
-        if (path.StartsWith(BasePath) || path.StartsWith(BasePathBackslash)) {
+        var basePath = Config.Platform.basePath;
+        if (path.StartsWith(basePath, StringComparison.OrdinalIgnoreCase)) {
             return path;
         }
 
-        return Path.Combine(BasePath, path);
+        return basePath + path;
     }
 
     public ReadOnlySpan<char> RemoveBasePath(ReadOnlySpan<char> path)
     {
-        if (path.StartsWith(BasePath) || path.StartsWith(BasePathBackslash)) return path[BasePath.Length..];
+        var basePath = Config.Platform.basePath;
+        if (path.StartsWith(basePath, StringComparison.OrdinalIgnoreCase)) {
+            return path[basePath.Length..];
+        }
         return path;
+    }
+
+    /// <summary>
+    /// Converts a natives or target path into its base resource path.
+    /// </summary>
+    public ReadOnlySpan<char> GetResourcePath(ReadOnlySpan<char> path)
+    {
+        var basePath = Config.Platform.basePath;
+        if (path.StartsWith(basePath, StringComparison.OrdinalIgnoreCase)) {
+            path = path[basePath.Length..];
+        }
+        return PathUtils.GetFilepathWithoutSuffixes(path);
+    }
+
+    /// <summary>
+    /// Converts a path into a target path (removes natives prefix and appends file format version).
+    /// </summary>
+    public string GetTargetPath(ReadOnlySpan<char> path)
+    {
+        return AppendFileVersion(PathUtils.RemovePlatformPrefix(path).ToString());
+    }
+
+    public void ResetListFile()
+    {
+        listFile = null;
+    }
+
+    private string CombineChunkSubpath(string chunkBasePath, string filepath)
+    {
+        var leftIsNatives = chunkBasePath.Contains(Config.Platform.basePath, StringComparison.OrdinalIgnoreCase);
+        var rightIsNatives = filepath.StartsWith(Config.Platform.basePath, StringComparison.OrdinalIgnoreCase);
+        if (leftIsNatives && rightIsNatives) return Path.Combine(chunkBasePath, filepath[(Config.Platform.basePath.Length + 1)..]);
+        if (!leftIsNatives && !rightIsNatives) return Path.Combine(chunkBasePath, Config.Platform.basePath, filepath);
+        return Path.Combine(chunkBasePath, filepath);
     }
 
     private RszParser LoadRszParser()
@@ -403,7 +439,7 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
 
         lock (_setupLock) {
             if (config.Resources.TryGetListFilePath(out var listfile)) {
-                return listFile = new ListFileWrapper(listfile);
+                return listFile = new ListFileWrapper(listfile, Config.Platform);
             }
         }
         return null;

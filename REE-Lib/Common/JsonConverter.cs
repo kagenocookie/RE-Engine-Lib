@@ -54,7 +54,7 @@ namespace ReeLib.Common
                         inst.SetFieldValue(key, list);
                     } else if ((val as JsonObject)?.TryGetPropertyValue("path", out var userPath) == true) {
                         inst.SetFieldValue(key, DeserializeUserdata(val));
-                    } else if (env.IsEmbeddedUserdataAny) {
+                    } else if (env.UsesEmbeddedUserdataAny) {
                         var instance = inst.GetFieldValue(key) as RszInstance;
                         RSZFile rsz;
                         if (instance?.RSZUserData is RSZUserDataInfo_TDB_LE_67 previousUserdataInfo && previousUserdataInfo.EmbeddedRSZ != null) {
@@ -186,7 +186,7 @@ namespace ReeLib.Common
             }
             var path = val?.AsObject()["path"]?.GetValue<string>() ?? string.Empty;
 
-            if (env.IsEmbeddedUserdataAny) {
+            if (env.UsesEmbeddedUserdataAny) {
                 return new RszInstance(userClass, new RSZUserDataInfo_TDB_LE_67() { jsonPathHash = MurMur3HashUtils.GetHash(path), typeId = userClass.typeId });
             } else {
                 return new RszInstance(userClass, new RSZUserDataInfo() { Path = path, typeId = userClass.typeId });

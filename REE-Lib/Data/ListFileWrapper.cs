@@ -10,6 +10,9 @@ public class ListFileWrapper
     private Dictionary<string, string[]> folderListCache = new();
 
     private PathFilter? _filter;
+
+    private readonly PlatformIdentifier platform;
+
     public PathFilter? Filter
     {
         get => _filter;
@@ -41,18 +44,35 @@ public class ListFileWrapper
 
         return list;
     }
-    public ListFileWrapper()
+
+    public ListFileWrapper(PlatformIdentifier platform)
     {
+        this.platform = platform;
     }
 
-    public ListFileWrapper(string fileList)
+    public ListFileWrapper(string fileList, PlatformIdentifier platform)
     {
+        this.platform = platform;
         ReadFileList(fileList);
     }
 
-    public ListFileWrapper(IEnumerable<string> files, bool ensureUniqueEntries = false)
+    public ListFileWrapper(IEnumerable<string> files, PlatformIdentifier platform, bool ensureUniqueEntries = false)
     {
-        var ordered = files.Where(f => !string.IsNullOrEmpty(f)).Select(f => NormalizePath(f).ToLowerInvariant()).Order();
+        this.platform = platform;
+        var ordered = new List<string>();
+        var platformPrefix = platform.basePath;
+        bool? isCorrectPlatform = platformPrefix == null ? true : null;
+        foreach (var f in files) {
+            if (string.IsNullOrEmpty(f)) continue;
+
+            var norm = NormalizePath(f);
+            isCorrectPlatform ??= norm.StartsWith(platformPrefix!);
+            if (isCorrectPlatform == false) {
+                norm = PathUtils.SwapPlatformPrefix(norm, platform);
+            }
+            ordered.Add(norm);
+        }
+        ordered.Sort();
         if (ensureUniqueEntries) {
             Files = ordered.Distinct().ToArray();
         } else {
@@ -68,10 +88,16 @@ public class ListFileWrapper
 
         using var f = new StreamReader(File.OpenRead(listFilepath));
         var list = new SortedSet<string>();
+        var platformPrefix = platform.basePath;
+        bool? isCorrectPlatform = platformPrefix == null ? true : null;
         while (!f.EndOfStream) {
             var line = f.ReadLine();
             if (!string.IsNullOrWhiteSpace(line)) {
                 var norm = NormalizePath(line);
+                isCorrectPlatform ??= norm.StartsWith(platformPrefix!);
+                if (isCorrectPlatform == false) {
+                    norm = PathUtils.SwapPlatformPrefix(norm, platform);
+                }
                 list.Add(norm);
             }
         }

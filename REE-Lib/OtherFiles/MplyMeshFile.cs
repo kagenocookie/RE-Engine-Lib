@@ -307,6 +307,11 @@ namespace ReeLib.MplyMesh
 
     public record struct Ushort3(ushort X, ushort Y, ushort Z)
     {
+        public readonly Vector3 NormalizedPosition => new Vector3(
+            X / (float)ushort.MaxValue,
+            Y / (float)ushort.MaxValue,
+            Z / (float)ushort.MaxValue);
+
         public readonly Vector3 MplyPosition => new Vector3(
             X / (float)ushort.MaxValue - 0.5f,
             Y / (float)ushort.MaxValue - 0.5f,

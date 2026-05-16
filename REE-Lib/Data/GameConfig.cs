@@ -5,15 +5,18 @@ public class GameConfig
     public GameConfig(GameIdentifier game)
     {
         Game = game;
+        Platform = PlatformIdentifier.IsX64Game(game) ? PlatformIdentifier.X64 : PlatformIdentifier.Steam;
     }
 
     public GameConfig(GameIdentifier game, LocalResources resources)
     {
         Game = game;
         _resources = resources;
+        Platform = PlatformIdentifier.IsX64Game(game) ? PlatformIdentifier.X64 : PlatformIdentifier.Steam;
     }
 
     public GameIdentifier Game { get; }
+    public PlatformIdentifier Platform { get; set; }
     public GameName BuiltInGame => Game.GameEnum;
 
     private LocalResources? _resources;

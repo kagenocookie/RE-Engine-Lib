@@ -317,68 +317,63 @@ internal sealed class ResourceFieldFinder(Workspace env, ResourceTools resourceT
 
                 resourceTools.TryFindClassPatch(cls, out var patch);
                 var fieldPatch = patch?.FieldPatches?.FirstOrDefault(f => f.Name == field);
-                // var shouldAdd = rszField.type == RszFieldType.String ||
-                //     fileFormat != KnownFileFormats.Unknown && fileFormat != fieldPatch?.FileFormat;
-                var shouldAdd = true;
 
-                if (shouldAdd) {
-                    patch ??= resourceTools.FindOrCreateClassPatch(cls);
-                    if (fieldPatch == null) {
-                        fieldPatch = new RszFieldPatch() { Name = field };
-                    }
-                    var needAdd = false;
-                    if (fileFormat == KnownFileFormats.Unknown) fileFormat = fieldPatch.FileFormat;
-                    if (fieldPatch.FileFormat != KnownFileFormats.Unknown && fieldPatch.FileFormat != fileFormat) {
-                        // handle conflicts
-                        static bool IsTextureSubtype(KnownFileFormats format) => format is KnownFileFormats.Texture or KnownFileFormats.RenderTexture;
-                        static bool IsTimelineSubtype(KnownFileFormats format) => format is KnownFileFormats.Timeline or KnownFileFormats.Clip or KnownFileFormats.TimelineBase;
-                        static bool IsMotionSubtype(KnownFileFormats format) => format is KnownFileFormats.Motion or KnownFileFormats.MotionList or KnownFileFormats.GpuMotionList or ReeLib.KnownFileFormats.MotionCamera or KnownFileFormats.MotionCameraList or KnownFileFormats.MotionBase;
-                        static bool IsDynamicsSubtype(KnownFileFormats format) => format is KnownFileFormats.HeightField or KnownFileFormats.RigidBodyMesh or KnownFileFormats.DynamicsBase;
-                        static bool IsSkeletonSubtype(KnownFileFormats format) => format is KnownFileFormats.Skeleton or KnownFileFormats.FbxSkeleton or KnownFileFormats.RefSkeleton;
-                        static bool IsBehaviorTreeSubtype(KnownFileFormats format) => format is KnownFileFormats.BehaviorTree or KnownFileFormats.Fsm2 or KnownFileFormats.BehaviorTreeBase;
-                        static bool IsRigidBodySetSubtype(KnownFileFormats format) => format is KnownFileFormats.RigidBodySet or KnownFileFormats.Ragdoll;
+                patch ??= resourceTools.FindOrCreateClassPatch(cls);
+                if (fieldPatch == null) {
+                    fieldPatch = new RszFieldPatch() { Name = field };
+                }
+                var needAdd = false;
+                if (fileFormat == KnownFileFormats.Unknown) fileFormat = fieldPatch.FileFormat;
+                if (fieldPatch.FileFormat != KnownFileFormats.Unknown && fieldPatch.FileFormat != fileFormat) {
+                    // handle conflicts
+                    static bool IsTextureSubtype(KnownFileFormats format) => format is KnownFileFormats.Texture or KnownFileFormats.RenderTexture;
+                    static bool IsTimelineSubtype(KnownFileFormats format) => format is KnownFileFormats.Timeline or KnownFileFormats.Clip or KnownFileFormats.TimelineBase;
+                    static bool IsMotionSubtype(KnownFileFormats format) => format is KnownFileFormats.Motion or KnownFileFormats.MotionList or KnownFileFormats.GpuMotionList or ReeLib.KnownFileFormats.MotionCamera or KnownFileFormats.MotionCameraList or KnownFileFormats.MotionBase;
+                    static bool IsDynamicsSubtype(KnownFileFormats format) => format is KnownFileFormats.HeightField or KnownFileFormats.RigidBodyMesh or KnownFileFormats.DynamicsBase;
+                    static bool IsSkeletonSubtype(KnownFileFormats format) => format is KnownFileFormats.Skeleton or KnownFileFormats.FbxSkeleton or KnownFileFormats.RefSkeleton;
+                    static bool IsBehaviorTreeSubtype(KnownFileFormats format) => format is KnownFileFormats.BehaviorTree or KnownFileFormats.Fsm2 or KnownFileFormats.BehaviorTreeBase;
+                    static bool IsRigidBodySetSubtype(KnownFileFormats format) => format is KnownFileFormats.RigidBodySet or KnownFileFormats.Ragdoll;
 
-                        if (IsTextureSubtype(fileFormat) && IsTextureSubtype(fieldPatch.FileFormat)) {
-                            fileFormat = KnownFileFormats.Texture;
-                        } else if (IsTimelineSubtype(fileFormat) && IsTimelineSubtype(fieldPatch.FileFormat)) {
-                            fileFormat = KnownFileFormats.TimelineBase;
-                        } else if (IsMotionSubtype(fileFormat) && IsMotionSubtype(fieldPatch.FileFormat)) {
-                            fileFormat = KnownFileFormats.MotionBase;
-                        } else if (IsDynamicsSubtype(fileFormat) && IsDynamicsSubtype(fieldPatch.FileFormat)) {
-                            fileFormat = KnownFileFormats.DynamicsBase;
-                        } else if (IsSkeletonSubtype(fileFormat) && IsSkeletonSubtype(fieldPatch.FileFormat)) {
-                            fileFormat = KnownFileFormats.Skeleton;
-                        } else if (IsBehaviorTreeSubtype(fileFormat) && IsBehaviorTreeSubtype(fieldPatch.FileFormat)) {
-                            fileFormat = KnownFileFormats.BehaviorTreeBase;
-                        } else if (IsRigidBodySetSubtype(fileFormat) && IsRigidBodySetSubtype(fieldPatch.FileFormat)) {
-                            fileFormat = KnownFileFormats.RigidBodySet;
-                        } else {
-                            Log.Error($"Warning: Resource type conflict on field {cls} {field}: {fieldPatch.FileFormat} and {fileFormat}. Manually verify please.");
-                        }
-                    }
-                    fieldPatch.FileFormat = fileFormat;
-                    if (fileFormat is KnownFileFormats.Scene or KnownFileFormats.Prefab) {
-                        needAdd = rszField.type != RszFieldType.String;
-                        // leave these as string
-                        fieldPatch.Type = RszFieldType.String;
+                    if (IsTextureSubtype(fileFormat) && IsTextureSubtype(fieldPatch.FileFormat)) {
+                        fileFormat = KnownFileFormats.Texture;
+                    } else if (IsTimelineSubtype(fileFormat) && IsTimelineSubtype(fieldPatch.FileFormat)) {
+                        fileFormat = KnownFileFormats.TimelineBase;
+                    } else if (IsMotionSubtype(fileFormat) && IsMotionSubtype(fieldPatch.FileFormat)) {
+                        fileFormat = KnownFileFormats.MotionBase;
+                    } else if (IsDynamicsSubtype(fileFormat) && IsDynamicsSubtype(fieldPatch.FileFormat)) {
+                        fileFormat = KnownFileFormats.DynamicsBase;
+                    } else if (IsSkeletonSubtype(fileFormat) && IsSkeletonSubtype(fieldPatch.FileFormat)) {
+                        fileFormat = KnownFileFormats.Skeleton;
+                    } else if (IsBehaviorTreeSubtype(fileFormat) && IsBehaviorTreeSubtype(fieldPatch.FileFormat)) {
+                        fileFormat = KnownFileFormats.BehaviorTreeBase;
+                    } else if (IsRigidBodySetSubtype(fileFormat) && IsRigidBodySetSubtype(fieldPatch.FileFormat)) {
+                        fileFormat = KnownFileFormats.RigidBodySet;
                     } else {
-                        needAdd = rszField.type != RszFieldType.Resource;
-                        fieldPatch.Type = RszFieldType.Resource;
-                        if (fileFormat != KnownFileFormats.Unknown && (string.IsNullOrEmpty(rszField.original_type) || rszField.original_type == "via.resource_handle")) {
-                            if (resourceHolders.TryGetValue(fileFormat, out var holderClassname)) {
-                                needAdd = needAdd || rszField.original_type != holderClassname;
-                                fieldPatch.OriginalType = holderClassname;
-                            } else {
-                                Log.Error($"Failed to map resource file format {fileFormat} to classname");
-                            }
+                        Log.Error($"Warning: Resource type conflict on field {cls} {field}: {fieldPatch.FileFormat} and {fileFormat}. Manually verify please.");
+                    }
+                }
+                fieldPatch.FileFormat = fileFormat;
+                if (fileFormat is KnownFileFormats.Scene or KnownFileFormats.Prefab) {
+                    needAdd = rszField.type != RszFieldType.String;
+                    // leave these as string
+                    fieldPatch.Type = RszFieldType.String;
+                } else {
+                    needAdd = rszField.type != RszFieldType.Resource;
+                    fieldPatch.Type = RszFieldType.Resource;
+                    if (fileFormat != KnownFileFormats.Unknown && (string.IsNullOrEmpty(rszField.original_type) || rszField.original_type == "via.resource_handle")) {
+                        if (resourceHolders.TryGetValue(fileFormat, out var holderClassname)) {
+                            needAdd = needAdd || rszField.original_type != holderClassname;
+                            fieldPatch.OriginalType = holderClassname;
+                        } else {
+                            Log.Error($"Failed to map resource file format {fileFormat} to classname");
                         }
                     }
-                    if (needAdd) {
-                        if (patch.FieldPatches == null || !patch.FieldPatches.Contains(fieldPatch)) {
-                            patch.AddFieldPatch(fieldPatch);
-                        }
-                        changes++;
+                }
+                if (needAdd) {
+                    if (patch.FieldPatches == null || !patch.FieldPatches.Contains(fieldPatch)) {
+                        patch.AddFieldPatch(fieldPatch);
                     }
+                    changes++;
                 }
             }
         }

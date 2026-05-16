@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using ReeLib.Common;
 
-public class FileListGenerator(string gameDirectory)
+public class FileListGenerator(string gameDirectory, PlatformIdentifier platform)
 {
     public string GameDirectory { get; } = gameDirectory;
 
@@ -14,8 +14,6 @@ public class FileListGenerator(string gameDirectory)
 
     public string? PreviousListFile { get; set; }
     public string[] ReferenceListFiles { get; set; } = [];
-
-    private string? PlatformBase { get; set; }
 
     private readonly Dictionary<ulong, string> _knownHashPaths = new();
 
@@ -42,16 +40,10 @@ public class FileListGenerator(string gameDirectory)
         Done,
     }
 
-    private static string[] PlatformBases = [
-        "natives/STM/",
-        "natives/x64/",
-        "natives/EGS/"
-    ];
-
     private const int MaxExtensionLength = 16; // "jointlodgroup" = 13
     private const int MinPathLength = 10;
 
-    private HashSet<string> otherFileListInternalPaths = new();
+    private HashSet<string> otherFileListResourcePaths = new();
 
     public void HashKnownFilePaths(CachedMemoryPakReader reader)
     {
@@ -74,7 +66,7 @@ public class FileListGenerator(string gameDirectory)
                     if (isCurrent) {
                         reader.AddFiles(line);
                     } else {
-                        otherFileListInternalPaths.Add(PathUtils.GetInternalFromNativePath(line));
+                        otherFileListResourcePaths.Add(PathUtils.GetFilepathWithoutSuffixes(PathUtils.RemovePlatformPrefix(line)).ToString());
                     }
                 }
             }
@@ -135,7 +127,7 @@ public class FileListGenerator(string gameDirectory)
 
     private static readonly HashSet<string> IgnoredExtensions = ["json", "dll", "pdb", "ini", "cpp", "hpp", "h", "cs", "technology", "com", "com0", "com07", "com0N", "com0X", "com0C", "com0\\", "com0A", "fffff", "0", "iconTagEvent", "messageTagEvent"];
     private static readonly HashSet<uint> IgnoreExtHashes = IgnoredExtensions.Select(x => MurMur3HashUtils.GetHash(x)).ToHashSet();
-    private static readonly string[] GuessDates = ["251111", "251112", "251121", "250925"];
+    private static readonly string[] GuessDates = ["1", "251111", "251112", "251121", "250925"];
 
     public List<string> Scan()
     {
@@ -156,7 +148,7 @@ public class FileListGenerator(string gameDirectory)
         string[] sourceFileList = [];
 
         if (Flags.HasFlag(ScanFlags.MaintainPreviousList) && File.Exists(PreviousListFile)) {
-            var lfw = new ListFileWrapper(PreviousListFile);
+            var lfw = new ListFileWrapper(PreviousListFile, platform);
             sourceFileList = lfw.Files;
         }
         var knownHashes = sourceFileList.Select(x => PakUtils.GetFilepathHash(x)).ToHashSet();
@@ -167,13 +159,6 @@ public class FileListGenerator(string gameDirectory)
         }
         if (Flags.HasFlag(ScanFlags.Files)) {
             ScanFiles(reader, totalFilesCount, rawPaths);
-        }
-
-        var platformBase = PlatformBase
-            ?? PlatformBases.FirstOrDefault(pb => outputPaths.Any(op => op.StartsWith(pb, StringComparison.OrdinalIgnoreCase)));
-
-        if (platformBase == null) {
-            platformBase = "natives/STM/";
         }
 
         Phase = GeneratorPhase.ProcessingPaths;
@@ -202,10 +187,10 @@ public class FileListGenerator(string gameDirectory)
         var unknownExtFiles = new Dictionary<string, List<string>>();
 
         var pathsProcessed = 0;
-        foreach (var path in rawPaths.Values.Concat(otherFileListInternalPaths)) {
+        foreach (var path in rawPaths.Values.Concat(otherFileListResourcePaths)) {
             PhaseProgress = (float)pathsProcessed++ / rawPaths.Count;
 
-            var attemptBase = Path.Combine(platformBase, path);
+            var attemptBase = Path.Combine(platform.basePath, path);
             var ext = PathUtils.GetExtensionWithoutPeriod(attemptBase);
             if (string.IsNullOrEmpty(ext)) {
                 continue;
@@ -304,7 +289,7 @@ public class FileListGenerator(string gameDirectory)
         return outputPaths;
     }
 
-    private static bool TryAddFoundFilePath(List<string> outputPaths, HashSet<ulong> unknownHashes, KnownFileFormats format, string attempt, ulong attemptHash)
+    private bool TryAddFoundFilePath(List<string> outputPaths, HashSet<ulong> unknownHashes, KnownFileFormats format, string attempt, ulong attemptHash)
     {
         if (!unknownHashes.Remove(attemptHash)) return false;
 
@@ -314,7 +299,7 @@ public class FileListGenerator(string gameDirectory)
             KnownFileFormats.SoundBank or KnownFileFormats.SoundPackage or KnownFileFormats.SoundVoxel or KnownFileFormats.SoundStreamingLQG or
             KnownFileFormats.VibrationSource or KnownFileFormats.WwiseStreamingGeometry or KnownFileFormats.Unknown) {
             // try streaming/
-            var streaming = PathUtils.GetStreamingNativePath(attempt);
+            var streaming = PathUtils.GetStreamingNativesPath(attempt, platform);
             var streamingHash = PakUtils.GetFilepathHash(streaming);
             if (unknownHashes.Remove(streamingHash)) {
                 outputPaths.Add(streaming);

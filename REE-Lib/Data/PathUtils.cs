@@ -51,13 +51,15 @@ public static class PathUtils
         return new REFileFormatFull(fmt, version, filename[..versionDot].ToString());
     }
 
-    public static KnownFileFormats GetFileFormatFromExtension(string extension) => GetFileFormatFromExtension(extension.AsSpan());
     public static KnownFileFormats GetFileFormatFromExtension(ReadOnlySpan<char> extension)
     {
         var hash = MurMur3HashUtils.GetHash(extension);
         return FileFormatExtensions.ExtensionHashToEnum(hash);
     }
 
+    /// <summary>
+    /// Removes PAK path-specific suffixes from a file path (version, .x64, languages), leaving only the base file path and file extension.
+    /// </summary>
     public static ReadOnlySpan<char> GetFilepathWithoutSuffixes(ReadOnlySpan<char> filename)
     {
         var extIndex = GetFilenameExtensionStartIndex(filename);
@@ -67,16 +69,6 @@ public static class PathUtils
             return filename.Slice(0, nextDot);
         }
         return filename;
-    }
-
-    public static string GetFilepathWithoutVersion(string filepath)
-    {
-        var versionDot = filepath.LastIndexOf('.');
-        if (versionDot != -1 && int.TryParse(filepath.AsSpan().Slice(versionDot + 1), out _)) {
-            return filepath[..versionDot];
-        }
-
-        return filepath;
     }
 
     public static bool IsSameExtension(string? path1, string? path2)
@@ -139,15 +131,6 @@ public static class PathUtils
         return period + lastSlash;
     }
 
-    public static string CombineChunkSubpath(string chunkBasePath, string filepath, bool isX64)
-    {
-        var leftIsNatives = chunkBasePath.Contains("natives/x64") || chunkBasePath.Contains("natives/stm");
-        var rightIsNatives = filepath.StartsWith("natives/x64") || filepath.StartsWith("natives/stm");
-        if (leftIsNatives && rightIsNatives) return Path.Combine(chunkBasePath, filepath[("natives/stm".Length + 1)..]);
-        if (!leftIsNatives && !rightIsNatives) return Path.Combine(chunkBasePath, isX64 ? "natives/x64" : "natives/stm", filepath);
-        return Path.Combine(chunkBasePath, filepath);
-    }
-
     public static string GetExtensionWithoutPeriod(this string path) => path.AsSpan().GetExtensionWithoutPeriod().ToString();
     public static ReadOnlySpan<char> GetExtensionWithoutPeriod(this ReadOnlySpan<char> path)
     {
@@ -161,9 +144,10 @@ public static class PathUtils
     }
 
     /// <summary>
-    /// Converts an absolute path into a relative native path (e.g. C:/files/my-game/natives/stm/subpath/file.scn.20 => natives/stm/subpath/file.scn.20).
+    /// Converts an absolute path into a natives-relative target path (e.g. C:/files/my-game/natives/stm/subpath/file.scn.20 => subpath/file.scn.20).
+    /// Returns null if it can't reliably determine where the natives/ path starts.
     /// </summary>
-    public static string? GetNativeFromFullFilepath(string filepath)
+    public static string? GetTargetFromFullFilepath(string filepath)
     {
         filepath = filepath.Replace('\\', '/');
         var nativesStart = filepath.IndexOf("/natives/", StringComparison.OrdinalIgnoreCase);
@@ -171,71 +155,80 @@ public static class PathUtils
             return null;
         }
 
-        return filepath.Substring(nativesStart + 1);
+        return RemovePlatformPrefix(filepath.AsSpan(nativesStart)).ToString();
+    }
+
+    public static string GetStreamingPath(string path)
+    {
+        if (path.StartsWith("streaming/", StringComparison.OrdinalIgnoreCase)) {
+            return path;
+        }
+        return "streaming/" + path;
+    }
+
+    public static string GetStreamingNativesPath(ReadOnlySpan<char> path, PlatformIdentifier platform)
+    {
+        path = RemoveNativesFolder(path, platform);
+        if (path.StartsWith("streaming/", StringComparison.OrdinalIgnoreCase)) {
+            return string.Concat(platform.basePath, path);
+        }
+
+        return string.Concat(platform.basePath, "streaming/", path);
     }
 
     /// <summary>
-    /// Converts a native path into an internal path (e.g. natives/stm/subpath/file.scn.20 => subpath/file.scn). Returns the same path if it's already an internal path.
+    /// Removes the streaming/ prefix as well as the platform natives/stm/ prefix from a game-relative file path, leaving only the main target path.
     /// </summary>
-    public static string GetInternalFromNativePath(string nativePath)
+    public static ReadOnlySpan<char> GetNonStreamingPath(ReadOnlySpan<char> path)
     {
-        return RemoveNativesFolder(GetFilepathWithoutSuffixes(nativePath).ToString());
-    }
-
-    public static string GetStreamingNativePath(string nativePath)
-    {
-        return nativePath
-            .Replace("natives/stm/", "natives/stm/streaming/", StringComparison.OrdinalIgnoreCase)
-            .Replace("natives/x64/", "natives/x64/streaming/", StringComparison.OrdinalIgnoreCase);
-    }
-
-    public static string GetNonStreamingNativePath(string nativePath)
-    {
-        return nativePath
-            .Replace("natives/stm/streaming/", "natives/stm/", StringComparison.OrdinalIgnoreCase)
-            .Replace("natives/x64/streaming/", "natives/x64/", StringComparison.OrdinalIgnoreCase);
-    }
-
-    public static string GetStreamingInternalPath(string internalPath)
-    {
-        if (internalPath.StartsWith("streaming/", StringComparison.OrdinalIgnoreCase)) {
-            return internalPath;
-        }
-        return "streaming/" + internalPath;
-    }
-
-    public static string GetNonStreamingInternalPath(string internalPath)
-    {
-        if (internalPath.StartsWith("streaming/", StringComparison.OrdinalIgnoreCase)) {
-            return internalPath.Substring("streaming/".Length);
-        }
-        return internalPath;
-    }
-
-    /// <summary>
-    /// Removes a natives/ prefix or suffix from the path and normalizes it with forward slashes.
-    /// </summary>
-    /// <param name="path"></param>
-    /// <returns></returns>
-    public static string RemoveNativesFolder(string path)
-    {
-        path = path.Replace('\\', '/');
-        if (path.EndsWith('/')) {
-            path = path[..^1];
-        }
-        if (path.EndsWith("/natives/x64", StringComparison.OrdinalIgnoreCase)) {
-            path = path.Substring(0, path.IndexOf("/natives/x64", StringComparison.OrdinalIgnoreCase));
-        }
-        if (path.EndsWith("/natives/stm", StringComparison.OrdinalIgnoreCase)) {
-            path = path.Substring(0, path.IndexOf("/natives/stm", StringComparison.OrdinalIgnoreCase));
-        }
-        if (path.StartsWith("natives/x64/", StringComparison.OrdinalIgnoreCase)) {
-            path = path.Substring("natives/x64/".Length);
-        }
-        if (path.StartsWith("natives/stm/", StringComparison.OrdinalIgnoreCase)) {
-            path = path.Substring("natives/stm/".Length);
+        path = RemovePlatformPrefix(path);
+        if (path.StartsWith("streaming/", StringComparison.OrdinalIgnoreCase)) {
+            return path.Slice("streaming/".Length);
         }
         return path;
+    }
+
+    /// <summary>
+    /// Removes the platform specific natives/ prefix or suffix from the path. Keeps any file extension suffixes intact.
+    /// </summary>
+    public static ReadOnlySpan<char> RemoveNativesFolder(ReadOnlySpan<char> path, PlatformIdentifier platform)
+    {
+        path = path.TrimEnd('/');
+        if (path.EndsWith(platform.basePath, StringComparison.OrdinalIgnoreCase)) {
+            path = path.Slice(0, path.IndexOf(platform.basePath, StringComparison.OrdinalIgnoreCase));
+        }
+        if (path.StartsWith(platform.basePath, StringComparison.OrdinalIgnoreCase)) {
+            path = path.Slice(platform.basePath.Length);
+        }
+        return path;
+    }
+
+    public static ReadOnlySpan<char> RemovePlatformPrefix(ReadOnlySpan<char> nativePath)
+    {
+        if (nativePath.StartsWith("natives/", StringComparison.OrdinalIgnoreCase)) {
+            nativePath = nativePath.Slice(nativePath.IndexOf('/') + 1); // remove natives/
+            nativePath = nativePath.Slice(nativePath.IndexOf('/') + 1); // remove stm/
+            return nativePath;
+        } else {
+            return nativePath;
+        }
+    }
+
+    public static string SwapPlatformPrefix(string nativePath, PlatformIdentifier platform)
+    {
+        if (nativePath.StartsWith(platform.basePath, StringComparison.OrdinalIgnoreCase)) {
+            return nativePath;
+        }
+
+        if (!nativePath.StartsWith("natives/", StringComparison.OrdinalIgnoreCase)) {
+            return platform.basePath + nativePath;
+        }
+
+        if (nativePath.StartsWith(platform.basePath)) {
+            return nativePath;
+        }
+
+        return string.Concat(platform.basePath, PathUtils.RemovePlatformPrefix(nativePath));
     }
 
     public static string ChangeFileVersion(ReadOnlySpan<char> filepath, int version)

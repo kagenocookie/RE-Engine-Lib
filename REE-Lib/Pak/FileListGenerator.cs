@@ -30,6 +30,7 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
         Files = 1,
         Executable = 2,
         BruteforceExtensions = 4,
+        UpdateExistingListCasing = 8,
         MaintainPreviousList = 1 << 30
     }
 
@@ -39,6 +40,7 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
         ScanningExecutable,
         ScanningFiles,
         ProcessingPaths,
+        AdditionalGuesses,
         Done,
     }
 
@@ -121,15 +123,19 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
     ];
 
     private static readonly string[] TexTypes = [
-        "_acot", "_albd", "_nrmr", "_msr", "_mskm", "_scot", "_nrca", "_msk4", "_alb", "_nrma",
-        "_nrm", "_albs", "_atos", "_faketex", "_dslut", "_msk3", "_emi", "_msk1", "_colormask.",
-        "_selectionmask", "_hgt", "_nrrc", "_hdr", "_mask", "_msk", "_nrra", "_albm", "_albh",
-        "_nrro", "_rocm", "_occ", "_lymo", "_alba", "_nrca", "_alp", "_nmr", "_rgh", "_met",
+        "_alb", "_alp", "_albd", "_albm", "_alba", "_albs", "_albh", "_scot", "_acot", "_atos",
+        "_nrmr", "_msr", "_nrma", "_nrm", "_nrrc", "_nrca", "_nmr", "_nrra", "_nrro",
+        "_msk4", "_mskm", "_mask","_msk3", "_msk1", "_msk", "_colormask", "_selectionmask",
+        "_faketex", "_dslut", "_emi", "_hgt", "_hdr", "_rocm", "_occ", "_lymo", "_rgh", "_met",
         "_iam", "_lut", "_fbi", "_add", "_emm", "_lym", "_cvt", "_vns", "_lin", "_pos", "_fur", "_im", "_disp"];
 
     private static readonly HashSet<string> IgnoredExtensions = ["json", "dll", "pdb", "ini", "cpp", "hpp", "h", "cs", "technology", "com", "com0", "com07", "com0N", "com0X", "com0C", "com0\\", "com0A", "fffff", "0", "iconTagEvent", "messageTagEvent"];
     private static readonly HashSet<uint> IgnoreExtHashes = IgnoredExtensions.Select(x => MurMur3HashUtils.GetHash(x)).ToHashSet();
     private static readonly string[] GuessDates = ["1", "251111", "251112", "251121", "250925"];
+
+    private List<string> outputPaths = new();
+    private HashSet<ulong> previouslyKnownHashes = new();
+    private HashSet<ulong> unknownHashes = new();
 
     public List<string> Scan()
     {
@@ -138,14 +144,20 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
         reader.PakFilePriority.AddRange(PakFiles);
         HashKnownFilePaths(reader);
         reader.CacheEntries(true);
-        var outputPaths = new List<string>(reader.CachedPaths);
-        var unknownHashes = reader.UnknownPathHashes.ToHashSet();
+        outputPaths.Clear();
+        outputPaths.AddRange(reader.CachedPaths);
+        unknownHashes = reader.UnknownPathHashes.ToHashSet();
+        var totalFilesCount = outputPaths.Count + unknownHashes.Count;
+        var previouslyKnownFilesCount = outputPaths.Count;
+
+        if (Flags.HasFlag(ScanFlags.UpdateExistingListCasing)) {
+            unknownHashes = outputPaths.Select(p => MurMur3HashUtils.PakFilepathHash(p)).Concat(unknownHashes).ToHashSet();
+            outputPaths.Clear();
+        }
         if (unknownHashes.Count == 0) {
             Log.Error("No unknown files found");
             return [];
         }
-        var totalFilesCount = outputPaths.Count + unknownHashes.Count;
-        var previouslyKnownFilesCount = outputPaths.Count;
 
         string[] sourceFileList = [];
 
@@ -153,7 +165,7 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
             var lfw = new ListFileWrapper(PreviousListFile, platform);
             sourceFileList = lfw.Files;
         }
-        var knownHashes = sourceFileList.Select(x => PakUtils.GetFilepathHash(x)).ToHashSet();
+        previouslyKnownHashes = !Flags.HasFlag(ScanFlags.UpdateExistingListCasing) ? sourceFileList.Select(x => PakUtils.GetFilepathHash(x)).ToHashSet() : [];
 
         var rawPaths = new Dictionary<ulong, string>();
         if (Flags.HasFlag(ScanFlags.Executable)) {
@@ -173,26 +185,7 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
             extVersions[fmt.extension] = fmt.version;
         }
         var versionPrefixes = new List<string>();
-        versionPrefixes.Add("");
-        versionPrefixes.AddRange(GuessDates);
-        foreach (var (ext, num) in extVersions) {
-            var numStr = num.ToString();
-            if (numStr.Length >= 6 + 3) {
-                var date = numStr[0..6];
-                if (!versionPrefixes.Contains(date)) {
-                    versionPrefixes.Add(date);
-                }
-            }
-        }
-        // append all dates from last known date till today as well
-        var latestVer = versionPrefixes.Where(v => v.Length == 6 && int.TryParse(v[0..2], out var yy) && yy >= 25 && yy <= DateTime.UtcNow.Year % 100).OrderDescending().First();
-        if (DateTime.TryParseExact(latestVer, "yyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var latestDate)) {
-            var todayDate = DateTime.UtcNow.Date;
-            while (latestDate < todayDate) {
-                versionPrefixes.Add(latestDate.ToString("yyMMdd"));
-                latestDate = latestDate.AddDays(1);
-            }
-        }
+        GatherVersionPrefixes(extVersions, versionPrefixes);
 
         var unmatchedPaths = new List<string>();
         var unknownExtFiles = new Dictionary<string, List<string>>();
@@ -227,10 +220,9 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
                             sb.CopyTo(0, extensionStringSpan, sb.Length);
                             var str = extensionStringSpan.Slice(0, sb.Length);
                             var hash = MurMur3HashUtils.PakFilepathHash(str);
-                            if (TryAddFoundFilePath(outputPaths, unknownHashes, KnownFileFormats.Unknown, str, hash)) {
+                            if (TryAddFoundFilePath(KnownFileFormats.Unknown, str, hash)) {
                                 version = prefix == "" ? i : int.Parse($"{prefix}{i:000}");
                                 extVersions[ext] = version;
-                                knownHashes.Add(hash);
                                 canContinue = true;
                                 Log.Info($"Found new file extension version: {ext}.{version}");
                                 break;
@@ -245,9 +237,8 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
                             sb.CopyTo(0, extensionStringSpan, sb.Length);
                             var str = extensionStringSpan.Slice(0, sb.Length);
                             var hash = MurMur3HashUtils.PakFilepathHash(str);
-                            if (TryAddFoundFilePath(outputPaths, unknownHashes, KnownFileFormats.Unknown, str, hash)) {
+                            if (TryAddFoundFilePath(KnownFileFormats.Unknown, str, hash)) {
                                 extVersions[ext] = version = (int)i;
-                                knownHashes.Add(hash);
                                 canContinue = true;
                                 Log.Info($"Found new file extension version: {ext}.{version}");
                                 break;
@@ -256,7 +247,7 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
                     }
                     if (!canContinue) {
                         Log.Warn($"Unknown version for file extension {ext} (file {path})");
-                        unknownExtFiles[ext] = uknList = new ();
+                        unknownExtFiles[ext] = uknList = new();
                     }
                 }
                 if (uknList != null) {
@@ -274,10 +265,10 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
             foreach (var suffix in suffixes) {
                 var attempt = attemptBase + versionExt + suffix;
                 var attemptHash = PakUtils.GetFilepathHash(attempt);
-                if (knownHashes.Contains(attemptHash)) {
+                if (previouslyKnownHashes.Contains(attemptHash)) {
                     matchesExisting = true;
                 } else {
-                    foundNewFile |= TryAddFoundFilePath(outputPaths, unknownHashes, format, attempt, attemptHash);
+                    foundNewFile |= TryAddFoundFilePath(format, attempt, attemptHash);
                 }
 
                 if (format == KnownFileFormats.Texture) {
@@ -285,10 +276,10 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
                     if (lastSub != -1) {
                         var withoutType = attempt.Substring(0, lastSub);
                         foreach (var type in TexTypes) {
-                            attempt = $"{Path.ChangeExtension(attemptBase, null)}{type}.{ext}{versionExt}{suffix}";
+                            attempt = $"{Path.ChangeExtension(withoutType, null)}{type}.{ext}{versionExt}{suffix}";
                             attemptHash = PakUtils.GetFilepathHash(attempt);
-                            matchesExisting |= knownHashes.Contains(attemptHash);
-                            if (TryAddFoundFilePath(outputPaths, unknownHashes, format, attempt, attemptHash)) {
+                            matchesExisting |= previouslyKnownHashes.Contains(attemptHash);
+                            if (TryAddFoundFilePath(format, attempt, attemptHash)) {
                                 foundNewFile = true;
                             }
                         }
@@ -300,12 +291,30 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
                 unmatchedPaths.Add(path);
             }
         }
+
+        AttemptAdditionalGuesses(rawPaths, extVersions);
+
+        // in case the previous list file had some paths we didn't find, make sure we add them back in
+        if (Flags.HasFlag(ScanFlags.UpdateExistingListCasing)) {
+            var outputHashes = outputPaths.Select(p => MurMur3HashUtils.PakFilepathHash(p)).ToHashSet();
+            foreach (var path in sourceFileList) {
+                var hash = MurMur3HashUtils.PakFilepathHash(path);
+                if (!outputHashes.Contains(hash)) {
+                    outputPaths.Add(path);
+                    unknownHashes.Remove(hash);
+                }
+            }
+
+            AttemptAdditionalGuesses(rawPaths, extVersions);
+        }
+
         var newFiles = outputPaths.Count - previouslyKnownFilesCount;
         Log.Info($"Found {newFiles} new file paths");
-        if (newFiles > 0 && previouslyKnownFilesCount > 0) {
+        // we can't reliably get just the list of new paths in this case because we're re-doing the whole list, so don't print when UpdateExistingListCasing
+        if (newFiles > 0 && previouslyKnownFilesCount > 0 && !Flags.HasFlag(ScanFlags.UpdateExistingListCasing)) {
             Log.Info(string.Join("\n", outputPaths[previouslyKnownFilesCount..]));
         }
-        if (sourceFileList.Length > 0) {
+        if (!Flags.HasFlag(ScanFlags.UpdateExistingListCasing) && sourceFileList.Length > 0) {
             outputPaths.AddRange(sourceFileList);
             outputPaths = outputPaths.Distinct().ToList();
         }
@@ -323,15 +332,111 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
         return outputPaths;
     }
 
-    private bool TryAddFoundFilePath(List<string> outputPaths, HashSet<ulong> unknownHashes, KnownFileFormats format, ReadOnlySpan<char> attempt, ulong attemptHash)
+    private static void GatherVersionPrefixes(Dictionary<string, int> extVersions, List<string> versionPrefixes)
+    {
+        versionPrefixes.Add("");
+        versionPrefixes.AddRange(GuessDates);
+        foreach (var (ext, num) in extVersions) {
+            var numStr = num.ToString();
+            if (numStr.Length >= 6 + 3) {
+                var date = numStr[0..6];
+                if (!versionPrefixes.Contains(date)) {
+                    versionPrefixes.Add(date);
+                }
+            }
+        }
+        // append all dates from last known date till today as well
+        var latestVer = versionPrefixes.Where(v => v.Length == 6 && int.TryParse(v[0..2], out var yy) && yy >= 25 && yy <= DateTime.UtcNow.Year % 100).OrderDescending().First();
+        if (DateTime.TryParseExact(latestVer, "yyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var latestDate)) {
+            var todayDate = DateTime.UtcNow.Date;
+            while (latestDate < todayDate) {
+                versionPrefixes.Add(latestDate.ToString("yyMMdd"));
+                latestDate = latestDate.AddDays(1);
+            }
+        }
+    }
+
+    private void AttemptAdditionalGuesses(Dictionary<ulong, string> rawPaths, Dictionary<string, int> extVersions)
+    {
+        int pathsProcessed = 0;
+        Phase = GeneratorPhase.AdditionalGuesses;
+        PhaseProgress = 0;
+        var mot = ".mot." + extVersions.GetValueOrDefault("mot").ToString();
+        var mesh = ".mesh." + extVersions.GetValueOrDefault("mesh").ToString();
+        var sdftex = ".sdftex." + extVersions.GetValueOrDefault("sdftex").ToString();
+        var mdf2 = ".mdf2." + extVersions.GetValueOrDefault("mdf2").ToString();
+        var skeleton = ".skeleton." + extVersions.GetValueOrDefault("skeleton").ToString();
+        var refskel = ".refskel." + extVersions.GetValueOrDefault("refskel").ToString();
+        var fbxskel = ".fbxskel." + extVersions.GetValueOrDefault("fbxskel").ToString();
+        for (int i = 0; i < outputPaths.Count; i++) {
+            var path = outputPaths[i];
+            PhaseProgress = (float)pathsProcessed++ / rawPaths.Count;
+            var format = PathUtils.ParseFileFormat(path).format;
+            var extless = PathUtils.GetFilepathWithoutExtensionOrVersion(path);
+            if (path.Equals("natives/stm/systems/rendering/bluenoise256x256/hdr_rgba_0000.tex.251111100", StringComparison.OrdinalIgnoreCase)) {
+                Log.Info("a");
+            }
+            if (format == KnownFileFormats.Mesh) {
+                DoAttempt(format, string.Concat(extless, sdftex));
+                DoAttempt(format, string.Concat(extless, mdf2));
+                DoAttempt(format, string.Concat(extless, mot));
+                DoAttempt(format, string.Concat(extless, "_Mat", mdf2));
+                DoAttempt(format, string.Concat(extless, "_00", mdf2));
+                DoAttempt(format, string.Concat(extless, "_01", mdf2));
+            }
+            if (format == KnownFileFormats.MeshMaterial) {
+                var baseMatPath = extless;
+                if (baseMatPath.EndsWith("_Mat", StringComparison.OrdinalIgnoreCase)) baseMatPath = baseMatPath[..^4];
+                if (baseMatPath.EndsWith("_00", StringComparison.OrdinalIgnoreCase)) baseMatPath = baseMatPath[..^3];
+                DoAttempt(format, string.Concat(baseMatPath, mesh));
+            }
+            if (format == KnownFileFormats.SDFTexture) {
+                DoAttempt(format, string.Concat(extless, mesh));
+            }
+            if (format is KnownFileFormats.Skeleton or KnownFileFormats.RefSkeleton or KnownFileFormats.FbxSkeleton) {
+                DoAttempt(format, string.Concat(extless, skeleton));
+                DoAttempt(format, string.Concat(extless, refskel));
+                DoAttempt(format, string.Concat(extless, fbxskel));
+            }
+            if (extless.EndsWith("_00")) {
+                var denumbered = extless[..^2];
+                var extSuffix = "." + PathUtils.GetFilenameExtensionWithSuffixes(path).ToString();
+                for (int n = 1; n <= 20; n++) {
+                    DoAttempt(format, string.Concat(denumbered, n.ToString("00"), extSuffix));
+                }
+            }
+            if (extless.EndsWith("_000")) {
+                var denumbered = extless[..^3];
+                var extSuffix = "." + PathUtils.GetFilenameExtensionWithSuffixes(path).ToString();
+                for (int n = 1; n <= 300; n++) {
+                    DoAttempt(format, string.Concat(denumbered, n.ToString("000"), extSuffix));
+                }
+            }
+            if (extless.EndsWith("_0000")) {
+                var denumbered = extless[..^4];
+                var extSuffix = "." + PathUtils.GetFilenameExtensionWithSuffixes(path).ToString();
+                for (int n = 1; n <= 300; n++) {
+                    DoAttempt(format, string.Concat(denumbered, n.ToString("0000"), extSuffix));
+                }
+            }
+        }
+    }
+
+    private bool DoAttempt(KnownFileFormats format, string attempt)
+    {
+        var attemptHash = MurMur3HashUtils.PakFilepathHash(attempt);
+        return TryAddFoundFilePath(format, attempt, attemptHash);
+    }
+
+    private bool TryAddFoundFilePath(KnownFileFormats format, ReadOnlySpan<char> attempt, ulong attemptHash)
     {
         if (unknownHashes.Contains(attemptHash)) {
-            return TryAddFoundFilePath(outputPaths, unknownHashes, format, attempt.ToString(), attemptHash);
+            return TryAddFoundFilePath(format, attempt.ToString(), attemptHash);
         }
         return false;
     }
 
-    private bool TryAddFoundFilePath(List<string> outputPaths, HashSet<ulong> unknownHashes, KnownFileFormats format, string attempt, ulong attemptHash)
+    private bool TryAddFoundFilePath(KnownFileFormats format, string attempt, ulong attemptHash)
     {
         if (!unknownHashes.Remove(attemptHash)) return false;
 
@@ -339,7 +444,7 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
 
         if (format is KnownFileFormats.Texture or KnownFileFormats.Mesh or KnownFileFormats.Movie or
             KnownFileFormats.SoundBank or KnownFileFormats.SoundPackage or KnownFileFormats.SoundVoxel or KnownFileFormats.SoundStreamingLQG or
-            KnownFileFormats.VibrationSource or KnownFileFormats.WwiseStreamingGeometry or KnownFileFormats.Unknown) {
+            KnownFileFormats.VibrationSource or KnownFileFormats.WwiseStreamingGeometry or ReeLib.KnownFileFormats.MaterialPointCloud or KnownFileFormats.Unknown) {
             // try streaming/
             var streaming = PathUtils.GetStreamingNativesPath(attempt, platform);
             var streamingHash = PakUtils.GetFilepathHash(streaming);
@@ -428,7 +533,7 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
     }
 
     private static bool IsLocalizableFormat(KnownFileFormats format) =>
-        format is KnownFileFormats.SoundBank or KnownFileFormats.SoundPackage or KnownFileFormats.Texture or KnownFileFormats.MotionList or KnownFileFormats.Movie;
+        format is KnownFileFormats.SoundBank or KnownFileFormats.SoundPackage or KnownFileFormats.Texture or KnownFileFormats.MotionList or KnownFileFormats.Movie or KnownFileFormats.UserData or KnownFileFormats.Fsm2;
 
     private static bool IsPathlessFormat(KnownFileFormats format)
         => format is KnownFileFormats.Texture or KnownFileFormats.Mesh or KnownFileFormats.Movie or

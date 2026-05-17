@@ -2170,8 +2170,8 @@ namespace ReeLib.Mot
     public class MotClip : BaseModel
     {
         internal long clipOffset;
-        internal long endClipStructsRelocation;
-        internal int tracksDataCount;
+        internal long trackDataOffset;
+        internal int trackDataCount;
         public int useFlags = 1;
         public int category;
         public byte[] uknBytes = new byte[24];
@@ -2192,19 +2192,19 @@ namespace ReeLib.Mot
         {
             handler.ReadNull(8);
             handler.Read(ref clipOffset);
-            handler.Read(ref endClipStructsRelocation);
+            handler.Read(ref trackDataOffset);
             handler.ReadNull(4);
-            handler.Read(ref tracksDataCount);
+            handler.Read(ref trackDataCount);
             handler.Read(ref useFlags);
             handler.Read(ref category);
             handler.ReadBytes(uknBytes);
 
             ClipEntry.Read(handler);
-            if (ClipEntry.Header.version > ClipVersion.RE7 && tracksDataCount > 0)
+            if (ClipEntry.Header.version > ClipVersion.RE7 && trackDataCount > 0)
             {
-                handler.Seek(endClipStructsRelocation);
+                handler.Seek(trackDataOffset);
                 TrackData.Clear();
-                for (int i = 0; i < tracksDataCount; ++i)
+                for (int i = 0; i < trackDataCount; ++i)
                 {
                     var item = new TracksData() { Version = ClipEntry.Header.version };
                     item.Read(handler);
@@ -2218,12 +2218,19 @@ namespace ReeLib.Mot
 
         protected override bool DoWrite(FileHandler handler)
         {
-            tracksDataCount = TrackData.Count;
+            if (ClipEntry.Header.version > ClipVersion.RE7 && ClipEntry.Tracks.Count > 0)
+            {
+                while (TrackData.Count < ClipEntry.Tracks.Count - 1) {
+                    TrackData.Add(new TracksData());
+                }
+            }
+
+            trackDataCount = TrackData.Count;
             handler.WriteNull(8);
             handler.Write(ref clipOffset);
-            handler.Write(ref endClipStructsRelocation);
+            handler.Write(ref trackDataOffset);
             handler.WriteNull(4);
-            handler.Write(ref tracksDataCount);
+            handler.Write(ref trackDataCount);
             handler.Write(ref useFlags);
             handler.Write(ref category);
             handler.WriteBytes(uknBytes);
@@ -2231,14 +2238,14 @@ namespace ReeLib.Mot
             clipOffset = handler.Tell();
             ClipEntry.Write(handler);
 
-            if (ClipEntry.Header.version > ClipVersion.RE7 && tracksDataCount > 0)
+            if (ClipEntry.Header.version > ClipVersion.RE7 && trackDataCount > 0)
             {
                 handler.Align(16);
-                endClipStructsRelocation = handler.Tell();
+                trackDataOffset = handler.Tell();
                 TrackData.Write(handler);
             }
             handler.Write(Start + 8, clipOffset);
-            handler.Write(Start + 16, endClipStructsRelocation);
+            handler.Write(Start + 16, trackDataOffset);
             return true;
         }
 

@@ -2176,7 +2176,7 @@ namespace ReeLib.Mot
         public int category;
         public byte[] uknBytes = new byte[24];
         public EmbeddedClip ClipEntry { get; set; } = new();
-        public TracksData[]? TrackData { get; set; }
+        public List<TracksData> TrackData { get; set; } = new();
 
         public string MainTrackName
         {
@@ -2203,11 +2203,12 @@ namespace ReeLib.Mot
             if (ClipEntry.Header.version > ClipVersion.RE7 && tracksDataCount > 0)
             {
                 handler.Seek(endClipStructsRelocation);
-                TrackData = new TracksData[tracksDataCount];
+                TrackData.Clear();
                 for (int i = 0; i < tracksDataCount; ++i)
                 {
-                    TrackData[i] = new TracksData() { Version = ClipEntry.Header.version };
-                    TrackData[i].Read(handler);
+                    var item = new TracksData() { Version = ClipEntry.Header.version };
+                    item.Read(handler);
+                    TrackData.Add(item);
                 }
             }
             DataInterpretationException.ThrowIfDifferent(useFlags, 1);
@@ -2217,7 +2218,7 @@ namespace ReeLib.Mot
 
         protected override bool DoWrite(FileHandler handler)
         {
-            tracksDataCount = TrackData?.Length ?? 0;
+            tracksDataCount = TrackData.Count;
             handler.WriteNull(8);
             handler.Write(ref clipOffset);
             handler.Write(ref endClipStructsRelocation);
@@ -2234,10 +2235,7 @@ namespace ReeLib.Mot
             {
                 handler.Align(16);
                 endClipStructsRelocation = handler.Tell();
-                for (int i = 0; i < TrackData!.Length; ++i)
-                {
-                    TrackData[i].Write(handler);
-                }
+                TrackData.Write(handler);
             }
             handler.Write(Start + 8, clipOffset);
             handler.Write(Start + 16, endClipStructsRelocation);
@@ -2250,6 +2248,7 @@ namespace ReeLib.Mot
             foreach (var track in ClipEntry.Tracks) track.Version = clipVer;
             foreach (var track in ClipEntry.Properties) track.Info.Version = clipVer;
             foreach (var key in ClipEntry.NormalKeys) key.Version = clipVer;
+            foreach (var key in TrackData) key.Version = clipVer;
             ClipEntry.ExtraPropertyData.Version = clipVer;
         }
 

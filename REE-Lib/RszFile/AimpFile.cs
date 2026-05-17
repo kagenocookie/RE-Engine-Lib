@@ -93,23 +93,23 @@ namespace ReeLib.Aimp
 
     public class AimpHeader : BaseModel
     {
-        public uint magic = AimpFile.Magic;
+        internal uint magic = AimpFile.Magic;
         public string? name;
         public string? hash;
         public MapType mapType;
         public SectionType sectionType;
         public GuiObjectID mapId;
         public float agentRadWhenBuild;
-        public int uknId; // usually 1, sometimes 0 or 2; not related to embedded data nor is it the sectionID
+        public MapStructure mapStructure;
 
-        public long layersOffset;
-        public long rszOffset;
-        public long embeddedContentOffset;
+        internal long attributesOffset;
+        internal long rszOffset;
+        internal long embeddedContentOffset;
 
-        public long contentGroup1Offset;
-        public long group1DataOffset;
-        public long contentGroup2Offset;
-        public long group2DataOffset;
+        internal long contentGroup1Offset;
+        internal long group1DataOffset;
+        internal long contentGroup2Offset;
+        internal long group2DataOffset;
 
         public AimpFormat Version { get; }
 
@@ -136,13 +136,13 @@ namespace ReeLib.Aimp
             if (Version >= AimpFormat.Format46) {
                 handler.Read(ref agentRadWhenBuild);
                 mapId = new GuiObjectID(handler.Read<long>());
-                handler.Read(ref uknId);
+                handler.Read(ref mapStructure);
             } else if (Version >= AimpFormat.Format28) {
                 handler.Read(ref mapId.guid);
-                handler.Read(ref uknId);
+                handler.Read(ref mapStructure);
             }
 
-            handler.Read(ref layersOffset);
+            handler.Read(ref attributesOffset);
             if (Version >= AimpFormat.Format28) {
                 handler.Read(ref rszOffset);
                 handler.Read(ref embeddedContentOffset);
@@ -170,13 +170,13 @@ namespace ReeLib.Aimp
             if (Version >= AimpFormat.Format46) {
                 handler.Write(ref agentRadWhenBuild);
                 handler.Write(mapId.AsID);
-                handler.Write(ref uknId);
+                handler.Write(ref mapStructure);
             } else if (Version >= AimpFormat.Format28) {
                 handler.Write(mapId.guid);
-                handler.Write(ref uknId);
+                handler.Write(ref mapStructure);
             }
 
-            handler.Write(ref layersOffset);
+            handler.Write(ref attributesOffset);
             if (Version >= AimpFormat.Format28) {
                 handler.Write(ref rszOffset);
                 handler.Write(ref embeddedContentOffset);
@@ -188,6 +188,13 @@ namespace ReeLib.Aimp
             handler.Write(ref group2DataOffset);
             return true;
         }
+    }
+
+    public enum MapStructure
+    {
+        Unclassified = 0,
+        GroundBase = 1,
+        AllSurface = 2,
     }
 
     public class EdgeInfo
@@ -519,6 +526,7 @@ namespace ReeLib.Aimp
         public int edgeIndex;
         public ulong attributes;
         public int ukn; // this is sometimes int, sometimes float...
+        // >= DD2 should be bools: IsExtra, IsDummy, IsTwoWay
 
         [field: RszIgnore] public NodeInfo? SourceNode { get; set; }
         [field: RszIgnore] public NodeInfo? TargetNode { get; set; }
@@ -1993,8 +2001,8 @@ namespace ReeLib
                 }
             }
 
-            if (header.layersOffset > 0) {
-                handler.Seek(header.layersOffset);
+            if (header.attributesOffset > 0) {
+                handler.Seek(header.attributesOffset);
                 layers = new MapLayers[64];
                 for (int i = 0; i < 64; ++i) {
                     layers[i] = new MapLayers();
@@ -2076,7 +2084,7 @@ namespace ReeLib
             if (layers?.Length > 0)
             {
                 handler.Align(16);
-                header.layersOffset = handler.Tell();
+                header.attributesOffset = handler.Tell();
                 foreach (var layer in layers) layer.Write(handler, header.Version);
             }
 

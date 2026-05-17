@@ -2,6 +2,7 @@ namespace ReeLib.Pak;
 
 using System.Buffers;
 using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
 using ReeLib.Common;
@@ -28,6 +29,7 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
     {
         Files = 1,
         Executable = 2,
+        BruteforceExtensions = 4,
         MaintainPreviousList = 1 << 30
     }
 
@@ -182,11 +184,21 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
                 }
             }
         }
+        // append all dates from last known date till today as well
+        var latestVer = versionPrefixes.Where(v => v.Length == 6 && int.TryParse(v[0..2], out var yy) && yy >= 25 && yy <= DateTime.UtcNow.Year % 100).OrderDescending().First();
+        if (DateTime.TryParseExact(latestVer, "yyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var latestDate)) {
+            var todayDate = DateTime.UtcNow.Date;
+            while (latestDate < todayDate) {
+                versionPrefixes.Add(latestDate.ToString("yyMMdd"));
+                latestDate = latestDate.AddDays(1);
+            }
+        }
 
         var unmatchedPaths = new List<string>();
         var unknownExtFiles = new Dictionary<string, List<string>>();
 
         var pathsProcessed = 0;
+        Span<char> extensionStringSpan = new char[512];
         foreach (var path in rawPaths.Values.Concat(otherFileListResourcePaths)) {
             PhaseProgress = (float)pathsProcessed++ / rawPaths.Count;
 
@@ -202,21 +214,44 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
                     // most file versions are small numbers so we can try these without it taking forever
                     // some version also follow a seemingly YYMMDD000 date-like structure so we can try all the previously known dates as well
                     // TODO try and also fetch versions directly instead of only guessing
-                    if (ext.Length <= MaxExtensionLength) {
-                        foreach (var prefix in versionPrefixes) {
-                            for (int i = 0; i <= 999; i++) {
-                                var str = prefix == "" ? $"{attemptBase}.{i}" : $"{attemptBase}.{prefix}{i:000}";
-                                var hash = PakUtils.GetFilepathHash(str);
-                                if (TryAddFoundFilePath(outputPaths, unknownHashes, KnownFileFormats.Unknown, str, hash)) {
-                                    version = prefix == "" ? i : int.Parse($"{prefix}{i:000}");
-                                    extVersions[ext] = version;
-                                    knownHashes.Add(hash);
-                                    canContinue = true;
-                                    Log.Info($"Found new file extension version: {ext}.{version}");
-                                    break;
-                                }
+                    var sb = new StringBuilder();
+                    sb.Append(attemptBase).Append('.');
+                    foreach (var prefix in versionPrefixes) {
+                        for (int i = 0; i <= 999; i++) {
+                            sb.Length = attemptBase.Length + 1;
+                            if (prefix == "") {
+                                sb.Append(i);
+                            } else {
+                                sb.Append(prefix).AppendFormat("{0:000}", i);
                             }
-                            if (canContinue) break;
+                            sb.CopyTo(0, extensionStringSpan, sb.Length);
+                            var str = extensionStringSpan.Slice(0, sb.Length);
+                            var hash = MurMur3HashUtils.PakFilepathHash(str);
+                            if (TryAddFoundFilePath(outputPaths, unknownHashes, KnownFileFormats.Unknown, str, hash)) {
+                                version = prefix == "" ? i : int.Parse($"{prefix}{i:000}");
+                                extVersions[ext] = version;
+                                knownHashes.Add(hash);
+                                canContinue = true;
+                                Log.Info($"Found new file extension version: {ext}.{version}");
+                                break;
+                            }
+                        }
+                        if (canContinue) break;
+                    }
+                    if (!canContinue && Flags.HasFlag(ScanFlags.BruteforceExtensions)) {
+                        for (uint i = 0; i < uint.MaxValue; i++) {
+                            sb.Length = attemptBase.Length + 1;
+                            sb.Append((int)i);
+                            sb.CopyTo(0, extensionStringSpan, sb.Length);
+                            var str = extensionStringSpan.Slice(0, sb.Length);
+                            var hash = MurMur3HashUtils.PakFilepathHash(str);
+                            if (TryAddFoundFilePath(outputPaths, unknownHashes, KnownFileFormats.Unknown, str, hash)) {
+                                extVersions[ext] = version = (int)i;
+                                knownHashes.Add(hash);
+                                canContinue = true;
+                                Log.Info($"Found new file extension version: {ext}.{version}");
+                                break;
+                            }
                         }
                     }
                     if (!canContinue) {
@@ -286,6 +321,14 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
         outputPaths.Sort(StringComparer.OrdinalIgnoreCase);
         Phase = GeneratorPhase.Done;
         return outputPaths;
+    }
+
+    private bool TryAddFoundFilePath(List<string> outputPaths, HashSet<ulong> unknownHashes, KnownFileFormats format, ReadOnlySpan<char> attempt, ulong attemptHash)
+    {
+        if (unknownHashes.Contains(attemptHash)) {
+            return TryAddFoundFilePath(outputPaths, unknownHashes, format, attempt.ToString(), attemptHash);
+        }
+        return false;
     }
 
     private bool TryAddFoundFilePath(List<string> outputPaths, HashSet<ulong> unknownHashes, KnownFileFormats format, string attempt, ulong attemptHash)

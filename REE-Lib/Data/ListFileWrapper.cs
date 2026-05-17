@@ -111,17 +111,17 @@ public class ListFileWrapper
     public IEnumerable<string> GetFileExtensionVariants(string path)
     {
         path = PathUtils.GetFilepathWithoutSuffixes(path).ToString();
-        path = NormalizePath(path).ToLowerInvariant();
+        path = NormalizePath(path);
         var index = Array.BinarySearch(Files, path, CaseInsensitiveComparer.DefaultInvariant);
         if (index < 0) {
             index = ~index;
-            if (index >= Files.Length || !Files[index].StartsWith(path)) yield break;
+            if (index >= Files.Length || !Files[index].StartsWith(path, StringComparison.OrdinalIgnoreCase)) yield break;
         }
         while(index > 0) {
             yield return Files[index];
             ++index;
             // TODO verify correctness
-            if (index >= Files.Length || !Files[index].StartsWith(path)) {
+            if (index >= Files.Length || !Files[index].StartsWith(path, StringComparison.OrdinalIgnoreCase)) {
                 yield break;
             }
         }
@@ -142,7 +142,7 @@ public class ListFileWrapper
     /// </summary>
     public string[] FilterAllFiles(string pattern)
     {
-        pattern = pattern.ToLowerInvariant().Trim();
+        pattern = pattern.Trim();
         var cacheKey = MurMur3HashUtils.PakFilepathHash(pattern);
         if (folderListCache.TryGetValue(cacheKey, out var names)) {
             return names;
@@ -216,13 +216,13 @@ public class ListFileWrapper
             if (curSegmentType == '!')
             {
                 var segmentStr = segment.Slice(1).ToString();
-                PatternFilters.Add((path) => path.IndexOf(segmentStr) == -1);
+                PatternFilters.Add((path) => path.IndexOf(segmentStr, StringComparison.OrdinalIgnoreCase) == -1);
                 segmentStart = space;
             }
             else if (curSegmentType == '+')
             {
                 var segmentStr = segment.Slice(1).ToString();
-                PatternFilters.Add((path) => path.IndexOf(segmentStr) != -1);
+                PatternFilters.Add((path) => path.IndexOf(segmentStr, StringComparison.OrdinalIgnoreCase) != -1);
                 segmentStart = space;
             }
             else if (curSegmentType == 'e' || next == '!' || next == '+' || next == 'e')
@@ -234,7 +234,7 @@ public class ListFileWrapper
                     segmentStr = segmentStr.Replace("**", ".*");
                 }
 
-                var regex = new Regex("^" + segmentStr + "$");
+                var regex = new Regex("^" + segmentStr + "$", RegexOptions.IgnoreCase);
                 PatternFilters.Add((path) => regex.IsMatch(path));
                 if (curSegmentType == 'e') break;
                 else

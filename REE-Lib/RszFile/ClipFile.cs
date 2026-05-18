@@ -1457,7 +1457,7 @@ namespace ReeLib.Clip
             long start = Start;
             var clipHeader = Header;
             clipHeader.magic = ClipFile.Magic;
-            handler.Seek(start + clipHeader.Size);
+            clipHeader.Write(handler);
 
             clipHeader.trackCount = Tracks.Count;
             clipHeader.tracksOffset = handler.Tell();

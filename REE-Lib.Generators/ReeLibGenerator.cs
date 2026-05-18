@@ -228,7 +228,7 @@ public class ReeLibGenerator : IIncrementalGenerator
         var fieldListMethod = context.ClassDecl.Members.Any(m => m is MethodDeclarationSyntax meth && meth.Identifier.Text == "GetFieldList")
             ? "GetFieldListDefault"
             : "GetFieldList";
-        var shouldNew = context.ClassDecl.BaseList != null && !context.ClassDecl.IsSubclassOf("BaseModel", "EFXAttribute", "EFXExpressionDataBase", "CompositeColliderNode", "IMultiIndexNode")
+        var shouldNew = context.ClassDecl.BaseList != null && !context.ClassDecl.IsSubclassOf("BaseModel", "EFXAttribute", "EFXExpressionDataBase", "CompositeColliderNode", "IMultiIndexNode", "JointExpression", "EFXExpressionObject")
             ? "new "
             : "";
         if (context.ClassDecl.TryGetAttribute("RszVersionedObject", out classAttr)) {
@@ -525,8 +525,12 @@ public class ReeLibGenerator : IIncrementalGenerator
                     ctx.Indent().AppendLine($"{name} = tmpArray_{name};");
                     ctx.ReduceIndent();
                     ctx.Indent().AppendLine($"}}");
+                    ctx.Indent().AppendLine($"handler.WriteArray({name});");
+                } else if (field.IsReadonly()) {
+                    ctx.Indent().AppendLine($"handler.WriteArray({name});");
+                } else {
+                    ctx.Indent().AppendLine($"handler.WriteArray({name} ??= []);");
                 }
-                ctx.Indent().AppendLine($"handler.WriteArray({name});");
             } else if (handle == HandleType.Read) {
                 if (string.IsNullOrEmpty(size)) size = "handler.Read<int>()";
                 if (field.IsReadonly()) {

@@ -81,7 +81,7 @@ namespace ReeLib
             FileHandler handler = FileHandler;
             handler.Clear();
             ref var header = ref Header.Data;
-            handler.Seek(Header.Size);
+            Header.Write(handler);
             handler.Align(16);
             header.resourceInfoOffset = handler.Tell();
             ResourceInfoList.Write(handler);

@@ -354,8 +354,8 @@ namespace ReeLib.Efx
                 attr.Version = Version;
                 attr.Read(handler);
                 // Log.Debug($"Read {attr.type} at {attr.Start}");
-                if (expectedSize != -1 && expectedSize - 4 != attr.Size) {//UniqueID is included in the struct size, so subtract 4
-                    throw new Exception($"EFX attribute ({attr.type}) was not properly read. Expected: {expectedSize} Actual: {attr.Size+4} Start:{attr.Start} End:{attr.Start + attr.Size}");
+                if (expectedSize != -1 && expectedSize - 4 != attr.StructSize) {//UniqueID is included in the struct size, so subtract 4
+                    throw new Exception($"EFX attribute ({attr.type}) was not properly read. Expected: {expectedSize} Actual: {attr.StructSize+4} Start:{attr.Start} End:{attr.Start + attr.StructSize}");
                 }
                 Attributes.Add(attr);
             }
@@ -377,7 +377,7 @@ namespace ReeLib.Efx
 
                 attr.Write(handler);
                 if (Version >= EfxVersion.MHWilds) {
-                    handler.Write(sizeOffset, (int)(attr.Size + 4));
+                    handler.Write(sizeOffset, (int)(attr.StructSize + 4));
                 }
             }
             return true;
@@ -468,8 +468,8 @@ namespace ReeLib.Efx
                 var attr = EFXAttribute.Create(Version, type, seqNum);
                 attr.Version = Version;
                 attr.Read(handler);
-                if (expectedSize != -1 && expectedSize - 4 != attr.Size) {//UniqueID is included in the struct size, so subtract 4
-                    throw new Exception($"EFX attribute ({attr.type}) was not properly read. Expected: {expectedSize} Actual: {attr.Size+4} Start:{attr.Start} End:{attr.Start + attr.Size}");
+                if (expectedSize != -1 && expectedSize - 4 != attr.StructSize) {//UniqueID is included in the struct size, so subtract 4
+                    throw new Exception($"EFX attribute ({attr.type}) was not properly read. Expected: {expectedSize} Actual: {attr.StructSize+4} Start:{attr.Start} End:{attr.Start + attr.StructSize}");
                 }
                 Attributes.Add(attr);
             }

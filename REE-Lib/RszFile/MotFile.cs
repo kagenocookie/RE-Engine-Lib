@@ -262,7 +262,7 @@ namespace ReeLib.Mot
         [field: RszIgnore] public MotBone? Parent { get; set; }
         [field: RszIgnore] public List<MotBone> Children { get; } = new();
 
-        public const int StructSize = 80;
+        public const int BoneStructSize = 80;
 
         object ICloneable.Clone() => this.Clone();
         public override MotBone Clone()
@@ -3086,7 +3086,7 @@ namespace ReeLib
 
                     int refBoneIndex;
                     if (boneHeader.parentOffs != 0) {
-                        refBoneIndex = (int)((boneHeader.parentOffs - boneHeaderOffset) / MotBone.StructSize);
+                        refBoneIndex = (int)((boneHeader.parentOffs - boneHeaderOffset) / MotBone.BoneStructSize);
                         var parentBone = GetBoneByHash(Bones[refBoneIndex].boneHash);
                         if (parentBone == null)
                         {
@@ -3104,7 +3104,7 @@ namespace ReeLib
 
                     if (boneHeader.childOffs != 0)
                     {
-                        refBoneIndex = (int)((boneHeader.childOffs - boneHeaderOffset) / MotBone.StructSize);
+                        refBoneIndex = (int)((boneHeader.childOffs - boneHeaderOffset) / MotBone.BoneStructSize);
                         if (refBoneIndex != bone.Index)
                         {
                             var next = GetBoneByHash(Bones[refBoneIndex].boneHash);
@@ -3113,7 +3113,7 @@ namespace ReeLib
                                 if (!bone.Children.Contains(next)) bone.Children.Add(next);
                                 if (Bones[refBoneIndex].nextSiblingOffs == 0) break;
 
-                                refBoneIndex = (int)((Bones[refBoneIndex].nextSiblingOffs - boneHeaderOffset) / MotBone.StructSize);
+                                refBoneIndex = (int)((Bones[refBoneIndex].nextSiblingOffs - boneHeaderOffset) / MotBone.BoneStructSize);
                                 if (refBoneIndex == next.Index) break;
 
                                 next = GetBoneByHash(Bones[refBoneIndex].boneHash);
@@ -3165,10 +3165,10 @@ namespace ReeLib
             var firstBoneOffset = handler.Tell();
             foreach (var bone in Bones)
             {
-                bone.parentOffs = bone.Parent == null ? 0 : firstBoneOffset + bone.Parent.Index * MotBone.StructSize;
+                bone.parentOffs = bone.Parent == null ? 0 : firstBoneOffset + bone.Parent.Index * MotBone.BoneStructSize;
                 var sibling = GetNextSiblingIndex(bone.Parent?.Children ?? RootBones, bone);
-                bone.nextSiblingOffs = sibling == -1 ? 0 : firstBoneOffset + sibling * MotBone.StructSize;
-                bone.childOffs = bone.Children.Count == 0 ? 0 : firstBoneOffset + bone.Children[0].Index * MotBone.StructSize;
+                bone.nextSiblingOffs = sibling == -1 ? 0 : firstBoneOffset + sibling * MotBone.BoneStructSize;
+                bone.childOffs = bone.Children.Count == 0 ? 0 : firstBoneOffset + bone.Children[0].Index * MotBone.BoneStructSize;
                 if (!string.IsNullOrEmpty(bone.boneName)) {
                     bone.boneHash = MurMur3HashUtils.GetHash(bone.boneName);
                 }

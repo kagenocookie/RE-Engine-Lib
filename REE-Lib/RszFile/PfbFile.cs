@@ -225,11 +225,7 @@ namespace ReeLib
             FileHandler handler = FileHandler;
             handler.Clear();
             var header = Header;
-            if (header.Size == 0) {
-                header.Write(handler);
-            } else {
-                handler.Seek(header.Size);
-            }
+            header.Write(handler);
             GameObjectInfoList.Write(handler);
 
             if (GameObjectRefInfoList.Count > 0)

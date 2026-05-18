@@ -41,7 +41,6 @@ namespace ReeLib
     public interface IModel
     {
         long Start { get; set; }
-        long Size { get; }
         bool Read(FileHandler handler);
         bool Write(FileHandler handler);
     }
@@ -135,7 +134,6 @@ namespace ReeLib
     {
         public T Data = default;
         public long Start { get; set; } = -1;
-        public long Size => Unsafe.SizeOf<T>();
 
         public bool Read(FileHandler handler)
         {
@@ -173,7 +171,7 @@ namespace ReeLib
         public long Start { get; set; }
 
         [JsonIgnore]
-        public long Size { get; protected set; }
+        internal long StructSize { get; set; }
 
         public bool Read(FileHandler handler)
         {
@@ -181,7 +179,7 @@ namespace ReeLib
             Start = handler.Tell();
             // if (handler.Offset == 0) Console.WriteLine($"Read {this} at {Start}");
             bool result = DoRead(handler);
-            Size = handler.Tell() - Start;
+            StructSize = handler.Tell() - Start;
             return result;
         }
 
@@ -190,7 +188,7 @@ namespace ReeLib
             Start = handler.Tell();
             // if (handler.Offset == 0) Console.WriteLine($"Write {this} at {Start}");
             bool result = DoWrite(handler);
-            Size = handler.Tell() - Start;
+            StructSize = handler.Tell() - Start;
             return result;
         }
 

@@ -193,16 +193,16 @@ namespace ReeLib
 				return;
 			}
 
-            var headerSize = Header.Size;
+            var headerSize = Header.StructSize;
 			Header.version = config.fileVersion;
             var handler = FileHandler;
             handler.FileVersion = Header.version;
             // write to a dummy buffer to determine updated header size while not overwriting anything yet
             Header.Write(new FileHandler());
-            if (headerSize != 0 && headerSize != Header.Size && Mips.Count > 0)
+            if (headerSize != 0 && headerSize != Header.StructSize && Mips.Count > 0)
             {
                 // relocate mip offsets and data
-                var mipOffsetsDelta = Header.Size - headerSize;
+                var mipOffsetsDelta = Header.StructSize - headerSize;
                 handler.Seek(Mips[0].offset);
                 var originalData = handler.ReadArray<byte>(TotalTextureDataLength);
 
@@ -213,7 +213,7 @@ namespace ReeLib
                     Mips[i] = mip;
                 }
 
-                handler.Seek(Header.Size);
+                handler.Seek(Header.StructSize);
                 Mips.Write(handler);
                 handler.WriteArray(originalData);
             }

@@ -329,7 +329,7 @@ namespace ReeLib
             FileHandler handler = FileHandler;
             handler.Clear();
             ref var header = ref Header.Data;
-            handler.Seek(Header.Size);
+            Header.Write(handler);
 
             header.entryCount = Entries.Count;
             header.attributeCount = AttributeItems.Count;

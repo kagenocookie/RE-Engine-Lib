@@ -332,7 +332,7 @@ internal sealed class Program
 
         var generator = new Generators.ReeLibGenerator();
         var basedir = Directory.GetCurrentDirectory();
-        basedir = basedir.Substring(0, basedir.IndexOf("\\ReeLib.Tools"));
+        basedir = basedir.Substring(0, Math.Max(basedir.IndexOf("\\REE-Lib.Tools"), basedir.IndexOf("/REE-Lib.Tools")));
 
         var compilation = CSharpCompilation.Create("CSharpCodeGen.GenerateAssembly")
             .AddSyntaxTrees(

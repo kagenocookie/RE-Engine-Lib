@@ -228,7 +228,7 @@ public class ReeLibGenerator : IIncrementalGenerator
         var fieldListMethod = context.ClassDecl.Members.Any(m => m is MethodDeclarationSyntax meth && meth.Identifier.Text == "GetFieldList")
             ? "GetFieldListDefault"
             : "GetFieldList";
-        var shouldNew = !context.ClassDecl.IsSubclassOf("BaseModel", "EFXAttribute", "EFXExpressionDataBase")
+        var shouldNew = context.ClassDecl.BaseList != null && !context.ClassDecl.IsSubclassOf("BaseModel", "EFXAttribute", "EFXExpressionDataBase", "CompositeColliderNode", "IMultiIndexNode")
             ? "new "
             : "";
         if (context.ClassDecl.TryGetAttribute("RszVersionedObject", out classAttr)) {
@@ -236,14 +236,14 @@ public class ReeLibGenerator : IIncrementalGenerator
             if (versionType != null) {
                 buildCtx.versionParam = EvaluateExpressionIdentifier(buildCtx, classAttr.ArgumentList?.Arguments.Skip(1).FirstOrDefault()?.Expression)
                     ?? "Version";
-                sb.Append(memberIndent).AppendLine($"public static {shouldNew} IEnumerable<(string name, Type type)> {fieldListMethod}({versionType} {buildCtx.versionParam})");
+                sb.Append(memberIndent).AppendLine($"public static {shouldNew}IEnumerable<(string name, Type type)> {fieldListMethod}({versionType} {buildCtx.versionParam})");
                 sb.Append(memberIndent).AppendLine("{");
                 WriteFieldList(buildCtx);
                 buildCtx.Indent().AppendLine("yield break;");
                 sb.Append(memberIndent).AppendLine("}");
             }
         } else {
-            sb.Append(memberIndent).AppendLine($"public static {shouldNew} IEnumerable<(string name, Type type)> {fieldListMethod}()");
+            sb.Append(memberIndent).AppendLine($"public static {shouldNew}IEnumerable<(string name, Type type)> {fieldListMethod}()");
             sb.Append(memberIndent).AppendLine("{");
             WriteFieldList(buildCtx);
             buildCtx.Indent().AppendLine("yield break;");

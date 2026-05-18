@@ -58,18 +58,18 @@ public class PakWriter
 
         foreach (var file in Directory.EnumerateFiles(dir, "*.*", includeSubfolders ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly)) {
             var relativePath = Path.GetRelativePath(dir, file);
-            fileList[PakUtils.NormalizePath(relativePath).ToLowerInvariant()] = new FileContentSource(file);
+            fileList[PakUtils.NormalizePath(relativePath)] = new FileContentSource(file);
         }
     }
 
     public void AddFile(string nativePath, string filepath)
     {
-        fileList[PakUtils.NormalizePath(nativePath).ToLowerInvariant()] = new FileContentSource(filepath);
+        fileList[PakUtils.NormalizePath(nativePath)] = new FileContentSource(filepath);
     }
 
     public void AddFile(string nativePath, byte[] content)
     {
-        fileList[PakUtils.NormalizePath(nativePath).ToLowerInvariant()] = new FileContentSource(content);
+        fileList[PakUtils.NormalizePath(nativePath)] = new FileContentSource(content);
     }
 
     public void SaveTo(string pakFilepath)

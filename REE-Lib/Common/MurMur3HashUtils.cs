@@ -42,9 +42,9 @@ namespace ReeLib.Common
         }
 
         /// <summary>
-        /// Extra optimized method for calculating the PAK hash of a UTF16 file path string. Assumes no non-ascii base characters.
+        /// Extra optimized method for calculating the PAK hash of a UTF16 file path string. Assumes only ascii base characters.
         /// </summary>
-        public static ulong PakFilepathHash(ReadOnlySpan<char> path)
+        public static ulong GetPakFilepathHash_FastAscii(ReadOnlySpan<char> path)
         {
             const uint c1 = 0xcc9e2d51;
             const uint c2 = 0x1b873593;
@@ -87,9 +87,9 @@ namespace ReeLib.Common
         }
 
         /// <summary>
-        /// Calculate the PAK hash (lowercase + uppercase hash) of a UTF16 file path string. Works with non-ascii characters, but is about 50% slower than <see cref="PakFilepathHash"/>.
+        /// Calculate the PAK hash (lowercase + uppercase hash) of a UTF16 file path string. Works with non-ascii characters, but is about 50% slower than <see cref="GetPakFilepathHash_FastAscii"/>.
         /// </summary>
-        public static ulong PakFilepathHash_SafeUTF16(ReadOnlySpan<char> path)
+        public static ulong GetPakFilepathHash(ReadOnlySpan<char> path)
         {
             Span<char> strLow = stackalloc char[path.Length];
             Span<char> strHigh = stackalloc char[path.Length];

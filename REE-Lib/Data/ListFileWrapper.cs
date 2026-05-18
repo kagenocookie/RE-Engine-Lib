@@ -73,9 +73,9 @@ public class ListFileWrapper
             }
             ordered.Add(norm);
         }
-        ordered.Sort();
+        ordered.Sort(StringComparer.OrdinalIgnoreCase);
         if (ensureUniqueEntries) {
-            Files = ordered.Distinct().ToArray();
+            Files = ordered.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
         } else {
             Files = ordered.ToArray();
         }
@@ -88,7 +88,7 @@ public class ListFileWrapper
         }
 
         using var f = new StreamReader(File.OpenRead(listFilepath));
-        var list = new SortedSet<string>();
+        var list = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
         var platformPrefix = platform.basePath;
         bool? isCorrectPlatform = platformPrefix == null ? true : null;
         while (!f.EndOfStream) {
@@ -106,22 +106,31 @@ public class ListFileWrapper
         Files = list.ToArray();
     }
 
-    public bool FileExists(string path) => Array.BinarySearch(Files, path, CaseInsensitiveComparer.DefaultInvariant) >= 0;
+    public bool FileExists(string path) => Array.BinarySearch(Files, path, StringComparer.OrdinalIgnoreCase) >= 0;
 
     public IEnumerable<string> GetFileExtensionVariants(string path)
     {
+        static bool CheckIsSubpath(string path, string comparePath)
+        {
+            var lastSlash = comparePath.LastIndexOf('/');
+            if (lastSlash == -1) return comparePath.StartsWith(path, StringComparison.OrdinalIgnoreCase);
+
+            var compareDir = comparePath.AsSpan(0, lastSlash + 1);
+            return path.StartsWith(compareDir, StringComparison.OrdinalIgnoreCase) && comparePath.StartsWith(path, StringComparison.OrdinalIgnoreCase);
+        }
+
         path = PathUtils.GetFilepathWithoutSuffixes(path).ToString();
         path = NormalizePath(path);
-        var index = Array.BinarySearch(Files, path, CaseInsensitiveComparer.DefaultInvariant);
+        var index = Array.BinarySearch(Files, path, StringComparer.OrdinalIgnoreCase);
         if (index < 0) {
             index = ~index;
-            if (index >= Files.Length || !Files[index].StartsWith(path, StringComparison.OrdinalIgnoreCase)) yield break;
+            if (index >= Files.Length || !CheckIsSubpath(path, Files[index])) yield break;
         }
+
         while(index > 0) {
             yield return Files[index];
             ++index;
-            // TODO verify correctness
-            if (index >= Files.Length || !Files[index].StartsWith(path, StringComparison.OrdinalIgnoreCase)) {
+            if (index >= Files.Length || !CheckIsSubpath(path, Files[index])) {
                 yield break;
             }
         }
@@ -143,7 +152,7 @@ public class ListFileWrapper
     public string[] FilterAllFiles(string pattern)
     {
         pattern = pattern.Trim();
-        var cacheKey = MurMur3HashUtils.PakFilepathHash(pattern);
+        var cacheKey = MurMur3HashUtils.GetPakFilepathHash_FastAscii(pattern);
         if (folderListCache.TryGetValue(cacheKey, out var names)) {
             return names;
         }
@@ -286,18 +295,18 @@ public class ListFileWrapper
         if (folderNormalized.EndsWith('/')) {
             folderNormalized = folderNormalized[..^1];
         }
-        var cacheKey = MurMur3HashUtils.PakFilepathHash(folderNormalized);
+        var cacheKey = MurMur3HashUtils.GetPakFilepathHash_FastAscii(folderNormalized);
         if (folderListCache.TryGetValue(cacheKey, out var names)) {
             return names;
         }
 
-        var startIndex = Array.BinarySearch(Files, folderNormalized, CaseInsensitiveComparer.DefaultInvariant);
+        var startIndex = Array.BinarySearch(Files, folderNormalized, StringComparer.OrdinalIgnoreCase);
         if (startIndex < 0 && folderNormalized.Length > 0 && !folderNormalized.EndsWith('/')) {
             folderNormalized += "/";
-            startIndex = Array.BinarySearch(Files, folderNormalized, CaseInsensitiveComparer.DefaultInvariant);
+            startIndex = Array.BinarySearch(Files, folderNormalized, StringComparer.OrdinalIgnoreCase);
         }
         if (startIndex >= 0) {
-            return folderListCache[cacheKey] = names = [folderNormalized];
+            return folderListCache[cacheKey] = names = [Files[startIndex]];
         } else {
             startIndex = ~startIndex;
             if (startIndex > Files.Length) return [];
@@ -335,9 +344,7 @@ public class ListFileWrapper
 
     private static string NormalizePath(string path)
     {
-        path = path.Replace('\\', '/').TrimEnd();
-        if (path.StartsWith('/')) return path[1..];
-        return path;
+        return path.Replace('\\', '/').TrimEnd().TrimStart('/');
     }
 
     public virtual string? GetPathInfo(string path, string field)
@@ -354,7 +361,7 @@ public class ListFileWrapper
 
     private PathType GetPathType(string path)
     {
-        var exactMatch = Array.BinarySearch(Files, NormalizePath(path), CaseInsensitiveComparer.DefaultInvariant);
+        var exactMatch = Array.BinarySearch(Files, NormalizePath(path), StringComparer.OrdinalIgnoreCase);
         return exactMatch < 0 ? PathType.Folder : PathType.File;
     }
 }

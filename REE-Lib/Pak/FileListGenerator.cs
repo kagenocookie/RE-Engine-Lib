@@ -151,7 +151,7 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
         var previouslyKnownFilesCount = outputPaths.Count;
 
         if (Flags.HasFlag(ScanFlags.UpdateExistingListCasing)) {
-            unknownHashes = outputPaths.Select(p => MurMur3HashUtils.PakFilepathHash(p)).Concat(unknownHashes).ToHashSet();
+            unknownHashes = outputPaths.Select(p => MurMur3HashUtils.GetPakFilepathHash_FastAscii(p)).Concat(unknownHashes).ToHashSet();
             outputPaths.Clear();
         }
         if (unknownHashes.Count == 0) {
@@ -219,7 +219,7 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
                             }
                             sb.CopyTo(0, extensionStringSpan, sb.Length);
                             var str = extensionStringSpan.Slice(0, sb.Length);
-                            var hash = MurMur3HashUtils.PakFilepathHash(str);
+                            var hash = MurMur3HashUtils.GetPakFilepathHash_FastAscii(str);
                             if (TryAddFoundFilePath(KnownFileFormats.Unknown, str, hash)) {
                                 version = prefix == "" ? i : int.Parse($"{prefix}{i:000}");
                                 extVersions[ext] = version;
@@ -236,7 +236,7 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
                             sb.Append((int)i);
                             sb.CopyTo(0, extensionStringSpan, sb.Length);
                             var str = extensionStringSpan.Slice(0, sb.Length);
-                            var hash = MurMur3HashUtils.PakFilepathHash(str);
+                            var hash = MurMur3HashUtils.GetPakFilepathHash_FastAscii(str);
                             if (TryAddFoundFilePath(KnownFileFormats.Unknown, str, hash)) {
                                 extVersions[ext] = version = (int)i;
                                 canContinue = true;
@@ -296,9 +296,9 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
 
         // in case the previous list file had some paths we didn't find, make sure we add them back in
         if (Flags.HasFlag(ScanFlags.UpdateExistingListCasing)) {
-            var outputHashes = outputPaths.Select(p => MurMur3HashUtils.PakFilepathHash(p)).ToHashSet();
+            var outputHashes = outputPaths.Select(p => MurMur3HashUtils.GetPakFilepathHash_FastAscii(p)).ToHashSet();
             foreach (var path in sourceFileList) {
-                var hash = MurMur3HashUtils.PakFilepathHash(path);
+                var hash = MurMur3HashUtils.GetPakFilepathHash_FastAscii(path);
                 if (!outputHashes.Contains(hash)) {
                     outputPaths.Add(path);
                     unknownHashes.Remove(hash);
@@ -424,7 +424,7 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
 
     private bool DoAttempt(KnownFileFormats format, string attempt)
     {
-        var attemptHash = MurMur3HashUtils.PakFilepathHash(attempt);
+        var attemptHash = MurMur3HashUtils.GetPakFilepathHash_FastAscii(attempt);
         return TryAddFoundFilePath(format, attempt, attemptHash);
     }
 

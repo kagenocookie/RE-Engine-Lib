@@ -130,7 +130,6 @@ public partial class PakReader
                 yield return (entry.path!, data);
             }
 
-            int _ = 0;
             UpdateSearchedPaths(searchedPaths, [ctx]);
             if (EnableConsoleLogging) Log.Info("Finished searching " + pakfile);
             if (searchedPaths.Count == 0) break;

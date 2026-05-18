@@ -51,8 +51,7 @@ namespace ReeLib.Pak
 
     public class PakEntry
     {
-        public uint hashLowercase;
-        public uint hashUppercase;
+        public ulong pathHash;
         public long offset;
         public long compressedSize;
         public long decompressedSize;
@@ -63,7 +62,7 @@ namespace ReeLib.Pak
 
         public string? path;
 
-        public override string ToString() => path ?? $"Entry: {CombinedHash.ToString("X16")}";
+        public override string ToString() => path ?? $"Entry: {pathHash.ToString("X16")}";
 
         public PakEntry()
         {
@@ -72,24 +71,21 @@ namespace ReeLib.Pak
         public PakEntry(string filepath)
         {
             path = filepath;
-            hashUppercase = MurMur3HashUtils.GetHash(filepath.ToUpperInvariant());
-            hashLowercase = MurMur3HashUtils.GetHash(filepath.ToLowerInvariant());
+            pathHash = MurMur3HashUtils.GetPakFilepathHash(filepath);
         }
 
-        public ulong CombinedHash => (ulong)hashUppercase << 32 | hashLowercase;
+        public ulong CombinedHash => pathHash;
 
         public void ReadVer2(FileHandler handler)
         {
             offset = handler.ReadInt64();
             compressedSize = handler.ReadInt64();
-            hashUppercase = handler.ReadUInt();
-            hashLowercase = handler.ReadUInt();
+            pathHash = handler.ReadUInt64();
         }
 
         public void ReadVer4(FileHandler handler)
         {
-            hashLowercase = handler.ReadUInt();
-            hashUppercase = handler.ReadUInt();
+            pathHash = handler.ReadUInt64();
             offset = handler.ReadInt64();
             compressedSize = handler.ReadInt64();
             decompressedSize = handler.ReadInt64();
@@ -114,8 +110,7 @@ namespace ReeLib.Pak
 
         public void WriteVer4(FileHandler handler)
         {
-            handler.WriteUInt(hashLowercase);
-            handler.WriteUInt(hashUppercase);
+            handler.WriteUInt64(pathHash);
             handler.WriteInt64(offset);
             handler.WriteInt64(compressedSize);
             handler.WriteInt64(decompressedSize);

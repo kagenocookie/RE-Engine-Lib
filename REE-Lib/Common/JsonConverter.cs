@@ -89,7 +89,7 @@ namespace ReeLib.Common
                     }
                 } else  if (field.type is RszFieldType.GameObjectRef or RszFieldType.Uri) {
                     if (field.array) {
-                        var srcList = val?.AsArray().Select(a => a.GetValue<string>()).ToArray() ?? [];
+                        var srcList = val?.AsArray().Select(a => a?.GetValue<string>()).ToArray() ?? [];
                         var list = new List<object>();
                         foreach (var rr in srcList) {
                             var obj = new GameObjectRef();

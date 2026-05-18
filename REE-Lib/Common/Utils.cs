@@ -233,6 +233,18 @@ namespace ReeLib.Common
         }
     }
 
+    public sealed class PakHashedPathComparer : IEqualityComparer<string>, IComparer<string>
+    {
+        public static readonly PakHashedPathComparer Instance = new();
+
+        public int Compare(string? x, string? y) => MurMur3HashUtils.GetPakFilepathHash_FastAscii(x)
+            .CompareTo(MurMur3HashUtils.GetPakFilepathHash_FastAscii(y));
+
+        public bool Equals(string? x, string? y) => x?.Equals(y, StringComparison.OrdinalIgnoreCase) == true;
+
+        public int GetHashCode([DisallowNull] string str) => MurMur3HashUtils.GetPakFilepathHash_FastAscii(str).GetHashCode();
+    }
+
     public class FuncComparer<T>(Func<T, T, int> func) : IComparer<T>
     {
         public int Compare(T? x, T? y)

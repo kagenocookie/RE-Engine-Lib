@@ -34,9 +34,7 @@ public sealed partial class Workspace : IDisposable
             success = TryApplyTypeCache(_typeCache, baseCacheFile);
         }
         // TryApplyEnumOverrides(_il2cpp, paths.EnumOverridesDir);
-        if (success) {
-            Log.Debug("Successfully loaded cached il2cpp data");
-        } else {
+        if (!success) {
             Log.Error($"Failed to load il2cpp cache data from {baseCacheFile}. Enums and class names won't resolve properly.");
         }
         // TryApplyTypePatches(_il2cpp, paths.TypePatchFilepath);

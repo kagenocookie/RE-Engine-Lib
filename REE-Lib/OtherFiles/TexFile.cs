@@ -197,6 +197,13 @@ namespace ReeLib
 			Header.version = config.fileVersion;
             var handler = FileHandler;
             handler.FileVersion = Header.version;
+
+            // ensure both mip count types are set, whichever is needed will get saved to file
+            if (Header.mipCount == 0) {
+                Header.mipCount = (byte)(Header.mipHeaderSize / Header.MipHeaderSize);
+            } else {
+                Header.mipHeaderSize = (byte)(Header.mipCount * Header.MipHeaderSize);
+            }
             // write to a dummy buffer to determine updated header size while not overwriting anything yet
             Header.Write(new FileHandler());
             if (headerSize != 0 && headerSize != Header.StructSize && Mips.Count > 0)

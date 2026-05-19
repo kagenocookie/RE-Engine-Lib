@@ -296,6 +296,7 @@ public class CachedMemoryPakReader : PakReader, IDisposable
             ChainFile.Magic => KnownFileFormats.Chain,
             Chain2File.Magic => KnownFileFormats.Chain2,
             GpucFile.Magic => KnownFileFormats.GpuCloth,
+            ClrpFile.Magic => KnownFileFormats.ClothResetPose,
 
 
             0x00464453 => KnownFileFormats.MasterMaterial, // same as VfxShader, Shader
@@ -350,7 +351,6 @@ public class CachedMemoryPakReader : PakReader, IDisposable
             0x21545353 => KnownFileFormats.SparseShadowTree,
             0x54435846 => KnownFileFormats.EffectCollision,
             0x44525453 => KnownFileFormats.Strands,
-            0x50524C43 => KnownFileFormats.ClothResetPose,
             0x444F4C54 => KnownFileFormats.StrandsLod,
 
             // purely guessed formats, not in a known file list

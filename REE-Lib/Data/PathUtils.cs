@@ -149,13 +149,13 @@ public static class PathUtils
     /// </summary>
     public static string? GetTargetFromFullFilepath(string filepath)
     {
-        filepath = filepath.Replace('\\', '/');
+        filepath = filepath.Normalize();
         var nativesStart = filepath.IndexOf("/natives/", StringComparison.OrdinalIgnoreCase);
         if (nativesStart == -1) {
             return null;
         }
 
-        return RemovePlatformPrefix(filepath.AsSpan(nativesStart)).ToString();
+        return RemovePlatformPrefix(filepath.AsSpan(nativesStart + 1)).ToString();
     }
 
     public static string GetStreamingPath(string path)

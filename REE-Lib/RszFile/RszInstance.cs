@@ -939,6 +939,13 @@ namespace ReeLib
                     throw new Exception($"RszClass {className} not found!");
                 return CreateInstance(rszParser, rszClass);
             }
+            else if (field.type is RszFieldType.UserData)
+            {
+                className ??= GetElementType(field.original_type);
+                var rszClass = rszParser.GetRSZClass(className) ??
+                    throw new Exception($"RszClass {className} not found!");
+                return new RszInstance(rszClass, -1, null, []);
+            }
             else
             {
                 return CreateNormalObject(field);

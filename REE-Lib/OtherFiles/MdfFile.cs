@@ -8,7 +8,6 @@ namespace ReeLib.Mdf
 {
     public class MaterialHeader : BaseModel
     {
-        public long matNameOffset; // 1
         public string matName = string.Empty;
         public uint matNameHash; // 2
         // tdbVersion == 49, RE7
@@ -28,20 +27,20 @@ namespace ReeLib.Mdf
         // tdbVersion >= 71, SF6+ {
         public ulong ukn1;
         // }
-        public long paramHeaderOffset; // 8
-        public long texHeaderOffset; // 9
+        internal long paramHeaderOffset; // 8
+        internal long texHeaderOffset; // 9
         // tdbVersion >= 69, RE8+
-        public long gpbfOffset;
-        public long paramsOffset; // 10
+        internal long gpbfOffset;
+        internal long paramsOffset; // 10
         public string mmtrPath = "";
         // tdbVersion >= 71, SF6+
-        public long texIDsOffset;
+        internal long texIDsOffset;
 
 
-        public MaterialFlags1 Flags1
+        public MaterialFlags Flags
         {
-            get => (MaterialFlags1)(alphaFlags & 0x03ff);
-            set => alphaFlags = (uint)(((int)value & 0x03ff) + (alphaFlags & ~0x03ff));
+            get => (MaterialFlags)(alphaFlags & 0xff0003ff);
+            set => alphaFlags = (uint)(((uint)value & 0xff0003ff) | (alphaFlags & ~0xff0003ff));
         }
 
         public int Tesselation
@@ -56,19 +55,12 @@ namespace ReeLib.Mdf
             set => alphaFlags = (uint)(((value & 0xff) << 16) + (alphaFlags & ~0xff0000));
         }
 
-        public MaterialFlags2 Flags2
-        {
-            get => (MaterialFlags2)(((alphaFlags & 0xff000000) >> 24) & 0xff);
-            set => alphaFlags = (uint)((((int)value & 0xff) << 24) + (alphaFlags & ~0xff000000));
-        }
-
 
         protected override bool DoRead(FileHandler handler)
         {
             var Version = handler.FileVersion;
             long pos = handler.Tell();
-            handler.Read(ref matNameOffset);
-            matName = handler.ReadWString(matNameOffset);
+            matName = handler.ReadOffsetWString();
             handler.Read(ref matNameHash);
             if (Version == 6) handler.Read(ref uknRE7);
             handler.Read(ref paramsSize);
@@ -103,12 +95,8 @@ namespace ReeLib.Mdf
         protected override bool DoWrite(FileHandler handler)
         {
             var Version = handler.FileVersion;
-            if (matName != null)
-            {
-                handler.StringTableAdd(matName);
-                matNameHash = MurMur3HashUtils.GetHash(matName);
-            }
-            handler.Write(ref matNameOffset);
+            matNameHash = MurMur3HashUtils.GetHash(matName);
+            handler.WriteOffsetWString(matName);
             handler.Write(ref matNameHash);
             if (Version == 6) handler.Write(ref uknRE7);
             handler.Write(ref paramsSize);
@@ -139,7 +127,7 @@ namespace ReeLib.Mdf
     }
 
     [Flags]
-    public enum MaterialFlags1 {
+    public enum MaterialFlags : uint {
         BaseTwoSideEnable = (1 << 0),
         BaseAlphaTestEnable = (1 << 1),
         ShadowCastDisable = (1 << 2),
@@ -150,18 +138,15 @@ namespace ReeLib.Mdf
         AlphaMaskUsed = (1 << 7),
         ForcedTwoSideEnable = (1 << 8),
         TwoSideEnable = (1 << 9),
-    }
 
-    [Flags]
-    public enum MaterialFlags2 {
-        RoughTransparentEnable = (1 << 0),
-        ForcedAlphaTestEnable = (1 << 1),
-        AlphaTestEnable = (1 << 2),
-        SSSProfileUsed = (1 << 3),
-        EnableStencilPriority = (1 << 4),
-        RequireDualQuaternion = (1 << 5),
-        PixelDepthOffsetUsed = (1 << 6),
-        NoRayTracing = (1 << 7),
+        RoughTransparentEnable = (1 << 24),
+        ForcedAlphaTestEnable = (1 << 25),
+        AlphaTestEnable = (1 << 26),
+        SSSProfileUsed = (1 << 27),
+        EnableStencilPriority = (1 << 28),
+        RequireDualQuaternion = (1 << 29),
+        PixelDepthOffsetUsed = (1 << 30),
+        NoRayTracing = (1u << 31),
     }
 
     public enum ShadingType

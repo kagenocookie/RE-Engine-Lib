@@ -775,6 +775,7 @@ namespace ReeLib.Mesh
             }
 			foreach (var adbuf in AdditionalBuffers) {
 				var addHdrs = adbuf.Headers.BufferHeaders;
+				vertCount = adbuf.Positions.Length;
 				for (int i = 0; i < addHdrs.Length; i++) {
 					var buffer = addHdrs[i];
 					var bufferStart = vertexBufferOffset + buffer.offset;

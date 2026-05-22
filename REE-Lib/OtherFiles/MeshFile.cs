@@ -766,21 +766,19 @@ namespace ReeLib.Mesh
 			elementCount = (short)elementHeaders.Length;
 			totalElementCount = (short)(elementCount + AdditionalBuffers.Sum(b => b.Headers.BufferHeaders.Length));
 
-			var vertCount = (elementHeaders[1].offset - elementHeaders[0].offset) / elementHeaders[0].size;
 			for (int i = 0; i < elementHeaders.Length; i++) {
                 var buffer = elementHeaders[i];
                 var bufferStart = vertexBufferOffset + buffer.offset;
                 handler.Seek(bufferStart);
-                WriteSingleBufferArray(handler, buffer, vertCount);
+                WriteSingleBufferArray(handler, buffer);
             }
 			foreach (var adbuf in AdditionalBuffers) {
 				var addHdrs = adbuf.Headers.BufferHeaders;
-				vertCount = adbuf.Positions.Length;
 				for (int i = 0; i < addHdrs.Length; i++) {
 					var buffer = addHdrs[i];
 					var bufferStart = vertexBufferOffset + buffer.offset;
 					handler.Seek(bufferStart);
-					adbuf.WriteSingleBufferArray(handler, buffer, vertCount);
+					adbuf.WriteSingleBufferArray(handler, buffer);
 				}
 			}
 
@@ -890,17 +888,15 @@ namespace ReeLib.Mesh
             }
         }
 
-        private void WriteSingleBufferArray(FileHandler handler, MeshBufferItemHeader buffer, int count)
+        private void WriteSingleBufferArray(FileHandler handler, MeshBufferItemHeader buffer)
         {
             switch (buffer.type) {
                 case VertexBufferType.Position:
                     handler.WriteArray(Positions);
                     break;
-
                 case VertexBufferType.NormalsTangents:
 					handler.WriteArray(NormalsTangents);
                     break;
-
                 case VertexBufferType.UV0:
 					handler.WriteArray(UV0);
                     break;
@@ -914,14 +910,14 @@ namespace ReeLib.Mesh
                     handler.WriteArray(UV2);
                     break;
                 case VertexBufferType.BoneWeights:
-                    for (int k = 0; k < count; ++k) {
-                        Weights[k].Write(handler, Version);
-                    }
+					foreach (var w in Weights) {
+						w.Write(handler, Version);
+					}
                     break;
                 case VertexBufferType.BoneWeights2:
-                    for (int k = 0; k < count; ++k) {
-                        ExtraWeights![k].Write(handler, Version);
-                    }
+					foreach (var w in ExtraWeights!) {
+						w.Write(handler, Version);
+					}
                     break;
             }
         }

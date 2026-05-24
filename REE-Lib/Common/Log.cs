@@ -104,6 +104,21 @@ namespace ReeLib.Common
                     }
                 }
             }
+
+            public static T RecordUniqueAndReturn(T value, bool logNew = true, [CallerArgumentExpression(nameof(value))] string? valueKey = null)
+            {
+#if DEBUG
+                if (!_keyedValues.TryGetValue(valueKey ?? "", out var set)) {
+                    _keyedValues[valueKey ?? ""] = set = new HashSet<T>();
+                }
+                if (set.Add(value)) {
+                    if (logNew) {
+                        Log.Debug($"{valueKey}: {value}");
+                    }
+                }
+#endif
+                return value;
+            }
         }
     }
 }

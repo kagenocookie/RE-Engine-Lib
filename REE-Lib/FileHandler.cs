@@ -1501,6 +1501,7 @@ namespace ReeLib
         IFileHandlerAction Null(int count);
         IFileHandlerAction HandleOffsetWString([NotNull] ref string? value, bool writeEmptyAsNull = false);
         IFileHandlerAction HandleInlineWString([NotNull] ref string? value);
+        IFileHandlerAction HandleInlineAsciiString([NotNull] ref string? value);
         IFileHandlerAction Handle<T>(T value) where T : IModel;
         bool Handle<T>(ref T[] array) where T : unmanaged;
     }
@@ -1572,7 +1573,13 @@ namespace ReeLib
         }
         public readonly IFileHandlerAction HandleInlineWString([NotNull] ref string? value)
         {
-            value = Handler.ReadWString();
+            value = Handler.ReadWString(jumpBack: false);
+            return this;
+        }
+
+        public readonly IFileHandlerAction HandleInlineAsciiString([NotNull] ref string? value)
+        {
+            value = Handler.ReadAsciiString(jumpBack: false);
             return this;
         }
 
@@ -1631,6 +1638,13 @@ namespace ReeLib
             Handler.WriteWString(value ??= "");
             return this;
         }
+
+        public readonly IFileHandlerAction HandleInlineAsciiString([NotNull] ref string? value)
+        {
+            Handler.WriteAsciiString(value ??= "");
+            return this;
+        }
+
 
         public IFileHandlerAction Null(int count)
         {

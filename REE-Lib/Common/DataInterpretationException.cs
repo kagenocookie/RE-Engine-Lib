@@ -79,6 +79,5 @@ namespace ReeLib
                 Log.Warn($"[{conditionText}] {message}");
             }
         }
-
     }
 }

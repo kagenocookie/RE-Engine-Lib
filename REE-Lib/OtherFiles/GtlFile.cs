@@ -139,7 +139,7 @@ namespace ReeLib
         public List<HeightmapRange> Ranges { get; } = new();
         public List<GtlData> DataItems { get; } = new();
 
-        private readonly List<long> DataOffets = new();
+        private readonly List<long> DataOffsets = new();
 
         public const int Magic = 0x0A4C5447;
 
@@ -159,7 +159,7 @@ namespace ReeLib
             Ranges.ReadStructList(handler, Header.count1);
 
             handler.Seek(Header.dataOffset);
-            DataOffets.ReadStructList(handler, Header.count2);
+            DataOffsets.ReadStructList(handler, Header.count2);
 
             return true;
         }
@@ -172,7 +172,7 @@ namespace ReeLib
             for (int i = minLevel; i < maxLevel;++i)
             {
                 var item = new GtlData();
-                handler.Seek(DataOffets[i]);
+                handler.Seek(DataOffsets[i]);
                 item.Read(handler);
                 item.ReadData(handler, ground.ContentHeaders);
                 DataItems.Add(item);

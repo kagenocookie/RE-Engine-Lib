@@ -3226,11 +3226,11 @@ namespace ReeLib
             }
         }
 
-        public void CopyValuesFrom(MotFile source, bool replaceBehaviorClips, bool replaceBoneList, bool maintainExistingChannelsOnly)
+        public void CopyValuesFrom(MotFile source, bool includeBehaviorClips, bool replaceBoneList, bool maintainExistingChannelsOnly, bool replaceBehaviorClips = false)
         {
-            if (replaceBehaviorClips)
+            if (includeBehaviorClips)
             {
-                Clips.Clear();
+                if (replaceBehaviorClips) Clips.Clear();
                 Clips.AddRange(source.Clips);
             }
             EndClips.Clear();

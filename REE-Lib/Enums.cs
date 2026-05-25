@@ -430,6 +430,12 @@ namespace ReeLib
         DepthBlocker,
         /// <summary>.wsg</summary>
         WwiseStreamingGeometry,
+        /// <summary>.vtxa</summary>
+        VertexAttribute,
+        /// <summary>.cfltr</summary>
+        CustomFilter,
+        /// <summary>.ulp</summary>
+        UserLightingPipeline,
 
         /// <summary>.ecob</summary>
         EcotopeBiome, // Guessed from magic bytes

@@ -312,6 +312,16 @@ namespace ReeLib
 
             var handler = FileHandler;
 
+            // with some tooling, the uncompressed mip headers are sometimes all at the same offset
+            // this works fine ingame because they're uncompressing per mip, we need these to be correct
+            // since we just do all at once here into one output memory buffer and discard the compressed headers
+            for (int i = 1; i < Mips.Count; i++)
+            {
+                if (Mips[i].offset <= Mips[i-1].offset || Mips[i].offset <= Mips[0].offset) {
+                    Mips[i] = Mips[i] with { offset = (int)(Mips[i - 1].offset + Mips[i - 1].size) };
+                }
+            }
+
             var compressedSize = TotalCompressedSize;
             var decompressedSize = TotalTextureDataLength;
 

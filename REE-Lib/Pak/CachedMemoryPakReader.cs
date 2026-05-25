@@ -276,6 +276,7 @@ public class CachedMemoryPakReader : PakReader, IDisposable
 
             AimpFile.Magic => KnownFileFormats.AIMap,
             BhvtFile.Magic => KnownFileFormats.BehaviorTree, // same as FSMv2
+            Tmlfsm2File.Magic => KnownFileFormats.TimelineFsm2,
             ClipFile.Magic => KnownFileFormats.Clip, // same as tml and ucurve
             GuiFile.Magic => KnownFileFormats.GUI,
             MotbankFile.Magic => KnownFileFormats.MotionBank,
@@ -283,6 +284,9 @@ public class CachedMemoryPakReader : PakReader, IDisposable
             Motfsm2File.Magic => KnownFileFormats.MotionFsm2,
             MotlistFile.Magic => KnownFileFormats.MotionList,
             MotTreeFile.Magic => KnownFileFormats.MotionTree,
+            MotcamFile.Magic => KnownFileFormats.MotionCamera,
+            McamlistFile.Magic => KnownFileFormats.MotionCameraList,
+            McamBankFile.Magic => KnownFileFormats.MotionCameraBank,
             PfbFile.Magic => KnownFileFormats.Prefab,
             RcolFile.Magic => KnownFileFormats.RequestSetCollider,
             ScnFile.Magic => KnownFileFormats.Scene,
@@ -297,9 +301,15 @@ public class CachedMemoryPakReader : PakReader, IDisposable
             Chain2File.Magic => KnownFileFormats.Chain2,
             GpucFile.Magic => KnownFileFormats.GpuCloth,
             ClrpFile.Magic => KnownFileFormats.ClothResetPose,
+            SfurFile.Magic => KnownFileFormats.ShellFur,
+            DlgFile.Magic => KnownFileFormats.Dialogue,
+            DlgcfFile.Magic => KnownFileFormats.DialogueConfig,
+            DlgListFile.Magic => KnownFileFormats.DialogueList,
+            ChainWindFile.Magic => KnownFileFormats.ChainWind,
+            PoglistFile.Magic => KnownFileFormats.PointGraphList,
 
 
-            0x00464453 => KnownFileFormats.MasterMaterial, // same as VfxShader, Shader
+            0x00464453 => KnownFileFormats.MasterMaterial, // same as VfxShader, Shader, CfxShader
             0x58455452 => KnownFileFormats.RenderTexture,
             0x4D534648 => KnownFileFormats.Fsm,
             0x6D73666D => KnownFileFormats.MotionFsm,
@@ -321,7 +331,6 @@ public class CachedMemoryPakReader : PakReader, IDisposable
             0x6B696266 => KnownFileFormats.FullBodyIKRig,
             0x64637273 => KnownFileFormats.VibrationSource,
             0x50415257 => KnownFileFormats.WrapDeformer,
-            0x52554653 => KnownFileFormats.ShellFur,
             0x464E4946 => KnownFileFormats.FilterInfo,
             0x52504347 => KnownFileFormats.GUIColorPreset,
             0x59545347 => KnownFileFormats.GUIStyleList,
@@ -329,10 +338,6 @@ public class CachedMemoryPakReader : PakReader, IDisposable
             0x00444F4C => KnownFileFormats.Lod,
             0x384D5453 => KnownFileFormats.SpeedTreeMesh,
             0x4854444D => KnownFileFormats.AlembicMesh,
-            0x6D61636D => KnownFileFormats.MotionCamera,
-            0x74736C63 => KnownFileFormats.MotionCameraList,
-            0x6B6E6263 => KnownFileFormats.MotionCameraBank,
-            0x32736674 => KnownFileFormats.TimelineFsm2,
             0x4F464246 => KnownFileFormats.OutlineFont,
             0x544C5346 => KnownFileFormats.FontSlot,
             0x544E4649 => KnownFileFormats.IconFont,
@@ -352,6 +357,11 @@ public class CachedMemoryPakReader : PakReader, IDisposable
             0x54435846 => KnownFileFormats.EffectCollision,
             0x44525453 => KnownFileFormats.Strands,
             0x444F4C54 => KnownFileFormats.StrandsLod,
+            0x54455343 => KnownFileFormats.ColliderSet,
+            0x6C626C74 => KnownFileFormats.TimelineBlend,
+            0x00474F50 => KnownFileFormats.PointGraph,
+            0x6778656A => KnownFileFormats.JointExpressionGraph,
+            0x544C4643 => KnownFileFormats.CustomFilter,
 
             // purely guessed formats, not in a known file list
             0x424F4345 => KnownFileFormats.EcotopeBiome,
@@ -363,34 +373,12 @@ public class CachedMemoryPakReader : PakReader, IDisposable
             // 0x00006B69 => KnownFileFormats.IkLizard,
             // 0x00006B69 => KnownFileFormats.IkWagon,
             // 0x00000000 => KnownFileFormats.RagdollController,
-            // 0x00000000 => KnownFileFormats.RebeConfig,
-            // 0x00000000 => KnownFileFormats.TimelineBlend,
-            // 0x00000000 => KnownFileFormats.JointExpressionGraph,
             // 0x00000000 => KnownFileFormats.MeshVertexMapping,
             // 0x00000000 => KnownFileFormats.ZivaRT,
             // 0x00000000 => KnownFileFormats.ZivaCombiner,
-            // 0x00000000 => KnownFileFormats.Dialogue,
-            // 0x00000000 => KnownFileFormats.DialogueConfig,
-            // 0x00000000 => KnownFileFormats.DialogueList,
-            // 0x00000000 => KnownFileFormats.DialogueTimeline,
             // 0x00000000 => KnownFileFormats.DialogueTimelineList,
-            // 0x00000000 => KnownFileFormats.ColliderSet,
             // 0x00000000 => KnownFileFormats.HeightTexture,
-            // 0x00000000 => KnownFileFormats.ChainWind,
-            // 0x00000000 => KnownFileFormats.PointGraph,
-            // 0x00000000 => KnownFileFormats.PointGraphList,
-            // 0x00000000 => KnownFileFormats.CfxShader,
             // 0x00000000 => KnownFileFormats.OodleNetworkRuntimeData,
-
-            // no usable magic bytes
-            // ByteBuffer,
-            // Probes,
-            // AudioMixer,
-            // RayTraceMaterialRedirect,
-            // MemorySettings,
-            // EffectCsv,
-            // NetworkConfig,
-            // RenderConfigAsset,
 
             _ => KnownFileFormats.Unknown,
         };

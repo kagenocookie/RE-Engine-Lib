@@ -14,7 +14,8 @@ namespace ReeLib.Gpuc
         RE4 = 221108868,
         DD2 = 231011972,
         SF6 = 230110953,
-        MHWILDS = 241111744,
+        MHWILDS_OLD = 241111744,
+        MHWILDS = 241111760,
         MHST3 = 250604242,
         PragmataDemo = 250925361,
         RE9 = 250925365,
@@ -44,6 +45,7 @@ namespace ReeLib.Gpuc
         public int lodCount;
         public int numUkn;
         public int numUkn1;
+        public int numUkn2;
         internal int numBatchGroup;
         public int numDeformBones;
         internal ushort numCollisionPlanes;
@@ -112,30 +114,32 @@ namespace ReeLib.Gpuc
             } else if (version >= GpucVersion.DD2) {
                 action.Do(ref meshResourcePathHash);
                 action.Do(ref cpuMemorySize);
-                if (version != GpucVersion.MHST3)
+                if (version > GpucVersion.MHST3 || version == GpucVersion.DD2)
                     action.Null(8);
             }
             action.Do(ref numControlPoints);
             action.Do(ref numTriangles);
             action.Do(ref numDistanceLinks);
             action.Do(ref numCollisionEdges);
-            action.Do(version < GpucVersion.MHST3, ref numTriangleGroups);
+            action.Do(version < GpucVersion.MHWILDS_OLD, ref numTriangleGroups);
             action.Do(ref numDistanceLinkGroups);
             action.Do(ref numCollisionEdgeGroups);
             action.Do(ref numPartInfos);
             action.Do(ref numBatchInfos);
-            action.Do(version >= GpucVersion.MHST3, ref numBatchSubInfos);
+            action.Do(version > GpucVersion.MHWILDS, ref numBatchSubInfos);
             action.Do(ref numConfigInfos);
+            action.Do(version >= GpucVersion.MHWILDS_OLD && version <= GpucVersion.MHWILDS, ref numBatchSubInfos);
             action.Do(ref numDeformInfos);
-            if (version >= GpucVersion.MHST3) {
+            if (version >= GpucVersion.MHWILDS_OLD) {
                 action.Do(ref numDeformWeights);
                 action.Do(ref numUkn);
                 action.Do(ref numTotalRenderVertices);
                 action.Do(ref numUkn1);
                 action.Do(ref numBatchGroup);
-                action.Null(8);
+                action.Null(4);
+                action.Do(ref numUkn2);
                 action.Do(ref lodCount);
-                if (version == GpucVersion.MHST3) {
+                if (version <= GpucVersion.MHST3) {
                     action.Do(ref numDeformBones);
                     action.Null(4);
                 } else {
@@ -159,7 +163,7 @@ namespace ReeLib.Gpuc
             action.Do(ref numNativeJoints);
             action.Do(ref maxJointCount);
             action.Do(ref maxBatchControlPoints);
-            action.Do(version < GpucVersion.MHST3, ref maxDeformWeightCount);
+            action.Do(version < GpucVersion.MHWILDS_OLD, ref maxDeformWeightCount);
             action.Do(ref numPointTriangleContactDescs);
             action.Do(ref numEdgeEdgeContactDescs);
             action.Do(ref status);
@@ -170,7 +174,7 @@ namespace ReeLib.Gpuc
             action.Do(ref triangleTbl);
             action.Do(ref distanceLinkTbl);
             action.Do(ref collisionEdgeTbl);
-            action.Do(version < GpucVersion.MHST3, ref numTrianglesInGroupTbl);
+            action.Do(version < GpucVersion.MHWILDS_OLD, ref numTrianglesInGroupTbl);
             action.Do(ref numDistanceLinksInGroupTbl);
             action.Do(ref numCollisionEdgesInGroupTbl);
             action.Do(ref partInfoTbl);
@@ -178,7 +182,7 @@ namespace ReeLib.Gpuc
             action.Do(ref configInfoTbl);
 
             if (version >= GpucVersion.DD2) {
-                if (version >= GpucVersion.MHST3) {
+                if (version >= GpucVersion.MHWILDS_OLD) {
                     action.Null(8);
                     action.Do(ref batchSubInfoTbl);
                     action.Do(ref deformBonesTbl);
@@ -187,7 +191,7 @@ namespace ReeLib.Gpuc
             } else {
                 action.Do(ref deformInfoTbl);
             }
-            if (version >= GpucVersion.MHST3) {
+            if (version >= GpucVersion.MHWILDS_OLD) {
                 action.Do(ref batchGroupTbl);
             }
             action.Do(ref collisionPlaneTbl);
@@ -205,18 +209,18 @@ namespace ReeLib.Gpuc
                     action.Do(ref numVertexDeformInfos);
                 }
             } else {
-                if (version >= GpucVersion.MHST3) {
+                if (version >= GpucVersion.MHWILDS_OLD) {
                     action.Do(ref offsUnused1);
                     action.Do(ref offsUnused2);
                 }
                 action.Do(ref pointTriangleContactDescTbl);
                 action.Do(ref edgeEdgeContactDescTbl);
-                if (version >= GpucVersion.RE9) {
+                if (version >= GpucVersion.RE9 || version >= GpucVersion.MHWILDS_OLD && version <= GpucVersion.MHWILDS) {
                     action.Do(ref offsUnused3);
                 }
                 action.Do(ref deformInfoTbl);
                 action.Do(ref blendInfoTbl);
-                if (version >= GpucVersion.MHST3) {
+                if (version >= GpucVersion.MHWILDS_OLD) {
                     action.Do(ref blendMultiMatricesTbl);
                     action.Do(ref blendControlPointMatricesTbl);
                 }
@@ -266,7 +270,7 @@ namespace ReeLib.Gpuc
             action.Do(ref backstopRadius);
             if (version >= GpucVersion.DD2) {
                 action.Do(ref backstopOffset);
-                if (version >= GpucVersion.MHST3) {
+                if (version >= GpucVersion.MHWILDS_OLD) {
                     action.Do(ref uknFloats);
                 }
                 action.Do(ref deltaPositionOffset);
@@ -323,7 +327,7 @@ namespace ReeLib.Gpuc
             action.Do(ref numTriangles);
             action.Do(ref numDistanceLinks);
             action.Do(ref numCollisionEdges);
-            action.Do(version < GpucVersion.MHST3, ref numTriangleGroups);
+            action.Do(version < GpucVersion.MHWILDS_OLD, ref numTriangleGroups);
             action.Do(ref numDistanceLinkGroups);
             action.Do(ref numCollisionEdgeGroups);
             action.Do(ref numDeformInfos);
@@ -334,7 +338,7 @@ namespace ReeLib.Gpuc
             action.Do(ref triangleOffset);
             action.Do(ref distanceLinkOffset);
             action.Do(ref collisionEdgeOffset);
-            action.Do(version < GpucVersion.MHST3, ref triangleGroupOffset);
+            action.Do(version < GpucVersion.MHWILDS_OLD, ref triangleGroupOffset);
             action.Do(ref distanceLinkGroupOffset);
             action.Do(ref collisionEdgeGroupOffset);
             action.Do(ref deformInfoOffset);
@@ -468,7 +472,7 @@ namespace ReeLib.Gpuc
                 action.Do(ref maxRotationAngularSpeed);
                 action.Handle(blendAmountTranslationCurve);
                 action.Handle(blendAmountRotationCurve);
-                if (version >= GpucVersion.MHST3) {
+                if (version >= GpucVersion.MHWILDS_OLD) {
                     action.Do(ref useSpeedLimit);
                     action.Null(3);
                     action.Do(ref speedLimit);

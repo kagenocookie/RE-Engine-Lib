@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using ReeLib.Common;
 
 namespace ReeLib;
@@ -53,7 +54,7 @@ public static class PathUtils
 
     public static KnownFileFormats GetFileFormatFromExtension(ReadOnlySpan<char> extension)
     {
-        var hash = MurMur3HashUtils.GetHash(extension);
+        var hash = MurMur3HashUtils.GetHashLower(extension);
         return FileFormatExtensions.ExtensionHashToEnum(hash);
     }
 

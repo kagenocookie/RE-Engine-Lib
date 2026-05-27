@@ -237,12 +237,12 @@ namespace ReeLib.Common
     {
         public static readonly PakHashedPathComparer Instance = new();
 
-        public int Compare(string? x, string? y) => MurMur3HashUtils.GetPakFilepathHash_FastAscii(x)
-            .CompareTo(MurMur3HashUtils.GetPakFilepathHash_FastAscii(y));
+        public int Compare(string? x, string? y) => MurMur3HashUtils.GetPakFilepathHash(x)
+            .CompareTo(MurMur3HashUtils.GetPakFilepathHash(y));
 
         public bool Equals(string? x, string? y) => x?.Equals(y, StringComparison.OrdinalIgnoreCase) == true;
 
-        public int GetHashCode([DisallowNull] string str) => MurMur3HashUtils.GetPakFilepathHash_FastAscii(str).GetHashCode();
+        public int GetHashCode([DisallowNull] string str) => MurMur3HashUtils.GetPakFilepathHash(str).GetHashCode();
     }
 
     public class FuncComparer<T>(Func<T, T, int> func) : IComparer<T>

@@ -6,7 +6,7 @@ public static class PakUtils
 {
     public const string ManifestFilepath = "__MANIFEST/MANIFEST.TXT";
 
-    public static ulong GetFilepathHash(string filepath) => MurMur3HashUtils.GetPakFilepathHash_FastAscii(filepath);
+    public static ulong GetFilepathHash(string filepath) => MurMur3HashUtils.GetPakFilepathHash(filepath);
 
     /// <summary>
     /// Scans a directory for PAK files that could be unpacked.

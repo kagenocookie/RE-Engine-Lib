@@ -152,7 +152,7 @@ public class ListFileWrapper
     public string[] FilterAllFiles(string pattern)
     {
         pattern = pattern.Trim();
-        var cacheKey = MurMur3HashUtils.GetPakFilepathHash_FastAscii(pattern);
+        var cacheKey = MurMur3HashUtils.GetPakFilepathHash(pattern);
         if (folderListCache.TryGetValue(cacheKey, out var names)) {
             return names;
         }
@@ -295,7 +295,7 @@ public class ListFileWrapper
         if (folderNormalized.EndsWith('/')) {
             folderNormalized = folderNormalized[..^1];
         }
-        var cacheKey = MurMur3HashUtils.GetPakFilepathHash_FastAscii(folderNormalized);
+        var cacheKey = MurMur3HashUtils.GetPakFilepathHash(folderNormalized);
         if (folderListCache.TryGetValue(cacheKey, out var names)) {
             return names;
         }

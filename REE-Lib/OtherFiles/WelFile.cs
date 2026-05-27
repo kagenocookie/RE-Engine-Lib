@@ -38,6 +38,7 @@ namespace ReeLib
         protected override bool DoRead()
         {
             var handler = FileHandler;
+            Events.Clear();
             if (handler.FileVersion == 10)
             {
                 // format 10 has direct strings instead of doing hashes only which is nice but also useless for the rest of the formats that don't have the strings

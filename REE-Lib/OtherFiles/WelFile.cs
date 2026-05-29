@@ -8,19 +8,31 @@ namespace ReeLib.Wel
         public uint triggerId;
         public uint eventId;
 
-        public uint hash1;
-        public uint hash2;
+        public uint jointHash;
+        public uint gameObjectHash;
 
-        public byte byte1;
-        public byte byte2;
+        public bool rotation;
+        public bool tracking;
+        public short priorityId1;
+        public short priorityId2;
+        public short priorityId3;
+        public short bookingTime;
+        public short flangingTimer;
+        public byte globalId;
+        public byte limit;
+        public byte priority;
+        public uint mode;
+        public short releaseTime;
+        public bool disableObsOcl;
+        public bool updateObsOcl;
+        public bool disableMaxObsOcldistance;
+        public bool enableSpaceFeature;
+        public bool waitUntilFinished;
 
-        [RszFixedSizeArray(5)] public short[] data1 = new short[5];
-        [RszFixedSizeArray(14)] public sbyte[] data2 = new sbyte[14];
-        public uint data3;
-        public uint data4;
-        public uint data5;
-        public uint data6;
-        public uint data7;
+        public uint listenerMask;
+        public uint freeArea;
+        public uint freeArea8to11;
+        public ulong freeArea12to15;
 
         public override string ToString() => $"{triggerId} / {eventId}";
     }

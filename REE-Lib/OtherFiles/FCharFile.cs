@@ -1,5 +1,5 @@
+using ReeLib.Common;
 using ReeLib.InternalAttributes;
-using System.Collections.Generic;
 
 namespace ReeLib.FChar
 {
@@ -10,17 +10,17 @@ namespace ReeLib.FChar
         public uint magic = FCharFile.Magic;
     }
 
-    public class FighterDataOffsets : BaseModel
+    internal class FighterDataOffsets : BaseModel
     {
-        public long idTblOffset;
-        public long parentIdTblOffset;
-        public long actionListTblOffset;
-        public long dataIdTblOffset;
-        public long dataListTblOffset;
-        public long resourceIdTblOffset;
-        public long resourceTblOffset;
-        public long objectTblOffset;
-        public long objectEndOffset;
+        internal long idTblOffset;
+        internal long parentIdTblOffset;
+        internal long actionListTblOffset;
+        internal long dataIdTblOffset;
+        internal long dataListTblOffset;
+        internal long resourceIdTblOffset;
+        internal long resourceTblOffset;
+        internal long objectTblOffset;
+        internal long objectEndOffset;
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -51,9 +51,9 @@ namespace ReeLib.FChar
         }
     }
 
-    public class FighterDataOffsetsV18 : BaseModel
+    internal class FighterDataOffsetsV18 : BaseModel
     {
-        public long unkTblOffset;
+        internal long unkTblOffset;
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -79,8 +79,8 @@ namespace ReeLib.FChar
     {
         internal long dataTblOffset;
         public List<FighterKeyData> dataTbl = [];
-        public long objectTblOffset;
-        public long objectEndOffset;
+        internal long objectTblOffset;
+        internal long objectEndOffset;
         public RSZFile obj;
         public uint objectCount;
 
@@ -110,19 +110,23 @@ namespace ReeLib.FChar
 
             return true;
         }
+
+        public object SerializeJson()
+        {
+            return new { dataTbl, obj = obj.ObjectList };
+        }
     }
 
     public class FighterActionData : BaseModel
     {
         internal long dataTblOffset;
         public OffsetList<FighterKeyDataList> dataTbl = new();
-        public long objectTblOffset;
-        public long objectEndOffset;
+        internal long objectTblOffset;
+        internal long objectEndOffset;
         public List<RSZFile> objTbl = [];
-        public uint keyCount;
-        public uint actionDataCount;
         public uint actionID;
         public uint frames;
+        public uint keyCount;
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -130,7 +134,7 @@ namespace ReeLib.FChar
             objectTblOffset = handler.ReadInt64();
             objectEndOffset = handler.ReadInt64();
             keyCount = handler.ReadUInt();
-            actionDataCount = handler.ReadUInt();
+            var actionDataCount = handler.ReadUInt();
             actionID = handler.ReadUInt();
             frames = handler.ReadUInt();
 
@@ -158,24 +162,30 @@ namespace ReeLib.FChar
 
             return true;
         }
+
+        public object SerializeJson()
+        {
+            var dataTbl = this.dataTbl.items.Select(data => data.SerializeJson()).ToList();
+            var objTbl = this.objTbl.Select(obj => obj.ObjectList).ToList();
+            return new { dataTbl, objTbl, actionID, frames };
+        }
     }
 
     public class FighterActionListData : BaseModel
     {
         internal long dataTblOffset;
         public OffsetList<FighterActionData> dataTbl = new();
-        public long objectTblOffset;
-        public long objectEndOffset;
+        internal long objectTblOffset;
+        internal long objectEndOffset;
         public List<RSZFile> objTbl = [];
-        public uint actionCount;
-        public uint objectCount;
+        internal uint objectCount;
 
         protected override bool DoRead(FileHandler handler)
         {
             dataTblOffset = handler.ReadInt64();
             objectTblOffset = handler.ReadInt64();
             objectEndOffset = handler.ReadInt64();
-            actionCount = handler.ReadUInt();
+            var actionCount = handler.ReadUInt();
             objectCount = handler.ReadUInt();
 
             handler.Seek(dataTblOffset);
@@ -198,6 +208,14 @@ namespace ReeLib.FChar
 
             return true;
         }
+
+        public object SerializeJson()
+        {
+            var dataTbl = this.dataTbl.items.Select(data => data.SerializeJson()).ToList();
+            var objTbl = this.objTbl.Select(obj => obj.ObjectList).ToList();
+
+            return new { dataTbl, objTbl };
+        }
     }
 
     public class FighterDataListData : BaseModel
@@ -205,16 +223,15 @@ namespace ReeLib.FChar
         internal long idTblOffset;
         public List<uint> idTbl = [];
         public RSZFile obj;
-        public long objectTblOffset;
-        public long objectEndOffset;
-        public uint objCount;
+        internal long objectTblOffset;
+        internal long objectEndOffset;
 
         protected override bool DoRead(FileHandler handler)
         {
             idTblOffset = handler.ReadInt64();
             objectTblOffset = handler.ReadInt64();
             objectEndOffset = handler.ReadInt64();
-            objCount = handler.ReadUInt();
+            var objCount = handler.ReadUInt();
 
             handler.Seek(idTblOffset);
             idTbl.ReadStructList(handler, (int)objCount);
@@ -233,6 +250,11 @@ namespace ReeLib.FChar
             idTbl.Write(handler);
 
             return true;
+        }
+
+        public object SerializeJson()
+        {
+            return new { idTbl, obj = obj.ObjectList };
         }
     }
 
@@ -276,8 +298,8 @@ namespace ReeLib.FChar
 
     public class OffsetListWStr : BaseModel
     {
-        public int count;
-        public List<long> offsets = [];
+        internal int count;
+        internal List<long> offsets = [];
         public List<string> items = [];
 
         protected override bool DoRead(FileHandler handler)
@@ -314,12 +336,14 @@ namespace ReeLib.FChar
 namespace ReeLib
 {
     using FChar;
+    using System.Linq;
 
+    [Serializable]
     public class FCharFile : BaseRszFile
     {
         public FighterDataHeader Header = new();
-        public FighterDataOffsetsV18 OffsetsV18 = new();
-        public FighterDataOffsets Offsets = new();
+        internal FighterDataOffsetsV18 OffsetsV18 = new();
+        internal FighterDataOffsets Offsets = new();
         public List<uint> UnkTbl = [];
         public List<uint> IdTbl = [];
         public List<uint> ParentIdTbl = [];
@@ -329,11 +353,6 @@ namespace ReeLib
         public List<uint> ResourceIdTbl = [];
         public OffsetListWStr ResourceListTbl = new();
         public List<RSZFile> ObjTbl = [];
-        public uint ObjCount;
-        public uint StyleCount;
-        public uint DataCount;
-        public uint ResourceCount;
-        public uint UnkCount;
 
         public const uint Magic = 0x72686366;
 
@@ -354,10 +373,11 @@ namespace ReeLib
 
             if (version >= 18) OffsetsV18.Read(handler);
             Offsets.Read(handler);
-            ObjCount = handler.ReadUInt();
-            StyleCount = handler.ReadUInt();
-            DataCount = handler.ReadUInt();
-            ResourceCount = handler.ReadUInt();
+            var ObjCount = handler.ReadUInt();
+            var StyleCount = handler.ReadUInt();
+            var DataCount = handler.ReadUInt();
+            var ResourceCount = handler.ReadUInt();
+            uint UnkCount = 0;
             if (version >= 18) UnkCount = handler.ReadUInt();
 
             if (version >= 18) {
@@ -517,6 +537,8 @@ namespace ReeLib
             }
 
             Offsets.Rewrite(handler);
+
+            WriteToJson();
             return true;
         }
     }

@@ -91,6 +91,16 @@ namespace ReeLib.Aimp
         WallP1 = 64,
     }
 
+    [Flags]
+    public enum NodeInfoFlags
+    {
+        None,
+        Bit1 = 1,
+        Bit2 = 2,
+        Bit16 = 16,
+        Bit32 = 32,
+    }
+
     public class AimpHeader : BaseModel
     {
         internal uint magic = AimpFile.Magic;
@@ -484,10 +494,10 @@ namespace ReeLib.Aimp
         public int index;
         public int groupIndex;
         public int localIndex;
-        public int flags; // found bits: 1, 2, 16, 32; combinations: 0, 1, 2, 16, 18, 19, 34; LinkBoundary? Wall?
+        public NodeInfoFlags flags; // found bits: 1, 2, 16, 32; combinations: 0, 1, 2, 16, 18, 19, 34; LinkBoundary? Wall?
         public ulong attributes;
-        public int userdataIndex;
-        public int linkCount;
+        internal int userdataIndex;
+        internal int linkCount;
 
         [field: RszIgnore] public List<LinkInfo> Links { get; } = new();
         [field: RszIgnore] public RszInstance? UserData { get; set; }
@@ -508,7 +518,7 @@ namespace ReeLib.Aimp
         public int index;
         public int groupIndex;
         public int localIndex; // equal to index
-        public int flags;
+        public NodeInfoFlags flags;
         public ulong attributes;
 
         public readonly NodeInfo Upgrade() => new NodeInfo() { index = index, groupIndex = groupIndex, localIndex = localIndex, flags = flags, attributes = attributes };
@@ -1900,6 +1910,17 @@ namespace ReeLib
                 default:
                     throw new NotImplementedException();
             }
+        }
+
+        public ContentGroup? GetGroupForNode(NodeInfo node)
+        {
+            if (mainContent?.contents.ElementAtOrDefault(node.groupIndex)?.NodeInfos.ElementAtOrDefault(node.localIndex) == node) {
+                return mainContent.contents[node.groupIndex];
+            }
+            if (secondaryContent?.contents.ElementAtOrDefault(node.groupIndex)?.NodeInfos.ElementAtOrDefault(node.localIndex) == node) {
+                return secondaryContent.contents[node.groupIndex];
+            }
+            return null;
         }
 
         public void UnpackData()

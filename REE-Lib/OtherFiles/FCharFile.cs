@@ -7,7 +7,7 @@ namespace ReeLib.FChar
     public partial class FighterDataHeader : BaseModel
     {
         public uint version;
-        public uint magic = FCharFile.Magic;
+        internal uint magic = FCharFile.Magic;
     }
 
     internal class FighterDataOffsets : BaseModel
@@ -17,8 +17,8 @@ namespace ReeLib.FChar
         internal long actionListTblOffset;
         internal long dataIdTblOffset;
         internal long dataListTblOffset;
-        internal long resourceIdTblOffset;
-        internal long resourceTblOffset;
+        internal long commonDataIdTblOffset;
+        internal long commonDataListOffset;
         internal long objectTblOffset;
         internal long objectEndOffset;
 
@@ -29,8 +29,8 @@ namespace ReeLib.FChar
             actionListTblOffset = handler.ReadInt64();
             dataIdTblOffset = handler.ReadInt64();
             dataListTblOffset = handler.ReadInt64();
-            resourceIdTblOffset = handler.ReadInt64();
-            resourceTblOffset = handler.ReadInt64();
+            commonDataIdTblOffset = handler.ReadInt64();
+            commonDataListOffset = handler.ReadInt64();
             objectTblOffset = handler.ReadInt64();
             objectEndOffset = handler.ReadInt64();
             return true;
@@ -43,8 +43,8 @@ namespace ReeLib.FChar
             handler.Write(actionListTblOffset);
             handler.Write(dataIdTblOffset);
             handler.Write(dataListTblOffset);
-            handler.Write(resourceIdTblOffset);
-            handler.Write(resourceTblOffset);
+            handler.Write(commonDataIdTblOffset);
+            handler.Write(commonDataListOffset);
             handler.Write(objectTblOffset);
             handler.Write(objectEndOffset);
             return true;
@@ -126,7 +126,8 @@ namespace ReeLib.FChar
         public List<RSZFile> objTbl = [];
         public uint actionID;
         public uint frames;
-        public uint keyCount;
+        internal uint keyCount;
+        public uint refActionID;
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -137,6 +138,7 @@ namespace ReeLib.FChar
             var actionDataCount = handler.ReadUInt();
             actionID = handler.ReadUInt();
             frames = handler.ReadUInt();
+            refActionID = handler.ReadUInt();
 
             handler.Seek(dataTblOffset);
             dataTbl.count = (int)actionDataCount;
@@ -155,7 +157,7 @@ namespace ReeLib.FChar
             handler.Write(dataTbl.items.Count);
             handler.Write(actionID);
             handler.Write(frames);
-            handler.Write(-1);
+            handler.Write(refActionID);
 
             dataTblOffset = handler.AlignTell();
             dataTbl.Write(handler);
@@ -167,7 +169,8 @@ namespace ReeLib.FChar
         {
             var dataTbl = this.dataTbl.items.Select(data => data.SerializeJson()).ToList();
             var objTbl = this.objTbl.Select(obj => obj.ObjectList).ToList();
-            return new { dataTbl, objTbl, actionID, frames };
+            return new { dataTbl, objTbl, actionID, frames,
+                refActionId = refActionID };
         }
     }
 
@@ -280,8 +283,12 @@ namespace ReeLib.FChar
 
         protected override bool DoWrite(FileHandler handler)
         {
+            count = items.Count;
             if (offsets.Count < count) {
                 offsets.AddRange(new long[count - offsets.Count]);
+            }
+            else if (offsets.Count > count) {
+                offsets.RemoveRange(count, offsets.Count - count);
             }
             for (var i = 0; i < count; i++) {
                 handler.WriteInt64(offsets[i]);
@@ -316,8 +323,12 @@ namespace ReeLib.FChar
 
         protected override bool DoWrite(FileHandler handler)
         {
+            count = items.Count;
             if (offsets.Count < count) {
                 offsets.AddRange(new long[count - offsets.Count]);
+            }
+            else if (offsets.Count > count) {
+                offsets.RemoveRange(count, offsets.Count - count);
             }
             for (var i = 0; i < count; i++) {
                 handler.WriteInt64(offsets[i]);
@@ -350,8 +361,8 @@ namespace ReeLib
         public OffsetList<FighterActionListData> ActionListTbl = new();
         public List<uint> DataListIdTbl = [];
         public OffsetList<FighterDataListData> DataListTbl = new();
-        public List<uint> ResourceIdTbl = [];
-        public OffsetListWStr ResourceListTbl = new();
+        public List<uint> CommonDataIdTbl = [];
+        public OffsetListWStr CommonDataList = new();
         public List<RSZFile> ObjTbl = [];
 
         public const uint Magic = 0x72686366;
@@ -386,9 +397,9 @@ namespace ReeLib
             }
 
             handler.Seek(Offsets.idTblOffset);
-            IdTbl.ReadStructList(handler, (int)ObjCount);
+            IdTbl.ReadStructList(handler, (int)StyleCount);
             handler.Seek(Offsets.parentIdTblOffset);
-            ParentIdTbl.ReadStructList(handler, (int)ObjCount);
+            ParentIdTbl.ReadStructList(handler, (int)StyleCount);
 
             handler.Seek(Offsets.actionListTblOffset);
             ActionListTbl.count = (int)StyleCount;
@@ -431,12 +442,12 @@ namespace ReeLib
                 ReadRsz(dataList.obj, handler.Tell());
             }
 
-            handler.Seek(Offsets.resourceIdTblOffset);
-            ResourceIdTbl.ReadStructList(handler, (int)ResourceCount);
+            handler.Seek(Offsets.commonDataIdTblOffset);
+            CommonDataIdTbl.ReadStructList(handler, (int)ResourceCount);
 
-            handler.Seek(Offsets.resourceTblOffset);
-            ResourceListTbl.count = (int)ResourceCount;
-            ResourceListTbl.Read(handler);
+            handler.Seek(Offsets.commonDataListOffset);
+            CommonDataList.count = (int)ResourceCount;
+            CommonDataList.Read(handler);
 
             handler.Seek(Offsets.objectTblOffset);
             for (var i = 0; i < ObjCount; i++) {
@@ -462,7 +473,7 @@ namespace ReeLib
             handler.Write(ObjTbl.Count);
             handler.Write(IdTbl.Count);
             handler.Write(DataListIdTbl.Count);
-            handler.Write(ResourceIdTbl.Count);
+            handler.Write(CommonDataIdTbl.Count);
             if (Header.version >= 18) handler.Write(UnkTbl.Count);
 
             if (Header.version >= 18) {
@@ -518,12 +529,12 @@ namespace ReeLib
 
             DataListTbl.Rewrite(handler);
 
-            Offsets.resourceIdTblOffset = handler.AlignTell();
-            ResourceIdTbl.Write(handler);
+            Offsets.commonDataIdTblOffset = handler.AlignTell();
+            CommonDataIdTbl.Write(handler);
 
-            Offsets.resourceTblOffset = handler.AlignTell();
-            ResourceListTbl.Write(handler);
-            ResourceListTbl.Rewrite(handler);
+            Offsets.commonDataListOffset = handler.AlignTell();
+            CommonDataList.Write(handler);
+            CommonDataList.Rewrite(handler);
 
             Offsets.objectTblOffset = handler.AlignTell();
             foreach (var obj in ObjTbl) {

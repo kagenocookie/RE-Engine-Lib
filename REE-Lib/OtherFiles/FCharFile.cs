@@ -53,17 +53,17 @@ namespace ReeLib.FChar
 
     internal class FighterDataOffsetsV18 : BaseModel
     {
-        internal long unkTblOffset;
+        internal long extendDataTblOffset;
 
         protected override bool DoRead(FileHandler handler)
         {
-            unkTblOffset = handler.ReadInt64();
+            extendDataTblOffset = handler.ReadInt64();
             return true;
         }
 
         protected override bool DoWrite(FileHandler handler)
         {
-            handler.Write(unkTblOffset);
+            handler.Write(extendDataTblOffset);
             return true;
         }
     }
@@ -355,7 +355,7 @@ namespace ReeLib
         public FighterDataHeader Header = new();
         internal FighterDataOffsetsV18 OffsetsV18 = new();
         internal FighterDataOffsets Offsets = new();
-        public List<uint> UnkTbl = [];
+        public List<uint> ExtendDataTbl = [];
         public List<uint> IdTbl = [];
         public List<uint> ParentIdTbl = [];
         public OffsetList<FighterActionListData> ActionListTbl = new();
@@ -388,12 +388,12 @@ namespace ReeLib
             var StyleCount = handler.ReadUInt();
             var DataCount = handler.ReadUInt();
             var ResourceCount = handler.ReadUInt();
-            uint UnkCount = 0;
-            if (version >= 18) UnkCount = handler.ReadUInt();
+            uint ExtendDataCount = 0;
+            if (version >= 18) ExtendDataCount = handler.ReadUInt();
 
             if (version >= 18) {
-                handler.Seek(OffsetsV18.unkTblOffset);
-                UnkTbl.ReadStructList(handler, (int)UnkCount);
+                handler.Seek(OffsetsV18.extendDataTblOffset);
+                ExtendDataTbl.ReadStructList(handler, (int)ExtendDataCount);
             }
 
             handler.Seek(Offsets.idTblOffset);
@@ -474,11 +474,11 @@ namespace ReeLib
             handler.Write(IdTbl.Count);
             handler.Write(DataListIdTbl.Count);
             handler.Write(CommonDataIdTbl.Count);
-            if (Header.version >= 18) handler.Write(UnkTbl.Count);
+            if (Header.version >= 18) handler.Write(ExtendDataTbl.Count);
 
             if (Header.version >= 18) {
-                if (UnkTbl.Count > 0) OffsetsV18.unkTblOffset = handler.Tell();
-                UnkTbl.Write(handler);
+                if (ExtendDataTbl.Count > 0) OffsetsV18.extendDataTblOffset = handler.Tell();
+                ExtendDataTbl.Write(handler);
             }
 
             Offsets.idTblOffset = handler.Tell();

@@ -2113,6 +2113,9 @@ namespace ReeLib
             }
             if (group.NodeInfos.Remove(nodeInfo)) {
                 group.Nodes.RemoveAt(nodeInfo.localIndex);
+                for (int i = nodeInfo.localIndex; i < group.NodeInfos.Count; i++) {
+                    group.NodeInfos[i].localIndex--;
+                }
             }
         }
 

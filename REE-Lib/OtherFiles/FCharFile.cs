@@ -1,5 +1,6 @@
 using ReeLib.Common;
 using ReeLib.InternalAttributes;
+using System.Text.Json;
 
 namespace ReeLib.FChar
 {
@@ -457,6 +458,32 @@ namespace ReeLib
             }
 
             return true;
+        }
+
+        public void WriteToJson()
+        {
+            var options = new JsonSerializerOptions {
+                WriteIndented = true,
+                IncludeFields = true
+            };
+            options.Converters.Add(new RszInstanceJsonConverterSimple(RszParser));
+            var actionListTbl = ActionListTbl.items.Select(actionList => actionList.SerializeJson()).ToList();
+            var dataListTbl = DataListTbl.items.Select(data => data.SerializeJson()).ToList();
+            var objTbl = ObjTbl.Select(obj => obj.ObjectList).ToList();
+
+            var combined = new {
+                extendDataTbl = ExtendDataTbl,
+                idTbl = IdTbl,
+                parentIdTbl = ParentIdTbl,
+                actionListTbl,
+                dataListIdTbl = DataListIdTbl,
+                dataListTbl,
+                resourceIdTbl = CommonDataIdTbl,
+                resourceListTbl = CommonDataList.items,
+                objTbl
+            };
+            var output = JsonSerializer.Serialize(combined, options);
+            File.WriteAllText(FileHandler.FilePath + ".json", output);
         }
 
         protected override bool DoWrite()

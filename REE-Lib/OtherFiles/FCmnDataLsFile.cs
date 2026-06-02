@@ -1,5 +1,6 @@
 ﻿using ReeLib.Common;
 using ReeLib.InternalAttributes;
+using System.Text.Json;
 using ReeLib.FCmnDataLs;
 
 namespace ReeLib.FCmnDataLs
@@ -84,6 +85,19 @@ namespace ReeLib
             ReadRsz(Obj, handler.Tell());
 
             return true;
+        }
+
+        public void WriteToJson()
+        {
+            _options.Converters.Add(new RszInstanceJsonConverterSimple(RszParser));
+
+            var combined = new {
+                guidTbl = GuidTbl,
+                idTbl = IdTbl,
+                obj = Obj.ObjectList
+            };
+            var output = JsonSerializer.Serialize(combined, _options);
+            File.WriteAllText(FileHandler.FilePath + ".json", output);
         }
 
         protected override bool DoWrite()

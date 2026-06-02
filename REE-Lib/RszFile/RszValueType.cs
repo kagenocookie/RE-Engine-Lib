@@ -648,6 +648,11 @@ namespace ReeLib.via
                 point.Z >= minpos.Z && point.Z <= maxpos.Z;
         }
 
+        public static AABB CreateFromOrigin(Vector3 origin, Vector3 size)
+        {
+            return new AABB(origin - size, origin + size);
+        }
+
         public static AABB Combine(IEnumerable<AABB> bounds) => bounds.Aggregate(MaxMin, (bound, item) => bound.Extend(item));
 
         public static AABB operator+(AABB aabb, Vector3 vec) => new AABB(aabb.minpos + vec, aabb.maxpos + vec);

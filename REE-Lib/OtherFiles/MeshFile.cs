@@ -2058,6 +2058,10 @@ namespace ReeLib
 			StreamingInfo = null;
 
 			header.Read(handler);
+			if (header.FormatVersion == MeshSerializerVersion.RE7) {
+				throw new NotSupportedException("RE7 non-RT meshes are not supported");
+			}
+
 			if (header.streamingInfoOffset > 0)
 			{
 				handler.Seek(header.streamingInfoOffset);

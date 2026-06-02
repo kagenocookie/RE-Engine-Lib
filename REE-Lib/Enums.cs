@@ -515,6 +515,7 @@ namespace ReeLib
         V61 = (1ul << 60),
         V62 = (1ul << 61),
         V63 = (1ul << 62),
+        V64 = (1ul << 63),
         All = ~0ul
     };
 }

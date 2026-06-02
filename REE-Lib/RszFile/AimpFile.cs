@@ -343,6 +343,15 @@ namespace ReeLib.Aimp
         public AABB bounds;
         public AABB secondaryBounds;
 
+        public AABBNode()
+        {
+        }
+
+        public AABBNode(AABB bounds)
+        {
+            this.bounds = secondaryBounds = bounds;
+        }
+
         public int[] Indices { get => indices.Select(i => (int)i).ToArray(); set => indices = value.Select(i => (ushort)i).ToArray(); }
     }
 
@@ -438,6 +447,11 @@ namespace ReeLib.Aimp
         protected void PackVertices(ContentGroupContainer container, int vertStartIndex)
         {
             Debug.Assert(Vertices != null);
+            if (container.Vertices.Length < vertStartIndex + Vertices.Length) {
+                var vv = container.Vertices;
+                Array.Resize(ref vv, vertStartIndex + Vertices.Length);
+                container.Vertices = vv;
+            }
             for (int i = 0; i < Vertices.Length; i++) container.Vertices[vertStartIndex + i] = new PaddedVec3(Vertices[i]);
         }
 
@@ -486,6 +500,8 @@ namespace ReeLib.Aimp
         public List<TNode> Nodes { get; } = new();
 
         public override int NodeCount => Nodes.Count;
+
+        internal virtual void ExpandVerticesForNewNode(TNode node) { }
     }
 
     [RszGenerate]
@@ -937,12 +953,28 @@ namespace ReeLib.Aimp
         }
     }
 
-    public class ContentGroupMapBoundary : ContentGroup<ContentGroupMapBoundary.MapBoundaryNodeInfo>
+    public class ContentGroupMapBoundary : ContentGroup<ContentGroupMapBoundary.MapBoundaryNode>
     {
-        public class MapBoundaryNodeInfo : IMultiIndexNode
+        public class MapBoundaryNode : IMultiIndexNode
         {
             public int[] indices = new int[8];
             public Vector3 min, max;
+
+            public MapBoundaryNode()
+            {
+            }
+
+            public MapBoundaryNode(Vector3 min, Vector3 max)
+            {
+                this.min = min;
+                this.max = max;
+            }
+
+            public MapBoundaryNode(AABB bounds)
+            {
+                min = bounds.minpos;
+                max = bounds.maxpos;
+            }
 
             public int[] Indices { get => indices; set => indices = value; }
         }
@@ -982,6 +1014,9 @@ namespace ReeLib.Aimp
             var arr = Vertices;
             Array.Resize(ref arr, NodeCount * 8);
             Vertices = arr;
+            if (pairIndices.Length != 0 && pairIndices.Length != Nodes.Count) {
+                Array.Resize(ref pairIndices, Nodes.Count);
+            }
             for (int i = 0; i < Nodes.Count; ++i)
             {
                 var node = Nodes[i];
@@ -1009,7 +1044,7 @@ namespace ReeLib.Aimp
         {
             Nodes.Clear();
             for (int i = 0; i < count; ++i) {
-                var bi = new MapBoundaryNodeInfo() {
+                var bi = new MapBoundaryNode() {
                     indices = handler.ReadArray<int>(8),
                     min = handler.Read<Vector3>(),
                     max = handler.Read<Vector3>(),
@@ -1056,6 +1091,18 @@ namespace ReeLib.Aimp
                     Array.Resize(ref pairIndices, Nodes.Count);
                 }
                 handler.WriteArray(pairIndices);
+            }
+        }
+
+        internal override void ExpandVerticesForNewNode(MapBoundaryNode node)
+        {
+            var verts = Vertices ?? [];
+            Array.Resize(ref verts, verts.Length + 8);
+            Vertices = verts;
+            if (Nodes.Count > 1) {
+                // a bit of a hack to ensure the range is deteremined correctly in PackData()
+                // TODO rewrite how aimp serializes so there isn't two sources of vertex data
+                Array.Fill(node.indices, Nodes[^2].indices[^1]);
             }
         }
     }
@@ -1128,6 +1175,9 @@ namespace ReeLib.Aimp
             Vertices = list.ToArray();
             ShiftVertexIndices(Nodes, container, vertStartIndex);
             PackVertices(container, vertStartIndex);
+            if (pairIndices.Length != Nodes.Count) {
+                Array.Resize(ref pairIndices, Nodes.Count);
+            }
             for (int i = 0; i < Nodes.Count; ++i)
             {
                 var nodeinfo = NodeInfos[i];
@@ -1182,7 +1232,18 @@ namespace ReeLib.Aimp
                 handler.WriteArray(item.indices);
             }
         }
+
+        internal override void ExpandVerticesForNewNode(AABBNode node)
+        {
+            var verts = Vertices ?? [];
+            Array.Resize(ref verts, verts.Length + (node.secondaryBounds == node.bounds ? 2 : 4));
+            Vertices = verts;
+            if (Nodes.Count > 1) {
+                Array.Fill(node.indices, Nodes[^2].indices[^1]);
+            }
+        }
     }
+
     public class ContentGroupWall : ContentGroup<WallNode>
     {
         public override Vector3 GetNodeCenter(ContentGroupContainer container, int i) => container.Vertices[Nodes[i].indices[0]].Vector3;
@@ -1232,7 +1293,7 @@ namespace ReeLib.Aimp
             // don't even store the indices here, since they're always -1
             for (int i = 0; i < Nodes.Count; ++i)
             {
-                DataInterpretationException.ThrowIf(handler.Read<int>() != -1, "Wall aimp content type isn't supposed to have indices");
+                DataInterpretationException.ThrowIf(handler.Read<int>() != -1, "Wall aimp content type wasn't supposed to have indices");
             }
             return true;
         }
@@ -1923,6 +1984,62 @@ namespace ReeLib
             return null;
         }
 
+        public T? GetOrAddGroup<T>() where T : ContentGroup, new()
+        {
+            static T _GetOrAdd(ContentGroupContainer container, bool mainGroup)
+            {
+                if (mainGroup) {
+                    if (container.contents.Length == 0 || container.contents[0] is not T) {
+                        container.contents = [ new T(), .. container.contents ];
+                    }
+                } else {
+                    if (!container.contents.OfType<T>().Any()) {
+                        container.contents = [ .. container.contents, new T() ];
+                    }
+                }
+                return container.contents.OfType<T>().First();
+            }
+
+            switch (Header.mapType) {
+                case MapType.Navmesh:
+                    mainContent ??= new ContentGroupContainer(Header.Version) { header = Header };
+                    secondaryContent ??= new ContentGroupContainer(Header.Version) { header = Header };
+                    if (typeof(T) == typeof(ContentGroupTriangle)) {
+                        return _GetOrAdd(mainContent, true);
+                    }
+
+                    if (typeof(T) == typeof(ContentGroupPolygon)) {
+                        return _GetOrAdd(secondaryContent, true);
+                    }
+
+                    if (typeof(T) == typeof(ContentGroupMapBoundary) || typeof(T) == typeof(ContentGroupWall)) {
+                        return _GetOrAdd(mainContent, false);
+                    }
+
+                    if (typeof(T) == typeof(ContentGroupMapAABB)) {
+                        return _GetOrAdd(secondaryContent, false);
+                    }
+
+                    return null;
+                case MapType.WayPoint:
+                    mainContent ??= new ContentGroupContainer(Header.Version) { header = Header };
+                    if (typeof(T) == typeof(ContentGroupMapPoint)) {
+                        return _GetOrAdd(mainContent, true);
+                    }
+
+                    return null;
+                case MapType.VolumeSpace:
+                    mainContent ??= new ContentGroupContainer(Header.Version) { header = Header };
+                    if (typeof(T) == typeof(ContentGroupMapAABB)) {
+                        return _GetOrAdd(mainContent, true);
+                    }
+
+                    return null;
+                default:
+                    throw new NotSupportedException($"Unsupported map type {Header.mapType}");
+            }
+        }
+
         public void UnpackData()
         {
             mainContent?.UnpackData(secondaryContent);
@@ -1936,6 +2053,66 @@ namespace ReeLib
             var boundContent = secondaryContent ?? mainContent;
             if (boundContent != null) {
                 RebuildHeightPartition(boundContent);
+            }
+        }
+
+        public NodeInfo CreateNode<TNode>(ContentGroup<TNode> group, TNode node)
+        {
+            var content = mainContent;
+            var groupIndex = Array.IndexOf(mainContent?.contents ?? [], group);
+            if (groupIndex == -1) {
+                groupIndex = Array.IndexOf(secondaryContent?.contents ?? [], group);
+                content = secondaryContent;
+            }
+            if (content == null || groupIndex == -1) {
+                throw new ArgumentException("Must be an existing content group", nameof(group));
+            }
+            var previousNodeIndex = 0;
+            for (int g = 0; g < content.contents.Length; g++) {
+                if (g == groupIndex) break;
+                previousNodeIndex = content.contents[g].NodeInfos.Count;
+            }
+
+            var refUserdata = group.NodeInfos.FirstOrDefault()?.UserData;
+            var nodeInfo = new NodeInfo() {
+                localIndex = group.NodeInfos.Count,
+                groupIndex = groupIndex,
+                index = previousNodeIndex + group.NodeInfos.Count,
+                UserData = refUserdata == null ? null : RszInstance.CreateInstance(Option.RszParser, refUserdata.RszClass),
+            };
+            group.NodeInfos.Add(nodeInfo);
+            group.Nodes.Add(node);
+            group.ExpandVerticesForNewNode(node);
+            return nodeInfo;
+        }
+
+        public void RemoveNode<TNode>(ContentGroup<TNode> group, NodeInfo nodeInfo)
+        {
+            foreach (var g in mainContent?.contents ?? []) {
+                foreach (var n in g.NodeInfos) {
+                    for (int i = 0; i < n.Links.Count; i++) {
+                        if (n.Links[i].SourceNode == nodeInfo) {
+                            n.Links.RemoveAt(i--);
+                        } else if (n.Links[i].TargetNode == nodeInfo) {
+                            n.Links.RemoveAt(i--);
+                        }
+                    }
+                }
+            }
+
+            foreach (var g in secondaryContent?.contents ?? []) {
+                foreach (var n in g.NodeInfos) {
+                    for (int i = 0; i < n.Links.Count; i++) {
+                        if (n.Links[i].SourceNode == nodeInfo) {
+                            n.Links.RemoveAt(i--);
+                        } else if (n.Links[i].TargetNode == nodeInfo) {
+                            n.Links.RemoveAt(i--);
+                        }
+                    }
+                }
+            }
+            if (group.NodeInfos.Remove(nodeInfo)) {
+                group.Nodes.RemoveAt(nodeInfo.localIndex);
             }
         }
 

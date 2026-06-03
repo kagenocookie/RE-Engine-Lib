@@ -26,6 +26,7 @@ namespace ReeLib.Efx
         DD2,
         MHWilds,
         Pragmata,
+        Onimusha,
         RE9,
     }
 
@@ -684,6 +685,7 @@ namespace ReeLib
         private const int VERSION_RE4 = 3539837;
         private const int VERSION_DD2 = 4064419;
         private const int VERSION_WILDS = 5571972;
+        private const int VERSION_ONIMUSHA = 5834247;
         private const int VERSION_PRAGMATA = 5965300;
 
         public static EfxVersion GetEfxVersion(int fileVersion) => fileVersion switch {
@@ -700,6 +702,7 @@ namespace ReeLib
             VERSION_DD2 => EfxVersion.DD2,
             VERSION_WILDS => EfxVersion.MHWilds,
             VERSION_PRAGMATA => EfxVersion.Pragmata,
+            VERSION_ONIMUSHA => EfxVersion.Onimusha,
             _ => EfxVersion.Unknown,
         };
         public static int GetFileVersion(EfxVersion version) => version switch {
@@ -715,6 +718,7 @@ namespace ReeLib
             EfxVersion.RE4 => VERSION_RE4,
             EfxVersion.DD2 => VERSION_DD2,
             EfxVersion.MHWilds => VERSION_WILDS,
+            EfxVersion.Onimusha => VERSION_ONIMUSHA,
             EfxVersion.Pragmata => VERSION_PRAGMATA,
             _ => -1,
         };

@@ -214,6 +214,157 @@ namespace ReeLib.Common
         }
     }
 
+    public class RszInstanceJsonConverterSimple(RszParser parser) : JsonConverter<RszInstance>
+    {
+        public override RszInstance? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            var dict = JsonSerializer.Deserialize<JsonObject>(ref reader, options);
+            if (dict?.Remove("$type", out var classnameField) != true || classnameField?.GetValue<string>() is not string classname) {
+                if (dict?.TryGetPropertyValue("path", out var userPath) == true && userPath?.GetValue<string>().StartsWith("assets:") == true) {
+                    return DeserializeUserdata(dict);
+                }
+                throw new Exception("Missing $type property in JSON for RSZ instance");
+            }
+            var cls = parser.GetRSZClass(classname!) ?? throw new Exception("Can't deserialize unknown RSZ class ");
+            var inst = RszInstance.CreateInstance(parser, cls, -1);
+            foreach (var (key, val) in dict) {
+                var fieldIdx = cls.IndexOfField(key);
+                if (fieldIdx == -1) {
+                    // error?
+                    continue;
+                }
+                var field = cls.fields[fieldIdx];
+                var type = RszInstance.RszFieldTypeToRuntimeCSharpType(field.type);
+                if (field.type == RszFieldType.UserData) {
+                    if (field.array) {
+                        var list = new List<object>(val?.AsArray().Select(DeserializeUserdata) ?? []);
+                        inst.SetFieldValue(key, list);
+                    } else if ((val as JsonObject)?.TryGetPropertyValue("path", out var userPath) == true) {
+                        inst.SetFieldValue(key, DeserializeUserdata(val));
+                    }
+                } else  if (field.type is RszFieldType.GameObjectRef or RszFieldType.Uri) {
+                    if (field.array) {
+                        var srcList = val?.AsArray().Select(a => a?.GetValue<string>()).ToArray() ?? [];
+                        var list = new List<object>();
+                        foreach (var rr in srcList) {
+                            var obj = new GameObjectRef();
+                            if (!Guid.TryParse(rr, out obj.guid)) obj.guid = Guid.Empty;
+                        }
+                        inst.SetFieldValue(key, list);
+                    } else {
+                        var rr = new GameObjectRef();
+                        if (!Guid.TryParse(val?.GetValueKind() == JsonValueKind.String ? val.ToString() : "", out rr.guid)) rr.guid = Guid.Empty;
+                        inst.SetFieldValue(key, rr);
+                    }
+                } else if (field.array) {
+                    var list = inst.Values[fieldIdx] as List<object> ?? new List<object>();
+                    list.Clear();
+                    if (field.type == RszFieldType.Object || field.type == RszFieldType.Struct) {
+                        if (val?.GetValueKind() == JsonValueKind.Object && val.AsObject().TryGetPropertyValue("items", out var items)) {
+                            foreach (var sub in items!.AsArray()) {
+                                list.Add(sub.Deserialize<RszInstance>(options)!);
+                            }
+                        } else {
+                            foreach (var sub in val!.AsArray()) {
+                                list.Add(sub.Deserialize<RszInstance>(options)!);
+                            }
+                        }
+                    } else {
+                        foreach (var sub in val!.AsArray()) {
+                            list.Add(sub.Deserialize(type, options)!);
+                        }
+                    }
+                    inst.SetFieldValue(key, list);
+                } else {
+                    var deserialized = val?.GetValueKind() switch {
+                        JsonValueKind.True => true,
+                        JsonValueKind.False => false,
+                        JsonValueKind.Number => val.Deserialize(type, options),
+                        JsonValueKind.Null or JsonValueKind.Undefined => null,
+                        JsonValueKind.String => type == typeof(string) ? val.GetValue<string>() : val.Deserialize(type, options),
+                        JsonValueKind.Object or JsonValueKind.Array or _ => val.Deserialize(type, options)!,
+                    };
+                    if (deserialized?.GetType() != type) deserialized = Convert.ChangeType(deserialized, type);
+                    inst.SetFieldValue(key, deserialized ?? Activator.CreateInstance(type)!);
+                }
+            }
+            return inst;
+        }
+
+        public override void Write(Utf8JsonWriter writer, RszInstance value, JsonSerializerOptions options)
+        {
+            var dict = new Dictionary<string, object>(value.Fields.Length + 1);
+            // NOTE: could be nice to handle dictionary arrays (KeyValuePair) as dictionaries, but not required
+            dict["$type"] = value.RszClass.name;
+            for (var i = 0; i < value.Fields.Length; i++) {
+                var field = value.Fields[i];
+                var fieldValue = value.Values[i];
+                if (field.type == RszFieldType.UserData) {
+                    if (field.array) {
+                        var list = ((IList<object>)fieldValue).Cast<RszInstance>().Select(elem => SerializeUserdata(dict, field, elem));
+                        dict[field.name] = list.ToArray();
+                    } else if ((fieldValue as RszInstance)?.RSZUserData is not RSZUserDataInfo_TDB_LE_67 oldUD) {
+                        var data = SerializeUserdata(dict, field, (RszInstance)fieldValue);
+                        if (data != null) {
+                            dict[field.name] = data;
+                        }
+                    } else if (oldUD.EmbeddedRSZ != null) {
+                        dict[field.name] = oldUD.EmbeddedRSZ.ObjectList[0];
+                    }
+                } else if (field.type == RszFieldType.Object && field.array) {
+                    // store as structure: {"$array": "base class type", "items": []}
+                    // we need it for diffs, because we might have custom conditions on the base class and not subclasses
+                    dict[field.name] = new Dictionary<string, object>() {
+                        { "$array", field.original_type },
+                        { "items", fieldValue },
+                    };
+                } else if (field.type is RszFieldType.GameObjectRef or RszFieldType.Uri) {
+                    if (field.array) {
+                        var list = ((IList<object>)fieldValue).Cast<GameObjectRef>().Select(elem => elem.guid.ToString());
+                        dict[field.name] = list.ToArray();
+                    } else {
+                        dict[field.name] = ((GameObjectRef)fieldValue).guid.ToString();
+                    }
+                } else {
+                    dict[field.name] = fieldValue;
+                }
+            }
+            JsonSerializer.Serialize(writer, dict, options);
+        }
+
+        private RszInstance DeserializeUserdata(JsonNode? val)
+        {
+            var userClassName = val?.AsObject()["class"]?.GetValue<string>() ?? string.Empty;
+            var userClass = parser.GetRSZClass(userClassName);
+            if (userClass == null) {
+                throw new Exception("Could not deserialize user data reference " + val);
+            }
+            var path = val?.AsObject()["path"]?.GetValue<string>() ?? string.Empty;
+
+            return new RszInstance(userClass, new RSZUserDataInfo() { Path = path, typeId = userClass.typeId });
+        }
+
+        private Dictionary<string, string>? SerializeUserdata(Dictionary<string, object> dict, RszField field, RszInstance userRef)
+        {
+            if (userRef.RSZUserData == null) {
+                return null;
+            } else if (userRef.RSZUserData is RSZUserDataInfo curUser) {
+                return new Dictionary<string, string>() {
+                        { "class", curUser.ClassName ?? curUser.ReadClassName(parser) },
+                        { "path", curUser.Path ?? string.Empty }
+                    };
+            } else if (userRef.RSZUserData is RSZUserDataInfo_TDB_LE_67 oldUser) {
+                var path = oldUser.EmbeddedRSZ?.ObjectList[0].Values[0] as string;
+                return new Dictionary<string, string>() {
+                        { "class", oldUser.ClassName ?? oldUser.ReadClassName(parser) },
+                        { "path", path ?? string.Empty }
+                    };
+            } else {
+                throw new NotSupportedException("Unsupported rsz userdata type " + (userRef.RSZUserData?.GetType().Name ?? "NULL"));
+            }
+        }
+    }
+
     public class PfbGameObjectJsonConverter : JsonConverter<PfbGameObject>
     {
         public override PfbGameObject? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

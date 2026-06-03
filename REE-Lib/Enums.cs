@@ -437,6 +437,10 @@ namespace ReeLib
         CustomFilter,
         /// <summary>.ulp</summary>
         UserLightingPipeline,
+        /// <summary>.fchar</summary>
+        FighterCharacterAsset,
+        /// <summary>.fcmndatals</summary>
+        FighterCommonDataList,
 
         /// <summary>.ecob</summary>
         EcotopeBiome, // Guessed from magic bytes

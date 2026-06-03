@@ -1027,7 +1027,7 @@ namespace ReeLib.Aimp
                 Vertices[i * 8 + 2] = new Vector3(node.min.X + 0.001f, node.min.Y, node.max.Z);
                 Vertices[i * 8 + 3] = new Vector3(node.max.X, node.min.Y, node.max.Z - 0.001f);
 
-                // TODO verify if the mid Y has any effect whatsoever (can't find a correlation in the numbers, might be meaningless, might not)
+                // TODO verify if we need to handle mid offsets with correct surface angle/normal/rotation logic (see RE4 loc4011.ainvm)
                 Vertices[i * 8 + 4] = new Vector3(node.max.X, mid.Y, node.min.Z);
                 Vertices[i * 8 + 5] = new Vector3(node.min.X, mid.Y, node.min.Z + 0.001f);
                 Vertices[i * 8 + 6] = new Vector3(node.min.X + 0.001f, mid.Y, node.max.Z);

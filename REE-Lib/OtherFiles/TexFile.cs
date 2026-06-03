@@ -8,6 +8,7 @@ namespace ReeLib.Tex
 		RE7,
         MHRise,
         MHWilds,
+        MHWildsUncompressed,
 	}
 
     public partial class Header : ReadWriteModel
@@ -36,6 +37,8 @@ namespace ReeLib.Tex
 
         internal const int MipHeaderSize = 16;
 
+        public TexSerializerVersion SerializerVersion { get; set; }
+
         protected override bool ReadWrite<THandler>(THandler action)
         {
             action.Do(ref magic);
@@ -44,6 +47,12 @@ namespace ReeLib.Tex
             action.Do(ref height);
             action.Do(ref depth);
             var Version = TexFile.GetSerializerVersion(version, action.Handler.FileVersion);
+            // hack because onimusha tex aren't GDeflated with no other indicators of that being a thing
+            if (SerializerVersion == TexSerializerVersion.MHWildsUncompressed && Version == TexSerializerVersion.MHWilds) {
+                SerializerVersion = TexSerializerVersion.MHWildsUncompressed;
+            } else {
+                SerializerVersion = Version;
+            }
             if (Version >= TexSerializerVersion.MHRise) {
                 // TODO some tex have 0 imageCount but still contain data (re4 debugsplatindex.tex.143221013) and mip header size 17
                 action.Do(ref imageCount);
@@ -146,6 +155,7 @@ namespace ReeLib
 			{ "MHWILDS", new (241106027, TexSerializerVersion.MHWilds, [GameName.mhwilds]) },
 			{ "RE9", new (250813143, TexSerializerVersion.MHWilds, [GameName.re9]) },
 			{ "PRAGMATA/MHST3", new (251111100, TexSerializerVersion.MHWilds, [GameName.mhsto3, GameName.pragmata]) },
+			{ "Onimusha", new (251111100, TexSerializerVersion.MHWildsUncompressed, [GameName.oni]) },
 		};
 
 		public static readonly string[] AllVersionConfigs = Versions.Reverse().OrderByDescending(kv => kv.Value.serializerVersion).Select(kv => kv.Key).ToArray();
@@ -156,7 +166,7 @@ namespace ReeLib
 			game => Versions.Where(kv => kv.Value.games.Contains(game)).Select(pair => pair.Key).ToArray()
 		);
 
-		private static readonly Dictionary<int, TexVersionConfig> VersionHashLookups = Versions.ToDictionary(v => v.Value.fileVersion, kv => kv.Value);
+		private static readonly Dictionary<int, TexVersionConfig> VersionHashLookups = Versions.GroupBy(v => v.Value.fileVersion).ToDictionary(v => v.First().Value.fileVersion, kv => kv.First().Value);
 
 		internal static TexSerializerVersion GetSerializerVersion(int internalVersion, int fileVersion)
 			// on match failure, assume latest format for anything unknown - in case of newer games
@@ -170,12 +180,12 @@ namespace ReeLib
 
         public static int GetFileExtension(string exportConfig) => Versions.TryGetValue(exportConfig, out var cfg) ? cfg.fileVersion : 0;
 
-        public static bool GetRequiresGDeflateCompression(GameIdentifier game) => Versions[GetGameVersionConfigs(game)[0]].serializerVersion >= TexSerializerVersion.MHWilds;
+        public static bool GetRequiresGDeflateCompression(GameIdentifier game) => Versions[GetGameVersionConfigs(game)[0]].serializerVersion == TexSerializerVersion.MHWilds;
 
         /// <summary>
         /// Whether this tex file's current file version expects the texture data to be GDeflate compressed.
         /// </summary>
-        public bool MustBeCompressed => CurrentSerializerVersion >= TexSerializerVersion.MHWilds;
+        public bool MustBeCompressed => Header.SerializerVersion == TexSerializerVersion.MHWilds;
 
         /// <summary>
         /// Whether this tex file's texture data is currently GDeflate compressed.
@@ -197,6 +207,7 @@ namespace ReeLib
 			Header.version = config.fileVersion;
             var handler = FileHandler;
             handler.FileVersion = Header.version;
+            Header.SerializerVersion = config.serializerVersion;
 
             // ensure both mip count types are set, whichever is needed will get saved to file
             if (Header.mipCount == 0) {
@@ -250,6 +261,12 @@ namespace ReeLib
                 for (int i = 0; i < compressedHeaderCount; ++i)
                 {
                     CompressedHeaders.Add(handler.Read<CompressedMipHeader>());
+                }
+                // hack to detect onimusha uncompressed textures
+                if (CompressedHeaders[0].offset != 0 ||
+                    CompressedHeaders.Any(c => c.size <= 0 || c.offset < 0 || c.offset > handler.FileSize())) {
+                    CompressedHeaders.Clear();
+                    Header.SerializerVersion = TexSerializerVersion.MHWildsUncompressed;
                 }
             }
 

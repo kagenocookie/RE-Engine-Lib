@@ -151,7 +151,7 @@ namespace ReeLib
 			{ "MHWILDS", new (241106027, TexSerializerVersion.GDeflate, [GameName.mhwilds]) },
 			{ "RE9", new (250813143, TexSerializerVersion.GDeflate, [GameName.re9]) },
 			{ "PRAGMATA/MHST3", new (251111100, TexSerializerVersion.GDeflate, [GameName.mhsto3, GameName.pragmata]) },
-			{ "Onimusha", new (251111100, TexSerializerVersion.Modern, [GameName.oni]) },
+			{ "Onimusha", new (251111100, TexSerializerVersion.Modern, [GameName.oniws]) },
 		};
 
 		public static readonly string[] AllVersionConfigs = Versions.Reverse().OrderByDescending(kv => kv.Value.serializerVersion).Select(kv => kv.Key).ToArray();

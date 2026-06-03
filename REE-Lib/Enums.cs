@@ -119,7 +119,7 @@ namespace ReeLib
         mhwilds,
         pragmata,
         mhsto3,
-        oni,
+        oniws,
     }
 
     public enum KnownFileFormats

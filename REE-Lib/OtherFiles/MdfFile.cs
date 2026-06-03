@@ -34,7 +34,7 @@ namespace ReeLib.Mdf
         internal long paramsOffset; // 10
         public string mmtrPath = "";
         // tdbVersion >= 71, SF6+
-        internal long texIDsOffset;
+        internal long mmtrIDsOffset;
 
 
         public MaterialFlags Flags
@@ -76,9 +76,9 @@ namespace ReeLib.Mdf
                 }
             }
             handler.Read(ref shaderType);
-            if (Version >= 32) handler.Read(ref ukn);
+            if (Version >= 31) handler.Read(ref ukn);
             handler.Read(ref alphaFlags);
-            if (Version >= 32) handler.Read(ref ukn1);
+            if (Version >= 31) handler.Read(ref ukn1);
             if (Version >= 51) handler.Read(ref pragmataUkn);
             handler.Read(ref paramHeaderOffset);
             handler.Read(ref texHeaderOffset);
@@ -88,7 +88,7 @@ namespace ReeLib.Mdf
             }
             handler.Read(ref paramsOffset);
             mmtrPath = handler.ReadOffsetWString();
-            if (Version >= 32) handler.Read(ref texIDsOffset);
+            if (Version >= 31) handler.Read(ref mmtrIDsOffset);
             return true;
         }
 
@@ -107,9 +107,9 @@ namespace ReeLib.Mdf
                 handler.Write(ref gpbfDataCount);
             }
             handler.Write(ref shaderType);
-            if (Version >= 32) handler.Write(ref ukn);
+            if (Version >= 31) handler.Write(ref ukn);
             handler.Write(ref alphaFlags);
-            if (Version >= 32) handler.Write(ref ukn1);
+            if (Version >= 31) handler.Write(ref ukn1);
             if (Version >= 51) handler.Write(ref pragmataUkn);
             handler.Write(ref paramHeaderOffset);
             handler.Write(ref texHeaderOffset);
@@ -119,7 +119,7 @@ namespace ReeLib.Mdf
             }
             handler.Write(ref paramsOffset);
             handler.WriteOffsetWString(mmtrPath);
-            if (Version >= 32) handler.Write(ref texIDsOffset);
+            if (Version >= 31) handler.Write(ref mmtrIDsOffset);
             return true;
         }
 
@@ -354,6 +354,7 @@ namespace ReeLib.Mdf
         public List<TexHeader> Textures = new();
         public List<ParamHeader> Parameters = new();
         public List<GpuBufferEntry> GpuBuffers = new();
+        public MaterialIndexData? MaterialIndexLists;
 
         public override string ToString() => Header.matName + " :  " + Path.GetFileName(Header.mmtrPath);
 
@@ -364,6 +365,50 @@ namespace ReeLib.Mdf
                 GpuBuffers = GpuBuffers.Select(gpbf => new GpuBufferEntry(gpbf.name, gpbf.path)).ToList(),
                 Parameters = Parameters.Select(tex => tex.Clone()).ToList(),
             };
+        }
+    }
+
+    public record MaterialTexId(int id, string texturePath);
+
+    public class MaterialIndexList
+    {
+        public List<int> Indices { get; } = new();
+
+        public override string ToString() => $"Material Index List ({Indices.Count})";
+    }
+
+    public class MaterialIndexData : BaseModel
+    {
+        public MaterialIndexList[] Lists = new MaterialIndexList[8];
+
+        protected override bool DoRead(FileHandler handler)
+        {
+            var offsets = handler.ReadArray<long>(8);
+            for (int i = 0; i < 8; i++) {
+                var list = Lists[i] ??= new();
+                list.Indices.Clear();
+
+                handler.Seek(offsets[i]);
+                var count = handler.Read<int>();
+                for (int n = 0; n < count; n++) {
+                    var id = handler.Read<int>();
+                    list.Indices.Add(id);
+                }
+            }
+            return true;
+        }
+
+        protected override bool DoWrite(FileHandler handler)
+        {
+            handler.Skip(8 * 8);
+
+            for (int i = 0; i < 8; i++) {
+                var list = Lists[i];
+                handler.Write(Start + i * 8, handler.Tell());
+                handler.Write(list.Indices.Count);
+                list.Indices.Write(handler);
+            }
+            return true;
         }
     }
 }
@@ -459,8 +504,16 @@ namespace ReeLib
                     gpbf.Read(handler);
                     matData.GpuBuffers.Add(gpbf);
                 }
-                DataInterpretationException.DebugThrowIf(matData.Header.texIDsOffset > 0, "TODO Handle tex IDs");
                 handler.Seek(tell);
+            }
+
+            foreach (var matData in Materials)
+            {
+                if (matData.Header.mmtrIDsOffset == 0) continue;
+
+                handler.Seek(matData.Header.mmtrIDsOffset);
+                matData.MaterialIndexLists = new MaterialIndexData();
+                matData.MaterialIndexLists.Read(handler);
             }
 
             return true;
@@ -528,6 +581,20 @@ namespace ReeLib
                 size = Utils.Align16(size);
                 matData.Header.paramsSize = size;
                 handler.FillBytes(0, (int)(matData.Header.paramsOffset + matData.Header.paramsSize - handler.Tell()));
+            }
+
+            foreach (var matData in Materials)
+            {
+                if (matData.MaterialIndexLists == null) {
+                    matData.Header.mmtrIDsOffset = 0;
+                    continue;
+                }
+                matData.Header.mmtrIDsOffset = handler.Tell();
+                matData.MaterialIndexLists.Write(handler);
+            }
+
+            foreach (var matData in Materials)
+            {
                 matData.Header.Rewrite(handler);
             }
 

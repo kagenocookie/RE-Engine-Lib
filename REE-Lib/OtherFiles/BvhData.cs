@@ -18,7 +18,7 @@ namespace ReeLib.Bvh
         [RszPaddingAfter(4)]
         public int boxesCount;
 
-        [RszVersion(29030)] public long uknPragmata;
+        [RszVersion(25024)] public long uknPragmata;
         public int treeDataSize;
         public long treeDataOffset;
         public long verticesOffset;

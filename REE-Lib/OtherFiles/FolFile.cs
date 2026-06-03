@@ -20,6 +20,7 @@ namespace ReeLib
         {
             public AABB aabb;
             public int ukn;
+            public Vector2 uknFlt;
             public Transform[]? transforms;
             public string? meshPath;
             public string? materialPath;
@@ -31,7 +32,7 @@ namespace ReeLib
                 handler.Read<Vector3>(ref aabb.maxpos);
                 handler.Read(ref ukn);
                 if (handler.FileVersion > 3) {
-                    handler.ReadNull(8);
+                    handler.Read(ref uknFlt);
                 }
                 transforms = new Transform[instanceCount];
                 using (handler.SeekJumpBack(handler.Read<long>())) {
@@ -50,7 +51,7 @@ namespace ReeLib
                 handler.Write(ref aabb.maxpos);
                 handler.Write(ref ukn);
                 if (handler.FileVersion > 3) {
-                    handler.WriteNull(8);
+                    handler.Write(ref uknFlt);
                 }
                 handler.WriteOffsetContent(h => h.WriteArray(transforms ?? Array.Empty<Transform>()));
                 handler.WriteOffsetContent(h => h.WriteWString(meshPath ?? string.Empty));

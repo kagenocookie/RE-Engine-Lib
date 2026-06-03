@@ -14,6 +14,7 @@ namespace ReeLib.MotTree
         MHR = 14,
         RE4 = 19,
         DD2 = 20,
+        OniWS = 21,
         Pragmata = 22,
     }
 
@@ -90,7 +91,7 @@ namespace ReeLib.MotTree
             }
             handler.Write(ref type);
             handler.Write(ref hash);
-            WriteValue(handler);
+            WriteValue(handler, version);
             // handler.WriteOffsetContent(hh => WriteValue(hh));
         }
 
@@ -124,7 +125,7 @@ namespace ReeLib.MotTree
             }
         }
 
-        internal void WriteValue(FileHandler handler)
+        internal void WriteValue(FileHandler handler, MotTreeVersion version)
         {
             switch (type)
             {
@@ -147,7 +148,7 @@ namespace ReeLib.MotTree
                     {
                         var buffer = value as byte[];
                         if (value is IModel model) {
-                            var wr = new FileHandler(new MemoryStream());
+                            var wr = new FileHandler(new MemoryStream()) { FileVersion = (int)version };
                             model.Write(wr);
                             buffer = ((MemoryStream)wr.Stream).GetBuffer().AsSpan(0, (int)wr.Stream.Length).ToArray();
                         }
@@ -452,6 +453,7 @@ namespace ReeLib.MotTree
             public float angle;
             public float num;
             public uint hash;
+            public uint hash2;
             public List<float> Values { get; } = new();
 
             protected override bool DoRead(FileHandler handler)
@@ -459,9 +461,13 @@ namespace ReeLib.MotTree
                 handler.Read(ref angle);
                 handler.Read(ref num);
                 handler.Read(ref hash);
+                if (handler.FileVersion >= (int)MotTreeVersion.OniWS) {
+                    handler.Read(ref hash2);
+                }
                 var count = handler.Read<int>();
                 Values.Clear();
                 Values.ReadStructList(handler, count);
+                if (handler.FileVersion >= (int)MotTreeVersion.OniWS && count == 0) handler.ReadNull(4);
                 return true;
             }
 
@@ -470,8 +476,12 @@ namespace ReeLib.MotTree
                 handler.Write(ref angle);
                 handler.Write(ref num);
                 handler.Write(ref hash);
+                if (handler.FileVersion >= (int)MotTreeVersion.OniWS) {
+                    handler.Write(ref hash2);
+                }
                 handler.Write(Values.Count);
                 Values.Write(handler);
+                if (handler.FileVersion >= (int)MotTreeVersion.OniWS && Values.Count == 0) handler.WriteNull(4);
                 return true;
             }
         }
@@ -589,7 +599,8 @@ namespace ReeLib.MotTree
 
         internal static readonly List<NodeTypeInfo> NodeInfosNew = new() {
             new NodeTypeInfo("VariablesNode", "Variables", 1318946890, 2732277690, [],
-                Asset(KnownFileFormats.UserVariables)),
+                Asset(KnownFileFormats.UserVariables),
+                Optional(nameof(ParameterNameHash.ToolName), MotionTreeParamType.StrUTF16)),
             new NodeTypeInfo("MotionTreeNode", null, 0, 0, [],
                 Asset(KnownFileFormats.MotionTree)),
             new NodeTypeInfo("SwitchNode", "Switch", 1677865356, 3210958442, [],
@@ -1123,7 +1134,7 @@ namespace ReeLib
 
                     if (propInfo.DataBufferType != null) {
                         var obj = (IModel)Activator.CreateInstance(propInfo.DataBufferType)!;
-                        var bufHandler = new FileHandler(new MemoryStream((byte[])p.value!));
+                        var bufHandler = new FileHandler(new MemoryStream((byte[])p.value!)) { FileVersion = (int)version };
                         if (!obj.Read(bufHandler)) {
                             Log.Error($"{this}: Failed to read motion tree parameter data buffer for node {node}");
                             continue;

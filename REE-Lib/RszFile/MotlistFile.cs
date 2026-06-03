@@ -20,6 +20,7 @@ namespace ReeLib.Motlist
         DD2 = 751,
         MHWILDS = 992,
         MHStories3 = 1004,
+        OniWS = 1036,
         RE9 = 1047,
         Pragmata = 1057,
     }
@@ -49,6 +50,7 @@ namespace ReeLib.Motlist
             MotlistVersion.DD2 => MotVersion.DD2,
             MotlistVersion.MHWILDS => MotVersion.MHWILDS,
             MotlistVersion.MHStories3 => MotVersion.MHStories3,
+            MotlistVersion.OniWS => MotVersion.OniWS,
             MotlistVersion.Pragmata => MotVersion.Pragmata,
             MotlistVersion.RE9 => MotVersion.RE9,
             _ => MotVersion.Pragmata,
@@ -67,8 +69,9 @@ namespace ReeLib.Motlist
             MotlistVersion.DD2 => MotTreeVersion.DD2,
             MotlistVersion.MHWILDS => MotTreeVersion.DD2,
             MotlistVersion.MHStories3 => MotTreeVersion.DD2,
-            MotlistVersion.Pragmata => MotTreeVersion.Pragmata,
+            MotlistVersion.OniWS => MotTreeVersion.OniWS,
             MotlistVersion.RE9 => MotTreeVersion.Pragmata,
+            MotlistVersion.Pragmata => MotTreeVersion.Pragmata,
             _ => MotTreeVersion.Pragmata,
         };
 
@@ -85,8 +88,9 @@ namespace ReeLib.Motlist
             MotVersion.DD2 => ClipVersion.DD2,
             MotVersion.MHWILDS => ClipVersion.MHWilds,
             MotVersion.MHStories3 => ClipVersion.MHStories3,
-            MotVersion.Pragmata => ClipVersion.Pragmata,
+            MotVersion.OniWS => ClipVersion.RE9,
             MotVersion.RE9 => ClipVersion.RE9,
+            MotVersion.Pragmata => ClipVersion.Pragmata,
             _ => ClipVersion.Pragmata,
         };
     }
@@ -119,7 +123,7 @@ namespace ReeLib.Motlist
                 var offset = handler.Read<long>();
                 BaseMotListPath = offset > 0 ? handler.ReadWString(offset) : null;
             }
-            if (version >= MotlistVersion.RE9)
+            if (version >= MotlistVersion.OniWS)
             {
                 var motpackOffsetOffset = handler.Read<long>();
                 if (motpackOffsetOffset > 0)
@@ -157,7 +161,7 @@ namespace ReeLib.Motlist
                 }
             }
             var motpackPathOffsetOffset = 0L;
-            if (version >= MotlistVersion.RE9)
+            if (version >= MotlistVersion.OniWS)
             {
                 if (string.IsNullOrEmpty(motpackFilepath)) {
                     handler.WriteNull(8);

@@ -1939,7 +1939,7 @@ namespace ReeLib
 			{ "Pragmata", new (250707828, 251121828, MeshSerializerVersion.Pragmata, [GameName.pragmata], extraWeightBuffer: true) },
 			{ "Pragmata Demo", new (250707828, 250925211, MeshSerializerVersion.Pragmata, [GameName.pragmata], extraWeightBuffer: true) },
 			{ "RE9", new (250904410, 250925211, MeshSerializerVersion.RE9, [GameName.re9]) },
-			{ "Onimusha", new (250904410, 251215606, MeshSerializerVersion.RE9, [GameName.oni]) },
+			{ "Onimusha", new (250203152, 251215606, MeshSerializerVersion.Pragmata, [GameName.oni]) },
 		};
 
 		public static readonly string[] AllVersionConfigs = Versions.Reverse().OrderByDescending(kv => kv.Value.serializerVersion).Select(kv => kv.Key).ToArray();

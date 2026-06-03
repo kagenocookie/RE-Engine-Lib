@@ -37,6 +37,7 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
         CachingKnownPaths,
         ScanningExecutable,
         ScanningFiles,
+        ProcessingFileExtensions,
         ProcessingPaths,
         AdditionalGuesses,
         Done,
@@ -127,7 +128,7 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
         "_faketex", "_dslut", "_emi", "_hgt", "_hdr", "_rocm", "_occ", "_lymo", "_rgh", "_met",
         "_iam", "_lut", "_fbi", "_add", "_emm", "_lym", "_cvt", "_vns", "_lin", "_pos", "_fur", "_im", "_disp"];
 
-    private static readonly HashSet<string> IgnoredExtensions = ["json", "dll", "pdb", "ini", "cpp", "hpp", "h", "cs", "technology", "com", "com0", "com07", "com0N", "com0X", "com0C", "com0\\", "com0A", "fffff", "0", "iconTagEvent", "messageTagEvent"];
+    private static readonly HashSet<string> IgnoredExtensions = ["json", "dll", "pdb", "ini", "cpp", "hpp", "h", "cs", "technology", "com", "com0", "com07", "com0N", "com0X", "com0C", "com0\\", "com0A", "fffff", "0", "iconTagEvent", "iconTagReplace", "messageTagEvent", "ruleset"];
     private static readonly HashSet<uint> IgnoreExtHashes = IgnoredExtensions.Select(x => MurMur3HashUtils.GetHash(x)).ToHashSet();
     private static readonly string[] GuessDates = ["1", "251111", "251112", "251121", "250925"];
 
@@ -173,8 +174,6 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
             ScanFiles(reader, totalFilesCount, rawPaths);
         }
 
-        Phase = GeneratorPhase.ProcessingPaths;
-        PhaseProgress = 0;
         var extVersions = new Dictionary<string, int>();
         foreach (var path in outputPaths.Concat(sourceFileList)) {
             var fmt = PathUtils.ParseFileFormatFull(path);
@@ -190,8 +189,9 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
 
         var pathsProcessed = 0;
         Span<char> extensionStringSpan = new char[512];
+        var totalPathsToProcess = rawPaths.Count + otherFileListResourcePaths.Count;
         foreach (var path in rawPaths.Values.Concat(otherFileListResourcePaths)) {
-            PhaseProgress = (float)pathsProcessed++ / rawPaths.Count;
+            PhaseProgress = (float)pathsProcessed++ / totalPathsToProcess;
 
             var attemptBase = Path.Combine(platform.basePath, path);
             var ext = PathUtils.GetExtensionWithoutPeriod(attemptBase);
@@ -201,6 +201,8 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
 
             if (!extVersions.TryGetValue(ext, out var version)) {
                 bool canContinue = false;
+                Phase = GeneratorPhase.ProcessingFileExtensions;
+                PhaseProgress = -1;
                 if (!unknownExtFiles.TryGetValue(ext, out var uknList)) {
                     // most file versions are small numbers so we can try these without it taking forever
                     // some version also follow a seemingly YYMMDD000 date-like structure so we can try all the previously known dates as well
@@ -229,18 +231,12 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
                         if (canContinue) break;
                     }
                     if (!canContinue && Flags.HasFlag(ScanFlags.BruteforceExtensions)) {
-                        for (uint i = 0; i < uint.MaxValue; i++) {
-                            sb.Length = attemptBase.Length + 1;
-                            sb.Append((int)i);
-                            sb.CopyTo(0, extensionStringSpan, sb.Length);
-                            var str = extensionStringSpan.Slice(0, sb.Length);
-                            var hash = MurMur3HashUtils.GetPakFilepathHash(str);
-                            if (TryAddFoundFilePath(KnownFileFormats.Unknown, str, hash)) {
-                                extVersions[ext] = version = (int)i;
-                                canContinue = true;
-                                Log.Info($"Found new file extension version: {ext}.{version}");
-                                break;
-                            }
+                        Log.Info($"Attempting to bruteforce version for extension {ext} based on filepath {attemptBase}");
+                        int bruteforceExt = TryBruteforceFileExtensionMultithread(attemptBase);
+                        if (bruteforceExt != -1) {
+                            extVersions[ext] = version = bruteforceExt;
+                            canContinue = true;
+                            Log.Info($"Found new file extension version: {ext}.{version}");
                         }
                     }
                     if (!canContinue) {
@@ -255,6 +251,8 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
             }
             var versionExt = "." + version;
 
+            Phase = GeneratorPhase.ProcessingPaths;
+            PhaseProgress = (float)pathsProcessed / totalPathsToProcess;
             var format = FileFormatExtensions.ExtensionHashToEnum(MurMur3HashUtils.GetHash(ext));
 
             var suffixes = IsLocalizableFormat(format) ? FileSuffixesLocalized : FileSuffixes;
@@ -371,9 +369,6 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
             PhaseProgress = (float)pathsProcessed++ / rawPaths.Count;
             var format = PathUtils.ParseFileFormat(path).format;
             var extless = PathUtils.GetFilepathWithoutExtensionOrVersion(path);
-            if (path.Equals("natives/stm/systems/rendering/bluenoise256x256/hdr_rgba_0000.tex.251111100", StringComparison.OrdinalIgnoreCase)) {
-                Log.Info("a");
-            }
             if (format == KnownFileFormats.Mesh) {
                 DoAttempt(format, string.Concat(extless, sdftex));
                 DoAttempt(format, string.Concat(extless, mdf2));
@@ -577,5 +572,47 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
         } else {
             return path;
         }
+    }
+
+    private int TryBruteforceFileExtensionMultithread(string basePath)
+    {
+        const int threadCount = 8;
+        var threads = new Thread[threadCount];
+        int result = -1;
+        for (int i = 0; i < threadCount; i++) {
+            uint min = (uint.MaxValue / threadCount * (uint)i);
+            uint max = (uint.MaxValue / threadCount * (uint)(i + 1));
+            var thread = new Thread(() => {
+                var sb = new StringBuilder(basePath + ".");
+                Span<char> extensionStringSpan = new char[512];
+                for (uint n = min; n <= max; n++) {
+                    if (result != -1) break;
+
+                    // var progressPct = (float)(n - min) / (max - min)
+                    sb.Length = basePath.Length + 1;
+                    sb.Append((int)n);
+                    sb.CopyTo(0, extensionStringSpan, sb.Length);
+                    var str = extensionStringSpan.Slice(0, sb.Length);
+                    var hash = MurMur3HashUtils.GetPakFilepathHash(str);
+                    if (TryAddFoundFilePath(KnownFileFormats.Unknown, str, hash)) {
+                        result = (int)n;
+                        break;
+                    }
+                }
+            });
+
+            threads[i] = thread;
+            thread.Start();
+        }
+        while (threads.Any(t => t.IsAlive) && result == -1) {
+            Thread.Sleep(50);
+        }
+        for (int i = 0; i < threadCount; i++) {
+            if (threads[i].IsAlive) {
+                threads[i].Join();
+            }
+        }
+
+        return result;
     }
 }

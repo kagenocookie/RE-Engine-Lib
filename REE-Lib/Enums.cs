@@ -167,7 +167,7 @@ namespace ReeLib
         MasterMaterial,
         /// <summary>.gpbf</summary>
         ByteBuffer,
-        /// <summary>.gpuc</summary>
+        /// <summary>.gpuc, .gclo</summary>
         GpuCloth,
         /// <summary>.rtex</summary>
         RenderTexture,
@@ -195,6 +195,8 @@ namespace ReeLib
         Chain,
         /// <summary>.chain2</summary>
         Chain2,
+        /// <summary>.chain2lod</summary>
+        Chain2Lod,
         /// <summary>.lprb</summary>
         LightProbes,
         /// <summary>.prb</summary>
@@ -397,7 +399,7 @@ namespace ReeLib
         OodleNetworkRuntimeData,
         /// <summary>.rcfg</summary>
         RenderConfigAsset,
-        /// <summary>.wcc, .wcja, .wcjr, .wcv, .wcta, .wcsa, .wcbk, .wcrb, .wcst, .wtot, .wtos, .wcms, .wcmo, .wcp, .wcgp, .wcggp, .wcss, .wcsw, .wcswn, .wcmsw, .wgs, .wms, .wpi, .wss</summary>
+        /// <summary>.wcc, .wcja, .wcjr, .wcv, .wcta, .wcsa, .wcbk, .wcrb, .wcst, .wtot, .wtos, .wcms, .wcmo, .wcp, .wcgp, .wcggp, .wcss, .wcsw, .wcswn, .wcmsw, .wgs, .wms, .wpi, .wss, .wcrd, .wcsf, .wcmts, .wcjm</summary>
         WwiseAudioRSZ,
         /// <summary>.refskel</summary>
         RefSkeleton,
@@ -415,6 +417,8 @@ namespace ReeLib
         TextAnimation,
         /// <summary>.svgn</summary>
         SVG,
+        /// <summary>.svgsq</summary>
+        SVGSequence,
         /// <summary>.slqg</summary>
         SoundStreamingLQG,
         /// <summary>.wel</summary>
@@ -437,6 +441,10 @@ namespace ReeLib
         CustomFilter,
         /// <summary>.ulp</summary>
         UserLightingPipeline,
+        /// <summary>.nar</summary>
+        AutoSessionRules,
+        /// <summary>.filter</summary>
+        NavigationFilterSetting,
 
         /// <summary>.ecob</summary>
         EcotopeBiome, // Guessed from magic bytes

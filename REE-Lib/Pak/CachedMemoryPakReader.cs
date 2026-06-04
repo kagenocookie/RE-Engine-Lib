@@ -307,6 +307,8 @@ public class CachedMemoryPakReader : PakReader, IDisposable
             DlgListFile.Magic => KnownFileFormats.DialogueList,
             ChainWindFile.Magic => KnownFileFormats.ChainWind,
             PoglistFile.Magic => KnownFileFormats.PointGraphList,
+            SvgSqFile.Magic => KnownFileFormats.SVGSequence,
+            Chain2LodFile.Magic => KnownFileFormats.Chain2Lod,
 
 
             0x00464453 => KnownFileFormats.MasterMaterial, // same as VfxShader, Shader, CfxShader

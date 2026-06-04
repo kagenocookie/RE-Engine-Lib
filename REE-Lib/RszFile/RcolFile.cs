@@ -523,7 +523,7 @@ namespace ReeLib.Rcol
         {
             handler.ReadOffsetWString(out tag);
             handler.Read(ref hash);
-            DataInterpretationException.DebugThrowIf(hash != MurMur3HashUtils.GetHash(tag));
+            DataInterpretationException.DebugWarnIf(tag != "" && hash != MurMur3HashUtils.GetHash(tag), "Unexpected RCOL ignore tag name hash mismatch");
             handler.ReadNull(4);
             return true;
         }
@@ -658,7 +658,6 @@ namespace ReeLib
                 handler.Seek(header.ignoreTagOffset);
                 IgnoreTags ??= new();
                 IgnoreTags.Read(handler, header.numIgnoreTags);
-                DataInterpretationException.DebugThrowIf(IgnoreTags.Any(tag => tag.hash != MurMur3HashUtils.GetHash(tag.tag)));
             }
 
             if (header.numAutoGenerateJoints > 0)

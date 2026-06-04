@@ -216,7 +216,7 @@ public class LocalResources : ICloneable
 
     private bool DownloadRSZResources(GameIdentifier game, ResourceMetadata? remote)
     {
-        if (remote == null) {
+        if (remote == null || remote.RszPatchFiles.Length == 0) {
             Log.Info($"No remote resources available for {Game.name}.");
             return false;
         }

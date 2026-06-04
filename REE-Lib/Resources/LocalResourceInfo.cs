@@ -323,6 +323,9 @@ public class LocalResources : ICloneable
                     field["type"] = "F32";
                 } else if (type == "U31") {
                     field["type"] = "U32";
+                } else if (!Enum.TryParse<RszFieldType>(type, out var f)) {
+                    Log.Info($"Found potential typo or unknown RSZ field type {type} for field {field["name"]} of class {name}");
+                    field["type"] = "Data";
                 }
             }
         }

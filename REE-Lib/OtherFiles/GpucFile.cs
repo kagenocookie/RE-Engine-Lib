@@ -20,6 +20,7 @@ namespace ReeLib.Gpuc
         PragmataDemo = 250925361,
         RE9 = 250925365,
         Pragmata = 251121978,
+        OniWS = 251215760,
     }
 
     public class Header : ReadWriteModel
@@ -45,8 +46,9 @@ namespace ReeLib.Gpuc
         public int lodCount;
         public int numUkn;
         public int numUkn1;
-        public int numUkn2;
         internal int numBatchGroup;
+        internal int numWeightedContactDescs1;
+        internal int numWeightedContactDescs2;
         public int numDeformBones;
         internal ushort numCollisionPlanes;
         internal ushort numCollisionSpheres;
@@ -91,8 +93,8 @@ namespace ReeLib.Gpuc
         internal long collisionCapsuleTbl;
         internal long collisionOBBTbl;
         internal long debugControlPointTbl;
-        internal long offsUnused1;
-        internal long offsUnused2;
+        internal long weightedContactDescsTbl1;
+        internal long weightedContactDescsTbl2;
         internal long offsUnused3;
         internal long debugDistanceLinkTbl;
         internal long pointTriangleContactDescTbl;
@@ -106,7 +108,10 @@ namespace ReeLib.Gpuc
                 // there are some empty gpuc files that only contain the signature bytes and nothing else
                 return true;
             }
-            if (version >= GpucVersion.RE9) {
+            if (version >= GpucVersion.OniWS) {
+                action.Do(ref meshResourcePathHash);
+                action.Do(ref cpuMemorySize);
+            } else if (version >= GpucVersion.RE9) {
                 action.Do(ref cpuMemorySize);
                 action.Do(ref meshResourcePathHash);
                 action.Do(ref meshResourcePathHash2);
@@ -126,9 +131,8 @@ namespace ReeLib.Gpuc
             action.Do(ref numCollisionEdgeGroups);
             action.Do(ref numPartInfos);
             action.Do(ref numBatchInfos);
-            action.Do(version > GpucVersion.MHWILDS, ref numBatchSubInfos);
             action.Do(ref numConfigInfos);
-            action.Do(version >= GpucVersion.MHWILDS_OLD && version <= GpucVersion.MHWILDS, ref numBatchSubInfos);
+            action.Do(version >= GpucVersion.MHWILDS_OLD, ref numBatchSubInfos);
             action.Do(ref numDeformInfos);
             if (version >= GpucVersion.MHWILDS_OLD) {
                 action.Do(ref numDeformWeights);
@@ -136,10 +140,10 @@ namespace ReeLib.Gpuc
                 action.Do(ref numTotalRenderVertices);
                 action.Do(ref numUkn1);
                 action.Do(ref numBatchGroup);
-                action.Null(4);
-                action.Do(ref numUkn2);
+                action.Do(ref numWeightedContactDescs1);
+                action.Do(ref numWeightedContactDescs2);
                 action.Do(ref lodCount);
-                if (version <= GpucVersion.MHST3) {
+                if (version <= GpucVersion.MHST3 || version >= GpucVersion.OniWS) {
                     action.Do(ref numDeformBones);
                     action.Null(4);
                 } else {
@@ -209,13 +213,22 @@ namespace ReeLib.Gpuc
                     action.Do(ref numVertexDeformInfos);
                 }
             } else {
-                if (version >= GpucVersion.MHWILDS_OLD) {
-                    action.Do(ref offsUnused1);
-                    action.Do(ref offsUnused2);
+                if (version >= GpucVersion.OniWS) {
+                    action.Do(ref pointTriangleContactDescTbl);
+                    action.Do(ref edgeEdgeContactDescTbl);
+                    action.Do(ref weightedContactDescsTbl1);
+                    action.Do(ref weightedContactDescsTbl2);
+                } else {
+                    if (version >= GpucVersion.MHWILDS_OLD) {
+                        // note: unused in these versions, might not even be the right naming
+                        action.Do(ref weightedContactDescsTbl1);
+                        action.Do(ref weightedContactDescsTbl2);
+                    }
+
+                    action.Do(ref pointTriangleContactDescTbl);
+                    action.Do(ref edgeEdgeContactDescTbl);
                 }
-                action.Do(ref pointTriangleContactDescTbl);
-                action.Do(ref edgeEdgeContactDescTbl);
-                if (version >= GpucVersion.RE9 || version >= GpucVersion.MHWILDS_OLD && version <= GpucVersion.MHWILDS) {
+                if (version is GpucVersion.RE9 or GpucVersion.Pragmata || version >= GpucVersion.MHWILDS_OLD && version <= GpucVersion.MHWILDS) {
                     action.Do(ref offsUnused3);
                 }
                 action.Do(ref deformInfoTbl);
@@ -747,8 +760,8 @@ namespace ReeLib.Gpuc
         public RangeI collisionEdgeRange;
         [RszPaddingAfter(16)]
         public RangeI pointTriangleContactDescsRange;
-        [RszPaddingAfter(8)]
         public RangeI deformInfoRange;
+        public RangeI weightedContactsRangeMaybe;
         public RangeI batchRange;
     }
 
@@ -1005,6 +1018,9 @@ namespace ReeLib
         public List<uint> VertexIdToDeformIndex { get; } = [];
         public List<int> DeformBoneIndices { get; } = [];
 
+        public List<TriangleBlendInfoCompressed>? WeightedContactDescs1 { get; set; }
+        public List<TriangleBlendInfoCompressed>? WeightedContactDescs2 { get; set; }
+
         public const int Magic = 0x4F4C4347;
 
         public void ClearData()
@@ -1098,9 +1114,9 @@ namespace ReeLib
             }
 
             if (header.batchSubInfoTbl > 0 && header.numBatchSubInfos > 0) {
+                // note: header.numBatchSubInfos != header.numBatchInfos is NOT a guarantee (see oni:wots)
                 handler.Seek(header.batchSubInfoTbl);
                 BatchSubInfos.Read(handler, header.numBatchSubInfos);
-                DataInterpretationException.DebugWarnIf(header.numBatchSubInfos != header.numBatchInfos);
             }
 
             handler.Seek(header.deformBonesTbl);
@@ -1122,6 +1138,17 @@ namespace ReeLib
 
             handler.Seek(header.collisionOBBTbl);
             CollisionOBBs.Read(handler, header.numCollisionOBBs);
+
+            if (header.numWeightedContactDescs1 > 0) {
+                WeightedContactDescs1 = new();
+                handler.Seek(header.weightedContactDescsTbl2);
+                WeightedContactDescs1.ReadStructList(handler, Header.numWeightedContactDescs1);
+            }
+            if (header.numWeightedContactDescs2 > 0) {
+                WeightedContactDescs2 = new();
+                handler.Seek(header.weightedContactDescsTbl2);
+                WeightedContactDescs2.ReadStructList(handler, Header.numWeightedContactDescs2);
+            }
 
             handler.Seek(header.debugControlPointTbl);
             for (int i = 0; i < header.numControlPoints; i++) {
@@ -1343,7 +1370,7 @@ namespace ReeLib
             }
 
             header.pointTriangleContactDescTbl = handler.Tell();
-            header.offsUnused2 = handler.Tell();
+            header.weightedContactDescsTbl2 = handler.Tell();
             header.numPointTriangleContactDescs = PointTriangleContactDescs.Count;
             PointTriangleContactDescs.Write(handler);
 
@@ -1370,8 +1397,18 @@ namespace ReeLib
             CollisionOBBs.Write(handler);
 
             if (version >= GpucVersion.DD2) {
+                header.weightedContactDescsTbl1 = handler.Tell();
+                if (WeightedContactDescs1 != null) {
+                    WeightedContactDescs1.Write(handler);
+                }
+
+                header.weightedContactDescsTbl2 = handler.Tell();
+                if (WeightedContactDescs2 != null) {
+                    WeightedContactDescs2.Write(handler);
+                }
+
                 handler.Align(16);
-                header.offsUnused1 = header.offsUnused3 = handler.Tell();
+                header.offsUnused3 = handler.Tell();
                 handler.StringTableFlush();
                 handler.Align(16);
 

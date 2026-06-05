@@ -564,12 +564,12 @@ namespace ReeLib.Gui
             Tag = handler.ReadOffsetAsciiString();
             State = handler.ReadOffsetWString();
             handler.Read<int>(); // nameUtf16hash
-            handler.Read(ref propertyType);
+            handler.Read(ref _propertyType);
             uknInt = handler.Read<byte>();
             handler.ReadNull(2);
 
             long jumpBack = handler.Tell() + 8;
-            Value = propertyType.Read(handler);
+            Value = _propertyType.Read(handler);
             handler.Seek(jumpBack);
             return true;
         }
@@ -581,11 +581,11 @@ namespace ReeLib.Gui
             handler.WriteOffsetAsciiString(Tag);
             handler.WriteOffsetWString(State);
             handler.Write(MurMur3HashUtils.GetHash(Name));
-            handler.Write(ref propertyType);
+            handler.Write(ref _propertyType);
             handler.Write((byte)uknInt);
             handler.WriteNull(2);
             var valueEndOffset = handler.Tell() + 8;
-            propertyType.Write(Value, handler, false);
+            _propertyType.Write(Value, handler, false);
             handler.Seek(valueEndOffset);
             return true;
         }
@@ -639,7 +639,14 @@ namespace ReeLib.Gui
         protected GuiVersion Version { get; set; }
 
         public string Name { get; set; } = "";
-        public PropertyType propertyType;
+        internal PropertyType _propertyType;
+        public PropertyType PropertyType {
+            get => _propertyType;
+            set {
+                _propertyType = value;
+                ResetValue();
+            }
+        }
         public int uknInt;
 
         public int OrderIndex;
@@ -653,15 +660,29 @@ namespace ReeLib.Gui
             Version = version;
         }
 
+        public void ResetValue()
+        {
+            var rszType = _propertyType.ToRszFieldType();
+            if (rszType == RszFieldType.String) {
+                Value = "";
+            } else if (rszType == RszFieldType.Action) {
+                Value = 0;
+            } else if (rszType == RszFieldType.ukn_type) {
+                Value = 0L;
+            } else {
+                Value = Activator.CreateInstance(RszInstance.RszFieldTypeToCSharpType(rszType))!;
+            }
+        }
+
         protected override bool DoRead(FileHandler handler)
         {
-            handler.Read(ref propertyType);
+            handler.Read(ref _propertyType);
             handler.ReadNull(3);
             handler.Read(ref uknInt);
             Name = handler.ReadOffsetAsciiString();
 
             long jumpBack = handler.Tell() + 8;
-            Value = propertyType.Read(handler);
+            Value = _propertyType.Read(handler);
             handler.Seek(jumpBack);
             if (Version > GuiVersion.RE_RT) handler.Read(ref nameHash);
             return true;
@@ -669,13 +690,13 @@ namespace ReeLib.Gui
 
         protected override bool DoWrite(FileHandler handler)
         {
-            handler.Write(ref propertyType);
+            handler.Write(ref _propertyType);
             handler.WriteNull(3);
             handler.Write(ref uknInt);
             handler.WriteOffsetAsciiString(Name);
 
             var valueEndOffset = handler.Tell() + 8;
-            propertyType.Write(Value, handler, false);
+            _propertyType.Write(Value, handler, false);
             handler.Seek(valueEndOffset);
             if (Version > GuiVersion.RE_RT) handler.Write(nameHash = MurMur3HashUtils.GetHash(Name));
             return true;
@@ -701,10 +722,10 @@ namespace ReeLib.Gui
         {
             StateId = GuiObjectID.Read(handler, Version);
             Name = handler.ReadOffsetAsciiString();
-            handler.Read(ref propertyType);
+            handler.Read(ref _propertyType);
             uknInt = handler.Read<byte>();
             handler.ReadNull(6);
-            Value = propertyType.Read(handler);
+            Value = _propertyType.Read(handler);
             return true;
         }
 
@@ -712,10 +733,10 @@ namespace ReeLib.Gui
         {
             StateId.Write(handler, Version);
             handler.WriteOffsetAsciiString(Name);
-            handler.Write(ref propertyType);
+            handler.Write(ref _propertyType);
             handler.Write((byte)uknInt);
             handler.WriteNull(6);
-            propertyType.Write(Value, handler, false);
+            _propertyType.Write(Value, handler, false);
             return true;
         }
     }

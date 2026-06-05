@@ -8,10 +8,8 @@ namespace ReeLib.DlgList
         public int dialogueCount;
         internal long listOffset;
         internal long rszOffset;
-        internal long userdataPathOffset;
         public short ukn1;
-        public short ukn2;
-        public uint userdataPathHash;
+        public short userFileCount;
 
         protected override bool ReadWrite<THandler>(THandler action)
         {
@@ -23,10 +21,7 @@ namespace ReeLib.DlgList
             action.Do(ref rszOffset);
             action.Null(8);
             action.Do(ref ukn1);
-            action.Do(ref ukn2);
-            action.Null(4);
-            action.Do(ref userdataPathOffset);
-            action.Do(ref userdataPathHash);
+            action.Do(ref userFileCount);
             action.Null(4);
             return true;
         }
@@ -34,21 +29,16 @@ namespace ReeLib.DlgList
 
     public class DialogueListItem : ReadWriteModel
     {
-        public string name = "";
-        public uint nameHash;
         public string dialoguePath = "";
 
         protected override bool ReadWrite<THandler>(THandler action)
         {
-            action.HandleOffsetWString(ref name);
-            action.Do(ref nameHash);
-            action.Null(4);
             action.Null(8); // offset?
             action.HandleOffsetWString(ref dialoguePath);
             return true;
         }
 
-        public override string ToString() => $"{name} | {dialoguePath}";
+        public override string ToString() => dialoguePath;
     }
 }
 
@@ -59,9 +49,11 @@ namespace ReeLib
     public class DlgListFile(RszFileOption option, FileHandler handler) : BaseRszFile(option, handler)
     {
         public Header Header { get; } = new();
+        public string Name { get; set; } = "";
+        public uint NameHash { get; set; }
         public List<DialogueListItem> Dialogues { get; } = new();
         public RSZFile UserData { get; } = new(option, handler);
-        public string UserDataPath { get; set; } = "";
+        public List<(string path, uint hash)> UserDataPaths { get; } = new();
 
         public const uint Magic = 0x4C474C44;
 
@@ -74,9 +66,18 @@ namespace ReeLib
                 throw new InvalidDataException($"{handler.FilePath} Not a Dialog List file");
             }
 
-            UserDataPath = handler.ReadWString(header.userdataPathOffset);
+            var tmlPathOffsets = handler.ReadArray<long>((int)header.userFileCount);
+            for (int i = 0; i < header.userFileCount; i++) {
+                UserDataPaths.Add((handler.ReadWString(tmlPathOffsets[i]), 0));
+            }
+            for (int i = 0; i < header.userFileCount; i++) {
+                UserDataPaths[i] = UserDataPaths[i] with { hash = handler.Read<uint>() };
+            }
 
             handler.Seek(header.listOffset);
+            Name = handler.ReadOffsetWString();
+            NameHash = handler.Read<uint>();
+            handler.ReadNull(4);
             Dialogues.Read(handler, header.dialogueCount);
 
             ReadRsz(UserData, header.rszOffset);
@@ -89,13 +90,18 @@ namespace ReeLib
             var header = Header;
             header.Write(handler);
 
+            header.userFileCount = (short)UserDataPaths.Count;
+            foreach (var path in UserDataPaths) handler.WriteOffsetWString(path.path);
+            foreach (var path in UserDataPaths) handler.Write(path.hash);
+
             header.listOffset = handler.AlignTell();
+            handler.WriteOffsetWString(Name);
+            handler.Write(NameHash);
+            handler.WriteNull(4);
             Dialogues.Write(handler);
 
             WriteRsz(UserData, header.rszOffset = handler.AlignTell());
 
-            header.userdataPathOffset = handler.AlignTell();
-            handler.WriteWString(UserDataPath);
             handler.StringTableFlush();
 
             header.Rewrite(handler);

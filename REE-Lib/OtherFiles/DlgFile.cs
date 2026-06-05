@@ -10,8 +10,7 @@ namespace ReeLib.Dlg
         public uint hash2;
         internal long itemsOffset;
         internal long guidItemsOffset;
-        internal long tmlCountMaybe;
-        internal long tmlPathOffset;
+        internal long resourceCount;
 
         protected override bool ReadWrite<THandler>(THandler action)
         {
@@ -22,9 +21,7 @@ namespace ReeLib.Dlg
             action.Do(ref itemsOffset);
             action.Do(ref guidItemsOffset);
             action.Null(8);
-            action.Do(ref tmlCountMaybe);
-            Log.WarnIf(tmlCountMaybe != 1, "We may have multiple paths here");
-            action.Do(ref tmlPathOffset);
+            action.Do(ref resourceCount);
             return true;
         }
     }
@@ -75,9 +72,9 @@ namespace ReeLib
     public class DlgFile(RszFileOption options, FileHandler handler) : BaseRszFile(options, handler)
     {
         public Header Header { get; } = new();
+        public List<string> Resources { get; } = new();
         public List<DialogueItem> Items { get; set; } = new();
         public List<DialogueGuids> GuidItems { get; set; } = new();
-        public string TimelineFilePath { get; set; } = "";
 
         public const uint Magic = 0x00474C44;
 
@@ -90,7 +87,11 @@ namespace ReeLib
                 throw new InvalidDataException($"{handler.FilePath} Not a Dialog file");
             }
 
-            TimelineFilePath = handler.ReadWString(header.tmlPathOffset);
+            var tmlPathOffsets = handler.ReadArray<long>((int)header.resourceCount);
+            for (int i = 0; i < header.resourceCount; i++) {
+                Resources.Add(handler.ReadWString(tmlPathOffsets[i]));
+            }
+
             handler.Seek(header.itemsOffset);
             var offsets = handler.ReadArray<long>((int)handler.Read<long>());
             foreach (var offset in offsets) {
@@ -128,7 +129,10 @@ namespace ReeLib
             var handler = FileHandler;
             var header = Header;
             header.Write(handler);
-            handler.StringTableAdd(TimelineFilePath, false);
+
+            header.resourceCount = (long)Resources.Count;
+            foreach (var path in Resources) handler.WriteOffsetWString(path);
+            handler.StringTableFlush();
 
             header.itemsOffset = handler.Tell();
             handler.Write((long)Items.Count);
@@ -168,7 +172,6 @@ namespace ReeLib
                 }
             }
 
-            header.tmlPathOffset = handler.AlignTell();
             handler.StringTableFlush();
 
             header.Rewrite(handler);

@@ -684,28 +684,38 @@ namespace ReeLib.Gui
         public override string ToString() => $"[{Name}]: {Value}";
     }
 
-    public class StateReference : BaseModel
+    public class StateReference : Attribute
     {
         public GuiObjectID StateId { get; set; }
-        public string AsciiName = "";
-        public long offsetMaybe;
-        public string TypeName = "";
+
+        public StateReference() : base(GuiVersion.RE9)
+        {
+            // this struct only exists starting with MHWilds and has no conditionals so we can pass up any version
+        }
+
+        public StateReference(GuiVersion version) : base(version)
+        {
+        }
 
         protected override bool DoRead(FileHandler handler)
         {
-            StateId = GuiObjectID.Read(handler, GuiVersion.RE9);
-            AsciiName = handler.ReadOffsetAsciiString();
-            handler.Read(ref offsetMaybe);
-            TypeName = handler.ReadOffsetWString();
+            StateId = GuiObjectID.Read(handler, Version);
+            Name = handler.ReadOffsetAsciiString();
+            handler.Read(ref propertyType);
+            uknInt = handler.Read<byte>();
+            handler.ReadNull(6);
+            Value = propertyType.Read(handler);
             return true;
         }
 
         protected override bool DoWrite(FileHandler handler)
         {
-            StateId.Write(handler, GuiVersion.RE9);
-            handler.WriteOffsetAsciiString(AsciiName);
-            handler.Write(ref offsetMaybe);
-            handler.WriteOffsetWString(TypeName);
+            StateId.Write(handler, Version);
+            handler.WriteOffsetAsciiString(Name);
+            handler.Write(ref propertyType);
+            handler.Write((byte)uknInt);
+            handler.WriteNull(6);
+            propertyType.Write(Value, handler, false);
             return true;
         }
     }

@@ -131,7 +131,7 @@ public partial class PakReader
             }
 
             UpdateSearchedPaths(searchedPaths, [ctx]);
-            if (EnableConsoleLogging) Log.Info("Finished searching " + pakfile);
+            // if (EnableConsoleLogging) Log.Info("Finished searching " + pakfile);
             if (searchedPaths.Count == 0) break;
         }
     }

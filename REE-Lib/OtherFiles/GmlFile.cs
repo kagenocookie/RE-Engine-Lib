@@ -8,6 +8,7 @@ namespace ReeLib.Gml
         public uint magic = GmlFile.Magic;
         public uint version;
         public int dataCount;
+        [RszPaddingAfter(8, nameof(version), "!=", 858728217)] // not in DD2
         public int texCount;
         public long texOffset;
         public long dataOffset;
@@ -47,18 +48,19 @@ namespace ReeLib.Gml
         public int lodCount;
         public int ukn4;
         public int bufferCount;
-        public int ukn6;
-        public int ukn7;
-        public int ukn8;
+        public int uknNum1;
+        public int bufferCount2;
+        public int uknNum2;
 
         public List<GroundMaterialBufferLevel> Buffers { get; } = new();
+        public List<GroundMaterialBufferLevel> Buffers2 { get; } = new();
 
         protected override bool DoRead(FileHandler handler)
         {
             DefaultRead(handler);
-            var count = bufferCount * lodCount;
-            Buffers.EnsureCapacity(count);
-            for (int i = 0; i < count; ++i)
+            var bufCount1 = bufferCount * lodCount;
+            Buffers.EnsureCapacity(bufCount1);
+            for (int i = 0; i < bufCount1; ++i)
             {
                 using var _ = handler.SeekJumpBack(handler.Read<long>());
                 var offset = handler.Read<long>();
@@ -68,6 +70,27 @@ namespace ReeLib.Gml
                 var rowCount = fullSize / rowSize;
                 var buffer = new GroundMaterialBufferLevel();
                 Buffers.Add(buffer);
+
+                handler.Seek(offset);
+                buffer.Buffers.EnsureCapacity(rowCount);
+                for (int k = 0; k < rowCount; ++k)
+                {
+                    buffer.Buffers.Add(handler.ReadArray<byte>(realRowSize));
+                    handler.Skip(rowSize - realRowSize);
+                }
+            }
+            var bufCount2 = bufferCount2 * lodCount;
+            Buffers2.EnsureCapacity(bufCount2);
+            for (int i = 0; i < bufCount2; ++i)
+            {
+                using var _ = handler.SeekJumpBack(handler.Read<long>());
+                var offset = handler.Read<long>();
+                var rowSize = handler.Read<int>();
+                var fullSize = handler.Read<int>();
+                var realRowSize = fullSize / count1;
+                var rowCount = fullSize / rowSize;
+                var buffer = new GroundMaterialBufferLevel();
+                Buffers2.Add(buffer);
 
                 handler.Seek(offset);
                 buffer.Buffers.EnsureCapacity(rowCount);

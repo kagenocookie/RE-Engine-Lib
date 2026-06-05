@@ -19,6 +19,7 @@ namespace ReeLib.Clip
         DD2 = 62,
         MHWilds = 85,
         MHStories3 = 86,
+        OniWS = 89,
         RE9 = 90,
         Pragmata = 91,
     }
@@ -1367,7 +1368,7 @@ namespace ReeLib.Clip
         // TODO figure out what these values even are.
         // RE9 looks like {u64 frame, u64 something(== 20, flags?)}
         // RE8 has variable data where c+x1 is sometines a double, sometimes a uint64
-        [RszVersion(nameof(Version), "<", ClipVersion.RE9, EndAt = nameof(f2))]
+        [RszVersion(nameof(Version), "<", ClipVersion.OniWS, EndAt = nameof(f2))]
         public float f1;
         public UndeterminedFieldType f2;
         public uint a;
@@ -1375,7 +1376,7 @@ namespace ReeLib.Clip
         public uint c;
 
         public UndeterminedFieldType x1;
-        [RszVersion(nameof(Version), "<", ClipVersion.RE9, EndAt = nameof(x3))]
+        [RszVersion(nameof(Version), "<", ClipVersion.OniWS, EndAt = nameof(x3))]
         public UndeterminedFieldType x2;
         public UndeterminedFieldType x3;
         [RszVersion(nameof(Version), "<", ClipVersion.RE3, EndAt = nameof(dmc5_x5))]
@@ -1386,7 +1387,7 @@ namespace ReeLib.Clip
 
         public static int GetSize(ClipVersion version) => version switch {
             < ClipVersion.RE3 => 40,
-            >= ClipVersion.RE9 => 16,
+            >= ClipVersion.OniWS => 16,
             _ => 32,
         };
 

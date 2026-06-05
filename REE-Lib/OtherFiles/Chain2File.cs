@@ -20,6 +20,7 @@ namespace ReeLib.Chain2
         public short highFpsCalculateMode;
         public byte wildsUkn3;
         public byte wildsUkn4;
+        public string? cfilFilepath;
 
         protected override bool ReadWrite<THandler>(THandler action)
         {
@@ -27,14 +28,15 @@ namespace ReeLib.Chain2
             action.Do(ref magic);
             action.Do(ref errorFlags);
             action.Do(ref masterSize);
-            action.Do(ref collisionAttrOffset);
+            action.Do(version < 17, ref collisionAttrOffset);
             action.Do(ref modelCollisionOffset);
-            action.Do(ref extraDataOffset);
+            action.Do(version < 17, ref extraDataOffset);
             action.Do(ref groupsOffset);
             action.Do(ref linksOffset);
             action.Do(ref freeLinksOffset);
             action.Do(ref settingsOffset);
             action.Do(ref windSettingsOffset);
+            if (version >= 17) action.Null(8);
             action.Do(ref groupCount);
             action.Do(ref settingCount);
             action.Do(ref modelCollisionCount);
@@ -57,7 +59,8 @@ namespace ReeLib.Chain2
                 action.Do(ref highFpsCalculateMode);
                 action.Do(ref wildsUkn3);
                 action.Do(ref wildsUkn4);
-                action.Null(10);
+                action.Null(2);
+                action.HandleOffsetWString(ref cfilFilepath, true);
             }
             Log.WarnIf(extraDataOffset > 0, "Chain file contains extraDataOffset");
             Log.WarnIf(collisionAttrOffset > 0, "Chain file contains collisionAttrOffset");

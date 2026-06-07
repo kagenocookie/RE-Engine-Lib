@@ -8,7 +8,7 @@ namespace ReeLib.Gml
         public uint magic = GmlFile.Magic;
         public uint version;
         public int dataCount;
-        [RszPaddingAfter(8, nameof(version), "!=", 858728217)] // not in DD2
+        [RszPaddingAfter(8, nameof(version), "!=", 858718217)] // not in DD2
         public int texCount;
         public long texOffset;
         public long dataOffset;

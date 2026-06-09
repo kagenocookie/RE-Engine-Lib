@@ -128,7 +128,7 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
         "_faketex", "_dslut", "_emi", "_hgt", "_hdr", "_rocm", "_occ", "_lymo", "_rgh", "_met",
         "_iam", "_lut", "_fbi", "_add", "_emm", "_lym", "_cvt", "_vns", "_lin", "_pos", "_fur", "_im", "_disp"];
 
-    private static readonly HashSet<string> IgnoredExtensions = ["json", "dll", "pdb", "ini", "cpp", "hpp", "h", "cs", "technology", "com", "com0", "com07", "com0N", "com0X", "com0C", "com0\\", "com0A", "fffff", "0", "iconTagEvent", "iconTagReplace", "messageTagEvent", "ruleset"];
+    private static readonly HashSet<string> IgnoredExtensions = ["json", "dll", "pdb", "ini", "cpp", "hpp", "h", "cs", "technology", "com", "com0", "com07", "com0N", "com0X", "com0C", "com0\\", "com0A", "fffff", "0", "iconTagEvent", "iconTagReplace", "messageTagEvent", "ruleset", "jp"];
     private static readonly HashSet<uint> IgnoreExtHashes = IgnoredExtensions.Select(x => MurMur3HashUtils.GetHash(x)).ToHashSet();
     private static readonly string[] GuessDates = ["1", "251111", "251112", "251121", "250925"];
 
@@ -364,12 +364,17 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
         var skeleton = ".skeleton." + extVersions.GetValueOrDefault("skeleton").ToString();
         var refskel = ".refskel." + extVersions.GetValueOrDefault("refskel").ToString();
         var fbxskel = ".fbxskel." + extVersions.GetValueOrDefault("fbxskel").ToString();
+        var chain2 = ".chain2." + extVersions.GetValueOrDefault("chain2").ToString();
+        var chain = ".chain." + extVersions.GetValueOrDefault("chain").ToString();
         for (int i = 0; i < outputPaths.Count; i++) {
             var path = outputPaths[i];
             PhaseProgress = (float)pathsProcessed++ / rawPaths.Count;
             var format = PathUtils.ParseFileFormat(path).format;
             var extless = PathUtils.GetFilepathWithoutExtensionOrVersion(path);
             if (format == KnownFileFormats.Mesh) {
+                DoAttempt(format, string.Concat(extless, chain2));
+                DoAttempt(format, string.Concat(extless, chain));
+                DoAttempt(format, string.Concat(extless, fbxskel));
                 DoAttempt(format, string.Concat(extless, sdftex));
                 DoAttempt(format, string.Concat(extless, mdf2));
                 DoAttempt(format, string.Concat(extless, mot));
@@ -505,7 +510,7 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
 
     private static readonly SearchValues<char> PathyChars = SearchValues.Create("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _-.:@\\/");
     private static readonly SearchValues<char> Numeric = SearchValues.Create("0123456789");
-    private static readonly SearchValues<char> ExtensionChars = SearchValues.Create("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789");
+    private static readonly SearchValues<char> ExtensionChars = SearchValues.Create("abcdefghijklmnopqrstuvwxyz0123456789");
 
     private static bool IsPathyCharacter(char ch) => PathyChars.Contains(ch);
 

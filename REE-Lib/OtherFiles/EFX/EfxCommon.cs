@@ -1,3 +1,6 @@
+using System.Numerics;
+using System.Runtime.InteropServices;
+using ReeLib.Common;
 using ReeLib.InternalAttributes;
 
 namespace ReeLib.Efx.Structs.Common;
@@ -15,12 +18,12 @@ public enum ExpressionAssignType
 public enum MaterialParameterType : short
 {
 	None = 0,
-	Float = 1, // data structure: float min, float max
+	Float = 1, // data structure: float min, float max OR color float4
 	Range = 2, // data structure: float min_a, float min_b, float max_a, float max_b
-	Texture = 3, // data structure: 4B (path len) 4B (texture index) 4B (unknown int) 4B (padding); mdfPropertyIndex = -1
+	Texture = 3,
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion))]
+[RszGenerate, RszVersionedObject(typeof(EfxVersion))]
 public partial class MdfProperty : BaseModel
 {
     [RszIgnore] public EfxVersion Version;
@@ -34,21 +37,83 @@ public partial class MdfProperty : BaseModel
     public uint PropertyNameUTF8Hash;
     [RszVersion(EfxVersion.RE3)]
 	public int mdfPropertyIndex;
-    public ushort parameterCount;
+    public ushort mdfParameterValueCount;
 	public MaterialParameterType parameterType;
-    [RszVersion("<", EfxVersion.RE3)]
-	public int ukn1_2;
+	public int flags;
+	[RszFixedSizeArray(16)] private byte[] rawValue = new byte[16];
 
-    [RszVersion(EfxVersion.RE3)]
-	public int unkn2;
+    [RszIgnore] public string? texturePath;
 
-	[RszFixedSizeArray(16)] public byte[]? propertyValue;
+    public object Value {
+        get => parameterType switch {
+            MaterialParameterType.Texture => TextureValue,
+            _ => VectorValue,
+        };
+        set {
+            switch (parameterType) {
+                case MaterialParameterType.Texture:
+                    TextureValue = (MdfPropertyTextureValue)value;
+                    break;
+                default:
+                    VectorValue = (Vector4)value;
+                    break;
+            }
+        }
+    }
+
+	public Vector4 VectorValue {
+        get => MemoryMarshal.Read<Vector4>(rawValue);
+        set => MemoryMarshal.Write<Vector4>(rawValue, value);
+    }
+
+	public ReeLib.via.Range RangeValue {
+        get => MemoryMarshal.Read<ReeLib.via.Range>(rawValue);
+        set => MemoryMarshal.Write<ReeLib.via.Range>(rawValue, value);
+    }
+
+	public MdfPropertyTextureValue TextureValue {
+        get => MemoryMarshal.Read<MdfPropertyTextureValue>(rawValue);
+        set => MemoryMarshal.Write<MdfPropertyTextureValue>(rawValue, value);
+    }
+
+    public string? Name => HashToName(PropertyNameUTF8Hash);
 
     public static int GetSize(EfxVersion version) => version >= EfxVersion.RE3 ? 32 : 28;
+
+    public override string ToString() => $"[{HashToName(PropertyNameUTF8Hash)}] {parameterType}";
+
+    public static Dictionary<uint, string> ParameterNameHashes = new() {
+        { 3072153074, "BaseMap" },
+    };
+
+    public static string HashToName(uint hash) => ParameterNameHashes.TryGetValue(hash, out var str) ? str : hash.ToString();
+
+    protected override bool DoRead(FileHandler handler)
+    {
+        return DefaultRead(handler);
+    }
+
+    protected override bool DoWrite(FileHandler handler)
+    {
+        if (parameterType == MaterialParameterType.Texture) {
+            mdfPropertyIndex = -1;
+        }
+        return DefaultWrite(handler);
+    }
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion))]
-public partial class EfxMaterialStructBase : BaseModel
+public struct MdfPropertyTextureValue
+{
+    public int pathLength;
+    public int textureIndex;
+    public int uknInt;
+    public int _padding;
+
+    public override string ToString() => $"Texture {textureIndex} (len={pathLength})";
+}
+
+[RszGenerate, RszVersionedObject(typeof(EfxVersion))]
+public abstract partial class EfxMaterialStructBase : BaseModel
 {
     [RszIgnore] public EfxVersion Version;
 
@@ -59,7 +124,7 @@ public partial class EfxMaterialStructBase : BaseModel
     }
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion))]
+[RszGenerate, RszVersionedObject(typeof(EfxVersion))]
 public partial class EfxMaterialStructV1 : EfxMaterialStructBase
 {
     public EfxMaterialStructV1() { }
@@ -81,9 +146,32 @@ public partial class EfxMaterialStructV1 : EfxMaterialStructBase
 	[RszInlineWString, RszList(nameof(texCount))] public string[]? texPaths;
 
     public override string ToString() => $"Material: {mdfPath}";
+
+    protected override bool DoRead(FileHandler handler)
+    {
+        DefaultRead(handler);
+        foreach (var p in properties) {
+            if (p.parameterType == MaterialParameterType.Texture && p.TextureValue.textureIndex < texPaths?.Length) {
+                p.texturePath = texPaths![p.TextureValue.textureIndex];
+            }
+        }
+        return true;
+    }
+
+    protected override bool DoWrite(FileHandler handler)
+    {
+        texPaths = properties.Where(p => p.parameterType == MaterialParameterType.Texture).Select(p => p.texturePath ??= "").ToArray();
+        texBlockSize = texPaths.Length == 0 ? 0 : texPaths.Sum(p => p.Length + 1) * 2;
+        foreach (var p in properties) {
+            if (p.parameterType == MaterialParameterType.Texture) {
+                p.TextureValue = p.TextureValue with { pathLength = (p.texturePath!).Length + 1, textureIndex = texPaths.IndexOf(p.texturePath) };
+            }
+        }
+        return DefaultWrite(handler);
+    }
 }
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion))]
+[RszGenerate, RszVersionedObject(typeof(EfxVersion))]
 public partial class EfxMaterialStructV2 : EfxMaterialStructBase
 {
     public EfxMaterialStructV2() { }
@@ -96,16 +184,39 @@ public partial class EfxMaterialStructV2 : EfxMaterialStructBase
 	public uint ukn2;
     public uint ukn3;
 	public uint ukn4;
-	[RszInlineWString] public string? mdfPath;
-	[RszInlineWString] public string? mmtrPath;
+	[RszInlineWString(ByteSize = true)] public string? mdfPath;
+	[RszInlineWString(ByteSize = true)] public string? mmtrPath;
 	[RszByteSizeField(nameof(properties))] public uint propDataSize;
 
     [RszClassInstance, RszList(nameof(propertyCount)), RszConstructorParams(nameof(Version))]
     public List<MdfProperty> properties = new();
-	public uint texBlockSize;
+	public int texBlockSize;
 	[RszInlineWString, RszList(nameof(texCount))] public string[]? texPaths;
 
     public override string ToString() => $"Material: {mdfPath}";
+
+    protected override bool DoRead(FileHandler handler)
+    {
+        DefaultRead(handler);
+        foreach (var p in properties) {
+            if (p.parameterType == MaterialParameterType.Texture && p.TextureValue.textureIndex < texPaths?.Length) {
+                p.texturePath = texPaths![p.TextureValue.textureIndex];
+            }
+        }
+        return true;
+    }
+
+    protected override bool DoWrite(FileHandler handler)
+    {
+        texPaths = properties.Where(p => p.parameterType == MaterialParameterType.Texture).Select(p => p.texturePath ??= "").ToArray();
+        texBlockSize = texPaths.Length == 0 ? 0 : texPaths.Sum(p => p.Length + 1) * 2;
+        foreach (var p in properties) {
+            if (p.parameterType == MaterialParameterType.Texture) {
+                p.TextureValue = p.TextureValue with { pathLength = (p.texturePath!).Length + 1, textureIndex = texPaths.IndexOf(p.texturePath) };
+            }
+        }
+        return DefaultWrite(handler);
+    }
 }
 
 public struct ByteSet

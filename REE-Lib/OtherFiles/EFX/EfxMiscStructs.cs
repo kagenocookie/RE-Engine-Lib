@@ -267,7 +267,7 @@ public partial class EFXAttributeEffectOptimizeShader : EFXAttribute
     public uint unknShaderCRCHash21;
     public ByteSet unkn20;
 
-	[RszInlineWString] public string? shaderPath;
+	[RszInlineWString(ByteSize = true)] public string? shaderPath;
 
     public override string ToString() => !string.IsNullOrEmpty(shaderPath) ? shaderPath : type.ToString();
 }
@@ -298,7 +298,7 @@ public partial class EFXAttributeAttractor : EFXAttribute, IBoneRelationAttribut
 	public UndeterminedFieldType unknWild10;
 	public UndeterminedFieldType endwilds;
 
-	[RszInlineWString] public string? boneName;
+	[RszInlineWString(ByteSize = true)] public string? boneName;
 
     public string? ParentBone { get; set; }
 

@@ -4,7 +4,7 @@ using ReeLib.InternalAttributes;
 
 namespace ReeLib.Efx.Structs.Main;
 
-[RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeMesh, EfxVersion.RE7, EfxVersion.RE2, EfxVersion.DMC5, EfxVersion.RE3)]
+[RszGenerate, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeMesh, EfxVersion.RE7, EfxVersion.RE2, EfxVersion.DMC5, EfxVersion.RE3)]
 public partial class EFXAttributeTypeMesh : ReeLib.Efx.EFXAttribute
 {
     public EFXAttributeTypeMesh() : base(EfxAttributeType.TypeMesh) { }
@@ -45,7 +45,7 @@ public partial class EFXAttributeTypeMesh : ReeLib.Efx.EFXAttribute
 
     [RszStringLengthField(nameof(meshPath))] public int meshPathLength;
     [RszStringLengthField(nameof(mdfPath))] public int mdfPathLength;
-    public uint texPathBlockLength;
+    public int texPathBlockLength;
     [RszClassInstance, RszList(nameof(overriddenHashCount)), RszConstructorParams(nameof(Version))]
     public List<MdfProperty> properties = new();
 
@@ -56,6 +56,29 @@ public partial class EFXAttributeTypeMesh : ReeLib.Efx.EFXAttribute
 	[RszInlineWString, RszList(nameof(texCount))] public string[]? texPaths;
 
     public override string ToString() => meshPath ?? GetType().Name;
+
+    protected override bool DoRead(FileHandler handler)
+    {
+        DefaultRead(handler);
+        foreach (var p in properties) {
+            if (p.parameterType == MaterialParameterType.Texture && p.TextureValue.textureIndex < texPaths?.Length) {
+                p.texturePath = texPaths![p.TextureValue.textureIndex];
+            }
+        }
+        return true;
+    }
+
+    protected override bool DoWrite(FileHandler handler)
+    {
+        texPaths = properties.Where(p => p.parameterType == MaterialParameterType.Texture).Select(p => p.texturePath ??= "").ToArray();
+        texPathBlockLength = texPaths.Length == 0 ? 0 : texPaths.Sum(p => p.Length + 1) * 2;
+        foreach (var p in properties) {
+            if (p.parameterType == MaterialParameterType.Texture) {
+                p.TextureValue = p.TextureValue with { pathLength = (p.texturePath!).Length + 1, textureIndex = texPaths.IndexOf(p.texturePath) };
+            }
+        }
+        return DefaultWrite(handler);
+    }
 }
 
 [RszGenerate, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeMesh, EfxVersion.RE8, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2, EfxVersion.MHWilds)]
@@ -96,9 +119,9 @@ public partial class EFXAttributeTypeMeshV2 : EFXAttribute
     [RszArraySizeField(nameof(texPaths))] public int texCount;
     [RszVersion(EfxVersion.DD2)]
     public uint dd2_unkn2;
-    [RszInlineWString] public string? MeshPath;
-    [RszInlineWString] public string? MirrorMeshPath;
-    [RszInlineWString] public string? MaterialPath;
+    [RszInlineWString(ByteSize = true)] public string? MeshPath;
+    [RszInlineWString(ByteSize = true)] public string? MirrorMeshPath;
+    [RszInlineWString(ByteSize = true)] public string? MaterialPath;
 
 	[RszByteSizeField(nameof(properties))] public int propertiesDataSize;
 	[RszClassInstance, RszList(nameof(propertiesDataSize), '/', 32), RszConstructorParams(nameof(Version))]
@@ -107,10 +130,28 @@ public partial class EFXAttributeTypeMeshV2 : EFXAttribute
 	public int texPathBlockLength;
 	[RszInlineWString, RszList(nameof(texCount))] public string[]? texPaths;
 
-    protected override bool DoRead(FileHandler handler) => DefaultRead(handler);
+    protected override bool DoRead(FileHandler handler)
+    {
+        DefaultRead(handler);
+        foreach (var p in properties) {
+            if (p.parameterType == MaterialParameterType.Texture && p.TextureValue.textureIndex < texPaths?.Length) {
+                p.texturePath = texPaths![p.TextureValue.textureIndex];
+            }
+        }
+        DataInterpretationException.DebugWarnIf(texPaths?.Length != properties.Count(p => p.parameterType == MaterialParameterType.Texture));
+        return true;
+    }
+
     protected override bool DoWrite(FileHandler handler)
     {
         propertiesDataSize = properties.Count * MdfProperty.GetSize(Version);
+        texPaths = properties.Where(p => p.parameterType == MaterialParameterType.Texture).Select(p => p.texturePath ??= "").ToArray();
+        texPathBlockLength = texPaths.Length == 0 ? 0 : texPaths.Sum(p => p.Length + 1) * 2;
+        foreach (var p in properties) {
+            if (p.parameterType == MaterialParameterType.Texture) {
+                p.TextureValue = p.TextureValue with { pathLength = (p.texturePath!).Length + 1, textureIndex = texPaths.IndexOf(p.texturePath) };
+            }
+        }
         return DefaultWrite(handler);
     }
 

@@ -211,6 +211,24 @@ public class CachedMemoryPakReader : PakReader, IDisposable
     }
 
     /// <summary>
+    /// Attempts to guess the current platform based on the resolved file paths.
+    /// </summary>
+    public PlatformIdentifier DeterminePlatform()
+    {
+        if (!(cachedEntries?.Count > 0)) {
+            return default;
+        }
+
+        foreach (var e in cachedEntries) {
+            if (e.Value.entry.path?.StartsWith("natives/") == true) {
+                var plat = PlatformIdentifier.FindPlatformIdentifierFromPath(e.Value.entry.path);
+                if (plat.id != Platform.Unknown) return plat;
+            }
+        }
+        return default;
+    }
+
+    /// <summary>
     /// Creates a new reader instance based on the currently cached data. Use for access to non-thread-safe operations when you need thread safety.
     /// Must call <see cref="CacheEntries"/> before to ensure a consistent state.
     /// </summary>

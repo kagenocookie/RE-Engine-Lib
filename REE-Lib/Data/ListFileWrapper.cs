@@ -67,9 +67,11 @@ public class ListFileWrapper
             if (string.IsNullOrEmpty(f)) continue;
 
             var norm = NormalizePath(f);
-            isCorrectPlatform ??= norm.StartsWith(platformPrefix!);
-            if (isCorrectPlatform == false) {
-                norm = PathUtils.SwapPlatformPrefix(norm, platform);
+            if (norm.StartsWith("natives/", StringComparison.OrdinalIgnoreCase)) {
+                isCorrectPlatform ??= norm.StartsWith(platformPrefix!, StringComparison.OrdinalIgnoreCase);
+                if (isCorrectPlatform == false) {
+                    norm = PathUtils.SwapPlatformPrefix(norm, platform);
+                }
             }
             ordered.Add(norm);
         }

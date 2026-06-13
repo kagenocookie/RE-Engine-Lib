@@ -53,7 +53,7 @@ public readonly struct PlatformIdentifier
 
         // note: in order to make it go faster, assume we received no unknown platforms
         // thus, we can switch based on the known set using the first identifiable character instead of matching the full strings
-        switch (path[7]) {
+        switch (path[8]) {
             case 's': case 'S':
                 return Steam;
             case 'p': case 'P':

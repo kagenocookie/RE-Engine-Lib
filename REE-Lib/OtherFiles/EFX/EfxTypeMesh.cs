@@ -70,13 +70,16 @@ public partial class EFXAttributeTypeMesh : ReeLib.Efx.EFXAttribute
 
     protected override bool DoWrite(FileHandler handler)
     {
-        texPaths = properties.Where(p => p.parameterType == MaterialParameterType.Texture).Select(p => p.texturePath ??= "").ToArray();
-        texPathBlockLength = texPaths.Length == 0 ? 0 : texPaths.Sum(p => p.Length + 1) * 2;
+        texPathBlockLength = 0;
+        var pathlist = new List<string>();
         foreach (var p in properties) {
             if (p.parameterType == MaterialParameterType.Texture) {
-                p.TextureValue = p.TextureValue with { pathLength = (p.texturePath!).Length + 1, textureIndex = texPaths.IndexOf(p.texturePath) };
+                p.TextureValue = p.TextureValue with { pathLength = (p.texturePath!).Length + 1, textureIndex = pathlist.Count };
+                pathlist.Add(p.texturePath);
+                texPathBlockLength += p.TextureValue.pathLength;
             }
         }
+        texPaths = pathlist.ToArray();
         return DefaultWrite(handler);
     }
 }
@@ -144,14 +147,16 @@ public partial class EFXAttributeTypeMeshV2 : EFXAttribute
 
     protected override bool DoWrite(FileHandler handler)
     {
-        propertiesDataSize = properties.Count * MdfProperty.GetSize(Version);
-        texPaths = properties.Where(p => p.parameterType == MaterialParameterType.Texture).Select(p => p.texturePath ??= "").ToArray();
-        texPathBlockLength = texPaths.Length == 0 ? 0 : texPaths.Sum(p => p.Length + 1) * 2;
+        texPathBlockLength = 0;
+        var pathlist = new List<string>();
         foreach (var p in properties) {
             if (p.parameterType == MaterialParameterType.Texture) {
-                p.TextureValue = p.TextureValue with { pathLength = (p.texturePath!).Length + 1, textureIndex = texPaths.IndexOf(p.texturePath) };
+                p.TextureValue = p.TextureValue with { pathLength = (p.texturePath!).Length + 1, textureIndex = pathlist.Count };
+                pathlist.Add(p.texturePath);
+                texPathBlockLength += p.TextureValue.pathLength * 2;
             }
         }
+        texPaths = pathlist.ToArray();
         return DefaultWrite(handler);
     }
 
@@ -392,9 +397,9 @@ public partial class EFXAttributeTypeGpuMesh : EFXAttribute
     [RszArraySizeField(nameof(texturePaths))] public int texCount;
     [RszVersion(EfxVersion.DD2)]
     public uint BufferNum;
-    [RszInlineWString] public string? MeshPath;
-    [RszInlineWString] public string? MirrorMeshPath;
-    [RszInlineWString] public string? MaterialPath;
+    [RszInlineWString(ByteSize = true)] public string? MeshPath;
+    [RszInlineWString(ByteSize = true)] public string? MirrorMeshPath;
+    [RszInlineWString(ByteSize = true)] public string? MaterialPath;
     [RszByteSizeField(nameof(unknData))] public uint unknDataSize;
     [RszFixedSizeArray(nameof(unknDataSize))] public byte[]? unknData;
 
@@ -529,9 +534,9 @@ public partial class EFXAttributeTypeGpuMeshTrail : EFXAttribute
     public float unkn40;
     public uint unkn41; // "rest" array length?
     public UndeterminedFieldType unkn42;
-	[RszInlineWString] public string? meshPath;
-	[RszInlineWString] public string? uknPath;
-	[RszInlineWString] public string? mdfPath;
+	[RszInlineWString(ByteSize = true)] public string? meshPath;
+	[RszInlineWString(ByteSize = true)] public string? uknPath;
+	[RszInlineWString(ByteSize = true)] public string? mdfPath;
 
     public uint dataSize;
 	// [RszFixedSizeArray(nameof(dataSize), '/', 4)] public uint[]? data;
@@ -633,9 +638,9 @@ public partial class EFXAttributeTypeGpuMeshTrailV2 : EFXAttribute
     [RszVersion(EfxVersion.MHWilds)]
     public uint Wilds_Ukn14;
 	public UndeterminedFieldType unkn56;
-	[RszInlineWString] public string? meshPath;
-	[RszInlineWString] public string? unkPath;
-	[RszInlineWString] public string? mdfPath;
+	[RszInlineWString(ByteSize = true)] public string? meshPath;
+	[RszInlineWString(ByteSize = true)] public string? unkPath;
+	[RszInlineWString(ByteSize = true)] public string? mdfPath;
 	[RszByteSizeField(nameof(properties))] public int propertiesDataSize;
 	[RszClassInstance, RszList(nameof(propertiesDataSize), '/', 32), RszConstructorParams(nameof(Version))]
 	public List<MdfProperty> properties = new();

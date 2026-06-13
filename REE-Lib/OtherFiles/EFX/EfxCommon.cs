@@ -160,13 +160,16 @@ public partial class EfxMaterialStructV1 : EfxMaterialStructBase
 
     protected override bool DoWrite(FileHandler handler)
     {
-        texPaths = properties.Where(p => p.parameterType == MaterialParameterType.Texture).Select(p => p.texturePath ??= "").ToArray();
-        texBlockSize = texPaths.Length == 0 ? 0 : texPaths.Sum(p => p.Length + 1) * 2;
+        texBlockSize = 0;
+        var pathlist = new List<string>();
         foreach (var p in properties) {
             if (p.parameterType == MaterialParameterType.Texture) {
-                p.TextureValue = p.TextureValue with { pathLength = (p.texturePath!).Length + 1, textureIndex = texPaths.IndexOf(p.texturePath) };
+                p.TextureValue = p.TextureValue with { pathLength = (p.texturePath!).Length + 1, textureIndex = pathlist.Count };
+                pathlist.Add(p.texturePath);
+                texBlockSize += p.TextureValue.pathLength;
             }
         }
+        texPaths = pathlist.ToArray();
         return DefaultWrite(handler);
     }
 }
@@ -208,13 +211,16 @@ public partial class EfxMaterialStructV2 : EfxMaterialStructBase
 
     protected override bool DoWrite(FileHandler handler)
     {
-        texPaths = properties.Where(p => p.parameterType == MaterialParameterType.Texture).Select(p => p.texturePath ??= "").ToArray();
-        texBlockSize = texPaths.Length == 0 ? 0 : texPaths.Sum(p => p.Length + 1) * 2;
+        texBlockSize = 0;
+        var pathlist = new List<string>();
         foreach (var p in properties) {
             if (p.parameterType == MaterialParameterType.Texture) {
-                p.TextureValue = p.TextureValue with { pathLength = (p.texturePath!).Length + 1, textureIndex = texPaths.IndexOf(p.texturePath) };
+                p.TextureValue = p.TextureValue with { pathLength = ((p.texturePath!).Length + 1), textureIndex = pathlist.Count };
+                pathlist.Add(p.texturePath);
+                texBlockSize += p.TextureValue.pathLength * 2;
             }
         }
+        texPaths = pathlist.ToArray();
         return DefaultWrite(handler);
     }
 }

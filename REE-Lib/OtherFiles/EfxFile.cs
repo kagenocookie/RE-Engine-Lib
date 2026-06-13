@@ -373,6 +373,9 @@ namespace ReeLib.Efx
             foreach (var attr in Attributes) {
                 handler.Write(Version.ToAttributeTypeID(attr.type));
                 var sizeOffset = handler.Tell();
+                if (Version >= EfxVersion.MHWilds) {
+                    handler.Skip(sizeof(int));
+                }
 
                 handler.Write(attr.UniqueID);
 
@@ -486,8 +489,15 @@ namespace ReeLib.Efx
             handler.Write(Attributes.Count);
             foreach (var attr in Attributes) {
                 handler.Write(Version.ToAttributeTypeID(attr.type));
+                var sizeOffset = handler.Tell();
+                if (Version >= EfxVersion.MHWilds) {
+                    handler.Skip(4);
+                }
                 handler.Write(attr.UniqueID);
                 attr.Write(handler);
+                if (Version >= EfxVersion.MHWilds) {
+                    handler.Write(sizeOffset, (int)(attr.StructSize + 4));
+                }
             }
             return true;
         }
@@ -593,8 +603,8 @@ namespace ReeLib.Efx
     {
         [RszIgnore] public int uvarType;
 
-        [RszInlineWString, RszConditional(nameof(uvarType), "==", 2)] public string? path;
-        [RszInlineWString, RszConditional(nameof(uvarType), "==", 2)] public string? group;
+        [RszInlineWString(ByteSize = true), RszConditional(nameof(uvarType), "==", 2)] public string? path;
+        [RszInlineWString(ByteSize = true), RszConditional(nameof(uvarType), "==", 2)] public string? group;
     }
 
     public interface IBoneRelationAttribute
@@ -818,11 +828,6 @@ namespace ReeLib
                 }
             }
 
-            if (Header.Version > EfxVersion.DMC5)
-            {
-                SetupBoneReferences();
-            }
-
             foreach (var action in Actions) {
                 foreach (var a in action.Attributes.OfType<EFXAttributePlayEmitter>()) {
                     if (a.efxrData != null) {
@@ -830,6 +835,11 @@ namespace ReeLib
                     }
                 }
             }
+            if (Header.Version > EfxVersion.DMC5)
+            {
+                SetupBoneReferences();
+            }
+
             return true;
         }
 
@@ -886,8 +896,7 @@ namespace ReeLib
                 action.Read(handler);
                 foreach (var a in action.Attributes.OfType<EFXAttributePlayEmitter>()) {
                     if (a.efxrData != null) {
-                        a.efxrData.Bones.AddRange(Bones);
-                        a.efxrData.SetupBoneReferences();
+                        a.efxrData.parentFile = this;
                     }
                 }
                 Actions.Add(action);
@@ -896,7 +905,8 @@ namespace ReeLib
 
         private void SetupBoneReferences()
         {
-            if (Bones.Count == 0) return;
+            var bones = parentFile?.Bones ?? Bones;
+            if (bones.Count == 0) return;
 
             int index = 0;
             foreach (var entry in Entries) {
@@ -913,9 +923,9 @@ namespace ReeLib
                             parentBoneIndex = BoneRelations[index++];
                         }
 
-                        if (parentBoneIndex >= 0 && parentBoneIndex < Bones.Count)
+                        if (parentBoneIndex >= 0 && parentBoneIndex < bones.Count)
                         {
-                            parented.ParentBone = Bones[parentBoneIndex].name;
+                            parented.ParentBone = bones[parentBoneIndex].name;
                         }
                         else
                         {
@@ -923,6 +933,12 @@ namespace ReeLib
                             if (parentBoneIndex != -1) Log.Warn($"Invalid EFX parent bone index {parentBoneIndex} for relation {index - 1}");
                         }
                     }
+                }
+            }
+
+            foreach (var action in Actions) {
+                foreach (var a in action.Attributes.OfType<EFXAttributePlayEmitter>()) {
+                    a.efxrData?.SetupBoneReferences();
                 }
             }
         }
@@ -1036,23 +1052,15 @@ namespace ReeLib
             Header.effectGroupsLength = (int)(handler.Tell() - writeStart);
 
             if (Header.Version > EfxVersion.DMC5) {
+                handler.Write(UvarGroups.FirstOrDefault()?.uvarType ?? 0);
+                handler.Write(UvarGroups.Skip(1).FirstOrDefault()?.uvarType ?? 0);
                 if (UvarGroups.Count >= 1)
                 {
-                    handler.Write(UvarGroups[0].uvarType);
                     UvarGroups[0].Write(handler);
-                }
-                else
-                {
-                    handler.Write(0);
                 }
                 if (UvarGroups.Count >= 2)
                 {
-                    handler.Write(UvarGroups[1].uvarType);
                     UvarGroups[1].Write(handler);
-                }
-                else
-                {
-                    handler.Write(0);
                 }
             }
 

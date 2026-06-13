@@ -97,7 +97,7 @@ public partial class EFXAttributeTypeLightning3DV1 : ReeLib.Efx.EFXAttribute, IB
 	public uint unkn2_71_8;
 	public float unkn2_71_9;
 	public float unkn2_72;
-	[RszInlineWString] public string? boneName;
+	[RszInlineWString(ByteSize = true)] public string? boneName;
 
     public string? ParentBone { get; set; }
 
@@ -195,7 +195,7 @@ public partial class EFXAttributeTypeLightning3D : EFXAttribute, IBoneRelationAt
 
 	public float unkn2_71;
 	public float unkn2_72;
-	[RszInlineWString] public string? boneName;
+	[RszInlineWString(ByteSize = true)] public string? boneName;
 
     public string? ParentBone { get; set; }
 

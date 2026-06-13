@@ -52,7 +52,7 @@ public partial class EFXAttributeTypeStrainRibbonV1 : ReeLib.Efx.EFXAttribute
     [RszVersion(EfxVersion.RE3, EndAt = nameof(ukn4_1))]
     public float ukn4_0;
     public float ukn4_1;
-    [RszInlineWString] public string? boneName;
+    [RszInlineWString(ByteSize = true)] public string? boneName;
 
     public override string ToString() => !string.IsNullOrEmpty(boneName) ? boneName : type.ToString();
 }
@@ -135,7 +135,7 @@ public partial class EFXAttributeTypeStrainRibbonV2 : EFXAttribute, IBoneRelatio
 
     public float unkn3_2;
     public float unkn3_3;
-	[RszInlineWString] public string? boneName;
+	[RszInlineWString(ByteSize = true)] public string? boneName;
 
     public string? ParentBone { get; set; }
 

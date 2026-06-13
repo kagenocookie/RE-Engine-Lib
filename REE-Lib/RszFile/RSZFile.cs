@@ -1,4 +1,5 @@
 using System.Text;
+using ReeLib.Common;
 using ReeLib.InternalAttributes;
 using ReeLib.via;
 
@@ -50,6 +51,8 @@ namespace ReeLib
         public const uint Magic = 0x5a5352;
 
         public override RSZFile GetRSZ() => this;
+
+        private readonly HashSet<RszClass> _warnedInvalidCrcs = new(0);
 
         protected override bool DoRead()
         {
@@ -140,6 +143,9 @@ namespace ReeLib
                 if (instance.RSZUserData == null)
                 {
                     instance.Read(handler);
+                }
+                if (rszClass.crc != InstanceInfoList[i].CRC && _warnedInvalidCrcs.Add(rszClass)) {
+                    Log.Warn($"CRC mismatch in RSZ class {rszClass.name}: File has {InstanceInfoList[i].CRC}, but we're expecting {rszClass.crc}. The file likely won't work ingame without an updated RSZ json.");
                 }
                 InstanceList.Add(instance);
             }

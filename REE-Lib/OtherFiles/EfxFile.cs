@@ -344,7 +344,7 @@ namespace ReeLib.Efx
             int lastAttributeTypeId = -1;
             for (int i = 0; i < attributeCount; ++i) {
                 var typeId = handler.Read<int>();
-                DataInterpretationException.DebugThrowIf(typeId < lastAttributeTypeId, $"EFX attribute ID {typeId} is out of order from previous {lastAttributeTypeId}");
+                DataInterpretationException.DebugWarnIf(typeId < lastAttributeTypeId, $"EFX attribute ID {typeId} is out of order from previous {lastAttributeTypeId}");
                 var type = Version.GetAttributeType(lastAttributeTypeId = typeId);
                 int expectedSize = -1;
                 if (Version >= EfxVersion.MHWilds) {

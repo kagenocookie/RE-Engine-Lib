@@ -817,7 +817,7 @@ namespace ReeLib.MotTree
             {
                 handler.ReadOffsetAsciiString(out typeName);
                 if (!MotionTreeNode.NodeTypes.Contains(typeName)) {
-                    Log.UniqueValueKeyed(typeName, "Unknown mottree node type");
+                    Log.UniqueValue(typeName, "Unknown mottree node type");
                 }
             }
 
@@ -1154,7 +1154,7 @@ namespace ReeLib
                 DataInterpretationException.DebugWarnIf(node.fullTypeHash != 0 && node.fullTypeHash != MurMur3HashUtils.GetAsciiHash("via.motion.tree." + node.typeName));
                 var typeinfo = node.TypeInfo;
                 if (typeinfo == null) {
-                    Log.UniqueValueKeyed(node.typeName, "Unknown mottree node");
+                    Log.UniqueValue(node.typeName, "Unknown mottree node");
                 } else {
                     typeinfo.Validate(node, version, this);
                 }

@@ -1292,11 +1292,12 @@ namespace ReeLib.Mesh
 
 		internal MeshSerializerVersion Version;
 		private int ExpectedSkinWeightCount => Version switch {
-			MeshSerializerVersion.SF6 => 9,
-			MeshSerializerVersion.MHWILDS => 25,
-			MeshSerializerVersion.Pragmata => 27,
-			<= MeshSerializerVersion.DMC5 => 1,
-			_ => 18,
+			MeshSerializerVersion.SF6 => 9,       // 0b01001
+			MeshSerializerVersion.MHWILDS => 25,  // 0b11001
+			MeshSerializerVersion.Pragmata => 27, // 0b11011 (25 or 27) (pragmata, oni:wots)
+			// MeshSerializerVersion.MHS3 => 9,   // 0b01001
+			<= MeshSerializerVersion.DMC5 or MeshSerializerVersion.RE8 => 1, // 0b00001 (re2, dmc5, re8)
+			_ => 18,                              // 0b10010 (re_rt, re4, dd2, re9)
         };
 
 		public void ChangeVersion(MeshSerializerVersion version)
@@ -1329,7 +1330,7 @@ namespace ReeLib.Mesh
 			materialCount = handler.Read<byte>();
 			uvCount = handler.Read<byte>();
 			skinWeightCount = handler.Read<byte>();
-			// DataInterpretationException.DebugThrowIf(skinWeightCount != ExpectedSkinWeightCount);
+			// Log.UniqueValue(Version + "|" + skinWeightCount + "=" + skinWeightCount.ToString("B8"));
 			handler.Read(ref totalMeshCount);
 			handler.Read(ref integerFaces);
 			handler.ReadNull(1);

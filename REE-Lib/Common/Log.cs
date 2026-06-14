@@ -69,10 +69,7 @@ namespace ReeLib.Common
         }
 
         [Conditional("DEBUG")]
-        internal static void UniqueValue<T>(T value) => ValueLog<T>.RecordUnique(value);
-
-        [Conditional("DEBUG")]
-        internal static void UniqueValueKeyed<T>(T value, [CallerArgumentExpression(nameof(value))] string? valueKey = null) => ValueLog<T>.RecordUniqueKeyed(value, true, valueKey);
+        internal static void UniqueValue<T>(T value, [CallerArgumentExpression(nameof(value))] string? valueKey = null) => ValueLog<T>.RecordUniqueKeyed(value, true, valueKey);
 
         internal static class ValueLog<T>
         {

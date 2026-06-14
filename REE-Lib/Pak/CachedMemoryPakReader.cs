@@ -327,6 +327,7 @@ public class CachedMemoryPakReader : PakReader, IDisposable
             PoglistFile.Magic => KnownFileFormats.PointGraphList,
             SvgSqFile.Magic => KnownFileFormats.SVGSequence,
             Chain2LodFile.Magic => KnownFileFormats.Chain2Lod,
+            LodFile.Magic => KnownFileFormats.Lod,
 
 
             0x00464453 => KnownFileFormats.MasterMaterial, // same as VfxShader, Shader, CfxShader
@@ -355,7 +356,6 @@ public class CachedMemoryPakReader : PakReader, IDisposable
             0x52504347 => KnownFileFormats.GUIColorPreset,
             0x59545347 => KnownFileFormats.GUIStyleList,
             0x00535353 => KnownFileFormats.SSSProfile,
-            0x00444F4C => KnownFileFormats.Lod,
             0x384D5453 => KnownFileFormats.SpeedTreeMesh,
             0x4854444D => KnownFileFormats.AlembicMesh,
             0x4F464246 => KnownFileFormats.OutlineFont,

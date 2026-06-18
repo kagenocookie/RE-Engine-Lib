@@ -421,15 +421,16 @@ public static class EfxExpressionTreeUtils
 		[1042548107] = "LightShadowRatio",
 		[4001584140] = "BackFaceLightRatio",
 		[4053326860] = "SpawnNum",
+		[1737174073] = "PLAY_SPEED",
+		[2451941081] = "RAND",
+		[2031344731] = "EM_INIRAND",
+		[1351678141] = "EM_INIRAND_SHARED",
 
 		// still unresolved hashes:
-		// [1737174073] = "???",
-		// [2031344731] = "???",
-		// [2451941081] = "???",
-		// [3433402344] = "???",
-		// [1351678141] = "???",
-		// [1017435601] = "???",
-		// [302732036] = "???",
+		// [3433402344] = "???", // re4, dd2
+		// [1017435601] = "???", // dd2, mhwilds
+		// [302732036] = "???", // dd2, mhwilds
+		// [213419702] = "???" // mhwilds
 	};
 
 	public static void FlattenExpressions(List<EFXExpressionData> list, EFXExpressionTree tree, IExpressionParameterSource paramSource)

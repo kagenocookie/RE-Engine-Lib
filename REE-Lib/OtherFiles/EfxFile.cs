@@ -10,24 +10,25 @@ using ReeLib.InternalAttributes;
 
 namespace ReeLib.Efx
 {
+    // note: efx version seems to consist of a uint16 and a uint8 value
     public enum EfxVersion
     {
         Unknown = 0,
-        RE7,
-        RE2,
-        DMC5,
-        RE3,
-        MHRise,
-        RE8,
-        RERT,
-        MHRiseSB,
-        SF6,
-        RE4,
-        DD2,
-        MHWilds,
-        Pragmata,
-        Onimusha,
-        RE9,
+        RE7      = 1179750,
+        RE2      = 1769669,
+        DMC5     = 1769672,
+        RE3      = 2228526,
+        MHRise   = 2621987,
+        RE8      = 2621998,
+        RERT     = 2818689,
+        MHRiseSB = 2818730,
+        SF6      = 3474371,
+        RE4      = 3539837,
+        DD2      = 4064419,
+        MHWilds  = 5571972,
+        RE9      = 5899767,
+        Pragmata = 5965300,
+        OniWS    = 5834247,
     }
 
     [RszGenerate, RszVersionedObject(typeof(EfxVersion))]
@@ -48,15 +49,11 @@ namespace ReeLib.Efx
         public int boneAttributeEntryCount;
         public int propBindingIndexCount;
 
-        public EfxVersion Version { get; }
-
-        public EfxHeader(EfxVersion version)
-        {
-            Version = version;
-        }
+        public EfxVersion Version { get; internal set; }
 
         protected override bool DoRead(FileHandler handler)
         {
+            Version = (EfxVersion)handler.FileVersion;
             DefaultRead(handler);
             if (magic != EfxFile.Magic)
             {
@@ -662,7 +659,7 @@ namespace ReeLib
         public List<EFXEntry> Entries { get; } = new();
         public List<EFXBone> Bones { get; } = new();
 
-        public EfxHeader? Header;
+        public EfxHeader Header { get; } = new EfxHeader();
         public Strings? Strings;
 
         public List<short> BoneRelations { get; } = new();
@@ -683,55 +680,6 @@ namespace ReeLib
         [JsonConstructor]
         private EfxFile() : base(new FileHandler()) { }
 
-        private const int VERSION_RE7 = 1179750;
-        private const int VERSION_RE2 = 1769669;
-        private const int VERSION_DMC5 = 1769672;
-        private const int VERSION_RE3 = 2228526;
-        private const int VERSION_MHR = 2621987;
-        private const int VERSION_RE8 = 2621998;
-        private const int VERSION_RERT = 2818689;
-        private const int VERSION_MHRSB = 2818730;
-        private const int VERSION_SF6 = 3474371;
-        private const int VERSION_RE4 = 3539837;
-        private const int VERSION_DD2 = 4064419;
-        private const int VERSION_WILDS = 5571972;
-        private const int VERSION_ONIMUSHA = 5834247;
-        private const int VERSION_PRAGMATA = 5965300;
-
-        public static EfxVersion GetEfxVersion(int fileVersion) => fileVersion switch {
-            VERSION_RE7 => EfxVersion.RE7,
-            VERSION_RE2 => EfxVersion.RE2,
-            VERSION_DMC5 => EfxVersion.DMC5,
-            VERSION_RE3 => EfxVersion.RE3,
-            VERSION_MHR => EfxVersion.MHRise,
-            VERSION_RE8 => EfxVersion.RE8,
-            VERSION_RERT => EfxVersion.RERT,
-            VERSION_MHRSB => EfxVersion.MHRiseSB,
-            VERSION_SF6 => EfxVersion.SF6,
-            VERSION_RE4 => EfxVersion.RE4,
-            VERSION_DD2 => EfxVersion.DD2,
-            VERSION_WILDS => EfxVersion.MHWilds,
-            VERSION_PRAGMATA => EfxVersion.Pragmata,
-            VERSION_ONIMUSHA => EfxVersion.Onimusha,
-            _ => EfxVersion.Unknown,
-        };
-        public static int GetFileVersion(EfxVersion version) => version switch {
-            EfxVersion.RE7 => VERSION_RE7,
-            EfxVersion.RE2 => VERSION_RE2,
-            EfxVersion.DMC5 => VERSION_DMC5,
-            EfxVersion.RE3 => VERSION_RE3,
-            EfxVersion.MHRise => VERSION_MHR,
-            EfxVersion.RE8 => VERSION_RE8,
-            EfxVersion.RERT => VERSION_RERT,
-            EfxVersion.MHRiseSB => VERSION_MHRSB,
-            EfxVersion.SF6 => VERSION_SF6,
-            EfxVersion.RE4 => VERSION_RE4,
-            EfxVersion.DD2 => VERSION_DD2,
-            EfxVersion.MHWilds => VERSION_WILDS,
-            EfxVersion.Onimusha => VERSION_ONIMUSHA,
-            EfxVersion.Pragmata => VERSION_PRAGMATA,
-            _ => -1,
-        };
         public static EfxVersion[] AllVersions => (EfxVersion[])Enum.GetValues(typeof(EfxVersion));
 
         public void Clear()
@@ -749,7 +697,6 @@ namespace ReeLib
         protected override bool DoRead()
         {
             var handler = FileHandler;
-            Header = new EfxHeader(GetEfxVersion(FileHandler.FileVersion));
             Header.Read(handler);
             Strings = new Strings(Header);
             Strings.Read(handler);
@@ -979,8 +926,8 @@ namespace ReeLib
 
         private void UpdateHeaderData(EfxVersion version)
         {
-            if (Header == null || Header.Version != version) {
-                Header = new EfxHeader(version);
+            if (Header.Version != version) {
+                Header.Version = version;
                 Strings = new(Header);
             }
 

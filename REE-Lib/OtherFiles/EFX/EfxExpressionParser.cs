@@ -160,7 +160,7 @@ public static partial class EfxExpressionStringParser
 		throw new Exception($"Found unexpected token {token.type} at position {token.start}. Expected: {string.Join(", ", expected)}");
 	}
 
-	private static ExpressionAtom ThrowPositionedError(in Token token, string message) {
+	private static void ThrowPositionedError(in Token token, string message) {
 		throw new Exception($"{message} at position {token.start}");
 	}
 

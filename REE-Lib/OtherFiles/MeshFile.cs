@@ -840,6 +840,7 @@ namespace ReeLib.Mesh
 				{
 					ShapeKeyWeights[k].Write(handler, Version);
 				}
+				shapekeyWeightBufferSize = (int)(handler.Tell() - shapekeyWeightBufferOffset);
 			}
 			// update header with offsets
 			this.Write(handler, Start);

@@ -44,7 +44,7 @@ public sealed partial class Workspace : IDisposable
     private bool RegenerateTypeCache(string? il2cppPath, string cachePath)
     {
         if (!File.Exists(il2cppPath)) {
-            Log.Error($"Il2cpp file does not exist, nor do we have a valid cache file for {Config.Game}. Enums and class names won't resolve properly.");
+            Log.Error($"Il2cpp file does not exist, nor do we have a valid cache file for {Config.Game}. Enums and class names won't resolve properly.\nYou can resolve this by going ingame and letting REFramework dump the il2cpp json.");
             return false;
         }
 

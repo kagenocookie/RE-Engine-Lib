@@ -332,6 +332,26 @@ namespace ReeLib.Mesh
 			for (int i = 0; i < boneWeights.Length; ++i) SetWeight(i, (GetWeight(i) / sum));
 		}
 
+		public void SortWeights()
+		{
+			var wc = IndexCount;
+
+			for (int i = 0; i < wc; ++i) {
+				var w1 = GetWeight(i);
+				for (int k = i + 1; k < wc; ++k) {
+					var w2 = GetWeight(k);
+					if (w2 > w1) {
+						var i1 = GetIndex(i);
+						var i2 = GetIndex(k);
+						SetIndex(i, i2);
+						SetIndex(k, i1);
+						SetWeight(i, w2);
+						SetWeight(k, w1);
+					}
+				}
+			}
+		}
+
 		internal static int GetIndexCount(MeshSerializerVersion version) => version is MeshSerializerVersion.SF6 or MeshSerializerVersion.MHWILDS or MeshSerializerVersion.Pragmata ? 6 : 8;
 
 		public void ChangeVersion(MeshSerializerVersion version)

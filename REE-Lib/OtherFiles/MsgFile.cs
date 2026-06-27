@@ -140,6 +140,12 @@ namespace ReeLib.Msg
 
         public string GetMessage(Language language) => Strings[(int)language];
 
+        public MessageEntry SetMessage(Language language, string message)
+        {
+            Strings[(int)language] = message;
+            return this;
+        }
+
         public bool Read(FileHandler handler)
         {
             var header = Header;
@@ -327,7 +333,7 @@ namespace ReeLib
 
         protected override bool DoWrite()
         {
-            Languages ??= Enum.GetValues<Language>();
+            Languages ??= Enum.GetValues<Language>().Except([Language.Max]).ToArray();
             FileHandler handler = FileHandler;
             handler.Clear();
             var header = Header;

@@ -241,7 +241,7 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
                 return File.OpenRead(outputPath);
             }
 
-            if (!CanExtractPakFiles) return null;
+            if (!CanExtractPakFiles || !AllowUsePackedFiles || !CanUsePakFiles) return null;
 
             var stream = PakReader.GetFile(filepath);
             if (stream == null) return null;
@@ -290,9 +290,9 @@ public sealed partial class Workspace(GameConfig config) : IDisposable
     /// Gets a <see cref="Stream"/> for a single file. The filename should include the full file extension, version and any suffixes.
     /// Will throw an exception if the file is not found.
     /// </summary>
-    public Stream GetRequiredFile(string filepath)
+    public Stream GetRequiredFile(string filepath, FileSourceType sourceTypes = FileSourceType.Original)
     {
-        var file = GetFile(filepath);
+        var file = GetFile(filepath, sourceTypes);
         if (file == null) throw new NullReferenceException($"File not found: {filepath}");
         return file;
     }

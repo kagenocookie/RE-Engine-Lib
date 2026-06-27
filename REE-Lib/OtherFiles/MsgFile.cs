@@ -1,7 +1,6 @@
 using ReeLib.Common;
+using ReeLib.InternalAttributes;
 using ReeLib.Msg;
-
-using Header = ReeLib.StructModel<ReeLib.Msg.HeaderStruct>;
 
 namespace ReeLib.Msg
 {
@@ -59,11 +58,11 @@ namespace ReeLib.Msg
         public AttributeValueType ValueType { get; set; }
     }
 
-
-    public struct HeaderStruct
+    [RszGenerate, RszAutoReadWrite]
+    public partial class Header : BaseModel
     {
-        public uint version;
-        public uint magic;  // GMSG
+        public int version;
+        public uint magic = MsgFile.Magic;
         public long headerOffset;  // 0x10
         public int entryCount;
         public int attributeCount;
@@ -98,7 +97,7 @@ namespace ReeLib.Msg
         /// <summary>
         /// True if hashOrIndex is murmurhash3 of the entry Name
         /// </summary>
-        public bool IsHash => MsgHeader.Data.version > 15;
+        public bool IsHash => MsgHeader.version > 15;
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -110,7 +109,7 @@ namespace ReeLib.Msg
 
             ContentOffsetsByLangs ??= new();
             ContentOffsetsByLangs.Clear();
-            handler.ReadList(ContentOffsetsByLangs, MsgHeader.Data.langCount);
+            handler.ReadList(ContentOffsetsByLangs, MsgHeader.langCount);
             return true;
         }
 
@@ -124,7 +123,7 @@ namespace ReeLib.Msg
             _attributeOffsetStart = handler.Tell();
             handler.Write(ref attributeOffset);
             _contentOffsetsByLangsStart = handler.Tell();
-            handler.Skip(8 * MsgHeader.Data.langCount);
+            handler.Skip(8 * MsgHeader.langCount);
             return true;
         }
     }
@@ -145,7 +144,7 @@ namespace ReeLib.Msg
         {
             var header = Header;
             if (!header.Read(handler)) return false;
-            int langCount = header.MsgHeader.Data.langCount;
+            int langCount = header.MsgHeader.langCount;
             for (int i = 0; i < langCount; i++)
             {
                 Strings[i] = handler.ReadWString(header.ContentOffsetsByLangs![i]);
@@ -194,7 +193,7 @@ namespace ReeLib.Msg
                 }
             }
 
-            int langCount = header.MsgHeader.Data.langCount;
+            int langCount = header.MsgHeader.langCount;
             long pos = handler.Tell();
             handler.Seek(header._contentOffsetsByLangsStart);
             if (header.ContentOffsetsByLangs == null)
@@ -269,7 +268,7 @@ namespace ReeLib
             Entries.Clear();
 
             var handler = FileHandler;
-            ref var header = ref Header.Data;
+            var header = Header;
             if (!Header.Read(handler)) return false;
             if (header.magic != Magic)
             {
@@ -283,12 +282,14 @@ namespace ReeLib
 
             // Decrypt - in case we already decrypted this exact stream before, do nothing
             if (decryptedStream != FileHandler.Stream) {
-                byte[] data = handler.ReadBytes(header.dataOffset, (int)(handler.FileSize() - header.dataOffset));
-                if (header.version > 12)
-                {
-                    Decrypt(data);
+                byte[] data = handler.ReadBytes(header.dataOffset, Math.Max(0, (int)(handler.FileSize() - header.dataOffset)));
+                if (data.Length > 0) {
+                    if (header.version > 12)
+                    {
+                        Decrypt(data);
+                    }
+                    handler.WriteBytes(header.dataOffset, data);
                 }
-                handler.WriteBytes(header.dataOffset, data);
                 decryptedStream = FileHandler.Stream;
             }
 
@@ -326,14 +327,17 @@ namespace ReeLib
 
         protected override bool DoWrite()
         {
+            Languages ??= Enum.GetValues<Language>();
             FileHandler handler = FileHandler;
             handler.Clear();
-            ref var header = ref Header.Data;
-            Header.Write(handler);
+            var header = Header;
+            header.Write(handler);
 
             header.entryCount = Entries.Count;
             header.attributeCount = AttributeItems.Count;
             header.langCount = Languages!.Length;
+
+            if (handler.FileVersion != -1) header.version = handler.FileVersion;
 
             long entryOffsetsStart = handler.Tell();
             long[] entryOffsets = new long[header.entryCount];
@@ -377,9 +381,11 @@ namespace ReeLib
             // Encrypt
             if (header.version > 12)
             {
-                byte[] data = handler.ReadBytes(header.dataOffset, (int)(handler.FileSize() - header.dataOffset));
-                Encrypt(data);
-                handler.WriteBytes(header.dataOffset, data);
+                byte[] data = handler.ReadBytes(header.dataOffset, Math.Max(0, (int)(handler.FileSize() - header.dataOffset)));
+                if (data.Length > 0) {
+                    Encrypt(data);
+                    handler.WriteBytes(header.dataOffset, data);
+                }
                 decryptedStream = null;
             }
 

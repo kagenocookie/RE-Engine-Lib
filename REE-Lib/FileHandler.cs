@@ -1171,6 +1171,15 @@ namespace ReeLib
             StringTableAdd(text);
             WriteInt64(0);
         }
+        public void WriteOffsetWStringNullable(string? text)
+        {
+            if (string.IsNullOrEmpty(text)) {
+                Write(0L);
+            } else {
+                WriteOffsetWString(text);
+            }
+        }
+
         public void WriteOffsetGuidArray(Guid[] guids)
         {
             OffsetContentTableAdd((handler) => handler.WriteArray(guids));
@@ -1544,6 +1553,14 @@ namespace ReeLib
         public static IFileHandlerAction? Then<T>(this IFileHandlerAction action, bool condition, ref T value) where T : unmanaged
         {
             return condition ? action.Then(ref value) : action;
+        }
+
+        public static IFileHandlerAction Expect<T>(this IFileHandlerAction action, T expected) where T : unmanaged
+        {
+            T value = expected;
+            action.Handle(ref value);
+            DataInterpretationException.DebugThrowIf(!value.Equals(expected));
+            return action;
         }
     }
 

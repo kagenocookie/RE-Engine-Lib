@@ -26,6 +26,21 @@ namespace ReeLib.Tex
         public uint cubemapMarker;
         public TexFlags flags;
 
+        public bool HasStreamingTexture {
+            get => (flags & TexFlags.IsStreaming) != 0;
+            set => flags = (flags & ~TexFlags.IsStreaming) | (value ? TexFlags.IsStreaming : 0);
+        }
+
+        public TextureType Type {
+            get => (TextureType)((int)(flags & TexFlags.TexTypes) >> 7);
+            set => flags = (flags & ~TexFlags.TexTypes) | ((TexFlags)((int)value << 7) & TexFlags.TexTypes);
+        }
+
+        public int StreamedExtraMipCount {
+            get => ((int)(flags & TexFlags.StreamedMipBits) << 13);
+            set => flags = (flags & ~TexFlags.StreamedMipBits) | ((TexFlags)((int)value << 13) & TexFlags.StreamedMipBits);
+        }
+
         public byte swizzleHeightDepth;
         public byte swizzleWidth;
         public ushort null1;
@@ -87,11 +102,56 @@ namespace ReeLib.Tex
     public enum TexFlags
     {
         IsStreaming = 1,
-        Ukn7 = (1 << 7),
-        Ukn8 = (1 << 8),
-        Ukn9 = (1 << 9),
-        Ukn10 = (1 << 10),
-        Ukn14 = (1 << 14),
+        Ukn1 = (1 << 1),
+        Ukn2 = (1 << 2),
+        Ukn4 = (1 << 4),
+        TexType1 = (1 << 7),
+        TexType2 = (1 << 8),
+        TexType3 = (1 << 9),
+        TexType4 = (1 << 10),
+        TexType5 = (1 << 11),
+        Ukn12 = (1 << 12),
+        StreamedMip1 = (1 << 13),
+        StreamedMip2 = (1 << 14),
+        StreamedMip3 = (1 << 15),
+        Ukn24_Normal = (1 << 24), // never on streaming/ textures, and only present on _nrr/_nrm tex
+        Ukn25_Color = (1 << 25), // _albd, and _colr textures; both streaming and non-streaming
+        Ukn26 = (1 << 26),
+
+        TexTypes = TexType1|TexType2|TexType3|TexType4|TexType5,
+        StreamedMipBits = StreamedMip1|StreamedMip2|StreamedMip3,
+    }
+
+    public enum TextureType
+    {
+        Default = 0,
+        Base = 1,
+        BaseAlpha = 2,
+        Normal = 3,
+        Roughness = 4,
+        Metallic = 5,
+        Mask1ch = 6,
+        Mask2ch = 7,
+        Mask3ch = 8,
+        Mask4ch = 9,
+        BaseDielectric = 10,
+        BaseMetallic = 11,
+        NormalRoughness = 12,
+        Normal2chRoughness = 13,
+        HDR = 14,
+        Light = 15,
+        Image = 16,
+        ImageAlpha = 17,
+        AlphaGamma = 18,
+        BlackWhite = 19,
+        Image1ch = 20,
+        Image2ch = 21,
+        Image3ch = 22,
+        Image4ch = 23,
+        Image1ch_Alt = 28, // always accompanied with Ukn12 flag bit; could be part of the same number but the enum suddenly going to 60+ seems weird
+        Image2ch_Alt = 29,
+        Image3ch_Alt = 30,
+        Image4ch_Alt = 31,
     }
 }
 
@@ -270,6 +330,7 @@ namespace ReeLib
                     Header.SerializerVersion = TexSerializerVersion.Modern;
                 }
             }
+            // Log.Debug($"{handler.FilePath}\t| {Header.Type} | {Header.flags}");
 
             return true;
         }
@@ -441,7 +502,7 @@ namespace ReeLib
 
             handler.Seek(0);
             // update header data
-            Header.flags = Header.flags&~TexFlags.IsStreaming;
+            Header.HasStreamingTexture = false;
             Header.format = source.Header.DX10.Format;
             Header.width = (short)source.Header.width;
             Header.height = (short)source.Header.height;

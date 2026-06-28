@@ -5,7 +5,7 @@ namespace ReeLib.Tex
 	public enum TexSerializerVersion
 	{
 		Unknown,
-		RE7,
+		Legacy,
         Modern,
         GDeflate,
 	}
@@ -110,7 +110,7 @@ namespace ReeLib.Tex
         TexType3 = (1 << 9),
         TexType4 = (1 << 10),
         TexType5 = (1 << 11),
-        Ukn12 = (1 << 12),
+        TexType6 = (1 << 12),
         StreamedMip1 = (1 << 13),
         StreamedMip2 = (1 << 14),
         StreamedMip3 = (1 << 15),
@@ -118,7 +118,7 @@ namespace ReeLib.Tex
         Ukn25_Color = (1 << 25), // _albd, and _colr textures; both streaming and non-streaming
         Ukn26 = (1 << 26),
 
-        TexTypes = TexType1|TexType2|TexType3|TexType4|TexType5,
+        TexTypes = TexType1|TexType2|TexType3|TexType4|TexType5|TexType6,
         StreamedMipBits = StreamedMip1|StreamedMip2|StreamedMip3,
     }
 
@@ -148,10 +148,10 @@ namespace ReeLib.Tex
         Image2ch = 21,
         Image3ch = 22,
         Image4ch = 23,
-        Image1ch_Alt = 28, // always accompanied with Ukn12 flag bit; could be part of the same number but the enum suddenly going to 60+ seems weird
-        Image2ch_Alt = 29,
-        Image3ch_Alt = 30,
-        Image4ch_Alt = 31,
+        Image1ch_Alt = 60,
+        Image2ch_Alt = 61,
+        Image3ch_Alt = 62,
+        Image4ch_Alt = 63,
     }
 }
 
@@ -192,10 +192,10 @@ namespace ReeLib
 
         private static readonly Dictionary<string, TexVersionConfig> Versions = new()
 		{
-			{ "RE7", new (8, TexSerializerVersion.RE7, [GameName.re7]) },
-			{ "RE2", new (10, TexSerializerVersion.RE7, [GameName.re2]) },
-			{ "DMC5", new (11, TexSerializerVersion.RE7, [GameName.dmc5]) },
-			{ "RE3", new (190820018, TexSerializerVersion.RE7, [GameName.re3]) },
+			{ "RE7", new (8, TexSerializerVersion.Legacy, [GameName.re7]) },
+			{ "RE2", new (10, TexSerializerVersion.Legacy, [GameName.re2]) },
+			{ "DMC5", new (11, TexSerializerVersion.Legacy, [GameName.dmc5]) },
+			{ "RE3", new (190820018, TexSerializerVersion.Legacy, [GameName.re3]) },
 
 			{ "MHRISE", new (28, TexSerializerVersion.Modern, [GameName.mhrise]) },
 			{ "RE8", new (30, TexSerializerVersion.Modern, [GameName.re8]) },

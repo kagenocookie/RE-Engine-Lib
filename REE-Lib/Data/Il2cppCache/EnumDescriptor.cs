@@ -14,6 +14,19 @@ public abstract class EnumDescriptor
     private string? _hintstring;
     public string HintstringLabels => _hintstring ??= string.Join(",", LabelValuePairs);
 
+    protected static readonly Dictionary<Type, ulong> MaskBitsDict = new Dictionary<Type, ulong>() {
+        { typeof(long), ulong.MaxValue },
+        { typeof(ulong), ulong.MaxValue },
+        { typeof(int), uint.MaxValue },
+        { typeof(uint), uint.MaxValue },
+        { typeof(ushort), ushort.MaxValue },
+        { typeof(short), ushort.MaxValue },
+        { typeof(byte), byte.MaxValue },
+        { typeof(sbyte), byte.MaxValue },
+    };
+
+    protected static bool _useSafeValueConverter;
+
     public bool IsEmpty => !CacheItems.Any();
     public bool IsFlags { get; set; }
     public bool IsCustom { get; set; }
@@ -82,16 +95,16 @@ public abstract class EnumDescriptor
     public abstract void SetDisplayLabel(string label, string name);
     public abstract void SetDisplayLabels(IEnumerable<KeyValuePair<string, string>> labels);
 
-    protected static readonly Dictionary<Type, ulong> MaskBitsDict = new Dictionary<Type, ulong>() {
-        { typeof(long), ulong.MaxValue },
-        { typeof(ulong), ulong.MaxValue },
-        { typeof(int), uint.MaxValue },
-        { typeof(uint), uint.MaxValue },
-        { typeof(ushort), ushort.MaxValue },
-        { typeof(short), ushort.MaxValue },
-        { typeof(byte), byte.MaxValue },
-        { typeof(sbyte), byte.MaxValue },
-    };
+    internal static void EnableSafeIl2cppValueConverter(bool safeMode)
+    {
+        foreach (var type in MaskBitsDict.Keys) {
+            var descType = typeof(EnumDescriptor<>).MakeGenericType(type);
+            descType
+                .GetMethod(nameof(EnumDescriptor<>.ResetConverter), System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Static)!
+                .Invoke(null, []);
+        }
+        _useSafeValueConverter = safeMode;
+    }
 }
 
 public sealed class EnumDescriptor<T> : EnumDescriptor where T : struct, IBinaryInteger<T>, IBitwiseOperators<T, T, T>, IMinMaxValue<T>, ISubtractionOperators<T, T, T>
@@ -157,6 +170,8 @@ public sealed class EnumDescriptor<T> : EnumDescriptor where T : struct, IBinary
     }
 
     protected override IEnumerable<string> LabelValuePairs => ValueToLabels.Select((pair) => $"{pair.Value.Replace(":", "-")}:{pair.Key}");
+
+    internal static void ResetConverter() => converter = null;
 
     protected override bool GuessIsFlags()
     {
@@ -252,13 +267,15 @@ public sealed class EnumDescriptor<T> : EnumDescriptor where T : struct, IBinary
 
     private static void CreateConverter()
     {
-#if DEBUG
-        if (typeof(T) == typeof(System.Int64) || typeof(T) == typeof(System.Int32) || typeof(T) == typeof(System.Int16) || typeof(T) == typeof(System.SByte))
-            converter = CreateSafeSignedConverter;
-        else
-            converter = CreateSafeUnsignedConverter;
-#else
-        // for release builds prioritize performance, assume the il2cpp cache is already set up and usable, so there's no extra hacks needed
+        if (_useSafeValueConverter) {
+            if (typeof(T) == typeof(System.Int64) || typeof(T) == typeof(System.Int32) || typeof(T) == typeof(System.Int16) || typeof(T) == typeof(System.SByte))
+                converter = CreateSafeSignedConverter;
+            else
+                converter = CreateSafeUnsignedConverter;
+            return;
+        }
+
+        // prioritize performance for normal runtime, no extra hacks needed
         if (typeof(T) == typeof(System.Int64)) {
             converter = static (e) => (T)(object)(long)e.GetInt64();
         } else if (typeof(T) == typeof(System.UInt64)) {
@@ -278,7 +295,6 @@ public sealed class EnumDescriptor<T> : EnumDescriptor where T : struct, IBinary
         } else {
             converter = static (e) => default(T);
         }
-#endif
     }
 
     public override void ClearDisplayLabels()

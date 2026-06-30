@@ -103,6 +103,7 @@ public class TypeCache
 
     public void ApplyIl2cppData(Il2cppDump data, Dictionary<string, EnumsInternalMetadata>? enumsInternal)
     {
+        EnumDescriptor.EnableSafeIl2cppValueConverter(true);
         enums.Clear();
         foreach (var (name, enumData) in data) {
             if (enumData.parent == null) continue;
@@ -150,6 +151,7 @@ public class TypeCache
                 while (data.TryGetValue(item.parent, out item) && item.parent != null && !ignoredBaseTypes.Contains(item.parent));
             }
         }
+        EnumDescriptor.EnableSafeIl2cppValueConverter(false);
     }
 
     public bool ApplyPatches(Dictionary<string, TypePatch> patches)

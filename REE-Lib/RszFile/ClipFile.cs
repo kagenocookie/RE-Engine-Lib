@@ -1468,6 +1468,7 @@ namespace ReeLib.Clip
                 if (track == Tracks[0])
                 {
                     track.childCount = Tracks.Count - 1;
+                    track.childIndex = 1;
                 }
 
                 track.nameHash1 = MurMur3HashUtils.GetAsciiHash(track.Name); // TODO verify for pragmata

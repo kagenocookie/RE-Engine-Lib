@@ -33,7 +33,7 @@ public partial class EFXAttributeTypeBillboard2DExpression : EFXAttribute, IExpr
 
 	public EFXAttributeTypeBillboard2DExpression() : base(EfxAttributeType.TypeBillboard2DExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(13) { BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(13) { BitNameDict = new () {
 		[1] = nameof(color),
 		[2] = nameof(alpha),
 		// 4 = alpha? (RE7)
@@ -83,7 +83,7 @@ public partial class EFXAttributeTypeBillboard3D : EFXAttribute
 	public float unknDD2; // TODO recheck with other games
 
     [RszVersion(EfxVersion.RERT, EndAt = nameof(Reserved))]
-    public bool ParticleIgnoreScale;
+    public byte ParticleIgnoreScale; // TODO is byte/int in MHWs, bool in < MHWs
     public bool EnableGroupColor;
     public bool OcclusionByParticleShadow;
     public bool Reserved;
@@ -101,7 +101,7 @@ public partial class EFXAttributeTypeBillboard3DExpression : EFXAttribute, IExpr
 	public EFXAttributeTypeBillboard3DExpression() : base(EfxAttributeType.TypeBillboard3DExpression) { }
 
 	// >= RE4
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(13) { BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(13) { BitNameDict = new () {
 		[1] = nameof(color),
 		[2] = nameof(colorRange),
 		[3] = nameof(alpha),
@@ -113,7 +113,7 @@ public partial class EFXAttributeTypeBillboard3DExpression : EFXAttribute, IExpr
 	} };
 
 	// <= RE RT: TODO versioned bitsets
-	// [RszClassInstance] public readonly BitSet expressionBits = new BitSet(13) { BitNameDict = new () {
+	// [RszClassInstance] public BitSet expressionBits = new BitSet(13) { BitNameDict = new () {
 	// 	[1] = nameof(color),
 	// 	[2] = nameof(colorRange),
 	// 	[3] = nameof(alpha),
@@ -174,7 +174,7 @@ public partial class EFXAttributeTypeBillboard3DMaterialClip : EFXAttribute, IMa
 
     public EFXAttributeTypeBillboard3DMaterialClip() : base(EfxAttributeType.TypeBillboard3DMaterialClip) { }
 
-	[RszClassInstance] public readonly BitSet clipBits = new BitSet(5);
+	[RszClassInstance] public BitSet clipBits = new BitSet(5);
     public uint unkn1;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public readonly EfxMaterialClipData clipData = new();
 }
@@ -188,7 +188,7 @@ public partial class EFXAttributeTypeBillboard3DMaterialExpression : EFXAttribut
 
 	public EFXAttributeTypeBillboard3DMaterialExpression() : base(EfxAttributeType.TypeBillboard3DMaterialExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(13) { BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(13) { BitNameDict = new () {
 		[1] = nameof(color),
 		[7] = nameof(size),
 	} };
@@ -277,7 +277,7 @@ public partial class EFXAttributeTypeNodeBillboardExpression : EFXAttribute, IEx
 
 	public EFXAttributeTypeNodeBillboardExpression() : base(EfxAttributeType.TypeNodeBillboardExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(42){ BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(42){ BitNameDict = new () {
 		[1] = nameof(posX_1),
 		[2] = nameof(posY_1),
 		[3] = nameof(posZ_1),
@@ -407,7 +407,7 @@ public partial class EFXAttributeTypeGpuBillboardExpression : EFXAttribute, IExp
 
 	public EFXAttributeTypeGpuBillboardExpression() : base(EfxAttributeType.TypeGpuBillboardExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(14) { BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(14) { BitNameDict = new () {
 		[1] = nameof(colorR),
 		[2] = nameof(colorG),
 		[3] = nameof(colorB),
@@ -445,7 +445,7 @@ public partial class EFXAttributeTypeGpuBillboardClip : EFXAttribute, IClipAttri
 
     public EFXAttributeTypeGpuBillboardClip() : base(EfxAttributeType.TypeGpuBillboardClip) { }
 
-	[RszClassInstance] public readonly BitSet clipBits = new BitSet(7);
+	[RszClassInstance] public BitSet clipBits = new BitSet(7);
     public UndeterminedFieldType unkn1;
 	[RszClassInstance] public EfxClipData clipData = new();
 }

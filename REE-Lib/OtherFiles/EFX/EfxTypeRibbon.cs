@@ -62,7 +62,7 @@ public partial class EFXAttributeTypeRibbonLengthExpression : EFXAttribute, IExp
 
 	public EFXAttributeTypeRibbonLengthExpression() : base(EfxAttributeType.TypeRibbonLengthExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(19) { BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(19) { BitNameDict = new () {
 		[1] = nameof(color),
 		[2] = nameof(alpha),
 		// 3,4 = size (RE7)
@@ -166,7 +166,7 @@ public partial class EFXAttributeTypeRibbonLengthMaterialClip : EFXAttribute, IM
 
     public EFXAttributeTypeRibbonLengthMaterialClip() : base(EfxAttributeType.TypeRibbonLengthMaterialClip) { }
 
-	[RszClassInstance] public readonly BitSet clipBits = new BitSet(4);
+	[RszClassInstance] public BitSet clipBits = new BitSet(4);
     public uint unkn1;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public readonly EfxMaterialClipData clipData = new();
 }
@@ -180,7 +180,7 @@ public partial class EFXAttributeTypeRibbonLengthMaterialExpression : EFXAttribu
 
 	public EFXAttributeTypeRibbonLengthMaterialExpression() : base(EfxAttributeType.TypeRibbonLengthMaterialExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(15) { BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(15) { BitNameDict = new () {
 		[1] = nameof(color),
 	} };
     public ExpressionAssignType color;
@@ -354,7 +354,7 @@ public partial class EFXAttributeTypeRibbonChainExpression : EFXAttribute, IExpr
 
 	public EFXAttributeTypeRibbonChainExpression() : base(EfxAttributeType.TypeRibbonChainExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(17);
+	[RszClassInstance] public BitSet expressionBits = new BitSet(17);
     public ExpressionAssignType unkn1;
     public ExpressionAssignType unkn2;
     public ExpressionAssignType unkn3;
@@ -466,7 +466,7 @@ public partial class EFXAttributeTypeRibbonChainMaterialClip : EFXAttribute, IMa
 
     public EFXAttributeTypeRibbonChainMaterialClip() : base(EfxAttributeType.TypeRibbonChainMaterialClip) { }
 
-	[RszClassInstance] public readonly BitSet clipBits = new BitSet(6);
+	[RszClassInstance] public BitSet clipBits = new BitSet(6);
     public uint unkn1;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public readonly EfxMaterialClipData clipData = new();
 }
@@ -557,7 +557,7 @@ public partial class EFXAttributeTypeRibbonFixEndExpression : ReeLib.Efx.EFXAttr
 
     public EFXAttributeTypeRibbonFixEndExpression() : base(EfxAttributeType.TypeRibbonFixEndExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(17) { BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(17) { BitNameDict = new () {
 		[1] = nameof(color),
 		[2] = nameof(alpha),
 		[14] = nameof(color2),
@@ -642,7 +642,7 @@ public partial class EFXAttributeTypeRibbonFixEndMaterialClip : EFXAttribute, IM
 
     public EFXAttributeTypeRibbonFixEndMaterialClip() : base(EfxAttributeType.TypeRibbonFixEndMaterialClip) { }
 
-	[RszClassInstance] public readonly BitSet clipBits = new BitSet(1);
+	[RszClassInstance] public BitSet clipBits = new BitSet(1);
     public uint unkn1;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public readonly EfxMaterialClipData clipData = new();
 }
@@ -745,7 +745,7 @@ public partial class EFXAttributeTypeRibbonFollowExpression : EFXAttribute, IExp
 
 	public EFXAttributeTypeRibbonFollowExpression() : base(EfxAttributeType.TypeRibbonFollowExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(17) { BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(17) { BitNameDict = new () {
 		[1] = nameof(color),
 		[3] = nameof(scale),
 		[4] = nameof(scaleRand),
@@ -833,7 +833,7 @@ public partial class EFXAttributeTypeRibbonFollowMaterialClip : EFXAttribute, IM
 
     public EFXAttributeTypeRibbonFollowMaterialClip() : base(EfxAttributeType.TypeRibbonFollowMaterialClip) { }
 
-	[RszClassInstance] public readonly BitSet clipBits = new BitSet(10);
+	[RszClassInstance] public BitSet clipBits = new BitSet(10);
     public uint unkn1;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public readonly EfxMaterialClipData clipData = new();
 }
@@ -847,7 +847,7 @@ public partial class EFXAttributeTypeRibbonFollowMaterialExpression : EFXAttribu
 
 	public EFXAttributeTypeRibbonFollowMaterialExpression() : base(EfxAttributeType.TypeRibbonFollowMaterialExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(15);
+	[RszClassInstance] public BitSet expressionBits = new BitSet(15);
     public ExpressionAssignType unkn1;
     public ExpressionAssignType unkn2;
     public ExpressionAssignType unkn3;
@@ -973,7 +973,7 @@ public partial class EFXAttributeTypeRibbonParticleExpression : EFXAttribute, IE
 
 	public EFXAttributeTypeRibbonParticleExpression() : base(EfxAttributeType.TypeRibbonParticleExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(17) { BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(17) { BitNameDict = new () {
 		[1] = nameof(color),
 	} };
     public ExpressionAssignType color;
@@ -1037,7 +1037,7 @@ public partial class EFXAttributeTypeGpuRibbonFollowExpression : EFXAttribute, I
 
     public EFXAttributeTypeGpuRibbonFollowExpression() : base(EfxAttributeType.TypeGpuRibbonFollowExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(9) { BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(9) { BitNameDict = new () {
 		[1] = nameof(color),
 		[2] = nameof(alpha),
 		[5] = nameof(colorRate),
@@ -1095,7 +1095,7 @@ public partial class EFXAttributeTypeGpuRibbonLengthExpression : EFXAttribute, I
 
 	public EFXAttributeTypeGpuRibbonLengthExpression() : base(EfxAttributeType.TypeGpuRibbonLengthExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(14) { BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(14) { BitNameDict = new () {
 		[1] = nameof(color), // rert: moved up by 2 (xyz = 567)
 		[2] = nameof(alpha),
 		[3] = nameof(alphaRate),
@@ -1173,7 +1173,7 @@ public partial class EFXAttributeTypeRibbonParticleMaterialClip : EFXAttribute, 
 
 	public EFXAttributeTypeRibbonParticleMaterialClip() : base(EfxAttributeType.TypeRibbonParticleMaterialClip) { }
 
-	[RszClassInstance] public readonly BitSet clipBits = new BitSet(1); // TODO verify clip bit count
+	[RszClassInstance] public BitSet clipBits = new BitSet(1); // TODO verify clip bit count
 	public uint unkn1;
 	[RszClassInstance] public EfxClipData clipData = new();
 }
@@ -1187,7 +1187,7 @@ public partial class EFXAttributeTypeRibbonParticleMaterialExpression : EFXAttri
 
 	public EFXAttributeTypeRibbonParticleMaterialExpression() : base(EfxAttributeType.TypeRibbonParticleMaterialExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(14);
+	[RszClassInstance] public BitSet expressionBits = new BitSet(14);
     public ExpressionAssignType unkn1;
     public ExpressionAssignType unkn2;
     public ExpressionAssignType unkn3;

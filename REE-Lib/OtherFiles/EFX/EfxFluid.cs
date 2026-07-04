@@ -40,7 +40,7 @@ public partial class EFXAttributeFluidEmitter2DExpression : EFXAttribute, IExpre
 
 	public EFXAttributeFluidEmitter2DExpression() : base(EfxAttributeType.FluidEmitter2DExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(2);
+	[RszClassInstance] public BitSet expressionBits = new BitSet(2);
 	public ExpressionAssignType unkn2;
 	public ExpressionAssignType unkn3;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;

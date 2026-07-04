@@ -32,7 +32,7 @@ public partial class EFXAttributeEmitterColorClip : EFXAttribute, IClipAttribute
     /// 1 = R, 2 = G, 4 = B, 8 = A
     /// </summary>
 	// public uint colorClipBits;
-	[RszClassInstance] public readonly BitSet clipBits = new BitSet(4) { BitNames = ["R", "G", "B", "A"] };
+	[RszClassInstance] public BitSet clipBits = new BitSet(4) { BitNames = ["R", "G", "B", "A"] };
 	public uint unkn1;
 	[RszClassInstance] public EfxClipData clipData = new();
 
@@ -68,7 +68,7 @@ public partial class EFXAttributeEmitterShape2DExpression : EFXAttribute, IExpre
 
 	public EFXAttributeEmitterShape2DExpression() : base(EfxAttributeType.EmitterShape2DExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(5) { BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(5) { BitNameDict = new () {
 		// [1] = nameof(unkn1),
 		// [2] = nameof(unkn2),
 		[3] = nameof(size),
@@ -123,7 +123,7 @@ public partial class EFXAttributeEmitterShape3DExpression : EFXAttribute, IExpre
 
 	public EFXAttributeEmitterShape3DExpression() : base(EfxAttributeType.EmitterShape3DExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(9) { BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(9) { BitNameDict = new () {
 		[1] = nameof(rangeXMin),
 		[2] = nameof(rangeXMax),
 		[3] = nameof(rangeYMin),
@@ -251,7 +251,7 @@ public partial class EFXAttributeMeshEmitterClip : ReeLib.Efx.EFXAttribute, ICli
 
     public EFXAttributeMeshEmitterClip() : base(EfxAttributeType.MeshEmitterClip) { }
 
-	[RszClassInstance] public readonly BitSet clipBits = new BitSet(9);
+	[RszClassInstance] public BitSet clipBits = new BitSet(9);
     public uint unkn1;
 	[RszClassInstance] public EfxClipData clipData = new();
 }
@@ -264,7 +264,7 @@ public partial class EFXAttributeMeshEmitterExpression : ReeLib.Efx.EFXAttribute
 
     public EFXAttributeMeshEmitterExpression() : base(EfxAttributeType.MeshEmitterExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(16) { BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(16) { BitNameDict = new () {
 		[1] = nameof(emitRate),
 	} };
     public ExpressionAssignType emitRate;
@@ -310,7 +310,7 @@ public partial class EFXAttributeEmitterHSVExpression : ReeLib.Efx.EFXAttribute,
 
     public EFXAttributeEmitterHSVExpression() : base(EfxAttributeType.EmitterHSVExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(16) { BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(16) { BitNameDict = new () {
 		[1] = nameof(emitRate),
 	} };
     public ExpressionAssignType emitRate;

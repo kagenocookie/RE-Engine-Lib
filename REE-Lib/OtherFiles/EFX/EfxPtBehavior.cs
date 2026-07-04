@@ -7,16 +7,17 @@ namespace ReeLib.Efx.Structs.Pt;
 
 public enum PtBehaviorPropType
 {
-    PropFloat = 9,
-    PropFloat2 = 19,
-    PropFloat3 = 11,
-    PropRange = 10,
     PropUint = 4,
+    PropFloat = 9,
+    PropRange = 10,
+    PropFloat3 = 11,
     PropInt = 14,
-    PropPrefabpath = 17,
-    PropWstring = 21,
-    PropEnum = 18,
     PropColor = 15,
+    PropWstringName = 16,
+    PropPrefabpath = 17,
+    PropEnum = 18,
+    PropFloat2 = 19,
+    PropWstring2 = 21,
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion))]
@@ -62,6 +63,12 @@ public partial class PtBehaviorVariableInteger : PtBehaviorVariableDataBase
     protected override bool DoRead(FileHandler handler) => base.DoRead(handler) && DefaultRead(handler);
     protected override bool DoWrite(FileHandler handler) => EnsureMinimumSize(4) && base.DoWrite(handler) && DefaultWrite(handler);
 }
+
+public partial class PtBehaviorVariableEnum : PtBehaviorVariableInteger
+{
+	public PtBehaviorVariableEnum(EfxVersion version) : base(version) { }
+}
+
 [RszGenerate, RszVersionedObject(typeof(EfxVersion))]
 public partial class PtBehaviorVariableFloat : PtBehaviorVariableDataBase
 {
@@ -97,14 +104,19 @@ public partial class PtBehaviorVariableFloat3 : PtBehaviorVariableDataBase
 }
 
 [RszGenerate, RszVersionedObject(typeof(EfxVersion))]
-public partial class PtBehaviorVariableDataPrefabPath : PtBehaviorVariableDataBase
+public partial class PtBehaviorVariableDataWString : PtBehaviorVariableDataBase
 {
-	public PtBehaviorVariableDataPrefabPath(EfxVersion version) : base(version) { }
+	public PtBehaviorVariableDataWString(EfxVersion version) : base(version) { }
 
-	[RszInlineWString(nameof(size))] public string? prefabPath;
+	[RszInlineWString(nameof(size))] public string? str;
 
     protected override bool DoRead(FileHandler handler) => base.DoRead(handler) && DefaultRead(handler);
-    protected override bool DoWrite(FileHandler handler) => EnsureMinimumSize(prefabPath?.Length ?? 2) && base.DoWrite(handler) && DefaultWrite(handler);
+    protected override bool DoWrite(FileHandler handler) => EnsureMinimumSize(str?.Length ?? 2) && base.DoWrite(handler) && DefaultWrite(handler);
+}
+
+public partial class PtBehaviorVariableDataPrefabPath : PtBehaviorVariableDataWString
+{
+	public PtBehaviorVariableDataPrefabPath(EfxVersion version) : base(version) { }
 }
 
 [RszGenerate, RszVersionedObject(typeof(EfxVersion))]
@@ -146,10 +158,11 @@ public partial class PtBehaviorVariable : BaseModel
 		nameof(dataType), "==", PtBehaviorPropType.PropColor, typeof(PtBehaviorVariableDataColor),
 		nameof(dataType), "==", PtBehaviorPropType.PropPrefabpath, typeof(PtBehaviorVariableDataPrefabPath),
 		nameof(dataType), "==", PtBehaviorPropType.PropInt, typeof(PtBehaviorVariableInteger),
-		nameof(dataType), "==", PtBehaviorPropType.PropEnum, typeof(PtBehaviorVariableInteger),
+		nameof(dataType), "==", PtBehaviorPropType.PropEnum, typeof(PtBehaviorVariableEnum),
 		nameof(dataType), "==", PtBehaviorPropType.PropFloat, typeof(PtBehaviorVariableFloat),
 		nameof(dataType), "==", PtBehaviorPropType.PropFloat2, typeof(PtBehaviorVariableFloat2),
 		nameof(dataType), "==", PtBehaviorPropType.PropFloat3, typeof(PtBehaviorVariableFloat3),
+		nameof(dataType), "==", PtBehaviorPropType.PropWstringName, typeof(PtBehaviorVariableDataWString),
 		typeof(PtBehaviorVariableDataPrefabUnknown)
 	)]
 	public PtBehaviorVariableDataBase? variable;
@@ -306,7 +319,7 @@ public partial class EFXAttributePtColorClip : ReeLib.Efx.EFXAttribute, IClipAtt
     /// 1 = R, 2 = G, 4 = B, 8 = A
     /// </summary>
     // public uint colorClipBits;
-	[RszClassInstance] public readonly BitSet clipBits = new BitSet(4) { BitNames = ["R", "G", "B", "A"] };
+	[RszClassInstance] public BitSet clipBits = new BitSet(4) { BitNames = ["R", "G", "B", "A"] };
     public uint unkn1;
 	[RszClassInstance] public EfxClipData clipData = new();
 
@@ -363,7 +376,7 @@ public partial class EFXAttributePtUvSequenceClip : EFXAttribute, IClipAttribute
 
     public EFXAttributePtUvSequenceClip() : base(EfxAttributeType.PtUvSequenceClip) { }
 
-	[RszClassInstance] public readonly BitSet clipBits = new BitSet(3);
+	[RszClassInstance] public BitSet clipBits = new BitSet(3);
     uint unkn1;
 	[RszClassInstance] public EfxClipData clipData = new();
 }
@@ -440,7 +453,7 @@ public partial class EFXAttributePtPathTranslateExpression : EFXAttribute, IExpr
 
 	public EFXAttributePtPathTranslateExpression() : base(EfxAttributeType.PtPathTranslateExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(4);
+	[RszClassInstance] public BitSet expressionBits = new BitSet(4);
 
 	public ExpressionAssignType Field1;
 	public ExpressionAssignType Field2;

@@ -31,6 +31,7 @@ public class BitSet : BaseModel
         }
     }
 
+    public BitSet() { Bits = []; }
     public BitSet(int bitcount)
     {
         BitCount = bitcount;

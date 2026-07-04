@@ -35,13 +35,13 @@ public partial class EFXAttributeTypeNoDrawExpression : EFXAttribute, IExpressio
 	// TODO bitset versioning
 	// re3: 2 = alpha
 	// re3rt: 3 = alpha
-	// [RszClassInstance] public readonly BitSet expressionBits = new BitSet(16) { BitNameDict = new () {
+	// [RszClassInstance] public BitSet expressionBits = new BitSet(16) { BitNameDict = new () {
 	// 	[1] = nameof(color),
 	// 	[2] = nameof(colorRand),
 	// 	[3] = nameof(alpha),
 	// 	[4] = nameof(alphaRand),
 	// } };
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(16) { BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(16) { BitNameDict = new () {
 		[1] = nameof(color),
 		[2] = nameof(alpha),
 	} };
@@ -92,7 +92,7 @@ public partial class EFXAttributeUnitCullingExpression : EFXAttribute, IExpressi
 
 	public EFXAttributeUnitCullingExpression() : base(EfxAttributeType.UnitCullingExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(11) { BitNameDict = new() {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(11) { BitNameDict = new() {
         [7] = nameof(cullingRadius),
         [11] = nameof(cullingDistance),
     } };

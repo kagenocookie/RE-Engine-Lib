@@ -1,6 +1,4 @@
-using System.Collections;
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 using System.Text;
 
 namespace ReeLib.Common
@@ -145,91 +143,6 @@ namespace ReeLib.Common
             }
 
             return name;
-        }
-
-        /// <summary>
-        /// Makes a deep clone of the target object.
-        /// </summary>
-        [return: NotNullIfNotNull(nameof(target))]
-        public static T? DeepClone<T>(this object? target)
-        {
-            return (T?)DeepClone(target);
-        }
-
-        /// <summary>
-        /// Makes a deep clone of the target object.
-        /// </summary>
-        [return: NotNullIfNotNull(nameof(target))]
-        public static object? DeepClone(this object? target)
-        {
-            if (target == null) return null;
-            var type = target.GetType();
-            if (type.IsValueType || type == typeof(string)) return target;
-            return typeof(DeepCloneUtil<>).MakeGenericType(type).GetMethod("Clone")!.Invoke(null, [target])!;
-        }
-
-        /// <summary>
-        /// Makes a deep clone of the target object.
-        /// </summary>
-        public static T DeepCloneGeneric<T>(this T target) where T : class
-        {
-            return DeepCloneUtil<T>.Clone(target);
-        }
-    }
-
-    public static class DeepCloneUtil<T> where T : class
-    {
-        private static readonly MethodInfo MemberwiseCloneMethod = typeof(Object).GetMethod("MemberwiseClone", BindingFlags.NonPublic | BindingFlags.Instance)!;
-
-        private static FieldInfo[]? _classFields;
-        private static FieldInfo[]? _cloneableFields;
-
-        /// <summary>
-        /// Makes a deep clone of the source object.
-        /// </summary>
-        public static T Clone(T source)
-        {
-            if (source is IList list) {
-                var count = list.Count;
-                if (typeof(T).IsArray) {
-                    var newArray = Array.CreateInstance(typeof(T).GetElementType()!, count)! as IList;
-                    for (int i = 0; i < count; ++i) newArray[i] = list[i].DeepClone();
-                    return (T)newArray;
-                } else {
-                    var newList = (IList)Activator.CreateInstance<T>();
-                    for (int i = 0; i < count; ++i) newList.Add(list[i].DeepClone());
-                    return (T)newList;
-                }
-            }
-
-            var clone = (T)MemberwiseCloneMethod.Invoke(source, Array.Empty<object?>())!;
-            ReplaceFields(source, clone);
-            return clone;
-        }
-
-        public static void ReplaceFields(T source, T target)
-        {
-            if (_classFields == null) {
-                // note to self: we shouldn't need to also clone properties here since backing fields already get picked up with GetFields
-                IEnumerable<FieldInfo> allFields = typeof(T).GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-                var baseType = typeof(T).BaseType;
-                while (baseType != null && baseType != typeof(object)) {
-                    // need to separately handle private base fields
-                    allFields = allFields.Concat(baseType!.GetFields(BindingFlags.Instance | BindingFlags.NonPublic));
-                    baseType = baseType.BaseType;
-                }
-                var fields = allFields.Where(fi => fi.FieldType.IsClass && fi.FieldType != typeof(string));
-                _classFields = fields.Where(f => !f.FieldType.IsAssignableTo(typeof(ICloneable))).ToArray();
-                _cloneableFields = fields.Where(f => f.FieldType.IsAssignableTo(typeof(ICloneable))).ToArray();
-            }
-
-            foreach (var plain in _classFields) {
-                plain.SetValue(target, plain.GetValue(source).DeepClone());
-            }
-
-            foreach (var plain in _cloneableFields!) {
-                plain.SetValue(target, ((ICloneable?)plain.GetValue(source))?.Clone());
-            }
         }
     }
 

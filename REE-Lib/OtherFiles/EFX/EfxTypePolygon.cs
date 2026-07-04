@@ -45,7 +45,7 @@ public partial class EFXAttributeTypePolygonClip : EFXAttribute, IClipAttribute
 
     public EFXAttributeTypePolygonClip() : base(EfxAttributeType.TypePolygonClip) { }
 
-	[RszClassInstance] public readonly BitSet clipBits = new BitSet(9);
+	[RszClassInstance] public BitSet clipBits = new BitSet(9);
     public uint unkn1;
 	[RszClassInstance] public EfxClipData clipData = new();
 }
@@ -58,7 +58,7 @@ public partial class EFXAttributeTypePolygonExpression : ReeLib.Efx.EFXAttribute
 
     public EFXAttributeTypePolygonExpression() : base(EfxAttributeType.TypePolygonExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(19) { BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(19) { BitNameDict = new () {
 		[1] = nameof(color),
 		[2] = nameof(alpha),
 		[3] = nameof(emissive),
@@ -182,7 +182,7 @@ public partial class EFXAttributeTypePolygonTrailMaterialExpression : EFXAttribu
 
 	public EFXAttributeTypePolygonTrailMaterialExpression() : base(EfxAttributeType.TypePolygonTrailMaterialExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(7) { BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(7) { BitNameDict = new () {
 		[1] = nameof(color),
 	} };
     public ExpressionAssignType color;
@@ -238,7 +238,7 @@ public partial class EFXAttributeTypeGpuPolygonExpression : EFXAttribute, IExpre
 
 	public EFXAttributeTypeGpuPolygonExpression() : base(EfxAttributeType.TypeGpuPolygonExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(19);
+	[RszClassInstance] public BitSet expressionBits = new BitSet(19);
     public ExpressionAssignType unkn1;
     public ExpressionAssignType unkn2;
     public ExpressionAssignType unkn3;

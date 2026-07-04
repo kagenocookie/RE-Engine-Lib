@@ -83,7 +83,7 @@ public partial class EFXAttributeTransform2DExpression : EFXAttribute, IExpressi
 
 	public EFXAttributeTransform2DExpression() : base(EfxAttributeType.Transform2DExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(5) { BitNames = [nameof(posX), nameof(posY), nameof(rot), nameof(scaleX), nameof(scaleY)] };
+	[RszClassInstance] public BitSet expressionBits = new BitSet(5) { BitNames = [nameof(posX), nameof(posY), nameof(rot), nameof(scaleX), nameof(scaleY)] };
 	public ExpressionAssignType posX;
 	public ExpressionAssignType posY;
 	public ExpressionAssignType rot;
@@ -126,7 +126,7 @@ public partial class EFXAttributeTransform3DExpression : EFXAttribute, IExpressi
 	/// <summary>
 	/// Up to 9 bits, in order: pos X/Y/Z, rot X/Y/Z, scale X/Y/Z
 	/// </summary>
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(9) { BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(9) { BitNameDict = new () {
 		[1] = nameof(translationX),
 		[2] = nameof(translationY),
 		[3] = nameof(translationZ),
@@ -158,7 +158,7 @@ public partial class EFXAttributeTransform3DClip : EFXAttribute, IClipAttribute
 
     public EFXAttributeTransform3DClip() : base(EfxAttributeType.Transform3DClip) { }
 
-	[RszClassInstance] public readonly BitSet clipBits = new BitSet(9);
+	[RszClassInstance] public BitSet clipBits = new BitSet(9);
     uint unkn1;
 	[RszClassInstance] public EfxClipData clipData = new();
 }
@@ -255,7 +255,7 @@ public partial class EFXAttributePtTransform2DClip : EFXAttribute, IClipAttribut
 
 	public EFXAttributePtTransform2DClip() : base(EfxAttributeType.PtTransform2DClip) { }
 
-	[RszClassInstance] public readonly BitSet clipBits = new BitSet(5);
+	[RszClassInstance] public BitSet clipBits = new BitSet(5);
     public UndeterminedFieldType unkn1;
 	[RszClassInstance] public EfxClipData clipData = new();
 }
@@ -278,7 +278,7 @@ public partial class EFXAttributePtTransform3DClip : EFXAttribute, IClipAttribut
 
     public EFXAttributePtTransform3DClip() : base(EfxAttributeType.PtTransform3DClip) { }
 
-	[RszClassInstance] public readonly BitSet clipBits = new BitSet(9);
+	[RszClassInstance] public BitSet clipBits = new BitSet(9);
     public uint unkn1;
 	[RszClassInstance] public EfxClipData clipData = new();
 }
@@ -291,7 +291,7 @@ public partial class EFXAttributePtTransform3DExpression : EFXAttribute, IExpres
 
 	public EFXAttributePtTransform3DExpression() : base(EfxAttributeType.PtTransform3DExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(9) { BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(9) { BitNameDict = new () {
 		[1] = nameof(posX),
 		[2] = nameof(posY),
 		[3] = nameof(posZ),
@@ -347,7 +347,7 @@ public partial class EFXAttributeRotateAnimExpression : EFXAttribute, IExpressio
 
 	public EFXAttributeRotateAnimExpression() : base(EfxAttributeType.RotateAnimExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(12){ BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(12){ BitNameDict = new () {
 		[1] = nameof(rotateSpeedX),
 		[2] = nameof(rotateSpeedXRand),
 		[3] = nameof(rotateSpeedY),
@@ -403,7 +403,7 @@ public partial class EFXAttributeScaleAnimExpression : EFXAttribute, IExpression
 
 	public EFXAttributeScaleAnimExpression() : base(EfxAttributeType.ScaleAnimExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(8) { BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(8) { BitNameDict = new () {
 		[1] = nameof(scale),
 		[2] = nameof(scaleRand),
 	} };

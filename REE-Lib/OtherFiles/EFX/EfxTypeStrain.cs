@@ -252,7 +252,7 @@ public partial class EFXAttributeTypeStrainRibbonExpression : EFXAttribute, IExp
 	public EFXAttributeTypeStrainRibbonExpression() : base(EfxAttributeType.TypeStrainRibbonExpression) { }
 
 	// TODO bitset versioning
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(24) { BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(24) { BitNameDict = new () {
 		[3] = nameof(posX), // rert: moved up by 2 (xyz = 567)
 		[4] = nameof(posY),
 		[5] = nameof(posZ),
@@ -297,7 +297,7 @@ public partial class EFXAttributeTypeStrainRibbonExpressionV2 : EFXAttribute, IE
 
 	public EFXAttributeTypeStrainRibbonExpressionV2() : base(EfxAttributeType.TypeStrainRibbonExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(24) { BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(24) { BitNameDict = new () {
 		[13] = nameof(posX),
 		[14] = nameof(posY),
 		[15] = nameof(posZ),
@@ -439,7 +439,7 @@ public partial class EFXAttributeTypeStrainRibbonMaterialClip : EFXAttribute, IM
 
     public EFXAttributeTypeStrainRibbonMaterialClip() : base(EfxAttributeType.TypeStrainRibbonMaterialClip) { }
 
-	[RszClassInstance] public readonly BitSet clipBits = new BitSet(1);
+	[RszClassInstance] public BitSet clipBits = new BitSet(1);
     public uint unkn1;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public readonly EfxMaterialClipData clipData = new();
 }
@@ -454,7 +454,7 @@ public partial class EFXAttributeTypeStrainRibbonMaterialExpression : EFXAttribu
 
     public EFXAttributeTypeStrainRibbonMaterialExpression() : base(EfxAttributeType.TypeStrainRibbonMaterialExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(22) { BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(22) { BitNameDict = new () {
 		[1] = nameof(color),
 		[5] = nameof(posX),
 		[6] = nameof(posY),

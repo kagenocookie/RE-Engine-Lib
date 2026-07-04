@@ -28,7 +28,7 @@ public partial class EFXAttributePtVortexelWindExpression : ReeLib.Efx.EFXAttrib
 
     public EFXAttributePtVortexelWindExpression() : base(EfxAttributeType.PtVortexelWindExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(4);
+	[RszClassInstance] public BitSet expressionBits = new BitSet(4);
     public ExpressionAssignType unkn1;
     public ExpressionAssignType unkn2;
     public ExpressionAssignType unkn3;
@@ -74,7 +74,7 @@ public partial class EFXAttributeVortexelWindEmitterExpression : ReeLib.Efx.EFXA
 
     public EFXAttributeVortexelWindEmitterExpression() : base(EfxAttributeType.VortexelWindEmitterExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(16);
+	[RszClassInstance] public BitSet expressionBits = new BitSet(16);
     public ExpressionAssignType unkn1;
     public ExpressionAssignType unkn2;
     public ExpressionAssignType unkn3;

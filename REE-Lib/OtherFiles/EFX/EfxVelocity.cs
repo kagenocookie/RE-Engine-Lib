@@ -54,7 +54,7 @@ public partial class EFXAttributeVelocity2DExpression : EFXAttribute, IExpressio
 
 	public EFXAttributeVelocity2DExpression() : base(EfxAttributeType.Velocity2DExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(13) { BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(13) { BitNameDict = new () {
 		[1] = nameof(speed),
 		[2] = nameof(speedRand),
 		[4] = nameof(gravity),
@@ -130,7 +130,7 @@ public partial class EFXAttributeVelocity3DExpression : EFXAttribute, IExpressio
 	public Vector2 range2;
 	public Vector2 range3;
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(19){ BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(19){ BitNameDict = new () {
 		[1] = nameof(speed),
 		[2] = nameof(speedRand),
 		[7] = nameof(velocityX),
@@ -270,7 +270,7 @@ public partial class EFXAttributePtVelocity3DClip : EFXAttribute, IClipAttribute
 
     public EFXAttributePtVelocity3DClip() : base(EfxAttributeType.PtVelocity3DClip) { }
 
-	[RszClassInstance] public readonly BitSet clipBits = new BitSet(4);
+	[RszClassInstance] public BitSet clipBits = new BitSet(4);
     uint unkn1;
 	[RszClassInstance] public EfxClipData clipData = new();
 }
@@ -298,7 +298,7 @@ public partial class EFXAttributePtAngularVelocity3DExpression : EFXAttribute, I
 
 	public EFXAttributePtAngularVelocity3DExpression() : base(EfxAttributeType.PtAngularVelocity3DExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(7);
+	[RszClassInstance] public BitSet expressionBits = new BitSet(7);
 	public ExpressionAssignType unkn1;
 	public ExpressionAssignType unkn2;
 	public ExpressionAssignType unkn3;

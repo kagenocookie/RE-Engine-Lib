@@ -33,7 +33,7 @@ public partial class EFXAttributeVectorFieldParameterClip : EFXAttribute, IClipA
 
     public EFXAttributeVectorFieldParameterClip() : base(EfxAttributeType.VectorFieldParameterClip) { }
 
-	[RszClassInstance] public readonly BitSet clipBits = new BitSet(13);
+	[RszClassInstance] public BitSet clipBits = new BitSet(13);
     uint unkn1;
 	[RszClassInstance] public EfxClipData clipData = new();
 }
@@ -46,7 +46,7 @@ public partial class EFXAttributeVectorFieldParameterExpression : EFXAttribute, 
 
 	public EFXAttributeVectorFieldParameterExpression() : base(EfxAttributeType.VectorFieldParameterExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(20);
+	[RszClassInstance] public BitSet expressionBits = new BitSet(20);
 	public ExpressionAssignType unkn1;
 	public ExpressionAssignType unkn2;
 	public ExpressionAssignType unkn3;

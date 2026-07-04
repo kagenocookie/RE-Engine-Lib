@@ -65,7 +65,7 @@ public partial class EFXAttributeDistortionExpression : EFXAttribute, IExpressio
 
 	public EFXAttributeDistortionExpression() : base(EfxAttributeType.DistortionExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(5);
+	[RszClassInstance] public BitSet expressionBits = new BitSet(5);
 	public ExpressionAssignType unkn1;
 	public ExpressionAssignType unkn2;
 	public ExpressionAssignType unkn3;
@@ -120,7 +120,7 @@ public partial class EFXAttributeProceduralDistortionClip : EFXAttribute, IClipA
 
     public EFXAttributeProceduralDistortionClip() : base(EfxAttributeType.ProceduralDistortionClip) { }
 
-	[RszClassInstance] public readonly BitSet clipBits = new BitSet(7);
+	[RszClassInstance] public BitSet clipBits = new BitSet(7);
     public UndeterminedFieldType unkn1;
 	[RszClassInstance] public EfxClipData clipData = new();
 }
@@ -133,7 +133,7 @@ public partial class EFXAttributeProceduralDistortionExpression : EFXAttribute, 
 
 	public EFXAttributeProceduralDistortionExpression() : base(EfxAttributeType.ProceduralDistortionExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(18);
+	[RszClassInstance] public BitSet expressionBits = new BitSet(18);
 	public ExpressionAssignType unkn1;
 	public ExpressionAssignType unkn2;
 	public ExpressionAssignType unkn3;
@@ -313,7 +313,7 @@ public partial class EFXAttributeAttractorClip : EFXAttribute, IClipAttribute
 
 	public EFXAttributeAttractorClip() : base(EfxAttributeType.AttractorClip) { }
 
-	[RszClassInstance] public readonly BitSet clipBits = new BitSet(7);
+	[RszClassInstance] public BitSet clipBits = new BitSet(7);
 	public uint unkn1;
 	[RszClassInstance] public EfxClipData clipData = new();
 }
@@ -326,7 +326,7 @@ public partial class EFXAttributeAttractorExpression : EFXAttribute, IExpression
 
 	public EFXAttributeAttractorExpression() : base(EfxAttributeType.AttractorExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(11) { BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(11) { BitNameDict = new () {
 		[1] = nameof(posX),
 		[2] = nameof(posY),
 		[3] = nameof(posZ),
@@ -457,7 +457,7 @@ public partial class EFXAttributeNoiseExpression : EFXAttribute, IExpressionAttr
 
 	public EFXAttributeNoiseExpression() : base(EfxAttributeType.NoiseExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(8);
+	[RszClassInstance] public BitSet expressionBits = new BitSet(8);
     public ExpressionAssignType unkn1;
     public ExpressionAssignType unkn2;
     public ExpressionAssignType unkn3;
@@ -533,7 +533,7 @@ public partial class EFXAttributeVanishArea3DExpression : EFXAttribute, IExpress
 
 	public EFXAttributeVanishArea3DExpression() : base(EfxAttributeType.VanishArea3DExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(14) { BitNameDict = new() {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(14) { BitNameDict = new() {
 		[1] = nameof(positionX),
 		[2] = nameof(positionY),
 		[3] = nameof(positionZ),
@@ -565,7 +565,7 @@ public partial class EFXAttributeTexelChannelOperatorClip : EFXAttribute, IClipA
 
     public EFXAttributeTexelChannelOperatorClip() : base(EfxAttributeType.TexelChannelOperatorClip) { }
 
-	[RszClassInstance] public readonly BitSet clipBits = new BitSet(2);
+	[RszClassInstance] public BitSet clipBits = new BitSet(2);
     uint unkn1;
 	[RszClassInstance] public EfxClipData clipData = new();
 }
@@ -613,7 +613,7 @@ public partial class EFXAttributeRgbCommonExpression : EFXAttribute, IExpression
 
 	public EFXAttributeRgbCommonExpression() : base(EfxAttributeType.RgbCommonExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(22) { BitNameDict = new() {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(22) { BitNameDict = new() {
 		[1] = "GreenChColor",
 		[3] = "GreenChIntensity",
 		[4] = "GreenChSaturate",
@@ -691,7 +691,7 @@ public partial class EFXAttributeRgbWaterExpression : EFXAttribute, IExpressionA
 
 	public EFXAttributeRgbWaterExpression() : base(EfxAttributeType.RgbWaterExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(13) { BitNameDict = new() {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(13) { BitNameDict = new() {
 		[1] = "GreenChColor",
 		[3] = "GreenChIntensity",
 		[4] = "GreenChSaturate",

@@ -175,7 +175,7 @@ public partial class EFXAttributeTypeMeshClip : EFXAttribute, IMaterialClipAttri
 	/// <summary>
 	/// Always 0 pre-RE4
 	/// </summary>
-	[RszClassInstance] public readonly BitSet clipBits = new BitSet(13);
+	[RszClassInstance] public BitSet clipBits = new BitSet(13);
 
 	[RszVersion("<=", EfxVersion.DMC5), RszArraySizeField(nameof(clipData))] public int mdfPropertyCount;
 	[RszVersion(nameof(Version), ">=", EfxVersion.RE3, "&&", nameof(Version), "<=", EfxVersion.RERT), RszArraySizeField(nameof(clipData), DoubleSize = true)] // else if
@@ -202,7 +202,7 @@ public partial class EFXAttributeTypeMeshExpression : EFXAttribute, IExpressionA
     public int indicesCount;
 
     // dd2, likely re4 TODO versioned bitset
-	// [RszClassInstance] public readonly BitSet expressionBits = new BitSet(25) { BitNameDict = new () {
+	// [RszClassInstance] public BitSet expressionBits = new BitSet(25) { BitNameDict = new () {
     //     [1] = nameof(color1),
     //     [2] = nameof(color1Rand),
     //     [3] = nameof(alpha),
@@ -218,7 +218,7 @@ public partial class EFXAttributeTypeMeshExpression : EFXAttribute, IExpressionA
     //     [23] = "sizeYRange",
 	// }};
     // re7, dmc5:
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(25) { BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(25) { BitNameDict = new () {
 		[1] = nameof(color1),
 		[2] = nameof(color1Rand),
 		[3] = nameof(alpha),
@@ -430,7 +430,7 @@ public partial class EFXAttributeTypeGpuMeshClip : EFXAttribute, IMaterialClipAt
 
 	public EFXAttributeTypeGpuMeshClip() : base(EfxAttributeType.TypeGpuMeshClip) { }
 
-	[RszClassInstance] public readonly BitSet clipBits = new BitSet(5);
+	[RszClassInstance] public BitSet clipBits = new BitSet(5);
     public uint unkn1;
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public readonly EfxMaterialClipData clipData = new();
 }
@@ -444,7 +444,7 @@ public partial class EFXAttributeTypeGpuMeshExpression : EFXAttribute, IExpressi
 
 	public EFXAttributeTypeGpuMeshExpression() : base(EfxAttributeType.TypeGpuMeshExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(19) { BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(19) { BitNameDict = new () {
 		[1] = nameof(color),
 		[2] = nameof(colorRand),
 		[3] = nameof(alpha),
@@ -670,7 +670,7 @@ public partial class EFXAttributeTypeGpuMeshTrailClip : EFXAttribute, IMaterialC
 	/// Bit: 0x4: unknown non-mdf property
 	/// Bits 0x0f0000 (and possibly all bits after as well): up to 4 mdf properties
 	/// </summary>
-	[RszClassInstance] public readonly BitSet clipBits = new BitSet(23) { BitNameDict = new() {
+	[RszClassInstance] public BitSet clipBits = new BitSet(23) { BitNameDict = new() {
 		[17] = "MdfProperty1",
 		[18] = "MdfProperty2",
 		[19] = "MdfProperty3",
@@ -693,7 +693,7 @@ public partial class EFXAttributeTypeGpuMeshTrailExpression : EFXAttribute
 
 	public EFXAttributeTypeGpuMeshTrailExpression() : base(EfxAttributeType.TypeGpuMeshTrailExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(21) { BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(21) { BitNameDict = new () {
 		[2] = nameof(color1R),
 		[3] = nameof(color1G),
 		[4] = nameof(color1B),

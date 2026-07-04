@@ -25,7 +25,7 @@ public partial class EFXAttributeFadeByAngleExpression : EFXAttribute, IExpressi
 
 	public EFXAttributeFadeByAngleExpression() : base(EfxAttributeType.FadeByAngleExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(2) { BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(2) { BitNameDict = new () {
 		[1] = nameof(minAngle),
 		[2] = nameof(maxAngle),
 	} };
@@ -54,7 +54,7 @@ public partial class EFXAttributeFadeByDepthExpression : EFXAttribute, IExpressi
 
 	public EFXAttributeFadeByDepthExpression() : base(EfxAttributeType.FadeByDepthExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(4) { BitNames = [ nameof(nearStart), nameof(nearEnd), nameof(farStart), nameof(farEnd) ] };
+	[RszClassInstance] public BitSet expressionBits = new BitSet(4) { BitNames = [ nameof(nearStart), nameof(nearEnd), nameof(farStart), nameof(farEnd) ] };
 	public ExpressionAssignType nearStart;
 	public ExpressionAssignType nearEnd;
 	public ExpressionAssignType farStart;

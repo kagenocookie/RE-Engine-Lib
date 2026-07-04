@@ -37,9 +37,9 @@ public partial class EFXAttributeSpawn : EFXAttribute
 	public bool UseRevival;
     //TODO FIX Check these are correct on older games
 	[RszVersion(EfxVersion.RE4)]
-    via.RangeI RevivalNum;
+    public via.RangeI RevivalNum;
 	[RszVersion(EfxVersion.DD2)]
-    via.RangeI RevivalInterval;
+    public via.RangeI RevivalInterval;
 
 
 	[RszVersionExact(EfxVersion.RE4, EndAt = nameof(re4_unkn4))] // TODO recheck
@@ -77,7 +77,7 @@ public partial class EFXAttributeSpawnExpression : EFXAttribute, IExpressionAttr
 
 	public EFXAttributeSpawnExpression() : base(EfxAttributeType.SpawnExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(7) { BitNames = [nameof(spawnNum), nameof(spawnNumRange), nameof(intervalFrame), nameof(intervalFrameRange), nameof(emitterDelayFrame), nameof(emitterDelayFrameRange), nameof(speed) ] };
+	[RszClassInstance] public BitSet expressionBits = new BitSet(7) { BitNames = [nameof(spawnNum), nameof(spawnNumRange), nameof(intervalFrame), nameof(intervalFrameRange), nameof(emitterDelayFrame), nameof(emitterDelayFrameRange), nameof(speed) ] };
 	public ExpressionAssignType spawnNum;
 	public ExpressionAssignType spawnNumRange;
 	public ExpressionAssignType intervalFrame;
@@ -126,7 +126,7 @@ public partial class EFXAttributeParentOptionsExpression : EFXAttribute, IExpres
 
 	public EFXAttributeParentOptionsExpression() : base(EfxAttributeType.ParentOptionsExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(8);
+	[RszClassInstance] public BitSet expressionBits = new BitSet(8);
     public ExpressionAssignType unkn1_1;
     public ExpressionAssignType unkn1_2;
     public ExpressionAssignType unkn1_3;
@@ -166,7 +166,7 @@ public partial class EFXAttributeLifeExpression : EFXAttribute, IExpressionAttri
 	// re7 and dd2 have value + rand pairs: 1-2 = appear, 3-4 = keep, 5-6 = vanish
 	// rest have just singular values
 	// TODO bitset versioning
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(6)  { BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(6)  { BitNameDict = new () {
 		[1] = nameof(appearLife),
 		[2] = nameof(keepLife),
 		[3] = nameof(vanishLife),
@@ -258,7 +258,7 @@ public partial class EFXAttributeTextureUnitExpression : EFXAttribute, IExpressi
 
 	public EFXAttributeTextureUnitExpression() : base(EfxAttributeType.TextureUnitExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(114);
+	[RszClassInstance] public BitSet expressionBits = new BitSet(114);
 	[RszFixedSizeArray(114)] public readonly ExpressionAssignType[] assignTypes = new ExpressionAssignType[114];
 	[RszClassInstance, RszConstructorParams(nameof(Version))] public EFXExpressionList? expressions;
 }
@@ -318,7 +318,7 @@ public partial class EFXAttributeUVSequenceExpression : EFXAttribute, IExpressio
 
 	public EFXAttributeUVSequenceExpression() : base(EfxAttributeType.UVSequenceExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(6) { BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(6) { BitNameDict = new () {
 		[1] = nameof(speed),
 		[2] = nameof(speedRand),
 		// [3] = nameof(unkn3),
@@ -341,10 +341,10 @@ public partial class EFXAttributeAlphaCorrection : EFXAttribute
 	public EFXAttributeAlphaCorrection() : base(EfxAttributeType.AlphaCorrection) { }
 
 	[RszVersion(EfxVersion.RE2)]
-	uint Flags;
-	float LowPass;
-	float HighPass;
-	float CurveConst;
+	public uint Flags;
+	public float LowPass;
+	public float HighPass;
+	public float CurveConst;
 }
 
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.ShaderSettings, EfxVersion.RE7, EfxVersion.RERT, EfxVersion.RE4, EfxVersion.DD2)]
@@ -445,7 +445,7 @@ public partial class EFXAttributeShaderSettingsExpression : ReeLib.Efx.EFXAttrib
 
     public EFXAttributeShaderSettingsExpression() : base(EfxAttributeType.ShaderSettingsExpression) { }
 
-	[RszClassInstance] public readonly BitSet expressionBits = new BitSet(12) { BitNameDict = new () {
+	[RszClassInstance] public BitSet expressionBits = new BitSet(12) { BitNameDict = new () {
 		// [1] = nameof(volume), // re7/rt/dmc5/re8 - volume/volumeblend (alpha?); color - dd2
 		// [2] = nameof(alpha), // alpha - dd2
 		// [3] = nameof(translationZ), LightShadowRatio
@@ -490,7 +490,6 @@ public sealed partial class EFXAttributePlayEmitter : EFXAttribute, IDisposable
 {
 	public EFXAttributePlayEmitter() : base(EfxAttributeType.PlayEmitter) { }
 
-	// [RszVersion(EfxVersion.MHWilds)] public uint mhws_unkn;
 	public uint efxrSize;
 	[RszIgnore] public EfxFile? efxrData;
 
@@ -513,6 +512,11 @@ public sealed partial class EFXAttributePlayEmitter : EFXAttribute, IDisposable
 		efxrData?.WriteTo(handler.WithOffset(start), false);
 		handler.Write(sizeMarker, (uint)(handler.Position - start));
 		return true;
+    }
+
+    public override EFXAttribute Clone()
+    {
+        return base.Clone();
     }
 
     public void Dispose()

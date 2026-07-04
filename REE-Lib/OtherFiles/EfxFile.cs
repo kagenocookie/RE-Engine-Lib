@@ -6,7 +6,9 @@ using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using ReeLib.Common;
 using ReeLib.Efx.Structs.Common;
+using ReeLib.Efx.Structs.Pt;
 using ReeLib.InternalAttributes;
+using ReeLib.via;
 
 namespace ReeLib.Efx
 {
@@ -49,7 +51,7 @@ namespace ReeLib.Efx
         public int boneAttributeEntryCount;
         public int propBindingIndexCount;
 
-        public EfxVersion Version { get; internal set; }
+        public EfxVersion Version { get; set; }
 
         protected override bool DoRead(FileHandler handler)
         {
@@ -206,6 +208,7 @@ namespace ReeLib.Efx
         public string? name;
         public List<EFXAttribute> Attributes { get; } = new();
 
+        [JsonIgnore]
         public EFXAttribute? TypeAttribute => Attributes.FirstOrDefault(attr => attr.IsTypeAttribute);
 
         public bool Contains(EfxAttributeType type) => Attributes.Any(attr => attr.type == type);
@@ -296,6 +299,333 @@ namespace ReeLib.Efx
             TypeInfoResolver = Instance,
         };
 
+        static EfxJsonTypeResolver()
+        {
+            jsonOptions.Converters.Add(new BitSetJsonConverter());
+            jsonOptions.Converters.Add(new EFXExpressionParameterJsonConverter());
+            jsonOptions.Converters.Add(new EFXExpressionTreeJsonConverter());
+            jsonOptions.Converters.Add(new EFXExpressionListJsonConverter());
+            jsonOptions.Converters.Add(new MdfPropertyJsonConverter());
+            jsonOptions.Converters.Add(new EFXMaterialExpressionListJsonConverter());
+        }
+
+        private sealed class EFXExpressionTreeJsonConverter : JsonConverter<EFXExpressionTree>
+        {
+            public override EFXExpressionTree? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+            {
+                if (reader.TokenType != JsonTokenType.StartObject) {
+                    throw new JsonException($"Expression tree should be object at {reader.TokenStartIndex}");
+                }
+
+                var (expr, list) = ReadExpression(ref reader, options);
+                var parsed = EfxExpressionStringParser.Parse(expr, list);
+                return parsed;
+            }
+
+            private static (string expr, List<EFXExpressionParameterName> parameters) ReadExpression(ref Utf8JsonReader reader, JsonSerializerOptions options)
+            {
+                var expr = "";
+                var parameters = new List<EFXExpressionParameterName>();
+                while (reader.Read() && reader.TokenType != JsonTokenType.EndObject) {
+                    if (reader.TokenType == JsonTokenType.PropertyName) {
+                        var prop = reader.GetString();
+                        switch (prop) {
+                            case "expression":
+                                expr = reader.GetString()!;
+                                break;
+                            case "parameters":
+                                parameters = JsonSerializer.Deserialize<List<EFXExpressionParameterName>>(ref reader, options) ?? [];
+                                break;
+                        }
+                    }
+                }
+
+                return (expr, parameters);
+            }
+
+            public override void Write(Utf8JsonWriter writer, EFXExpressionTree value, JsonSerializerOptions options)
+            {
+                writer.WriteStartObject();
+                writer.WriteString("expression", value.root.ToString());
+                writer.WritePropertyName("parameters");
+                JsonSerializer.Serialize(writer, value.parameters, options);
+                writer.WriteEndObject();
+            }
+        }
+
+        private sealed class EFXExpressionListJsonConverter : JsonConverter<EFXExpressionList>
+        {
+            public override EFXExpressionList? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+            {
+                if (reader.TokenType != JsonTokenType.StartObject) {
+                    throw new JsonException($"Expression list should be array at {reader.TokenStartIndex}");
+                }
+
+                var value = new EFXExpressionList();
+                while (reader.Read() && reader.TokenType == JsonTokenType.PropertyName) {
+                    var prop = reader.GetString();
+                    switch (prop) {
+                        case "version":
+                            value.Version = JsonSerializer.Deserialize<EfxVersion>(ref reader, options);
+                            break;
+                        case "parsedExpressions":
+                            value.ParsedExpressions = JsonSerializer.Deserialize<List<EFXExpressionTree>>(ref reader, options);
+                            break;
+                        case "expressions":
+                            value.expressions = JsonSerializer.Deserialize<List<EFXExpressionObject>>(ref reader, options) ?? [];
+                            break;
+                    }
+                }
+
+                // Q: would we wanna fully reconstruct expressions from parsed here?
+                // foreach (var p in value.ParsedExpressions ?? []) {
+                //     var exp = new EFXExpressionObject(value.Version);
+                //     // EfxExpressionTreeUtils.FlattenExpressions(exp.components, p, efx); // TODO
+                //     value.expressions.Add(exp);
+                // }
+
+                return value;
+            }
+
+            public override void Write(Utf8JsonWriter writer, EFXExpressionList value, JsonSerializerOptions options)
+            {
+                writer.WriteStartObject();
+                writer.WritePropertyName("version");
+                JsonSerializer.Serialize(writer, value.Version, options);
+                writer.WritePropertyName("parsedExpressions");
+                JsonSerializer.Serialize(writer, value.ParsedExpressions, options);
+                writer.WritePropertyName("expressions");
+                JsonSerializer.Serialize(writer, value.expressions, options);
+                writer.WriteEndObject();
+            }
+        }
+
+        private sealed class EFXMaterialExpressionListJsonConverter : JsonConverter<EFXMaterialExpressionList>
+        {
+            public override EFXMaterialExpressionList? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+            {
+                if (reader.TokenType != JsonTokenType.StartObject) {
+                    throw new JsonException($"Expression list should be array at {reader.TokenStartIndex}");
+                }
+
+                var value = new EFXMaterialExpressionList();
+                while (reader.Read() && reader.TokenType == JsonTokenType.PropertyName) {
+                    var prop = reader.GetString();
+                    switch (prop) {
+                        case "version":
+                            value.Version = JsonSerializer.Deserialize<EfxVersion>(ref reader, options);
+                            break;
+                        case "parsedExpressions":
+                            value.ParsedExpressions = JsonSerializer.Deserialize<List<EFXExpressionTree>>(ref reader, options);
+                            break;
+                        case "expressions":
+                            value.expressions = JsonSerializer.Deserialize<List<EFXMaterialExpression>>(ref reader, options) ?? [];
+                            break;
+                        case "indices":
+                            value.indices = JsonSerializer.Deserialize<uint[]>(ref reader, options) ?? [];
+                            break;
+                    }
+                }
+
+                return value;
+            }
+
+            public override void Write(Utf8JsonWriter writer, EFXMaterialExpressionList value, JsonSerializerOptions options)
+            {
+                if (value.ParsedExpressions == null) {
+                    writer.WriteNullValue();
+                    return;
+                }
+
+                writer.WriteStartObject();
+                writer.WritePropertyName("version");
+                JsonSerializer.Serialize(writer, value.Version, options);
+                writer.WritePropertyName("parsedExpressions");
+                JsonSerializer.Serialize(writer, value.ParsedExpressions, options);
+                writer.WritePropertyName("indices");
+                JsonSerializer.Serialize(writer, value.indices, options);
+                writer.WritePropertyName("expressions");
+                JsonSerializer.Serialize(writer, value.expressions, options);
+                writer.WriteEndObject();
+            }
+        }
+
+        private sealed class EFXExpressionParameterJsonConverter : JsonConverter<EFXExpressionParameter>
+        {
+            public override EFXExpressionParameter? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+            {
+                if (reader.TokenType != JsonTokenType.StartObject) {
+                    throw new JsonException($"Expression parameter should be object at {reader.TokenStartIndex}");
+                }
+
+                var res = new EFXExpressionParameter();
+                while (reader.Read() && reader.TokenType != JsonTokenType.EndObject) {
+                    if (reader.TokenType == JsonTokenType.PropertyName) {
+                        var prop = reader.GetString();
+                        reader.Read();
+                        switch (prop) {
+                            case "type":
+                                res.type = Enum.Parse<EfxExpressionParameterType>(reader.GetString()!);
+                                break;
+                            case "name":
+                                res.name = reader.GetString();
+                                res.expressionParameterNameUTF8Hash = MurMur3HashUtils.GetUTF8Hash(res.name!);
+                                res.expressionParameterNameUTF16Hash = MurMur3HashUtils.GetHash(res.name!);
+                                break;
+                            case "value":
+                                switch (res.type) {
+                                    case EfxExpressionParameterType.Float:
+                                        res.value1 = reader.GetSingle();
+                                        break;
+                                    case EfxExpressionParameterType.Float2:
+                                        res.Float2 = JsonSerializer.Deserialize<Vector2>(ref reader, options);
+                                        break;
+                                    case EfxExpressionParameterType.Color:
+                                        res.Color = JsonSerializer.Deserialize<Color>(ref reader, options);
+                                        break;
+                                    case EfxExpressionParameterType.Range:
+                                        res.Range = JsonSerializer.Deserialize<Vector3>(ref reader, options);
+                                        break;
+                                }
+                                break;
+                        }
+                    }
+                }
+                return res;
+            }
+
+            public override void Write(Utf8JsonWriter writer, EFXExpressionParameter value, JsonSerializerOptions options)
+            {
+                writer.WriteStartObject();
+                writer.WriteString("type", value.type.ToString());
+                writer.WriteString("name", value.name ?? "");
+                writer.WritePropertyName("value");
+                JsonSerializer.Serialize(writer, value.ValueObject, options);
+                writer.WriteEndObject();
+            }
+        }
+
+        private sealed class MdfPropertyJsonConverter : JsonConverter<MdfProperty>
+        {
+            public override MdfProperty? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+            {
+                if (reader.TokenType != JsonTokenType.StartObject) {
+                    throw new JsonException($"Expression parameter should be object at {reader.TokenStartIndex}");
+                }
+
+                var res = new MdfProperty();
+                while (reader.Read() && reader.TokenType != JsonTokenType.EndObject) {
+                    if (reader.TokenType == JsonTokenType.PropertyName) {
+                        var prop = reader.GetString();
+                        reader.Read();
+                        switch (prop) {
+                            case nameof(MdfProperty.Version):
+                                res.Version = (EfxVersion)reader.GetInt32();
+                                break;
+                            case nameof(MdfProperty.parameterType):
+                                res.parameterType = Enum.Parse<MaterialParameterType>(reader.GetString()!);
+                                break;
+                            case nameof(MdfProperty.PropertyNameUTF8Hash):
+                                res.PropertyNameUTF8Hash = reader.GetUInt32();
+                                break;
+                            case nameof(MdfProperty.mdfPropertyIndex):
+                                res.mdfPropertyIndex = reader.GetInt32();
+                                break;
+                            case nameof(MdfProperty.mdfParameterValueCount):
+                                res.mdfParameterValueCount = reader.GetUInt16();
+                                break;
+                            case nameof(MdfProperty.flags):
+                                res.flags = reader.GetInt32();
+                                break;
+                            case "value":
+                                if (res.parameterType == MaterialParameterType.Texture) {
+                                    res.TextureValue = JsonSerializer.Deserialize<MdfPropertyTextureValue>(ref reader, options);
+                                } else {
+                                    res.VectorValue = JsonSerializer.Deserialize<Vector4>(ref reader, options);
+                                }
+                                break;
+                            case nameof(MdfProperty.texturePath):
+                                res.texturePath = reader.GetString();
+                                break;
+                        }
+                    }
+                }
+                return res;
+            }
+
+            public override void Write(Utf8JsonWriter writer, MdfProperty value, JsonSerializerOptions options)
+            {
+                writer.WriteStartObject();
+                writer.WriteNumber(nameof(MdfProperty.Version), (int)value.Version);
+                writer.WriteString(nameof(MdfProperty.parameterType), value.parameterType.ToString());
+                writer.WriteNumber(nameof(MdfProperty.PropertyNameUTF8Hash), value.PropertyNameUTF8Hash);
+                writer.WriteNumber(nameof(MdfProperty.mdfPropertyIndex), value.mdfPropertyIndex);
+                writer.WriteNumber(nameof(MdfProperty.mdfParameterValueCount), value.mdfParameterValueCount);
+                writer.WriteNumber(nameof(MdfProperty.flags), value.flags);
+                if (value.parameterType == MaterialParameterType.Texture) {
+                    writer.WritePropertyName("value");
+                    JsonSerializer.Serialize(writer, value.TextureValue, options);
+                    writer.WriteString(nameof(MdfProperty.texturePath), value.texturePath);
+                } else {
+                    writer.WritePropertyName("value");
+                    JsonSerializer.Serialize(writer, value.VectorValue, options);
+                }
+                writer.WriteEndObject();
+            }
+        }
+
+        private sealed class BitSetJsonConverter : JsonConverter<BitSet>
+        {
+            public override BitSet? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+            {
+                if (reader.TokenType != JsonTokenType.StartObject) {
+                    throw new JsonException($"Expression parameter should be object at {reader.TokenStartIndex}");
+                }
+
+                BitSet? set = null;
+                while (reader.Read() && reader.TokenType != JsonTokenType.EndObject) {
+                    if (reader.TokenType == JsonTokenType.PropertyName) {
+                        var prop = reader.GetString();
+                        reader.Read();
+                        switch (prop) {
+                            case "bitCount":
+                                set = new BitSet(reader.GetInt32());
+                                break;
+                            case "bitNames":
+                                var names = JsonSerializer.Deserialize<string[]>(ref reader, options) ?? [];
+                                set = new BitSet(set?.BitCount ?? names.Length) { BitNameDict = names.Select((n, i) => (n, i)).ToDictionary(kv => kv.i, kv => kv.n) };
+                                break;
+                            case "bits":
+                                var setBits = JsonSerializer.Deserialize<int[]>(ref reader, options);
+                                foreach (var b in setBits ?? []) {
+                                    set!.SetBit(b, true);
+                                }
+                                break;
+                        }
+                    }
+                }
+
+                return set;
+            }
+
+            public override void Write(Utf8JsonWriter writer, BitSet value, JsonSerializerOptions options)
+            {
+                writer.WriteStartObject();
+                writer.WriteNumber("bitCount", value.BitCount);
+                writer.WritePropertyName("bitNames");
+                JsonSerializer.Serialize(writer, value.BitNames, options);
+                writer.WritePropertyName("bits");
+                writer.WriteStartArray();
+                for (int i = 0; i < value.BitCount; i++) {
+                    if (value.HasBit(i)) {
+                        writer.WriteNumberValue(i);
+                    }
+                }
+                writer.WriteEndArray();
+                writer.WriteEndObject();
+            }
+        }
+
         public override JsonTypeInfo GetTypeInfo(Type type, JsonSerializerOptions options)
         {
             JsonTypeInfo jsonTypeInfo = base.GetTypeInfo(type, options);
@@ -317,8 +647,44 @@ namespace ReeLib.Efx
                 }
                 jsonTypeInfo.PreferredPropertyObjectCreationHandling = JsonObjectCreationHandling.Populate;
             }
-            else if (type == typeof(EfxFile) || type == typeof(EFXEntry))
+            else if (type == typeof(EfxFile) || type == typeof(EFXEntry) || type == typeof(EFXAction))
             {
+                jsonTypeInfo.PreferredPropertyObjectCreationHandling = JsonObjectCreationHandling.Populate;
+            }
+            else if (type == typeof(EFXExpressionDataBase))
+            {
+                jsonTypeInfo.PolymorphismOptions = new JsonPolymorphismOptions
+                {
+                    TypeDiscriminatorPropertyName = "type",
+                    IgnoreUnrecognizedTypeDiscriminators = true,
+                    UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization,
+                    DerivedTypes = {}
+                };
+                jsonTypeInfo.PolymorphismOptions.DerivedTypes.Add(new JsonDerivedType(typeof(EFXExpressionDataFloat), (int)ExpressionComponentStorageType.Float));
+                jsonTypeInfo.PolymorphismOptions.DerivedTypes.Add(new JsonDerivedType(typeof(EFXExpressionDataBinaryOperator), (int)ExpressionComponentStorageType.BinaryOperator));
+                jsonTypeInfo.PolymorphismOptions.DerivedTypes.Add(new JsonDerivedType(typeof(EFXExpressionDataUnaryOperator), (int)ExpressionComponentStorageType.UnaryOperator));
+                jsonTypeInfo.PolymorphismOptions.DerivedTypes.Add(new JsonDerivedType(typeof(EFXExpressionDataFunction), (int)ExpressionComponentStorageType.Function));
+                jsonTypeInfo.PolymorphismOptions.DerivedTypes.Add(new JsonDerivedType(typeof(EFXExpressionDataParameterHash), (int)ExpressionComponentStorageType.ParameterHash));
+                jsonTypeInfo.PreferredPropertyObjectCreationHandling = JsonObjectCreationHandling.Populate;
+            }
+            else if (type == typeof(PtBehaviorVariableDataBase))
+            {
+                jsonTypeInfo.PolymorphismOptions = new JsonPolymorphismOptions
+                {
+                    TypeDiscriminatorPropertyName = "$type",
+                    IgnoreUnrecognizedTypeDiscriminators = true,
+                    UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization,
+                    DerivedTypes = {}
+                };
+                jsonTypeInfo.PolymorphismOptions.DerivedTypes.Add(new JsonDerivedType(typeof(PtBehaviorVariableDataColor), PtBehaviorPropType.PropColor.ToString()));
+                jsonTypeInfo.PolymorphismOptions.DerivedTypes.Add(new JsonDerivedType(typeof(PtBehaviorVariableFloat), PtBehaviorPropType.PropFloat.ToString()));
+                jsonTypeInfo.PolymorphismOptions.DerivedTypes.Add(new JsonDerivedType(typeof(PtBehaviorVariableFloat2), PtBehaviorPropType.PropFloat2.ToString()));
+                jsonTypeInfo.PolymorphismOptions.DerivedTypes.Add(new JsonDerivedType(typeof(PtBehaviorVariableFloat3), PtBehaviorPropType.PropFloat3.ToString()));
+                jsonTypeInfo.PolymorphismOptions.DerivedTypes.Add(new JsonDerivedType(typeof(PtBehaviorVariableInteger), PtBehaviorPropType.PropInt.ToString()));
+                jsonTypeInfo.PolymorphismOptions.DerivedTypes.Add(new JsonDerivedType(typeof(PtBehaviorVariableEnum), PtBehaviorPropType.PropEnum.ToString()));
+                jsonTypeInfo.PolymorphismOptions.DerivedTypes.Add(new JsonDerivedType(typeof(PtBehaviorVariableDataWString), PtBehaviorPropType.PropWstringName.ToString()));
+                jsonTypeInfo.PolymorphismOptions.DerivedTypes.Add(new JsonDerivedType(typeof(PtBehaviorVariableDataPrefabPath), PtBehaviorPropType.PropPrefabpath.ToString()));
+                jsonTypeInfo.PolymorphismOptions.DerivedTypes.Add(new JsonDerivedType(typeof(PtBehaviorVariableDataPrefabUnknown), "_unknown"));
                 jsonTypeInfo.PreferredPropertyObjectCreationHandling = JsonObjectCreationHandling.Populate;
             }
 
@@ -436,6 +802,17 @@ namespace ReeLib.Efx
                 value2 = value.Y;
                 value3 = value.Z;
             }
+        }
+
+        public object? ValueObject
+        {
+            get => type switch {
+                EfxExpressionParameterType.Float => value1,
+                EfxExpressionParameterType.Float2 => Float2,
+                EfxExpressionParameterType.Color => Color,
+                EfxExpressionParameterType.Range => Range,
+                _ => Range,
+            };
         }
 
         public override string ToString() => type switch {
@@ -585,6 +962,8 @@ namespace ReeLib.Efx
         [RszArraySizeField(nameof(efxEntryIndexes))] public int valueCount;
         [RszFixedSizeArray(nameof(valueCount))] public int[]? efxEntryIndexes;
         [RszIgnore] public string groupName = string.Empty;
+
+        public override string ToString() => groupName;
     }
 
     public class EFXBone
@@ -602,6 +981,8 @@ namespace ReeLib.Efx
 
         [RszInlineWString(ByteSize = true), RszConditional(nameof(uvarType), "==", 2)] public string? path;
         [RszInlineWString(ByteSize = true), RszConditional(nameof(uvarType), "==", 2)] public string? group;
+
+        public override string ToString() => $"[{uvarType}] {group} {path}";
     }
 
     public interface IBoneRelationAttribute
@@ -654,7 +1035,7 @@ namespace ReeLib
     using ReeLib.Efx;
     using ReeLib.Efx.Structs.Basic;
 
-    public partial class EfxFile : BaseFile, IExpressionParameterSource
+    public partial class EfxFile : BaseFile, IExpressionParameterSource, ICloneable, ITargetCloneable<EfxFile>
     {
         public List<EFXEntry> Entries { get; } = new();
         public List<EFXBone> Bones { get; } = new();
@@ -669,6 +1050,7 @@ namespace ReeLib
         public List<EffectGroup> EffectGroups { get; } = new();
         public List<EFXUvarGroup> UvarGroups { get; } = new();
 
+        [JsonIgnore]
         public EfxFile? parentFile;
 
         public const int Magic = 0x72786665;
@@ -681,6 +1063,32 @@ namespace ReeLib
         private EfxFile() : base(new FileHandler()) { }
 
         public static EfxVersion[] AllVersions => (EfxVersion[])Enum.GetValues(typeof(EfxVersion));
+
+        object ICloneable.Clone()
+        {
+            return CloneTo(new EfxFile(new FileHandler()));
+        }
+
+        public EfxFile CloneTo(EfxFile c)
+        {
+            Header.CloneFieldsTo(c.Header);
+            Entries.CloneListTo(c.Entries);
+            Bones.CloneListTo(c.Bones);
+            Strings?.CloneFieldsTo(c.Strings = new(c.Header));
+            c.BoneRelations.AddRange(BoneRelations);
+            ExpressionParameters.CloneListTo(c.ExpressionParameters);
+            Actions.CloneListTo(c.Actions);
+            FieldParameterValues.CloneListTo(c.FieldParameterValues);
+            EffectGroups.CloneListTo(c.EffectGroups);
+            UvarGroups.CloneListTo(c.UvarGroups);
+            foreach (var sub in c.GetEmbeddedFiles()) {
+                if (sub != c) {
+                    sub.parentFile = c;
+                    sub.FileHandler = FileHandler;
+                }
+            }
+            return c;
+        }
 
         public void Clear()
         {
@@ -926,7 +1334,7 @@ namespace ReeLib
 
         private void UpdateHeaderData(EfxVersion version)
         {
-            if (Header.Version != version) {
+            if (Strings == null || Header.Version != version || Strings.Header != Header) {
                 Header.Version = version;
                 Strings = new(Header);
             }
@@ -938,8 +1346,6 @@ namespace ReeLib
             Header.actionCount = Actions.Count;
             Header.fieldParameterCount = FieldParameterValues.Count;
             Header.boneAttributeEntryCount = Bones.Count;
-
-            Strings ??= new(Header);
 
             Strings.EfxNames = Entries.Select(e => e.name ?? string.Empty).ToArray();
             Strings.GroupNames = EffectGroups.Select(e => e.groupName ?? string.Empty).ToArray();

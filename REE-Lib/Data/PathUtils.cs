@@ -150,7 +150,7 @@ public static class PathUtils
     /// </summary>
     public static string? GetTargetFromFullFilepath(string filepath)
     {
-        filepath = filepath.Normalize();
+        filepath = filepath.NormalizeFilepath();
         var nativesStart = filepath.IndexOf("/natives/", StringComparison.OrdinalIgnoreCase);
         if (nativesStart == -1) {
             return null;

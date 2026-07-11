@@ -569,6 +569,8 @@ namespace ReeLib.Mesh
 		public ushort[]? Faces;
 		public int[]? IntegerFaces;
 
+		public int IndicesCount => Faces?.Length ?? IntegerFaces?.Length ?? 0;
+
 		public Vector3[] BlendShapeData = [];
 		public VertexBoneWeights[] ShapeKeyWeights = [];
 
@@ -1900,6 +1902,7 @@ namespace ReeLib.Mesh
 
 namespace ReeLib
 {
+    using System.Diagnostics.CodeAnalysis;
     using ReeLib.Mesh;
 
     public class MeshFile : BaseFile
@@ -1961,7 +1964,7 @@ namespace ReeLib
 			{ "Pragmata", new (250707828, 251121828, MeshSerializerVersion.Pragmata, [GameName.pragmata], extraWeightBuffer: true) },
 			{ "Pragmata Demo", new (250707828, 250925211, MeshSerializerVersion.Pragmata, [GameName.pragmata], extraWeightBuffer: true) },
 			{ "RE9", new (250904410, 250925211, MeshSerializerVersion.RE9, [GameName.re9]) },
-			{ "Onimusha", new (250203152, 251215606, MeshSerializerVersion.Pragmata, [GameName.oniws]) },
+			{ "OniWotS", new (250203152, 251215606, MeshSerializerVersion.Pragmata, [GameName.oniws]) },
 		};
 
 		public static readonly string[] AllVersionConfigs = Versions.Reverse().OrderByDescending(kv => kv.Value.serializerVersion).Select(kv => kv.Key).ToArray();
@@ -2005,10 +2008,9 @@ namespace ReeLib
 			return isSixWeight ? 1024 : 256;
 		}
 
-		public static bool RequireNullWeights(string exportConfig)
-		{
-			return GetSerializerVersion(exportConfig) >= MeshSerializerVersion.Pragmata;
-		}
+		public static bool RequireNullWeights(string exportConfig) => GetSerializerVersion(exportConfig) >= MeshSerializerVersion.Pragmata;
+
+		public static bool SupportsStreamingMesh(string exportConfig) => GetSerializerVersion(exportConfig) >= MeshSerializerVersion.RE4;
 
         public static uint GetFilePathVersion(string exportConfig) => Versions.TryGetValue(exportConfig, out var cfg) ? cfg.fileVersion : 0;
 
@@ -2023,9 +2025,13 @@ namespace ReeLib
 				return;
 			}
 
-			// TODO migrate field differences if applicable
-			// - streaming mesh buffer <-> multiple mesh buffer headers
-			// - blend shapes
+			// convert streaming mesh buffer -> merge into main buffer
+			if (MeshBuffer != null && StreamingBuffers?.Count > 0 && !SupportsStreamingMesh(versionConfig)) {
+				MergeStreamingMeshData();
+			}
+
+			// TODO blend shape conversion
+
 			Header.version = config.internalVersion;
 			Header.FormatVersion = config.serializerVersion;
 			MeshData?.ChangeVersion(config.serializerVersion);
@@ -2062,6 +2068,94 @@ namespace ReeLib
 							sub.Buffer = StreamingBuffers[sub.bufferIndex - 1];
 						}
 					}
+				}
+			}
+		}
+
+		/// <summary>
+		/// Merge all streaming mesh buffer data into this mesh file, removing the streaming mesh relation.
+		/// </summary>
+		public void MergeStreamingMeshData()
+		{
+			if (MeshBuffer == null || !(StreamingBuffers?.Count > 0)) {
+				return;
+			}
+
+			static void MoveBuffer<T>([NotNull] ref T[]? mainBuffer, IEnumerable<T[]> streamingBuffers, int mainCount, int streamingCount)
+			{
+				var newBuffer = new T[mainCount + streamingCount];
+				if (mainBuffer != null) {
+					Array.Copy(mainBuffer, 0, newBuffer, streamingCount, mainBuffer.Length);
+				}
+				mainBuffer = newBuffer;
+				int i = 0;
+				foreach (var sb in streamingBuffers) {
+					Array.Copy(sb, 0, newBuffer, i, sb.Length);
+					i += sb.Length;
+				}
+			}
+
+			var mainVerts = MeshBuffer.Positions.Length;
+			var mainFaces = MeshBuffer.IndicesCount;
+			var streamingVerts = StreamingBuffers.Sum(b => b.Positions.Length);
+			var streamingFaces = StreamingBuffers.Sum(b => b.IndicesCount);
+			var vertOffsets = new Dictionary<int, int>();
+			var faceOffsets = new Dictionary<int, int>();
+			vertOffsets[0] = 0;
+			faceOffsets[0] = 0;
+			for (int i = 0; i < StreamingBuffers.Count; i++) {
+				var prev = StreamingBuffers.ElementAtOrDefault(i - 1);
+				vertOffsets[vertOffsets.Count] = vertOffsets[vertOffsets.Count - 1] + (prev?.Positions.Length ?? 0);
+				faceOffsets[faceOffsets.Count] = faceOffsets[faceOffsets.Count - 1] + (prev?.IndicesCount ?? 0);
+			}
+			vertOffsets[0] = streamingVerts;
+			faceOffsets[0] = streamingFaces;
+
+			if (MeshBuffer.IntegerFaces != null) {
+				MoveBuffer(ref MeshBuffer.IntegerFaces, StreamingBuffers.Select(s => s.IntegerFaces!), mainFaces, streamingFaces);
+			} else {
+				MoveBuffer(ref MeshBuffer.Faces, StreamingBuffers.Select(s => s.Faces!), mainFaces, streamingFaces);
+			}
+			if (MeshBuffer.Positions.Length != 0) MoveBuffer(ref MeshBuffer.Positions, StreamingBuffers.Select(s => s.Positions), mainVerts, streamingVerts);
+			if (MeshBuffer.NormalsTangents.Length != 0) MoveBuffer(ref MeshBuffer.NormalsTangents, StreamingBuffers.Select(s => s.NormalsTangents), mainVerts, streamingVerts);
+			if (MeshBuffer.UV0.Length != 0) MoveBuffer(ref MeshBuffer.UV0, StreamingBuffers.Select(s => s.UV0), mainVerts, streamingVerts);
+			if (MeshBuffer.UV1.Length != 0) MoveBuffer(ref MeshBuffer.UV1, StreamingBuffers.Select(s => s.UV1), mainVerts, streamingVerts);
+			if (MeshBuffer.UV2.Length != 0) MoveBuffer(ref MeshBuffer.UV2, StreamingBuffers.Select(s => s.UV2), mainVerts, streamingVerts);
+			if (MeshBuffer.Colors.Length != 0) MoveBuffer(ref MeshBuffer.Colors, StreamingBuffers.Select(s => s.Colors), mainVerts, streamingVerts);
+			if (MeshBuffer.Weights.Length != 0) MoveBuffer(ref MeshBuffer.Weights, StreamingBuffers.Select(s => s.Weights), mainVerts, streamingVerts);
+			if (MeshBuffer.ExtraWeights?.Length > 0) MoveBuffer(ref MeshBuffer.ExtraWeights, StreamingBuffers.Select(s => s.ExtraWeights!), mainVerts, streamingVerts);
+
+			Header.flags = Header.flags & ~ContentFlags.BufferCount;
+			StreamingBuffers.Clear();
+			StreamingInfo = null;
+			StreamingBuffers = null;
+			foreach (var lod in (MeshData?.LODs ?? [])) {
+				foreach (var mg in lod.MeshGroups) {
+					foreach (var sub in mg.Submeshes) {
+						sub.vertsIndexOffset += vertOffsets[sub.bufferIndex];
+						sub.facesIndexOffset += faceOffsets[sub.bufferIndex];
+
+						sub.bufferIndex = 0;
+					}
+				}
+			}
+			foreach (var lod in (ShadowMesh?.LODs ?? [])) {
+				if (MeshData?.LODs.Contains(lod) == true) continue;
+
+				foreach (var mg in lod.MeshGroups) {
+					foreach (var sub in mg.Submeshes) {
+						sub.vertsIndexOffset += vertOffsets[sub.bufferIndex];
+						sub.facesIndexOffset += faceOffsets[sub.bufferIndex];
+
+						sub.bufferIndex = 0;
+					}
+				}
+			}
+			foreach (var mg in OccluderMesh?.MeshGroups ?? []) {
+				foreach (var sub in mg.Submeshes) {
+					sub.vertsIndexOffset += vertOffsets[sub.bufferIndex];
+					sub.facesIndexOffset += faceOffsets[sub.bufferIndex];
+					sub.bufferIndex = 0;
 				}
 			}
 		}
@@ -2136,6 +2230,7 @@ namespace ReeLib
 
 				if (header.blendShapeHeadersOffset > 0)
 				{
+					// Log.Info($"Blend shapes: {handler.FilePath}");
 					handler.Seek(header.blendShapeHeadersOffset);
 					BlendShapes = new BlendShapeData() { Version = header.FormatVersion };
 					if (!BlendShapes.Read(handler)) {

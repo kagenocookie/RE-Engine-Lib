@@ -645,6 +645,25 @@ namespace ReeLib
         public string? Path => EmbeddedRSZ?.ObjectList.FirstOrDefault()?.Values[0] as string;
         public RSZFile? EmbeddedRSZ { get; set; }
 
+        public void ChangeClass(RszParser parser, RszFileOption option, RszClass cls, string assetPath, RSZFile? parentRsz)
+        {
+            var newInstance = RszInstance.CreateInstance(parser, cls);
+            var rsz = new RSZFile(option, new FileHandler());
+            rsz.AddToObjectTable(newInstance);
+            newInstance.Values[0] = $"assets:/UserData/{newInstance.RszClass.ShortName}_{System.Random.Shared.Next()}.user.json";
+
+            ClassName = cls.name;
+            typeId = cls.typeId;
+            jsonPathHash = MurMur3HashUtils.GetHash((string)newInstance.Values[0]);
+            EmbeddedRSZ = rsz;
+
+            if (parentRsz != null) {
+                parentRsz.EmbeddedRSZFileList ??= new List<RSZFile>();
+                parentRsz.EmbeddedRSZFileList.Add(rsz);
+                if (!parentRsz.RSZUserDataInfoList.Contains(this)) parentRsz.RSZUserDataInfoList.Add(this);
+            }
+        }
+
         protected override bool DoRead(FileHandler handler)
         {
             handler.Read(ref instanceId);

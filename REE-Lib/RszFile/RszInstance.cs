@@ -930,7 +930,7 @@ namespace ReeLib
         /// <summary>
         /// Create an array element item
         /// </summary>
-        public static object CreateArrayItem(RszParser rszParser, RszField field, string? className = null)
+        public static object CreateArrayItem(RszParser rszParser, RszField field, string? className = null, bool embeddedUserdata = false)
         {
             if (field.type is RszFieldType.Object or RszFieldType.Struct)
             {
@@ -944,7 +944,11 @@ namespace ReeLib
                 className ??= GetElementType(field.original_type);
                 var rszClass = rszParser.GetRSZClass(className) ??
                     throw new Exception($"RszClass {className} not found!");
-                return new RszInstance(rszClass, -1, null, []);
+                if (embeddedUserdata) {
+                    return new RszInstance(rszClass, -1, new RSZUserDataInfo_TDB_LE_67() { typeId = rszClass.typeId });
+                } else {
+                    return new RszInstance(rszClass, -1, new RSZUserDataInfo() { typeId = rszClass.typeId });
+                }
             }
             else
             {

@@ -74,9 +74,6 @@ public class TypeCache
                 }
             } else if (!trimmed.StartsWith("}")) {
                 if (trimmed.StartsWith("//")) {
-                    if (trimmed.IndexOf("[Flags]") != -1) {
-                        nextIsFlags = true;
-                    }
                     continue;
                 }
                 var eq = trimmed.IndexOf('=');

@@ -601,7 +601,7 @@ namespace ReeLib
             return new DDSHeader() {
                 magic = DDSFile.Magic,
                 size = 124,
-                flags = HeaderFlags.CAPS | HeaderFlags.HEIGHT | HeaderFlags.WIDTH | HeaderFlags.MIPMAPCOUNT | HeaderFlags.LINEARSIZE,
+                flags = HeaderFlags.CAPS | HeaderFlags.HEIGHT | HeaderFlags.WIDTH | HeaderFlags.MIPMAPCOUNT | HeaderFlags.LINEARSIZE | HeaderFlags.PIXELFORMAT,
                 width = (uint)Header.width,
                 height = (uint)Header.height,
                 depth = 1,

@@ -13,6 +13,11 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
 
     public string? PreviousListFile { get; set; }
     public string[] ReferenceListFiles { get; set; } = [];
+    /// <summary>
+    /// Custom version overrides per file format.
+    /// Formats specified in this dictionary will not use the last known version from the list file, instead using the given version from here, or forcing an auto-scan of set to -1.
+    /// </summary>
+    public Dictionary<KnownFileFormats, int>? FormatVersionOverrides { get; set; }
 
     private readonly Dictionary<ulong, string> _knownHashPaths = new();
 
@@ -30,6 +35,7 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
         BruteforceExtensions = 4,
         UpdateExistingListCasing = 8,
         ForceRetryUnknownExtensionVersions = 16,
+        RescanPresentFileVersions = 32,
         MaintainPreviousList = 1 << 30
     }
 
@@ -38,6 +44,7 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
         CachingKnownPaths,
         ScanningExecutable,
         ScanningFiles,
+        CachingUnknownFormatList,
         ProcessingFileExtensions,
         ProcessingPaths,
         AdditionalGuesses,
@@ -182,6 +189,43 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
 
             extVersions[fmt.extension] = fmt.version;
         }
+
+        if (Flags.HasFlag(ScanFlags.RescanPresentFileVersions)) {
+            Phase = GeneratorPhase.CachingUnknownFormatList; PhaseProgress = -1;
+            var uknFormats = reader.UnknownFiles.Values.ToHashSet();
+            foreach (var ukn in uknFormats) {
+                extVersions.Remove(FileFormatExtensions.FormatToFileExtension(ukn));
+            }
+            foreach (var p in sourceFileList) {
+                var ff = PathUtils.ParseFileFormat(p);
+                if (uknFormats.Contains(ff.format)) {
+                    var pp = PathUtils.RemovePlatformPrefix(PathUtils.GetFilepathWithoutSuffixes(p)).ToString();
+                    rawPaths.TryAdd(PakUtils.GetFilepathHash(pp), pp);
+                }
+            }
+        }
+
+        if (FormatVersionOverrides != null) {
+            foreach (var (fmt, version) in FormatVersionOverrides) {
+                KnownFileFormats[] formats = [fmt]; // TODO may wanna also handle AIMap -> AIWayp/AiNvm formats somehow
+                var exts = formats.Select(f => FileFormatExtensions.FormatToFileExtension(f)).ToArray();
+                foreach (var ext in exts) {
+                    if (version == -1) {
+                        extVersions.Remove(ext);
+                    } else {
+                        extVersions[ext] = version;
+                    }
+                }
+            }
+            foreach (var p in sourceFileList) {
+                var ff = PathUtils.ParseFileFormat(p);
+                if (FormatVersionOverrides.ContainsKey(ff.format)) {
+                    var pp = PathUtils.RemovePlatformPrefix(PathUtils.GetFilepathWithoutSuffixes(p)).ToString();
+                    rawPaths.TryAdd(PakUtils.GetFilepathHash(pp), pp);
+                }
+            }
+        }
+
         var versionPrefixes = new List<string>();
         GatherVersionPrefixes(extVersions, versionPrefixes);
 

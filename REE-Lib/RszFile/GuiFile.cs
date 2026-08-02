@@ -1061,7 +1061,7 @@ namespace ReeLib.Gui
             handler.Write((long)ExtraAttributes.Count);
             ExtraAttributes.Write(handler);
 
-            if (ExtraAttributes.Count > 0) // extraStateRefOffset
+            if (ExtraStateRefs.Count > 0) // extraStateRefOffset
             {
                 handler.Write(offset + 16, handler.Tell());
                 handler.Write((long)ExtraStateRefs.Count);

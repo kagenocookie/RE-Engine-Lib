@@ -79,7 +79,7 @@ namespace ReeLib.Msg
     public class MessageEntryHeader(Header header) : BaseModel
     {
         public Guid guid;
-        public uint unknown;
+        public uint soundId;
         public uint hashOrIndex;
         public string entryName = string.Empty;
         public long attributeOffset;
@@ -102,7 +102,7 @@ namespace ReeLib.Msg
         protected override bool DoRead(FileHandler handler)
         {
             handler.Read(ref guid);
-            handler.Read(ref unknown);
+            handler.Read(ref soundId);
             handler.Read(ref hashOrIndex);
             handler.ReadOffsetWString(out entryName);
             handler.Read(ref attributeOffset);
@@ -117,7 +117,7 @@ namespace ReeLib.Msg
         {
             if (IsHash) hashOrIndex = MurMur3HashUtils.GetHash(entryName);
             handler.Write(ref guid);
-            handler.Write(ref unknown);
+            handler.Write(ref soundId);
             handler.Write(ref hashOrIndex);
             handler.WriteOffsetWString(entryName);
             _attributeOffsetStart = handler.Tell();

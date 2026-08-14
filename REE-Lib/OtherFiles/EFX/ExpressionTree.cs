@@ -35,9 +35,15 @@ public enum EfxExpressionFunction
 	Unary8 = 8,
 	Unary9 = 9,
 	Unary10 = 10,
+	Unary11 = 11,
+	Unary12 = 12,
 	Lerp = 15,
 	InvLerp = 16,
 	Clamp = 17,
+	Func18 = 18,
+	Func19 = 19,
+	Func20 = 20,
+	Func21 = 21,
 }
 
 public enum ExpressionParameterSource
@@ -230,23 +236,21 @@ public class ExpressionUnaryOperation : ExpressionAtom
 		sb.Append(')');
     }
 }
-public class ExpressionTernaryOperation : ExpressionAtom
+
+public class ExpressionFuncOperation : ExpressionAtom
 {
 	public EfxExpressionFunction func;
-	public ExpressionAtom left = ExpressionAtom.Null;
-	public ExpressionAtom arg2 = ExpressionAtom.Null;
-	public ExpressionAtom arg3 = ExpressionAtom.Null;
+	public ExpressionAtom[] args = [];
 
-    public override string ToString() => $"{func}({left}, {arg2}, {arg3})";
+    public override string ToString() => $"{func}({string.Join(", ", args.Select(x => x.ToString()))})";
 
     internal override void AppendString(StringBuilder sb)
     {
 		sb.Append($"{func}(");
-		left.AppendString(sb);
-		sb.Append(", ");
-		arg2.AppendString(sb);
-		sb.Append(", ");
-		arg3.AppendString(sb);
+		for (int i = 0; i < args.Length; i++) {
+			if (i != 0) sb.Append(", ");
+			sb.Append(args[i]);
+		}
 		sb.Append(')');
     }
 }

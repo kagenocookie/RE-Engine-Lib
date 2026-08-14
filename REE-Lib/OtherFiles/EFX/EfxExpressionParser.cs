@@ -44,10 +44,10 @@ public static partial class EfxExpressionStringParser
 			case ExpressionNegation neg:
 				StoreNewParameters(ref ctx, neg.atom, usedParams);
 				break;
-			case ExpressionTernaryOperation tert:
-				StoreNewParameters(ref ctx, tert.left, usedParams);
-				StoreNewParameters(ref ctx, tert.arg2, usedParams);
-				StoreNewParameters(ref ctx, tert.arg3, usedParams);
+			case ExpressionFuncOperation func:
+				foreach (var p in func.args) {
+					StoreNewParameters(ref ctx, p, usedParams);
+				}
 				break;
 			case ExpressionParameter param:
 				var existing = usedParams.GetParameterByHash(param.hash);
@@ -215,24 +215,35 @@ public static partial class EfxExpressionStringParser
 		};
 	}
 
-	private static readonly Dictionary<int, int> functionArgCount = new() {
-		[nameof(EfxExpressionFunction.Unary0).GetHashCode()] = 1,
-		[nameof(EfxExpressionFunction.Unary1).GetHashCode()] = 1,
-		[nameof(EfxExpressionFunction.Unary2).GetHashCode()] = 1,
-		[nameof(EfxExpressionFunction.Unary4).GetHashCode()] = 1,
-		[nameof(EfxExpressionFunction.Unary5).GetHashCode()] = 1,
-		[nameof(EfxExpressionFunction.Unary6).GetHashCode()] = 1,
-		[nameof(EfxExpressionFunction.Unary7).GetHashCode()] = 1,
-		[nameof(EfxExpressionFunction.Unary8).GetHashCode()] = 1,
-		[nameof(EfxExpressionFunction.Unary9).GetHashCode()] = 1,
-		[nameof(EfxExpressionFunction.Unary10).GetHashCode()] = 1,
+	private static readonly Dictionary<EfxExpressionFunction, int> FunctionArgCounts = new() {
+		[EfxExpressionFunction.Unary0] = 1,
+		[EfxExpressionFunction.Unary1] = 1,
+		[EfxExpressionFunction.Unary2] = 1,
+		[EfxExpressionFunction.Unary4] = 1,
+		[EfxExpressionFunction.Unary5] = 1,
+		[EfxExpressionFunction.Unary6] = 1,
+		[EfxExpressionFunction.Unary7] = 1,
+		[EfxExpressionFunction.Unary8] = 1,
+		[EfxExpressionFunction.Unary9] = 1,
+		[EfxExpressionFunction.Unary10] = 1,
+		[EfxExpressionFunction.Unary11] = 1,
+		[EfxExpressionFunction.Unary12] = 1,
 
+		[EfxExpressionFunction.Func18] = 2,
+		[EfxExpressionFunction.Func19] = 2,
+		[EfxExpressionFunction.Lerp] = 3,
+		[EfxExpressionFunction.InvLerp] = 3,
+		[EfxExpressionFunction.Clamp] = 3,
+		[EfxExpressionFunction.Func20] = 2,
+		[EfxExpressionFunction.Func21] = 5,
+	};
+
+	public static int GetFunctionParameterCount(string functionName) => functionArgCount.GetValueOrDefault(functionName.GetSpanHash(), -1);
+	public static int GetFunctionParameterCount(EfxExpressionFunction functionId) => FunctionArgCounts.GetValueOrDefault(functionId, -1);
+
+	private static readonly Dictionary<int, int> functionArgCount = new(FunctionArgCounts.Select(x => new KeyValuePair<int, int>(x.Key.ToString().GetHashCode(), x.Value))) {
 		[nameof(BinaryExpressionOperator.Min).GetHashCode()] = 2,
 		[nameof(BinaryExpressionOperator.Max).GetHashCode()] = 2,
-
-		[nameof(EfxExpressionFunction.Lerp).GetHashCode()] = 3,
-		[nameof(EfxExpressionFunction.InvLerp).GetHashCode()] = 3,
-		[nameof(EfxExpressionFunction.Clamp).GetHashCode()] = 3,
 	};
 
 	private static ExpressionAtom ParseFunction(ref ParseContext ctx, in Token idToken)
@@ -258,13 +269,21 @@ public static partial class EfxExpressionStringParser
 			SkipToken(ref ctx, TokenType.Comma);
 			bin.right = ParseExpression(ref ctx);
 			result = bin;
-		} else if (args == 3) {
-			var ter = new ExpressionTernaryOperation() { func = Enum.Parse<EfxExpressionFunction>(nameSpan, true) };
-			ter.left = ParseExpression(ref ctx);
-			SkipToken(ref ctx, TokenType.Comma);
-			ter.arg2 = ParseExpression(ref ctx);
-			SkipToken(ref ctx, TokenType.Comma);
-			ter.arg3 = ParseExpression(ref ctx);
+		// } else if (args == 3) {
+		// 	var ter = new ExpressionTernaryOperation() { func = Enum.Parse<EfxExpressionFunction>(nameSpan, true) };
+		// 	ter.left = ParseExpression(ref ctx);
+		// 	SkipToken(ref ctx, TokenType.Comma);
+		// 	ter.arg2 = ParseExpression(ref ctx);
+		// 	SkipToken(ref ctx, TokenType.Comma);
+		// 	ter.arg3 = ParseExpression(ref ctx);
+		// 	result = ter;
+		} else {
+			var ter = new ExpressionFuncOperation() { func = Enum.Parse<EfxExpressionFunction>(nameSpan, true) };
+			ter.args = new ExpressionAtom[args];
+			for (int i = 0; i < args; i++) {
+				if (i != 0) SkipToken(ref ctx, TokenType.Comma);;
+				ter.args[i] = ParseExpression(ref ctx);
+			}
 			result = ter;
 		}
 
@@ -472,11 +491,11 @@ public static class EfxExpressionTreeUtils
 			components.Add(new EFXExpressionData(new EFXExpressionDataBinaryOperator() { value = binary.oper }));
 			return;
 		}
-		if (item is ExpressionTernaryOperation ternary) {
-			FlattenExpression(components, parameters, ternary.arg3, tree, paramSource);
-			FlattenExpression(components, parameters, ternary.arg2, tree, paramSource);
-			FlattenExpression(components, parameters, ternary.left, tree, paramSource);
-			components.Add(new EFXExpressionData(new EFXExpressionDataFunction() { value = ternary.func }));
+		if (item is ExpressionFuncOperation func) {
+			for (int i = func.args.Length - 1; i >= 0; i--) {
+				FlattenExpression(components, parameters, func.args[i], tree, paramSource);
+			}
+			components.Add(new EFXExpressionData(new EFXExpressionDataFunction() { value = func.func }));
 			return;
 		}
 		throw new ArgumentException("Unknown expression for reserialize: " + item.GetType().FullName);
@@ -558,18 +577,22 @@ public static class EfxExpressionTreeUtils
 			return new ExpressionFloat() { value = floatType.value };
 		}
 		if (comp.data is EFXExpressionDataFunction intType) {
-			if (intType.value is EfxExpressionFunction.Lerp or EfxExpressionFunction.InvLerp or EfxExpressionFunction.Clamp) {
-				var item = new ExpressionTernaryOperation();
-				item.func = intType.value;
-				item.left = UnflattenExpression(expression, paramSource, ref index);
-				item.arg2 = UnflattenExpression(expression, paramSource, ref index);
-				item.arg3 = UnflattenExpression(expression, paramSource, ref index);
-				return item;
-			} else {
+			var argCount = EfxExpressionStringParser.GetFunctionParameterCount(intType.value);
+			if (argCount == -1) {
+				throw new NotSupportedException("Unknown EFX function ID " + intType.value);
+			} else if (argCount == 1) {
 				// other found values: 0, 1, 2, 4, 5, 6, 7, 8, 9, 10
 				var item = new ExpressionUnaryOperation();
 				item.func = intType.value;
 				item.atom = UnflattenExpression(expression, paramSource, ref index);
+				return item;
+			} else {
+				var item = new ExpressionFuncOperation();
+				item.args = new ExpressionAtom[argCount];
+				item.func = intType.value;
+				for (int i = 0; i < argCount; i++) {
+					item.args[i] = UnflattenExpression(expression, paramSource, ref index);
+				}
 				return item;
 			}
 		}

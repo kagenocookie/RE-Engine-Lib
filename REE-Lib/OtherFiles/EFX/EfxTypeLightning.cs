@@ -389,7 +389,7 @@ public partial class EFXAttributeTypeLightning3DMaterialClip : EFXAttribute
 public partial class EFXAttributeTypeLightning3DMaterialExpression : EFXAttribute, IExpressionAttribute, IMaterialExpressionAttribute
 {
     public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
-    public EFXMaterialExpressionList? MaterialExpressions => materialExpressions;
+    public EFXMaterialExpressionList? MaterialExpressions { get => materialExpressions; set => materialExpressions = value; }
 
 	public EFXAttributeTypeLightning3DMaterialExpression() : base(EfxAttributeType.TypeLightning3DMaterialExpression) { }
 

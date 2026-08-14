@@ -183,7 +183,7 @@ public partial class EFXAttributeTypeBillboard3DMaterialClip : EFXAttribute, IMa
 public partial class EFXAttributeTypeBillboard3DMaterialExpression : EFXAttribute, IExpressionAttribute, IMaterialExpressionAttribute
 {
     public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
-    public EFXMaterialExpressionList? MaterialExpressions => materialExpressions;
+    public EFXMaterialExpressionList? MaterialExpressions { get => materialExpressions; set => materialExpressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeTypeBillboard3DMaterialExpression() : base(EfxAttributeType.TypeBillboard3DMaterialExpression) { }

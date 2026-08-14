@@ -175,7 +175,7 @@ public partial class EFXAttributeTypeRibbonLengthMaterialClip : EFXAttribute, IM
 public partial class EFXAttributeTypeRibbonLengthMaterialExpression : EFXAttribute, IExpressionAttribute, IMaterialExpressionAttribute
 {
     public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
-    public EFXMaterialExpressionList? MaterialExpressions => materialExpressions;
+    public EFXMaterialExpressionList? MaterialExpressions { get => materialExpressions; set => materialExpressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeTypeRibbonLengthMaterialExpression() : base(EfxAttributeType.TypeRibbonLengthMaterialExpression) { }
@@ -474,7 +474,7 @@ public partial class EFXAttributeTypeRibbonChainMaterialClip : EFXAttribute, IMa
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonChainMaterialExpression, EfxVersion.DD2)]
 public partial class EFXAttributeTypeRibbonChainMaterialExpression : EFXAttribute, IMaterialExpressionAttribute
 {
-    public EFXMaterialExpressionList? MaterialExpressions => materialExpressions;
+    public EFXMaterialExpressionList? MaterialExpressions { get => materialExpressions; set => materialExpressions = value; }
 
 	public EFXAttributeTypeRibbonChainMaterialExpression() : base(EfxAttributeType.TypeRibbonChainMaterialExpression) { }
 
@@ -650,7 +650,7 @@ public partial class EFXAttributeTypeRibbonFixEndMaterialClip : EFXAttribute, IM
 [RszGenerate, RszAutoReadWrite, RszVersionedObject(typeof(EfxVersion)), EfxStruct(EfxAttributeType.TypeRibbonFixEndMaterialExpression, EfxVersion.DD2)]
 public partial class EFXAttributeTypeRibbonFixEndMaterialExpression : EFXAttribute, IMaterialExpressionAttribute
 {
-    public EFXMaterialExpressionList? MaterialExpressions => materialExpressions;
+    public EFXMaterialExpressionList? MaterialExpressions { get => materialExpressions; set => materialExpressions = value; }
 
 	public EFXAttributeTypeRibbonFixEndMaterialExpression() : base(EfxAttributeType.TypeRibbonFixEndMaterialExpression) { }
 
@@ -842,7 +842,7 @@ public partial class EFXAttributeTypeRibbonFollowMaterialClip : EFXAttribute, IM
 public partial class EFXAttributeTypeRibbonFollowMaterialExpression : EFXAttribute, IExpressionAttribute, IMaterialExpressionAttribute
 {
     public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
-    public EFXMaterialExpressionList? MaterialExpressions => materialExpressions;
+    public EFXMaterialExpressionList? MaterialExpressions { get => materialExpressions; set => materialExpressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeTypeRibbonFollowMaterialExpression() : base(EfxAttributeType.TypeRibbonFollowMaterialExpression) { }
@@ -1182,7 +1182,7 @@ public partial class EFXAttributeTypeRibbonParticleMaterialClip : EFXAttribute, 
 public partial class EFXAttributeTypeRibbonParticleMaterialExpression : EFXAttribute, IExpressionAttribute
 {
     public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
-    public EFXMaterialExpressionList? MaterialExpressions => materialExpressions;
+    public EFXMaterialExpressionList? MaterialExpressions { get => materialExpressions; set => materialExpressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeTypeRibbonParticleMaterialExpression() : base(EfxAttributeType.TypeRibbonParticleMaterialExpression) { }

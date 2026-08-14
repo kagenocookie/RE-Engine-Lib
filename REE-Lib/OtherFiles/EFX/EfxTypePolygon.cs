@@ -177,7 +177,7 @@ public partial class EFXAttributeTypePolygonTrailMaterial : EFXAttribute
 public partial class EFXAttributeTypePolygonTrailMaterialExpression : EFXAttribute, IExpressionAttribute, IMaterialExpressionAttribute
 {
     public EFXExpressionList? Expression { get => expressions; set => expressions = value; }
-    public EFXMaterialExpressionList? MaterialExpressions => materialExpressions;
+    public EFXMaterialExpressionList? MaterialExpressions { get => materialExpressions; set => materialExpressions = value; }
 	public BitSet ExpressionBits => expressionBits;
 
 	public EFXAttributeTypePolygonTrailMaterialExpression() : base(EfxAttributeType.TypePolygonTrailMaterialExpression) { }

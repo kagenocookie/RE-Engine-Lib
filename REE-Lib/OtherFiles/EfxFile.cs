@@ -998,7 +998,7 @@ namespace ReeLib.Efx
 
     public interface IMaterialExpressionAttribute
     {
-        EFXMaterialExpressionList? MaterialExpressions { get; }
+        EFXMaterialExpressionList? MaterialExpressions { get; set; }
     }
 
     public interface IExpressionParameterSource

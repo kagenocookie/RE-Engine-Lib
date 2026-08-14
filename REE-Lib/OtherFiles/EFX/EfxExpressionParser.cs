@@ -22,6 +22,11 @@ public static partial class EfxExpressionStringParser
 		if (PredictToken(ref ctx) == TokenType.EOF) return new EFXExpressionTree();
 
 		var root = ParseExpression(ref ctx);
+		if (ctx.nextToken == TokenType.RootValueOption) {
+			SkipToken(ref ctx, TokenType.RootValueOption);
+			var second = ParseExpression(ref ctx);
+			root = new ExpressionRootValueOption(root, second);
+		}
 		var usedParams = new List<EFXExpressionParameterName>();
 		StoreNewParameters(ref ctx, root, usedParams);
 
@@ -315,6 +320,7 @@ public static partial class EfxExpressionStringParser
 			case '/': return TokenType.OpDiv;
 			case '*': return TokenType.OpMul;
 			case ',': return TokenType.Comma;
+			case '|': return TokenType.RootValueOption;
 			case '0':
 			case '1':
 			case '2':
@@ -355,6 +361,7 @@ public static partial class EfxExpressionStringParser
 			case '/': return new Token(ctx.position, ++ctx.position, TokenType.OpDiv);
 			case '*': return new Token(ctx.position, ++ctx.position, TokenType.OpMul);
 			case ',': return new Token(ctx.position, ++ctx.position, TokenType.Comma);
+			case '|': return new Token(ctx.position, ++ctx.position, TokenType.RootValueOption);
 			case '0':
 			case '1':
 			case '2':
@@ -414,6 +421,7 @@ public static partial class EfxExpressionStringParser
 		ParenOpen,
 		ParenClosed,
 		Comma,
+		RootValueOption,
 	}
 }
 
@@ -498,6 +506,11 @@ public static class EfxExpressionTreeUtils
 			components.Add(new EFXExpressionData(new EFXExpressionDataFunction() { value = func.func }));
 			return;
 		}
+		if (item is ExpressionRootValueOption root) {
+			FlattenExpression(components, parameters, root.value2, tree, paramSource);
+			FlattenExpression(components, parameters, root.value1, tree, paramSource);
+			return;
+		}
 		throw new ArgumentException("Unknown expression for reserialize: " + item.GetType().FullName);
 	}
 
@@ -521,13 +534,14 @@ public static class EfxExpressionTreeUtils
 		tree.root = UnflattenExpression(expression, paramSource, ref i);
 		tree.parameters = expression.Parameters.ToList();
 		if (i >= 0) {
-			// two DMC5 files get caught here due to having an extra float at the start - Capcom user error?
+			// a few rare files seem to have two separate values in here
 			// maybe it's a feature where you can specify two values, and they get used as a min-max random range?
-			// ignoring this for now since they're inconsequential
+			// so far found it in 2 DMC5 files and several MHWilds ones
 			var root2 = UnflattenExpression(expression, paramSource, ref i);
 			if (i >= 0) {
 				throw new Exception("Incomplete expression!!");
 			}
+			tree.root = new ExpressionRootValueOption(tree.root, root2);
 		}
 
 		return tree;

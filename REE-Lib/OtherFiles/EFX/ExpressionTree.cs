@@ -254,3 +254,19 @@ public class ExpressionFuncOperation : ExpressionAtom
 		sb.Append(')');
     }
 }
+
+public class ExpressionRootValueOption : ExpressionAtom
+{
+	public ExpressionAtom value1 = ExpressionAtom.Null;
+	public ExpressionAtom value2 = ExpressionAtom.Null;
+
+    public ExpressionRootValueOption(ExpressionAtom value1, ExpressionAtom value2)
+    {
+        this.value1 = value1;
+        this.value2 = value2;
+    }
+
+    public override string ToString() => value1 + "  |  " + value2;
+
+    internal override void AppendString(StringBuilder sb) => sb.Append(ToString());
+}

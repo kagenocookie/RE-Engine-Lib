@@ -107,7 +107,13 @@ namespace ReeLib
                 }
                 foreach (var structField in unresolvedStructs)
                 {
-                    structField.StructClass = classNameDict[structField.original_type];
+                    if (classNameDict.TryGetValue(structField.original_type, out var cls)) {
+                        structField.StructClass = cls;
+                    } else {
+                        Log.Error($"Could not find struct classname {structField.original_type}. Falling back to raw data type.");
+                        structField.original_type = string.Empty;
+                        structField.type = RszFieldType.Data;
+                    }
                 }
 
                 string patchJsonPath = Path.Combine(

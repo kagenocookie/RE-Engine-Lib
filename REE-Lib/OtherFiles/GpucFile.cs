@@ -1021,7 +1021,7 @@ namespace ReeLib
         public List<TriangleBlendInfoCompressed>? WeightedContactDescs1 { get; set; }
         public List<TriangleBlendInfoCompressed>? WeightedContactDescs2 { get; set; }
 
-        public const int Magic = 0x4F4C4347;
+        public const uint Magic = 0x4F4C4347;
 
         public void ClearData()
         {

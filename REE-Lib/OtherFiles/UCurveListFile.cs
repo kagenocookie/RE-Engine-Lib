@@ -2,7 +2,7 @@ namespace ReeLib
 {
     public class UCurveListFile(FileHandler fileHandler) : BaseFile(fileHandler)
     {
-        public const int Magic = 0x736C6375;
+        public const uint Magic = 0x736C6375;
 
         public int version;
         public List<string> Paths { get; } = new();
@@ -14,7 +14,7 @@ namespace ReeLib
             var handler = FileHandler;
             Paths.Clear();
 
-            var magic = handler.Read<int>();
+            var magic = handler.Read<uint>();
             if (magic != Magic) throw new InvalidDataException("Invalid ucurvelist file");
             handler.Read(ref version);
             int pathCount = handler.Read<int>();

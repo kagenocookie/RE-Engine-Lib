@@ -57,7 +57,7 @@ namespace ReeLib
         public List<string> GroundTextures { get; } = new();
         public List<GroundDataHeaders> ContentHeaders { get; } = new();
 
-        public const int Magic = 0x444e5247;
+        public const uint Magic = 0x444e5247;
 
         public GrndFile(FileHandler fileHandler) : base(fileHandler)
         {

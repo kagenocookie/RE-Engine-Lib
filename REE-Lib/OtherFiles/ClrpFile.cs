@@ -6,12 +6,12 @@ namespace ReeLib
     {
         public List<Vector3> Positions = [];
 
-        public const int Magic = 0x50524C43;
+        public const uint Magic = 0x50524C43;
 
         protected override bool DoRead()
         {
             var handler = FileHandler;
-            var magic = handler.Read<int>();
+            var magic = handler.Read<uint>();
             if (magic != Magic)
             {
                 throw new Exception("Invalid CLRP file");

@@ -14,7 +14,7 @@ namespace ReeLib
 {
     public class AimapAttrFile(FileHandler handler) : BaseFile(handler)
     {
-        public const int Magic = 0x414D4941;
+        public const uint Magic = 0x414D4941;
 
         public Color color1;
         public Color color2;

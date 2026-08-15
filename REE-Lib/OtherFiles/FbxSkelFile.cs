@@ -55,7 +55,7 @@ namespace ReeLib
         public List<RefBone> Bones { get; } = new();
         public List<Uint2> BonesLookup { get; } = new();
 
-        public const int Magic = 0x6E6C6B73;
+        public const uint Magic = 0x6E6C6B73;
 
         public RefBone? FindBoneByHash(uint boneHash)
         {
@@ -78,7 +78,7 @@ namespace ReeLib
         {
             var handler = FileHandler;
             handler.Read(ref version);
-            var magic = handler.Read<int>();
+            var magic = handler.Read<uint>();
             if (magic != Magic)
             {
                 throw new InvalidDataException($"{handler.FilePath} Not a FbxSkel file");

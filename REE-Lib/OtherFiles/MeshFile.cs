@@ -1908,7 +1908,6 @@ namespace ReeLib
     public class MeshFile : BaseFile
     {
         public const uint Magic = 0x4853454D;
-        public const uint MagicMply = 0x594C504D;
 
 		public Header Header { get; } = new();
 		public MeshStreamingInfo? StreamingInfo { get; set; }
@@ -2165,7 +2164,7 @@ namespace ReeLib
 			var handler = FileHandler;
 			var header = Header;
 			var magic = handler.ReadInt(handler.Tell());
-			if (magic == MagicMply)
+			if (magic == MplyMeshFile.Magic)
 			{
 				throw new NotSupportedException($"MPLY meshes need to be read through {nameof(MplyMeshFile)}!");
 			}

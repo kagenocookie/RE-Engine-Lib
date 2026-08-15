@@ -50,6 +50,7 @@ public class ReeLibGenerator : IIncrementalGenerator
                 var sb1 = new StringBuilder();
                 var sb2 = new StringBuilder();
                 var sb3 = new StringBuilder();
+                var sb4 = new StringBuilder("\tpublic static readonly string[] KnownFileExtensions = [").AppendLine();
                 AppendParentClasses(sb1, enumDecl, out var indent);
                 var indentStr = new string('\t', indent - 1);
                 var indentStr2 = new string('\t', indent);
@@ -73,6 +74,7 @@ public class ReeLibGenerator : IIncrementalGenerator
                             foreach (var ext in extensionList) {
                                 sb1.Append(indentStr3).AppendLine($"\"{ext}\" => {name}.{valName},");
                                 sb2.Append(indentStr3).AppendLine($"{MurMur3Hash(ext)} => {name}.{valName},");
+                                sb4.AppendLine($"\t\t\"{ext}\",");
                             }
                             sb3.Append(indentStr3).AppendLine($"{name}.{valName} => \"{extensionList[0]}\",");
                         } else {
@@ -93,6 +95,8 @@ public class ReeLibGenerator : IIncrementalGenerator
                 sb1.AppendLine().Append(sb3);
                 sb1.Append(indentStr3).AppendLine($"_ => \"unknown\"");
                 sb1.Append(indentStr2).AppendLine("};");
+
+                sb1.AppendLine().Append(sb4).AppendLine("\t];");
 
                 CloseIndents(sb1, indent);
 

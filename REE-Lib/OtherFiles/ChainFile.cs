@@ -1046,7 +1046,7 @@ namespace ReeLib
         public List<ChainSetting> Settings { get; } = [];
         public List<UknExtraData> ExtraData { get; } = [];
 
-        public const int Magic = 0x6e616863;
+        public const uint Magic = 0x6e616863;
 
         protected override bool DoRead()
         {

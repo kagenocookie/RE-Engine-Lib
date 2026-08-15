@@ -5,7 +5,7 @@ namespace ReeLib
         public Guid materialGuid;
         public List<Guid> Attributes = [];
 
-        public const int Magic = 0x54414D43;
+        public const uint Magic = 0x54414D43;
 
         public CmatFile(FileHandler fileHandler) : base(fileHandler)
         {
@@ -14,7 +14,7 @@ namespace ReeLib
         protected override bool DoRead()
         {
             var handler = FileHandler;
-            var magic = handler.Read<int>();
+            var magic = handler.Read<uint>();
             if (magic != Magic)
             {
                 throw new Exception("Invalid CMAT file");

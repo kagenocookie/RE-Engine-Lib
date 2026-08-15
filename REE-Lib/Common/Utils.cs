@@ -103,6 +103,38 @@ namespace ReeLib.Common
             return newValue;
         }
 
+        private static HashSet<KnownFileFormats> Offset4Formats = [
+            KnownFileFormats.UserVariables, KnownFileFormats.ChainWind,
+            KnownFileFormats.Clip, KnownFileFormats.GUI,
+            KnownFileFormats.Motion, KnownFileFormats.MotionTree,
+            KnownFileFormats.MotionPack, KnownFileFormats.MotionCamera,
+            KnownFileFormats.MotionList, KnownFileFormats.MotionCameraList,
+            KnownFileFormats.MotionFsm2, KnownFileFormats.MotionBank, KnownFileFormats.MotionCameraBank,
+            KnownFileFormats.DialogueConfig,
+            KnownFileFormats.FbxSkeleton, KnownFileFormats.Skeleton, KnownFileFormats.RefSkeleton,
+        ];
+
+        public static List<(uint magicBytes, int magicOffset, KnownFileFormats format)> GetSupportedFileContentFormats()
+        {
+            var list = new List<(uint magicBytes, int magicOffset, KnownFileFormats format)>();
+            var types = typeof(ReeLib.BaseFile).Assembly.GetTypes()
+                .Where(t => !t.IsAbstract && t.IsAssignableTo(typeof(BaseFile)));
+            foreach (var type in types) {
+                var magicField = type.GetField("Magic", System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Public);
+                if (magicField == null || magicField.FieldType != typeof(uint)) {
+                    continue;
+                }
+                var magic = (uint)magicField.GetValue(null)!;
+                var format = CachedMemoryPakReader.GuessFileFormatFromMagic(magic);
+                if (format != KnownFileFormats.Unknown) {
+                    var offset = Offset4Formats.Contains(format) ? 4 : 0;
+                    list.Add((magic, offset, format));
+                }
+            }
+
+            return list;
+        }
+
         /// <summary>
         /// Common dictionary storage for all known bone name hashes, intended to help editing files that only contain the hashes.
         /// </summary>

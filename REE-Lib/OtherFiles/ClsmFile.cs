@@ -220,7 +220,7 @@ namespace ReeLib
         public List<ClsmBone> Bones { get; set; } = [];
         public List<ClsmCollisionMaterial> MaterialNames { get; set; } = [];
 
-        public const int Magic = 0x4D534C43;
+        public const uint Magic = 0x4D534C43;
 
         protected override bool DoRead()
         {

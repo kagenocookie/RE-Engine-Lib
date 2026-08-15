@@ -88,7 +88,7 @@ namespace ReeLib
 
         private const int LayerCount = 32;
 
-        public const int Magic = 0x20464544;
+        public const uint Magic = 0x20464544;
 
         public DefFile(FileHandler fileHandler) : base(fileHandler)
         {

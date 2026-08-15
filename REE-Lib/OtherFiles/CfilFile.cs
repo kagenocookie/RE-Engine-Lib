@@ -7,7 +7,7 @@ namespace ReeLib
         public Guid LayerGuid;
         public Guid[] MaskGuids = [];
 
-        public const int Magic = 0x4c494643;
+        public const uint Magic = 0x4c494643;
 
         public CfilFile(FileHandler fileHandler) : base(fileHandler)
         {
@@ -16,7 +16,7 @@ namespace ReeLib
         protected override bool DoRead()
         {
             var handler = FileHandler;
-            var magic = handler.Read<int>();
+            var magic = handler.Read<uint>();
             if (magic != Magic)
             {
                 throw new Exception("Invalid CFIL file");

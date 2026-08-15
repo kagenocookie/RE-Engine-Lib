@@ -28,7 +28,7 @@ namespace ReeLib
         public string[] Fonts = Array.Empty<string>();
         public List<string> MessageFiles { get; } = new();
 
-        public const int Magic = 0x47464347;
+        public const uint Magic = 0x47464347;
 
         protected override bool DoRead()
         {

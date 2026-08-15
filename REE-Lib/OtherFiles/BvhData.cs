@@ -182,7 +182,7 @@ namespace ReeLib
         public readonly List<BvhOBB> boxes = new();
         public BvhTree? tree;
 
-        public const int Magic = 0x4D485642;
+        public const uint Magic = 0x4D485642;
 
         private const float BvhCollisionMargin = 0.01f;
 

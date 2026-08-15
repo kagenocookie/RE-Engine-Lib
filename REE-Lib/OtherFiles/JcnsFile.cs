@@ -584,7 +584,7 @@ namespace ReeLib
         public List<Dependency> Dependencies { get; } = new();
         public List<ObjectSetting> ObjectSettings { get; } = new();
 
-        public const int Magic = 0x736E636A;
+        public const uint Magic = 0x736E636A;
 
         public void UpdateJointNames()
         {

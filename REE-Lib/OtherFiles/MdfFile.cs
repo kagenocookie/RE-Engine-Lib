@@ -65,6 +65,8 @@ namespace ReeLib.Mdf
             if (Version == 6) handler.Read(ref uknRE7);
             handler.Read(ref paramsSize);
             handler.Read(ref paramCount);
+
+            // if (Version >= 51) pragmataUkn = handler.Read<uint>(); // GOD HELP ME, it's 51 for both pragmata/re9 and oniwots demo except this field is only there in oniwots
             handler.Read(ref texCount);
             if (Version >= 19)
             {
@@ -79,7 +81,7 @@ namespace ReeLib.Mdf
             if (Version >= 31) handler.Read(ref ukn);
             handler.Read(ref alphaFlags);
             if (Version >= 31) handler.Read(ref ukn1);
-            if (Version >= 51) handler.Read(ref pragmataUkn);
+            if (Version >= 51) handler.Read(ref pragmataUkn); // GOD HELP ME, it's 51 for both pragmata/re9 and oniwots demo except this field is only there in pragmata/re9
             handler.Read(ref paramHeaderOffset);
             handler.Read(ref texHeaderOffset);
             if (Version >= 19)

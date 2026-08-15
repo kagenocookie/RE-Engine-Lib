@@ -10,7 +10,7 @@ namespace ReeLib
         public int ukn;
         public List<FoliageInstanceGroup> InstanceGroups { get; } = new();
 
-        public const int Magic = 0x004c4f46;
+        public const uint Magic = 0x004c4f46;
 
         public FolFile(FileHandler fileHandler) : base(fileHandler)
         {

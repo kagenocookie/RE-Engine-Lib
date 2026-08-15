@@ -67,7 +67,7 @@ namespace ReeLib
         {
             FileHandler handler = FileHandler;
             handler.Read(ref version);
-            var magic = handler.Read<int>();
+            var magic = handler.Read<uint>();
             if (magic != Magic)
             {
                 throw new InvalidDataException($"{handler.FilePath} Not a mcambank file");

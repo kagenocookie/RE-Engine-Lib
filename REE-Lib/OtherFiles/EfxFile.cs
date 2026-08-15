@@ -36,7 +36,7 @@ namespace ReeLib.Efx
     [RszGenerate, RszVersionedObject(typeof(EfxVersion))]
     public partial class EfxHeader : BaseModel
     {
-        public int magic = EfxFile.Magic;
+        public uint magic = EfxFile.Magic;
         public int dimensionType; // 1 = 3D, 0 = 2D re7: 0,1  vfx\vfx_resource\vfx_effecteditor\efd_character_id\efd_em3600\vfx_efd_bh7_em3600_1008.efx.1179750
         public int entryCount;
         public int stringTableLength;
@@ -1053,7 +1053,7 @@ namespace ReeLib
         [JsonIgnore]
         public EfxFile? parentFile;
 
-        public const int Magic = 0x72786665;
+        public const uint Magic = 0x72786665;
 
         public EfxFile(FileHandler fileHandler) : base(fileHandler)
         {

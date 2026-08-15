@@ -751,7 +751,7 @@ namespace ReeLib
         public SymmetryMirrorData? SymmetryData2 { get; set; }
         public SkeletonMaskData SkeletonMaskData { get; } = new();
 
-        public const int Magic = 0x70616D6A;
+        public const uint Magic = 0x70616D6A;
 
         public void UpdateJointNames()
         {

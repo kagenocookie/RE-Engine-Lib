@@ -97,12 +97,12 @@ namespace ReeLib
     {
         public List<CollisionPreset> Presets = [];
 
-        public const int Magic = 0x50534C43;
+        public const uint Magic = 0x50534C43;
 
         protected override bool DoRead()
         {
             var handler = FileHandler;
-            var magic = handler.Read<int>();
+            var magic = handler.Read<uint>();
             if (magic != Magic)
             {
                 throw new Exception("Invalid CLSP file");

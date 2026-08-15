@@ -4,12 +4,12 @@ namespace ReeLib
     {
         public List<string> EmitMasks { get; } = new();
 
-        public const int Magic = 0x726D6565;
+        public const uint Magic = 0x726D6565;
 
         protected override bool DoRead()
         {
             var handler = FileHandler;
-            var magic = handler.Read<int>();
+            var magic = handler.Read<uint>();
             if (magic != Magic) {
                 throw new InvalidDataException($"{handler.FilePath} Not an EEM file");
             }

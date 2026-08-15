@@ -10,7 +10,7 @@ namespace ReeLib
         {
             var handler = FileHandler;
             var version = handler.Read<int>();
-            var magic = handler.Read<int>();
+            var magic = handler.Read<uint>();
             if (magic != Magic) {
                 throw new InvalidDataException($"{handler.FilePath} Not a Dialog Config file");
             }

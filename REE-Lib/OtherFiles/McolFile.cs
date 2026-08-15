@@ -24,7 +24,7 @@ namespace ReeLib
         public BvhData? bvh;
         public readonly List<string> stringTable = new();
 
-        public const int Magic = 0x4C4F434D;
+        public const uint Magic = 0x4C4F434D;
 
         public McolFile(FileHandler fileHandler) : base(fileHandler)
         {

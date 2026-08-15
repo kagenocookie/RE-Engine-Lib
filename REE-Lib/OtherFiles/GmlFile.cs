@@ -121,7 +121,7 @@ namespace ReeLib
         public List<GroundMaterialTexture> Textures { get; } = new();
         public List<GroundMaterialData> Data { get; } = new();
 
-        public const int Magic = 0x004c4d47;
+        public const uint Magic = 0x004c4d47;
 
         public GmlFile(FileHandler fileHandler) : base(fileHandler)
         {

@@ -65,7 +65,7 @@ namespace ReeLib
         public List<TerrainType> Types { get; } = new();
         public List<Guid> Guids { get; } = new();
 
-        public const int Magic = 0x52524554;
+        public const uint Magic = 0x52524554;
 
         public TerrFile(FileHandler fileHandler) : base(fileHandler)
         {

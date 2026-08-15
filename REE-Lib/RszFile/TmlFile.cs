@@ -311,7 +311,7 @@ namespace ReeLib
 
         public EmbeddedClip Clip { get; } = new EmbeddedClip();
 
-        public const int Magic = 0x50494C43;
+        public const uint Magic = 0x50494C43;
 
         public ClipFile(FileHandler fileHandler) : base(fileHandler)
         {

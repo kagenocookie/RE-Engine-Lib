@@ -27,10 +27,10 @@ namespace ReeLib
         {
         }
 
-        protected void ReadHeader(int expectedMagic)
+        protected void ReadHeader(uint expectedMagic)
         {
             var handler = FileHandler;
-            var magic = handler.Read<int>();
+            var magic = handler.Read<uint>();
             if (magic != expectedMagic) {
                 throw new Exception("Invalid magic " + magic);
             }
@@ -42,7 +42,7 @@ namespace ReeLib
             handler.Skip(4);
         }
 
-        protected void WriteHeader(int magic)
+        protected void WriteHeader(uint magic)
         {
             var handler = FileHandler;
             handler.Write(magic);
@@ -84,7 +84,7 @@ namespace ReeLib
         public uint[] MaskBits = Array.Empty<uint>();
         public int[] CollisionPresetIDs = Array.Empty<int>();
 
-        public const int Magic = 0x20464843;
+        public const uint Magic = 0x20464843;
 
         public CHFFile(FileHandler fileHandler) : base(fileHandler)
         {
@@ -142,7 +142,7 @@ namespace ReeLib
             public int id2, id3, id4;
         }
 
-        public const int Magic = 0x20204648;
+        public const uint Magic = 0x20204648;
 
         public HFFile(FileHandler fileHandler) : base(fileHandler)
         {

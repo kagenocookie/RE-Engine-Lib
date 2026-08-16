@@ -111,7 +111,9 @@ namespace ReeLib
             var channelsOffset = handler.ReadInt64();
             var materialsOffset = handler.ReadInt64();
             var worldsOffset = handler.FileVersion >= 6 ? handler.ReadInt64() : 0;
-            var uknOffset2Padding = handler.FileVersion >= 6 ? handler.ReadInt64() : 0;
+            if (handler.FileVersion >= 6) {
+                handler.ReadNull(8);
+            }
 
             handler.Seek(channelsOffset);
             Channels.Read(handler, Header.channelCount);
@@ -147,6 +149,12 @@ namespace ReeLib
             }
 
             var offsetsStart = handler.Tell();
+            handler.Skip(2 * sizeof(long)); // channelsOffset, materialsOffset
+
+            if (handler.FileVersion >= 6) {
+                // worldsOffset, padding
+                handler.WriteNull(2 * sizeof(long));
+            }
 
             handler.Align(16);
             handler.Write(offsetsStart, handler.Tell());
@@ -161,6 +169,7 @@ namespace ReeLib
                 handler.Skip(8);
                 handler.Skip(8);
             }
+            handler.StringTableFlush();
 
             return true;
         }

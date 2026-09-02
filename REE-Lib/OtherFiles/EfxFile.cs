@@ -31,6 +31,7 @@ namespace ReeLib.Efx
         RE9      = 5899767,
         Pragmata = 5965300,
         OniWS    = 5834247,
+        DD2New   = 5965310,
     }
 
     [RszGenerate, RszVersionedObject(typeof(EfxVersion))]

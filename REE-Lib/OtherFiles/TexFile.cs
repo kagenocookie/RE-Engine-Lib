@@ -204,7 +204,8 @@ namespace ReeLib
 
 			{ "RE4 / SF6", new (143221013, TexSerializerVersion.Modern, [GameName.re4, GameName.sf6]) },
 
-			{ "DD2", new (760230703, TexSerializerVersion.Modern, [GameName.dd2]) },
+			{ "DD2 (Old)", new (760230703, TexSerializerVersion.Modern, [GameName.dd2]) },
+			{ "DD2", new (251211553, TexSerializerVersion.Modern, [GameName.dd2]) },
 
 			{ "DR", new (240606151, TexSerializerVersion.Modern, [GameName.drdr]) },
 			{ "ONI2", new (240701001, TexSerializerVersion.Modern, [GameName.oni2]) },

@@ -1953,8 +1953,8 @@ namespace ReeLib
 
 			{ "RE4", new (220822879, 221108797, MeshSerializerVersion.RE4, [GameName.re4]) },
 			{ "SF6", new (220705151, 230110883, MeshSerializerVersion.SF6, [GameName.sf6]) },
-			{ "DD2", new (230517984, 240423143, MeshSerializerVersion.DD2, [GameName.dd2]) },
-			{ "DD2 old", new (230517984, 231011879, MeshSerializerVersion.DD2_Old, [GameName.dd2]) },
+			{ "DD2 (oldest)", new (230517984, 240423143, MeshSerializerVersion.DD2, [GameName.dd2]) },
+			{ "DD2 (old)", new (230517984, 231011879, MeshSerializerVersion.DD2_Old, [GameName.dd2]) },
 			{ "Kunitsu-Gami", new (230727984, 240306278, MeshSerializerVersion.DD2_Old, [GameName.kunitsu]) },
 
 			{ "ONI2", new (240704828, 240827123, MeshSerializerVersion.Onimusha, [GameName.oni2]) },
@@ -1963,7 +1963,9 @@ namespace ReeLib
 			{ "Pragmata", new (250707828, 251121828, MeshSerializerVersion.Pragmata, [GameName.pragmata], extraWeightBuffer: true) },
 			{ "Pragmata Demo", new (250707828, 250925211, MeshSerializerVersion.Pragmata, [GameName.pragmata], extraWeightBuffer: true) },
 			{ "RE9", new (250904410, 250925211, MeshSerializerVersion.RE9, [GameName.re9]) },
-			{ "OniWotS", new (250203152, 251215606, MeshSerializerVersion.Pragmata, [GameName.oniws]) },
+			{ "OniWotS Demo 1", new (250203152, 251215606, MeshSerializerVersion.Pragmata, [GameName.oniws]) },
+			{ "OniWotS Demo 2", new (250203152, 260209350, MeshSerializerVersion.Pragmata, [GameName.oniws]) },
+			{ "DD2", new (251205828, 260421070, MeshSerializerVersion.RE9, [GameName.dd2]) },
 		};
 
 		public static readonly string[] AllVersionConfigs = Versions.Reverse().OrderByDescending(kv => kv.Value.serializerVersion).Select(kv => kv.Key).ToArray();
@@ -1985,7 +1987,7 @@ namespace ReeLib
                 return maybeGame.Value.serializerVersion;
             }
 			// on match failure, assume latest format for anything unknown - in case of newer games
-			return MeshSerializerVersion.MHWILDS;
+			return MeshSerializerVersion.Pragmata;
         }
 
 		public static string[] GetGameVersionConfigs(GameName game) => versionsPerGame.GetValueOrDefault(game) ?? AllVersionConfigs;

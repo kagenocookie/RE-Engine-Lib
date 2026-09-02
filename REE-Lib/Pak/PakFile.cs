@@ -46,7 +46,8 @@ namespace ReeLib.Pak
         EncryptEntryList = 8,
         ExtraInteger = 16,
         HasChunkContentTable = 32,
-        KnownFlags = ExtraData|EncryptEntryList|ExtraInteger|HasChunkContentTable,
+        ExtraRemapEntriesMaybe = 64,
+        KnownFlags = ExtraData|EncryptEntryList|ExtraInteger|HasChunkContentTable|ExtraRemapEntriesMaybe,
     }
 
     public class PakEntry
@@ -132,6 +133,29 @@ namespace ReeLib.Pak
     {
         public int blockSize;
         public PakChunkEntry[] chunks = [];
+    }
+
+    public class ExtraPakEntries : BaseModel
+    {
+        public Entry[] Entries = [];
+
+        // TODO figure out what these are, could be some sort of a remap
+        public record struct Entry(uint a1, uint a2, uint b1, uint b2);
+
+        protected override bool DoRead(FileHandler handler)
+        {
+            var count = handler.Read<long>();
+            Entries = new Entry[count];
+            handler.ReadArray(Entries);
+            return true;
+        }
+
+        protected override bool DoWrite(FileHandler handler)
+        {
+            handler.Write((long)Entries.Length);
+            handler.WriteArray(Entries);
+            return true;
+        }
     }
 
     internal static class Encryption
@@ -263,6 +287,7 @@ namespace ReeLib
         public Pak.Header Header;
         public readonly List<PakEntry> Entries = new();
         public ChunkPakContentTable? ChunkEntries { get; set; }
+        public ExtraPakEntries? ExtraEntries { get; set; }
         public string filepath = string.Empty;
         private Stream? pakStream;
         private MemoryStream? entryTempStream;
@@ -331,6 +356,12 @@ namespace ReeLib
             if ((Header.featureFlags & PakFeatureFlags.ExtraData) != 0)
             {
                 stream.Seek(9, SeekOrigin.Current);
+            }
+
+            if ((Header.featureFlags & PakFeatureFlags.ExtraRemapEntriesMaybe) != 0)
+            {
+                ExtraEntries = new ExtraPakEntries();
+                ExtraEntries.Read(new FileHandler(stream));
             }
 
             if (Header.featureFlags != 0)

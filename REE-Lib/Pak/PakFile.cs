@@ -46,8 +46,8 @@ namespace ReeLib.Pak
         EncryptEntryList = 8,
         ExtraInteger = 16,
         HasChunkContentTable = 32,
-        ExtraRemapEntriesMaybe = 64,
-        KnownFlags = ExtraData|EncryptEntryList|ExtraInteger|HasChunkContentTable|ExtraRemapEntriesMaybe,
+        RemapEntries = 64,
+        KnownFlags = ExtraData|EncryptEntryList|ExtraInteger|HasChunkContentTable|RemapEntries,
     }
 
     public class PakEntry
@@ -135,26 +135,23 @@ namespace ReeLib.Pak
         public PakChunkEntry[] chunks = [];
     }
 
-    public class ExtraPakEntries : BaseModel
+    public class EntryRemaps
     {
-        public Entry[] Entries = [];
+        public RemapEntry[] Entries = [];
 
-        // TODO figure out what these are, could be some sort of a remap
-        public record struct Entry(uint a1, uint a2, uint b1, uint b2);
+        public record struct RemapEntry(uint a1, uint a2, uint b1, uint b2);
 
-        protected override bool DoRead(FileHandler handler)
+        public void Read(FileHandler handler)
         {
             var count = handler.Read<long>();
-            Entries = new Entry[count];
+            Entries = new RemapEntry[count];
             handler.ReadArray(Entries);
-            return true;
         }
 
-        protected override bool DoWrite(FileHandler handler)
+        public void Write(FileHandler handler)
         {
             handler.Write((long)Entries.Length);
             handler.WriteArray(Entries);
-            return true;
         }
     }
 
@@ -287,7 +284,7 @@ namespace ReeLib
         public Pak.Header Header;
         public readonly List<PakEntry> Entries = new();
         public ChunkPakContentTable? ChunkEntries { get; set; }
-        public ExtraPakEntries? ExtraEntries { get; set; }
+        public EntryRemaps? Remaps { get; set; }
         public string filepath = string.Empty;
         private Stream? pakStream;
         private MemoryStream? entryTempStream;
@@ -358,10 +355,10 @@ namespace ReeLib
                 stream.Seek(9, SeekOrigin.Current);
             }
 
-            if ((Header.featureFlags & PakFeatureFlags.ExtraRemapEntriesMaybe) != 0)
+            if ((Header.featureFlags & PakFeatureFlags.RemapEntries) != 0)
             {
-                ExtraEntries = new ExtraPakEntries();
-                ExtraEntries.Read(new FileHandler(stream));
+                Remaps = new EntryRemaps();
+                Remaps.Read(new FileHandler(stream));
             }
 
             if (Header.featureFlags != 0)

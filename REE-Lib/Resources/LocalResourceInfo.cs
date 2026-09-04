@@ -110,7 +110,7 @@ public class LocalResources : ICloneable
     public FileExtensionCache? GetResourceFileTypeCache()
     {
         var cache = ResourceRepository.Cache;
-        if (cache.RemoteInfo.FileExtensions != null && (cache.FileExtensionsPath == null || cache.RemoteInfo.FileExtensions.LastUpdatedAt > cache.FileExtensionsPath.LastUpdatedAt)) {
+        if (cache.RemoteInfo.FileExtensions != null && (cache.FileExtensionsPath == null || cache.RemoteInfo.FileExtensions.LastUpdatedAtUtc > cache.FileExtensionsPath.LastUpdatedAtUtc)) {
             var globalCacheLocalPath = Path.GetFullPath(Path.Combine(ResourceRepository.LocalResourceRepositoryFolder, "global/file_extensions.json"));
             if (TryCacheFile(cache.RemoteInfo.FileExtensions.Uri, globalCacheLocalPath)) {
                 cache.FileExtensions.Clear();
@@ -384,11 +384,7 @@ public class RemoteResourceConfig
     public Dictionary<string, ResourceMetadata> Resources { get; set; } = new();
 }
 
-public record DatedResourcePath(string Uri, DateTime LastUpdatedAt)
-{
-    public string Uri { get; set; } = Uri;
-    public DateTime LastUpdatedAt { get; set; } = LastUpdatedAt;
-}
+public record DatedResourcePath(string Uri, DateTime LastUpdatedAtUtc);
 
 public class ResourceMetadata : ICloneable
 {

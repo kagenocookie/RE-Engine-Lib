@@ -136,9 +136,20 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
         "_faketex", "_dslut", "_emi", "_hgt", "_hdr", "_rocm", "_occ", "_lymo", "_rgh", "_met",
         "_iam", "_lut", "_fbi", "_add", "_emm", "_lym", "_cvt", "_vns", "_lin", "_pos", "_fur", "_im", "_disp"];
 
-    private static readonly HashSet<string> IgnoredExtensions = ["json", "dll", "pdb", "ini", "cpp", "hpp", "h", "cs", "technology", "com", "com0", "com07", "com0N", "com0X", "com0C", "com0\\", "com0A", "fffff", "0", "iconTagEvent", "iconTagReplace", "messageTagEvent", "ruleset", "jp"];
+    private static readonly HashSet<string> IgnoredExtensions = ["json", "dll", "pdb", "ini", "cpp", "hpp", "h", "cs", "technology", "com", "com0", "com07", "com0N", "com0X", "com0C", "com0\\", "com0A", "ffff", "fffff", "0", "iconTagEvent", "iconTagReplace", "messageTagEvent", "ruleset", "jp", "htm0", "html", "dtd", "compositefont", "iccprofile", "xaml", "xml", "rels", "struct", "base64", "baml"];
     private static readonly HashSet<uint> IgnoreExtHashes = IgnoredExtensions.Select(x => MurMur3HashUtils.GetHash(x)).ToHashSet();
-    private static readonly string[] GuessDates = ["1", "251111", "251112", "251121", "250925"];
+    private static readonly string[] IncrementedVersionFileFormats = ["user","pfb","mdf2","msg","rtex","rtmr","star","scn","clip","ies","prb","lprb","pog","poglst","gpbf","jcns","chain2","motbank","motlist","jmap","jointlodgroup","mot","fbxskel","clsp","sfur","jntexprgraph","lod","rbs","hf","chf","fxct","efcsv","abcmesh","uvs","eem","uvar","vsdflist","dlgcf","fsmv2","rcol","mcamlist","clrp","cset","mov","ccbk","iklookat2","ainvm","ainvmmgr","chainwnd","psop","gcp","gcf","gsty","oft","fslt","ift","sss","motcam","mcambank","ikls","ikmulti","ikfs","fbik","iklizard","ikwagon","ikleg2","retargetrig","skeleton","ord","rcf","ncf","vsrc","amix","swms","ucurvelist","sbnk","spck","aimapattr","cdef","def","finf","sts","htex","rcfg","chain2lod","coco","lfa","psow","svgn","stdlod","refskel","sst","motfsm2","ikbodyrig","ikhd","iktrain2","clsm","cmat","aiwaypmgr"];
+    private static readonly string[] DateVersionFileFormats = ["sdf","vsdf","gpuc","mpci","tex","csdf","mmtr","mesh","sdftex","vmap","zivacomb","ziva","fol","stmesh","gml","grnd","gtl"];
+    private static readonly string[] CombinedVersionFileFormats = ["rdd","tmlbld","gui","mcol","rmesh","dlgtml","dlglist","fpolygon","ucurve","dlg"];
+    private static readonly HashSet<string> AlwaysExpectLocaleSuffix = ["mov", "sbnk", "spck"];
+
+    private static readonly Dictionary<string, FileFormatData> FileFormatSettings = new Dictionary<string, FileFormatData>(
+        IncrementedVersionFileFormats.Select(d => new KeyValuePair<string, FileFormatData>(d, new FileFormatData(0, 3000, 10)))
+        .Concat(CombinedVersionFileFormats.Select(d => new KeyValuePair<string, FileFormatData>(d, new FileFormatData(0, 5000000, 6))))
+        .Concat(DateVersionFileFormats.Select(d => new KeyValuePair<string, FileFormatData>(d, new FileFormatData(241000000, int.Parse(DateTime.UtcNow.ToString("yyMMdd") + "000"), 5))))
+    );
+
+    private readonly record struct FileFormatData(int FileVersionMin = int.MinValue, int FileVersionMax = int.MaxValue, int MaxGuessAttempts = 3);
 
     private List<string> outputPaths = new();
     private HashSet<ulong> previouslyKnownHashes = new();
@@ -183,6 +194,7 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
         }
 
         var extVersions = new Dictionary<string, int>();
+        var extVersionAttempts = new Dictionary<string, int>();
         foreach (var path in outputPaths.Concat(sourceFileList)) {
             var fmt = PathUtils.ParseFileFormatFull(path);
             if (fmt.version == -1 || extVersions.ContainsKey(fmt.extension)) continue;
@@ -191,7 +203,8 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
         }
 
         if (Flags.HasFlag(ScanFlags.RescanPresentFileVersions)) {
-            Phase = GeneratorPhase.CachingUnknownFormatList; PhaseProgress = -1;
+            Phase = GeneratorPhase.CachingUnknownFormatList;
+            PhaseProgress = -1;
             var uknFormats = reader.UnknownFiles.Values.ToHashSet();
             foreach (var ukn in uknFormats) {
                 extVersions.Remove(FileFormatExtensions.FormatToFileExtension(ukn));
@@ -226,9 +239,6 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
             }
         }
 
-        var versionPrefixes = new List<string>();
-        GatherVersionPrefixes(extVersions, versionPrefixes);
-
         var unmatchedPaths = new List<string>();
         var unknownExtFiles = new Dictionary<string, List<string>>();
 
@@ -249,43 +259,71 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
                 Phase = GeneratorPhase.ProcessingFileExtensions;
                 PhaseProgress = -1;
                 if (!unknownExtFiles.TryGetValue(ext, out var uknList) || Flags.HasFlag(ScanFlags.ForceRetryUnknownExtensionVersions)) {
-                    // most file versions are small numbers so we can try these as a fast exit check
-                    // some version also follow a seemingly YYMMDD000 date-like structure so we can try all the previously known dates as well
-                    // we could try and fetch versions directly from exe instead of guessing, but it works well enough as is
+                    var extSettings = FileFormatSettings.GetValueOrDefault(ext, new(MaxGuessAttempts: 3));
+                    bool allowBruteforce = false;
+                    if (extVersionAttempts.GetValueOrDefault(ext) >= extSettings.MaxGuessAttempts - 1) {
+                        allowBruteforce = true;
+                        extSettings = new(MaxGuessAttempts: extSettings.MaxGuessAttempts);
+                    }
                     var sb = new StringBuilder();
                     sb.Append(attemptBase).Append('.');
-                    foreach (var prefix in versionPrefixes) {
+                    var range = (long)extSettings.FileVersionMax - extSettings.FileVersionMin;
+                    if (range == 0 || range > int.MaxValue) {
+                        var doSuffix = AlwaysExpectLocaleSuffix.Contains(ext);
                         for (int i = 0; i <= 999; i++) {
                             sb.Length = attemptBase.Length + 1;
-                            if (prefix == "") {
-                                sb.Append(i);
-                            } else {
-                                sb.Append(prefix).AppendFormat("{0:000}", i);
-                            }
+                            sb.Append(i);
                             sb.CopyTo(0, extensionStringSpan, sb.Length);
                             var str = extensionStringSpan.Slice(0, sb.Length);
                             if (TryPath(str)) {
-                                version = prefix == "" ? i : int.Parse($"{prefix}{i:000}");
+                                version = i;
+                                extVersions[ext] = version;
+                                canContinue = true;
+                                Log.Info($"Found new file extension version: {ext}.{version}");
+                                break;
+                            }
+                            if (doSuffix && TryPath(string.Concat(str, ".x64")) || TryPath(string.Concat(str, ".64.en")) || TryPath(string.Concat(str, ".64.ja"))) {
+                                version = i;
                                 extVersions[ext] = version;
                                 canContinue = true;
                                 Log.Info($"Found new file extension version: {ext}.{version}");
                                 break;
                             }
                         }
-                        if (canContinue) break;
-                    }
-                    if (!canContinue && Flags.HasFlag(ScanFlags.BruteforceExtensions)) {
-                        Log.Info($"Attempting to bruteforce version for extension {ext} based on filepath {attemptBase}");
-                        int bruteforceExt = TryBruteforceFileExtensionMultithread(attemptBase);
-                        if (bruteforceExt != -1) {
-                            extVersions[ext] = version = bruteforceExt;
-                            canContinue = true;
-                            Log.Info($"Found new file extension version: {ext}.{version}");
+                        if (!canContinue && Flags.HasFlag(ScanFlags.BruteforceExtensions)) {
+                            if (allowBruteforce || !FileFormatSettings.TryGetValue(ext, out var formatData)) {
+                                Log.Info($"Attempting to bruteforce version for extension {ext} based on filepath {attemptBase}");
+                                int bruteforceExt = TryBruteforceFileExtensionMultithread(attemptBase);
+                                if (bruteforceExt != -1) {
+                                    extVersions[ext] = version = bruteforceExt;
+                                    canContinue = true;
+                                    Log.Info($"Found new file extension version: {ext}.{version}");
+                                }
+                            }
+                        }
+                    } else {
+                        for (int i = extSettings.FileVersionMin; i <= extSettings.FileVersionMax; i++) {
+                            sb.Length = attemptBase.Length + 1;
+                            sb.Append(i);
+                            sb.CopyTo(0, extensionStringSpan, sb.Length);
+                            var str = extensionStringSpan.Slice(0, sb.Length);
+                            if (TryPath(str)) {
+                                version = i;
+                                extVersions[ext] = version;
+                                canContinue = true;
+                                Log.Info($"Found new file extension version: {ext}.{version}");
+                                break;
+                            }
                         }
                     }
                     if (!canContinue) {
-                        Log.Warn($"Unknown version for file extension {ext} (file {path})");
-                        unknownExtFiles[ext] = uknList = new();
+                        var attempts = extVersionAttempts.GetValueOrDefault(ext) + 1;
+                        Log.Info($"Failed to guess version for file extension {ext} (attempt {attempts}, file {path})");
+                        extVersionAttempts[ext] = attempts;
+                        if (attempts >= extSettings.MaxGuessAttempts) {
+                            Log.Warn($"Unknown version for file extension {ext}");
+                            unknownExtFiles[ext] = uknList = new();
+                        }
                     }
                 }
                 if (uknList != null) {
@@ -378,30 +416,6 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
         outputPaths.Sort(StringComparer.OrdinalIgnoreCase);
         Phase = GeneratorPhase.Done;
         return outputPaths;
-    }
-
-    private static void GatherVersionPrefixes(Dictionary<string, int> extVersions, List<string> versionPrefixes)
-    {
-        versionPrefixes.Add("");
-        versionPrefixes.AddRange(GuessDates);
-        foreach (var (ext, num) in extVersions) {
-            var numStr = num.ToString();
-            if (numStr.Length >= 6 + 3) {
-                var date = numStr[0..6];
-                if (!versionPrefixes.Contains(date)) {
-                    versionPrefixes.Add(date);
-                }
-            }
-        }
-        // append all dates from last known date till today as well
-        var latestVer = versionPrefixes.Where(v => v.Length == 6 && int.TryParse(v[0..2], out var yy) && yy >= 25 && yy <= DateTime.UtcNow.Year % 100).OrderDescending().First();
-        if (DateTime.TryParseExact(latestVer, "yyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var latestDate)) {
-            var todayDate = DateTime.UtcNow.Date;
-            while (latestDate < todayDate) {
-                versionPrefixes.Add(latestDate.ToString("yyMMdd"));
-                latestDate = latestDate.AddDays(1);
-            }
-        }
     }
 
     private void AttemptAdditionalGuesses(Dictionary<string, int> extVersions)
@@ -611,7 +625,7 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
 
     private static bool IsPathyCharacter(char ch) => PathyChars.Contains(ch);
 
-    private static bool IsFilePath(string str)
+    private static bool IsResourcePath(string str)
     {
         if (str.Length < MinPathLength) return false;
 
@@ -623,7 +637,12 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
         if (!hasSlash) return false;
 
         var ext = PathUtils.GetExtensionWithoutPeriod(str.AsSpan());
-        if (ext.Length <= 1 || ext.Length > MaxExtensionLength || !ext.ContainsAnyExcept(Numeric) || ext.ContainsAnyExcept(ExtensionChars) || IgnoreExtHashes.Contains(MurMur3HashUtils.GetHash(ext))) return false;
+        if (ext.Length <= 1 ||
+            ext.Length > MaxExtensionLength ||
+            !ext.ContainsAnyExcept(Numeric) ||
+            ext.ContainsAnyExcept(ExtensionChars) ||
+            IgnoreExtHashes.Contains(MurMur3HashUtils.GetHash(ext)) ||
+            str.StartsWith("//www.")) return false;
         return true;
     }
 
@@ -654,7 +673,7 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
             yield break;
         }
 
-        foreach (var line in HashUtils.ExtractStrings(encoding, stream, filepath, PathyChars, IsFilePath)) {
+        foreach (var line in HashUtils.ExtractStrings(encoding, stream, filepath, PathyChars, IsResourcePath)) {
             yield return CleanFilePath(line);
             // sometimes we end up grabbing paths like "aConfig/...", try to handle those as well
             if (char.IsLower(line[0]) && char.IsUpper(line[1])) {

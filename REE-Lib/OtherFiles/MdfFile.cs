@@ -36,6 +36,7 @@ namespace ReeLib.Mdf
         // tdbVersion >= 71, SF6+
         internal long mmtrIDsOffset;
 
+        private bool _isOnimushaVariant;
 
         public MaterialFlags Flags
         {
@@ -55,7 +56,6 @@ namespace ReeLib.Mdf
             set => alphaFlags = (uint)(((value & 0xff) << 16) + (alphaFlags & ~0xff0000));
         }
 
-
         protected override bool DoRead(FileHandler handler)
         {
             var Version = handler.FileVersion;
@@ -66,6 +66,15 @@ namespace ReeLib.Mdf
             handler.Read(ref paramsSize);
             handler.Read(ref paramCount);
 
+            if (Version == 51) {
+                // onimusha has a slightly different variant of the 51 format
+                // use the param offset as a reference to pick the right one
+                // the field there otherwise has a 0/1 in it so we can use that
+                // Capcom please.
+                var peekParamOffset = handler.Read<uint>(handler.Tell() + 36, jumpBack: true);
+                _isOnimushaVariant = peekParamOffset > 1;
+            }
+            if (Version >= 51 && _isOnimushaVariant) pragmataUkn = handler.Read<uint>();
             handler.Read(ref texCount);
             if (Version >= 19)
             {
@@ -80,7 +89,7 @@ namespace ReeLib.Mdf
             if (Version >= 31) handler.Read(ref ukn);
             handler.Read(ref alphaFlags);
             if (Version >= 31) handler.Read(ref ukn1);
-            if (Version >= 51) handler.Read(ref pragmataUkn);
+            if (Version >= 51 && !_isOnimushaVariant) handler.Read(ref pragmataUkn);
             handler.Read(ref paramHeaderOffset);
             handler.Read(ref texHeaderOffset);
             if (Version >= 19)
@@ -103,6 +112,7 @@ namespace ReeLib.Mdf
             handler.Write(ref paramsSize);
             handler.Write(ref paramCount);
             handler.Write(ref texCount);
+            if (Version >= 51 && _isOnimushaVariant) handler.Write((uint)pragmataUkn);
             if (Version >= 19) {
                 handler.Write(ref gpbfNameCount);
                 handler.Write(ref gpbfDataCount);
@@ -111,7 +121,7 @@ namespace ReeLib.Mdf
             if (Version >= 31) handler.Write(ref ukn);
             handler.Write(ref alphaFlags);
             if (Version >= 31) handler.Write(ref ukn1);
-            if (Version >= 51) handler.Write(ref pragmataUkn);
+            if (Version >= 51 && !_isOnimushaVariant) handler.Write(ref pragmataUkn);
             handler.Write(ref paramHeaderOffset);
             handler.Write(ref texHeaderOffset);
             if (Version >= 19)

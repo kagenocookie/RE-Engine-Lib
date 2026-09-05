@@ -62,7 +62,7 @@ namespace ReeLib.MplyMesh
 				throw new Exception("Unknown mesh file format! Unable to load file");
 			}
 
-            if (FormatVersion == MeshSerializerVersion.DD2)
+            if (FormatVersion == MeshSerializerVersion.DD2_V2)
             {
                 action.Do(ref flags);
                 action.Null(2);
@@ -452,7 +452,7 @@ namespace ReeLib.MplyMesh
             }
         }
         private int NormalSize => Bvh.Version switch {
-            MeshSerializerVersion.DD2 => (FlagsDD2 & MplyChunkFlagsDD2.NoTangents) != 0 ? 4 : 8,
+            MeshSerializerVersion.DD2_V2 => (FlagsDD2 & MplyChunkFlagsDD2.NoTangents) != 0 ? 4 : 8,
             _ => (flags & MplyChunkFlags.SmallNormals) != 0 ? 4 : 8
         };
 
@@ -476,7 +476,7 @@ namespace ReeLib.MplyMesh
         private Vector3 DecodePosition(Vector3 localpos)
         {
             float scale;
-            if (Bvh.Version == MeshSerializerVersion.DD2)
+            if (Bvh.Version == MeshSerializerVersion.DD2_V2)
             {
                 var exp1 = unchecked(((int)flags >> 16) & 0b1111);
                 scale = 4f * (1 << exp1);
@@ -628,9 +628,9 @@ namespace ReeLib.MplyMesh
             handler.Read(ref relativeAABB);
             handler.Read(ref flags);
             // Log.Info("flags " + flags);
-            var hasTangentBits = Bvh.Version == MeshSerializerVersion.DD2 ? false : flags.HasFlag(MplyChunkFlags.SmallNormals) && flags.HasFlag(MplyChunkFlags.HasTangentBitsBlock);
-            var hasWeights = Bvh.Version == MeshSerializerVersion.DD2 ? FlagsDD2.HasFlag(MplyChunkFlagsDD2.HasVertexWeights) : flags.HasFlag(MplyChunkFlags.HasVertexWeights);
-            var hasUniformWeights = Bvh.Version == MeshSerializerVersion.DD2 ? FlagsDD2.HasFlag(MplyChunkFlagsDD2.UniformVertexWeights) : flags.HasFlag(MplyChunkFlags.UniformVertexWeights);
+            var hasTangentBits = Bvh.Version == MeshSerializerVersion.DD2_V2 ? false : flags.HasFlag(MplyChunkFlags.SmallNormals) && flags.HasFlag(MplyChunkFlags.HasTangentBitsBlock);
+            var hasWeights = Bvh.Version == MeshSerializerVersion.DD2_V2 ? FlagsDD2.HasFlag(MplyChunkFlagsDD2.HasVertexWeights) : flags.HasFlag(MplyChunkFlags.HasVertexWeights);
+            var hasUniformWeights = Bvh.Version == MeshSerializerVersion.DD2_V2 ? FlagsDD2.HasFlag(MplyChunkFlagsDD2.UniformVertexWeights) : flags.HasFlag(MplyChunkFlags.UniformVertexWeights);
 
             faces = handler.ReadArray<Byte3>(faceCount);
             handler.Align(4);
@@ -768,7 +768,7 @@ namespace ReeLib
                 throw new Exception("Not a valid MPLY mesh file!");
             }
 
-            BVH.Version = header.FormatVersion;
+            BVH.Version = Layout.Version = header.FormatVersion;
             handler.Seek(header.meshletOffset);
             Layout.Read(handler);
 

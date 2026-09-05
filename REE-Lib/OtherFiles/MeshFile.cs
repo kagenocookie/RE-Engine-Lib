@@ -18,12 +18,13 @@ namespace ReeLib.Mesh
 		RE8,
 		RE4,
 		SF6,
-		DD2_Old,
-		DD2,
+		DD2_V1,
+		DD2_V2,
 		Onimusha2,
 		MHWILDS,
 		Pragmata,
 		RE9, // TODO add a better separator for 6/8 weights, pragmata and re9 formats are identical part from that
+		DD2_V3,
 	}
 
 	[Flags]
@@ -85,17 +86,24 @@ namespace ReeLib.Mesh
 		public string? SdfTexturePath;
 
 		public int wilds_unkn1 = 0;
-		public int wilds_unkn2 = 0;
+		public short wilds_unkn2 = 0;
 		public int wilds_unkn3 = 0;
 		public int wilds_unkn4 = 0;
-		public short wilds_unkn5 = 0;
+		public int wilds_unkn5 = 0;
+
+		public short bufferCount = 0;
 
 		internal MeshSerializerVersion FormatVersion = MeshSerializerVersion.Unknown;
 
-		public int BufferCount
+		public int BufferCountFlag
 		{
 			get => ((int)flags >> 9) & 0x7;
 			set => flags = (flags & ~ContentFlags.BufferCount) | (ContentFlags)((value & 0x7) << 9);
+		}
+
+		public int BufferCount
+		{
+			get => FormatVersion >= MeshSerializerVersion.DD2_V3 ? bufferCount : BufferCountFlag;
 		}
 
         protected override sealed bool ReadWrite<THandler>(THandler action)
@@ -158,7 +166,7 @@ namespace ReeLib.Mesh
 				action.Do(ref materialIndicesOffset);
 				action.Do(ref boneIndicesOffset);
 				action.Do(ref blendShapeIndicesOffset);
-				if (FormatVersion < MeshSerializerVersion.DD2_Old)
+				if (FormatVersion < MeshSerializerVersion.DD2_V1)
 				{
 					action.Do(ref streamingInfoOffset);
 					action.Do(ref nameOffsetsOffset);
@@ -178,7 +186,11 @@ namespace ReeLib.Mesh
 				action.Do(ref nameCount);
 				action.Do(ref flags);
 				action.Do(ref uknCount);
-				action.Do(ref wilds_unkn2);
+				if (FormatVersion >= MeshSerializerVersion.DD2_V3) {
+					action.Do(ref bufferCount);
+				} else {
+					action.Do(ref wilds_unkn2);
+				}
 				action.Do(ref wilds_unkn3);
 				action.Do(ref wilds_unkn4);
 				action.Do(ref wilds_unkn5);
@@ -548,11 +560,11 @@ namespace ReeLib.Mesh
 		public int shadowFaceBufferOffset;
 		public int occFaceBufferOffset;
 		public int blendShapeOffset;
+		public int blendShapeOffset2;
+		public int blendShapeOffset3;
 
 		public int shapekeyWeightBufferSize;
 		public int bufferIndex;
-		public int bufferUkn1;
-		public int bufferUkn2;
 
 		public MeshBufferHeaderList Headers = new();
 
@@ -617,12 +629,19 @@ namespace ReeLib.Mesh
 				occFaceBufferOffset += vertexBufferSize;
 			}
 			handler.Read(ref blendShapeOffset);
-			if (Version >= MeshSerializerVersion.RE4)
+			if (Version >= MeshSerializerVersion.MHWILDS)
+			{
+				// note: the blend shape structs are independent, blendShapeOffset3 > 0 && blendShapeOffset < 0 is valid (oniws: ch031_00_00.mesh)
+				handler.Read(ref blendShapeOffset2);
+				handler.Read(ref blendShapeOffset3);
+				handler.Read(ref shapekeyWeightBufferSize);
+				handler.Read(ref bufferIndex);
+			}
+			else if (Version >= MeshSerializerVersion.RE4)
 			{
 				handler.Read(ref shapekeyWeightBufferSize);
 				handler.Read(ref bufferIndex);
-				handler.Read(ref bufferUkn1);
-				handler.Read(ref bufferUkn2);
+				handler.ReadNull(8);
 			}
 
 			using (var _ = handler.SeekJumpBack(elementHeadersOffset)) {
@@ -676,12 +695,18 @@ namespace ReeLib.Mesh
 				handler.Write(occFaceBufferOffset - vertexBufferSize);
 			}
 			handler.Write(ref blendShapeOffset);
-			if (Version >= MeshSerializerVersion.RE4)
+			if (Version >= MeshSerializerVersion.MHWILDS)
+			{
+				handler.Write(ref blendShapeOffset2);
+				handler.Write(ref blendShapeOffset3);
+				handler.Write(ref shapekeyWeightBufferSize);
+				handler.Write(ref bufferIndex);
+			}
+			else if (Version >= MeshSerializerVersion.RE4)
 			{
 				handler.Write(ref shapekeyWeightBufferSize);
 				handler.Write(ref bufferIndex);
-				handler.Write(ref bufferUkn1);
-				handler.Write(ref bufferUkn2);
+				handler.WriteNull(8);
 			}
             return true;
         }
@@ -784,7 +809,7 @@ namespace ReeLib.Mesh
 			var elementHeaders = Headers.BufferHeaders;
 
 			vertexBufferOffset = handler.Tell();
-			blendShapeOffset = -(int)vertexBufferOffset;
+			blendShapeOffset = blendShapeOffset2 = blendShapeOffset3 = -(int)vertexBufferOffset;
 			elementCount = (short)elementHeaders.Length;
 			totalElementCount = (short)(elementCount + AdditionalBuffers.Sum(b => b.Headers.BufferHeaders.Length));
 
@@ -1009,7 +1034,7 @@ namespace ReeLib.Mesh
 				action.Do(ref streamingOffset);
 				action.Do(ref streamingOffset2);
 			}
-			action.Do(Version >= MeshSerializerVersion.DD2, ref ukn2);
+			action.Do(Version >= MeshSerializerVersion.DD2_V2, ref ukn2);
 			return true;
         }
 
@@ -1580,7 +1605,7 @@ namespace ReeLib.Mesh
         {
 			int count = 1;
 			long[] offsets;
-			if (Version >= MeshSerializerVersion.DD2_Old)
+			if (Version >= MeshSerializerVersion.DD2_V1)
 			{
 				// TODO verify correct version
 				count = handler.Read<int>();
@@ -1619,7 +1644,7 @@ namespace ReeLib.Mesh
         {
 			int count = Groups.Count;
 			long offsetStart = handler.Tell();
-			if (Version >= MeshSerializerVersion.DD2_Old)
+			if (Version >= MeshSerializerVersion.DD2_V1)
 			{
 				handler.Write(count);
 				handler.WriteNull(4);
@@ -1662,14 +1687,14 @@ namespace ReeLib.Mesh
 
         protected override bool DoRead(FileHandler handler)
         {
-			if (Version != MeshSerializerVersion.DD2)
+			if (Version != MeshSerializerVersion.DD2_V2)
 			{
 				return false;
 			}
 			var count = handler.Read<int>();
 			handler.ReadNull(4);
 			long offset;
-			if (Version < MeshSerializerVersion.DD2_Old)
+			if (Version < MeshSerializerVersion.DD2_V1)
 			{
 				offset = handler.Read<long>();
 				var offset2 = handler.Read<long>();
@@ -1698,7 +1723,7 @@ namespace ReeLib.Mesh
 			handler.Write(Shapes.Count);
 			handler.WriteNull(4);
 
-			if (Version < MeshSerializerVersion.DD2_Old)
+			if (Version < MeshSerializerVersion.DD2_V1)
 			{
 				handler.Write<long>(Utils.Align16((int)handler.Tell() + 16));
 			}
@@ -1953,9 +1978,9 @@ namespace ReeLib
 
 			{ "RE4", new (220822879, 221108797, MeshSerializerVersion.RE4, [GameName.re4]) },
 			{ "SF6", new (220705151, 230110883, MeshSerializerVersion.SF6, [GameName.sf6]) },
-			{ "DD2 (oldest)", new (230517984, 240423143, MeshSerializerVersion.DD2, [GameName.dd2]) },
-			{ "DD2 (old)", new (230517984, 231011879, MeshSerializerVersion.DD2_Old, [GameName.dd2]) },
-			{ "Kunitsu-Gami", new (230727984, 240306278, MeshSerializerVersion.DD2_Old, [GameName.kunitsu]) },
+			{ "DD2 (old v1)", new (230517984, 231011879, MeshSerializerVersion.DD2_V1, [GameName.dd2]) },
+			{ "DD2 (old v2)", new (230517984, 240423143, MeshSerializerVersion.DD2_V2, [GameName.dd2]) },
+			{ "Kunitsu-Gami", new (230727984, 240306278, MeshSerializerVersion.DD2_V2, [GameName.kunitsu]) },
 
 			{ "ONI2", new (240704828, 240827123, MeshSerializerVersion.Onimusha2, [GameName.oni2]) },
 			{ "MHWilds", new (240704828, 241111606, MeshSerializerVersion.MHWILDS, [GameName.mhwilds], extraWeightBuffer: true) },
@@ -1965,7 +1990,7 @@ namespace ReeLib
 			{ "RE9", new (250904410, 250925211, MeshSerializerVersion.RE9, [GameName.re9]) },
 			{ "OniWotS Demo", new (250203152, 251215606, MeshSerializerVersion.Pragmata, [GameName.oniws]) },
 			{ "OniWotS", new (250203152, 260209350, MeshSerializerVersion.Pragmata, [GameName.oniws]) },
-			{ "DD2", new (251205828, 260421070, MeshSerializerVersion.RE9, [GameName.dd2]) },
+			{ "DD2", new (251205828, 260421070, MeshSerializerVersion.DD2_V3, [GameName.dd2]) },
 		};
 
 		public static readonly string[] AllVersionConfigs = Versions.Reverse().OrderByDescending(kv => kv.Value.serializerVersion).Select(kv => kv.Key).ToArray();
@@ -2406,6 +2431,7 @@ namespace ReeLib
 				header.lodsOffset = handler.Tell();
 				MeshData.materialCount = MaterialNames.Count;
 				MeshData.Write(handler);
+				header.bufferCount = (short)(1 + StreamingBuffers?.Count ?? 0);
 			}
 
 			header.shadowLodsOffset = 0;

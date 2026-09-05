@@ -36,7 +36,7 @@ namespace ReeLib.Mdf
         // tdbVersion >= 71, SF6+
         internal long mmtrIDsOffset;
 
-        private bool _isOnimushaVariant;
+        public bool isOnimushaVariant;
 
         public MaterialFlags Flags
         {
@@ -72,9 +72,9 @@ namespace ReeLib.Mdf
                 // the field there otherwise has a 0/1 in it so we can use that
                 // Capcom please.
                 var peekParamOffset = handler.Read<uint>(handler.Tell() + 36, jumpBack: true);
-                _isOnimushaVariant = peekParamOffset > 1;
+                isOnimushaVariant = peekParamOffset > 1;
             }
-            if (Version >= 51 && _isOnimushaVariant) pragmataUkn = handler.Read<uint>();
+            if (Version >= 51 && isOnimushaVariant) pragmataUkn = handler.Read<uint>();
             handler.Read(ref texCount);
             if (Version >= 19)
             {
@@ -89,7 +89,7 @@ namespace ReeLib.Mdf
             if (Version >= 31) handler.Read(ref ukn);
             handler.Read(ref alphaFlags);
             if (Version >= 31) handler.Read(ref ukn1);
-            if (Version >= 51 && !_isOnimushaVariant) handler.Read(ref pragmataUkn);
+            if (Version >= 51 && !isOnimushaVariant) handler.Read(ref pragmataUkn);
             handler.Read(ref paramHeaderOffset);
             handler.Read(ref texHeaderOffset);
             if (Version >= 19)
@@ -112,7 +112,7 @@ namespace ReeLib.Mdf
             handler.Write(ref paramsSize);
             handler.Write(ref paramCount);
             handler.Write(ref texCount);
-            if (Version >= 51 && _isOnimushaVariant) handler.Write((uint)pragmataUkn);
+            if (Version >= 51 && isOnimushaVariant) handler.Write((uint)pragmataUkn);
             if (Version >= 19) {
                 handler.Write(ref gpbfNameCount);
                 handler.Write(ref gpbfDataCount);
@@ -121,7 +121,7 @@ namespace ReeLib.Mdf
             if (Version >= 31) handler.Write(ref ukn);
             handler.Write(ref alphaFlags);
             if (Version >= 31) handler.Write(ref ukn1);
-            if (Version >= 51 && !_isOnimushaVariant) handler.Write(ref pragmataUkn);
+            if (Version >= 51 && !isOnimushaVariant) handler.Write(ref pragmataUkn);
             handler.Write(ref paramHeaderOffset);
             handler.Write(ref texHeaderOffset);
             if (Version >= 19)

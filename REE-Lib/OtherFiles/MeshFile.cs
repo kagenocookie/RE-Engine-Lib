@@ -20,7 +20,7 @@ namespace ReeLib.Mesh
 		SF6,
 		DD2_Old,
 		DD2,
-		Onimusha,
+		Onimusha2,
 		MHWILDS,
 		Pragmata,
 		RE9, // TODO add a better separator for 6/8 weights, pragmata and re9 formats are identical part from that
@@ -136,7 +136,7 @@ namespace ReeLib.Mesh
 				if (FormatVersion <= MeshSerializerVersion.DMC5)
 					action.Skip(8);
 			}
-			else if (FormatVersion >= MeshSerializerVersion.RE4 && FormatVersion < MeshSerializerVersion.Onimusha)
+			else if (FormatVersion >= MeshSerializerVersion.RE4 && FormatVersion < MeshSerializerVersion.Onimusha2)
 			{
 				action.Do(ref flags);
 				action.Do(ref uknCount);
@@ -172,7 +172,7 @@ namespace ReeLib.Mesh
 				action.Do(ref verticesOffset);
 				action.Do(ref sdfTexPathOffset);
 			}
-			else if (FormatVersion >= MeshSerializerVersion.Onimusha)
+			else if (FormatVersion >= MeshSerializerVersion.Onimusha2)
 			{
 				action.Do(ref wilds_unkn1);
 				action.Do(ref nameCount);
@@ -1000,7 +1000,7 @@ namespace ReeLib.Mesh
 			action.Do(ref materialIndex);
 			action.Do(ref bufferIndex);
 			action.Do(ref uknByte);
-			action.Do(Version >= MeshSerializerVersion.Onimusha, ref ukn1);
+			action.Do(Version >= MeshSerializerVersion.Onimusha2, ref ukn1);
 			action.Do(ref indicesCount);
 			action.Do(ref facesIndexOffset);
 			action.Do(ref vertsIndexOffset);
@@ -1957,7 +1957,7 @@ namespace ReeLib
 			{ "DD2 (old)", new (230517984, 231011879, MeshSerializerVersion.DD2_Old, [GameName.dd2]) },
 			{ "Kunitsu-Gami", new (230727984, 240306278, MeshSerializerVersion.DD2_Old, [GameName.kunitsu]) },
 
-			{ "ONI2", new (240704828, 240827123, MeshSerializerVersion.Onimusha, [GameName.oni2]) },
+			{ "ONI2", new (240704828, 240827123, MeshSerializerVersion.Onimusha2, [GameName.oni2]) },
 			{ "MHWilds", new (240704828, 241111606, MeshSerializerVersion.MHWILDS, [GameName.mhwilds], extraWeightBuffer: true) },
 			{ "MHStories3", new (250203152, 250604100, MeshSerializerVersion.Pragmata, [GameName.mhsto3], extraWeightBuffer: true) },
 			{ "Pragmata", new (250707828, 251121828, MeshSerializerVersion.Pragmata, [GameName.pragmata], extraWeightBuffer: true) },

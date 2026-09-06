@@ -2063,6 +2063,13 @@ namespace ReeLib
 			MeshData?.ChangeVersion(config.serializerVersion);
 			ShadowMesh?.ChangeVersion(config.serializerVersion);
 			OccluderMesh?.ChangeVersion(config.serializerVersion);
+			if (NormalRecalcData != null && config.serializerVersion >= MeshSerializerVersion.Pragmata && NormalRecalcData.Version < MeshSerializerVersion.Pragmata) {
+				NormalRecalcData = null;
+				// normal recalc data is currently unsupported for >= pragmata format
+				// drop it here instead so we don't keep broken data in the new file
+				// TODO remove when new normal recalc is supported
+				Log.Warn("Dropping old normal recalc data because the new format is not yet supported. It should still work fine otherwise. This should hopefully not visually affect the mesh.");
+			}
 			if (MeshBuffer != null) MeshBuffer.ChangeVersion(config.serializerVersion);
 			if (StreamingBuffers != null)
 			{

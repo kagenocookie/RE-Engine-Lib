@@ -111,8 +111,8 @@ namespace ReeLib.Mdf
             if (Version == 6) handler.Write(ref uknRE7);
             handler.Write(ref paramsSize);
             handler.Write(ref paramCount);
-            handler.Write(ref texCount);
             if (Version >= 51 && isOnimushaVariant) handler.Write((uint)pragmataUkn);
+            handler.Write(ref texCount);
             if (Version >= 19) {
                 handler.Write(ref gpbfNameCount);
                 handler.Write(ref gpbfDataCount);

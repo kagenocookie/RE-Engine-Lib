@@ -34,6 +34,7 @@ public abstract class EnumDescriptor
     public abstract string GetLabel(object value);
     public abstract string GetDisplayLabel(object value);
     public abstract string GetLabel(JsonElement value);
+    public abstract JsonElement GetValue(string label);
     public abstract string[] GetLabels();
     public abstract string[] GetDisplayLabels();
     public abstract object[] GetValues();
@@ -131,6 +132,7 @@ public sealed class EnumDescriptor<T> : EnumDescriptor where T : struct, IBinary
     public override string GetLabel(object value) => ValueToLabels.TryGetValue((T)value, out var val) ? val : string.Empty;
     public override string GetDisplayLabel(object value) => ValueToDisplayLabels.TryGetValue((T)value, out var val) ? val : ValueToLabels.TryGetValue((T)value, out val) ? val : string.Empty;
     public override string GetLabel(JsonElement value) => GetLabel(Converter(value));
+    public override JsonElement GetValue(string label) => LabelToValues.TryGetValue(label, out var vv) ? JsonSerializer.SerializeToElement(vv) : default;
 
     private string[]? _labelsArray;
     public override string[] GetLabels()

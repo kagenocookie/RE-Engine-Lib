@@ -405,6 +405,8 @@ namespace ReeLib.Chain
 
         internal void ReadLinks(FileHandler handler)
         {
+            if (nodeOffset == 0) return;
+
             handler.Seek(nodeOffset);
             Links.ReadStructList(handler, linkNodeCount);
         }

@@ -1988,8 +1988,8 @@ namespace ReeLib
 			{ "Pragmata", new (250707828, 251121828, MeshSerializerVersion.Pragmata, [GameName.pragmata], extraWeightBuffer: true) },
 			{ "Pragmata Demo", new (250707828, 250925211, MeshSerializerVersion.Pragmata, [GameName.pragmata], extraWeightBuffer: true) },
 			{ "RE9", new (250904410, 250925211, MeshSerializerVersion.RE9, [GameName.re9]) },
-			{ "OniWotS Demo", new (250203152, 251215606, MeshSerializerVersion.Pragmata, [GameName.oniws]) },
-			{ "OniWotS", new (250203152, 260209350, MeshSerializerVersion.Pragmata, [GameName.oniws]) },
+			{ "OniWotS Demo", new (250203152, 251215606, MeshSerializerVersion.Pragmata, [GameName.oniws], extraWeightBuffer: true) },
+			{ "OniWotS", new (250203152, 260209350, MeshSerializerVersion.Pragmata, [GameName.oniws], extraWeightBuffer: true) },
 			{ "DD2", new (251205828, 260421070, MeshSerializerVersion.DD2_V3, [GameName.dd2]) },
 		};
 

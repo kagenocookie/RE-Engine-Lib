@@ -21,6 +21,7 @@ namespace ReeLib.Chain2
         public byte wildsUkn3;
         public byte wildsUkn4;
         public string? cfilFilepath;
+        internal string? chain2lodFilePath;
 
         protected override bool ReadWrite<THandler>(THandler action)
         {
@@ -36,7 +37,9 @@ namespace ReeLib.Chain2
             action.Do(ref freeLinksOffset);
             action.Do(ref settingsOffset);
             action.Do(ref windSettingsOffset);
-            if (version >= 17) action.Null(8);
+            if (version >= 17) {
+                action.HandleOffsetWString(ref chain2lodFilePath, true);
+            }
             action.Do(ref groupCount);
             action.Do(ref settingCount);
             action.Do(ref modelCollisionCount);

@@ -1963,6 +1963,7 @@ namespace ReeLib
 
         private static readonly Dictionary<string, MeshVersionConfig> Versions = new()
 		{
+			// note: primary / current format per game should be inserted first, will be used as the default
 			{ "RE7", new (352921600, 32, MeshSerializerVersion.RE7, [GameName.re7]) }, // currently unsupported
 
 			{ "DMC5", new (386270720, 1808282334, MeshSerializerVersion.DMC5, [GameName.dmc5]) },
@@ -1978,8 +1979,9 @@ namespace ReeLib
 
 			{ "RE4", new (220822879, 221108797, MeshSerializerVersion.RE4, [GameName.re4]) },
 			{ "SF6", new (220705151, 230110883, MeshSerializerVersion.SF6, [GameName.sf6]) },
-			{ "DD2 (old v1)", new (230517984, 231011879, MeshSerializerVersion.DD2_V1, [GameName.dd2]) },
+			{ "DD2", new (251205828, 260421070, MeshSerializerVersion.DD2_V3, [GameName.dd2]) },
 			{ "DD2 (old v2)", new (230517984, 240423143, MeshSerializerVersion.DD2_V2, [GameName.dd2]) },
+			{ "DD2 (old v1)", new (230517984, 231011879, MeshSerializerVersion.DD2_V1, [GameName.dd2]) },
 			{ "Kunitsu-Gami", new (230727984, 240306278, MeshSerializerVersion.DD2_V2, [GameName.kunitsu]) },
 
 			{ "ONI2", new (240704828, 240827123, MeshSerializerVersion.Onimusha2, [GameName.oni2]) },
@@ -1988,9 +1990,8 @@ namespace ReeLib
 			{ "Pragmata", new (250707828, 251121828, MeshSerializerVersion.Pragmata, [GameName.pragmata], extraWeightBuffer: true) },
 			{ "Pragmata Demo", new (250707828, 250925211, MeshSerializerVersion.Pragmata, [GameName.pragmata], extraWeightBuffer: true) },
 			{ "RE9", new (250904410, 250925211, MeshSerializerVersion.RE9, [GameName.re9]) },
-			{ "OniWotS Demo", new (250203152, 251215606, MeshSerializerVersion.Pragmata, [GameName.oniws], extraWeightBuffer: true) },
 			{ "OniWotS", new (250203152, 260209350, MeshSerializerVersion.Pragmata, [GameName.oniws], extraWeightBuffer: true) },
-			{ "DD2", new (251205828, 260421070, MeshSerializerVersion.DD2_V3, [GameName.dd2]) },
+			{ "OniWotS Demo", new (250203152, 251215606, MeshSerializerVersion.Pragmata, [GameName.oniws], extraWeightBuffer: true) },
 		};
 
 		public static readonly string[] AllVersionConfigs = Versions.Reverse().OrderByDescending(kv => kv.Value.serializerVersion).Select(kv => kv.Key).ToArray();

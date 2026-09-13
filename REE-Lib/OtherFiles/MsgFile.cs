@@ -146,6 +146,30 @@ namespace ReeLib.Msg
             return this;
         }
 
+        public int GetAttributeIndex(string attribute)
+        {
+            for (int i = 0; i < AttributeItems.Count; i++) {
+                var item = AttributeItems[i];
+                if (item.Name == attribute) {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        public void SetAttribute(string attribute, object value)
+        {
+            var attrIndex = GetAttributeIndex(attribute);
+            if (attrIndex != -1) SetAttribute(attrIndex, value);
+        }
+
+        public void SetAttribute(int attributeIndex, object value)
+        {
+            AttributeValues ??= new object[AttributeItems.Count];
+            AttributeValues[attributeIndex] = value;
+        }
+
         public bool Read(FileHandler handler)
         {
             var header = Header;

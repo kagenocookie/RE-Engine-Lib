@@ -20,7 +20,9 @@ namespace ReeLib.Gpuc
         PragmataDemo = 250925361,
         RE9 = 250925365,
         Pragmata = 251121978,
-        OniWS = 251215760,
+        OniWS_Demo = 251215760,
+        OniWS = 260209505,
+        DD2_V2 = 260421224,
     }
 
     public class Header : ReadWriteModel
@@ -108,7 +110,7 @@ namespace ReeLib.Gpuc
                 // there are some empty gpuc files that only contain the signature bytes and nothing else
                 return true;
             }
-            if (version >= GpucVersion.OniWS) {
+            if (version == GpucVersion.OniWS_Demo) {
                 action.Do(ref meshResourcePathHash);
                 action.Do(ref cpuMemorySize);
             } else if (version >= GpucVersion.RE9) {
@@ -143,7 +145,7 @@ namespace ReeLib.Gpuc
                 action.Do(ref numWeightedContactDescs1);
                 action.Do(ref numWeightedContactDescs2);
                 action.Do(ref lodCount);
-                if (version <= GpucVersion.MHST3 || version >= GpucVersion.OniWS) {
+                if (version <= GpucVersion.MHST3 || version is GpucVersion.OniWS_Demo or GpucVersion.OniWS) {
                     action.Do(ref numDeformBones);
                     action.Null(4);
                 } else {
@@ -213,7 +215,7 @@ namespace ReeLib.Gpuc
                     action.Do(ref numVertexDeformInfos);
                 }
             } else {
-                if (version >= GpucVersion.OniWS) {
+                if (version >= GpucVersion.OniWS_Demo) {
                     action.Do(ref pointTriangleContactDescTbl);
                     action.Do(ref edgeEdgeContactDescTbl);
                     action.Do(ref weightedContactDescsTbl1);
@@ -228,7 +230,10 @@ namespace ReeLib.Gpuc
                     action.Do(ref pointTriangleContactDescTbl);
                     action.Do(ref edgeEdgeContactDescTbl);
                 }
-                if (version is GpucVersion.RE9 or GpucVersion.Pragmata || version >= GpucVersion.MHWILDS_OLD && version <= GpucVersion.MHWILDS) {
+                if (version >= GpucVersion.MHWILDS_OLD && version is not Gpuc.GpucVersion.MHST3 and not Gpuc.GpucVersion.OniWS_Demo and not Gpuc.GpucVersion.OniWS) {
+                    // not there: mhst3, oniws+demo
+                    // is there: mhws, re9, pragmata, dd2_v2
+                    // dd2_v2 is the latest version so treating that as "current" / "correct" default
                     action.Do(ref offsUnused3);
                 }
                 action.Do(ref deformInfoTbl);

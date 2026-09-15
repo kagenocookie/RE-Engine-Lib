@@ -414,8 +414,67 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
         var newKnownFiles = totalFilesCount - unknownHashes.Count;
         Log.Info($"Resolved file paths: {newKnownFiles} / {totalFilesCount} ({((float)newKnownFiles / totalFilesCount * 100):0.00}%)");
         outputPaths.Sort(StringComparer.OrdinalIgnoreCase);
+
+        if (Flags.HasFlag(ScanFlags.UpdateExistingListCasing)) {
+            ForceUpdateCasing();
+        }
+
         Phase = GeneratorPhase.Done;
         return outputPaths;
+    }
+
+    private void ForceUpdateCasing()
+    {
+        for (int i = 0; i < outputPaths.Count; i++) {
+            var path = outputPaths[i];
+            if (path.AsSpan(platform.basePath.Length).ContainsAny(Uppercase)) {
+                continue;
+            }
+
+            int minrange = Math.Max(0, i - 1);
+            int maxrange = Math.Min(outputPaths.Count - 1, i + 100);
+            for (int refIdx = minrange; refIdx <= maxrange; refIdx++) {
+                if (refIdx == i) continue;
+
+                var refpath = outputPaths[refIdx];
+                if (!refpath.AsSpan(platform.basePath.Length).ContainsAny(Uppercase)) {
+                    continue;
+                }
+
+                if (TrySegmentedToUpper(ref path, refpath, '/')) {
+                    outputPaths[i] = path;
+                }
+                if (refIdx > i) {
+                    // we've already found the first uppercased file after our current path
+                    // that means there's no point in looking further
+                    break;
+                }
+            }
+        }
+
+        static bool TrySegmentedToUpper(ref string path, string refpath, char separator, int minIndex = 0)
+        {
+            int sepIndex = refpath.Length;
+            while (true) {
+                sepIndex = refpath.LastIndexOf(separator, sepIndex - 1);
+                if (sepIndex < minIndex) break;
+
+                if (path.Length > sepIndex && path[sepIndex] == separator) {
+                    var path1 = path.Substring(0, sepIndex);
+                    var path2 = refpath.Substring(0, sepIndex);
+                    if (path1.Equals(path2, StringComparison.OrdinalIgnoreCase)) {
+                        path = string.Concat(path2, path.AsSpan(sepIndex));
+                        if (separator == '/' && sepIndex == refpath.LastIndexOf(separator, refpath.Length - 1)) {
+                            // also try uppercasing individual file name segments case
+                            TrySegmentedToUpper(ref path, refpath, '_', sepIndex);
+                        }
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
     }
 
     private void AttemptAdditionalGuesses(Dictionary<string, int> extVersions)
@@ -618,10 +677,10 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
         }
     }
 
-
     private static readonly SearchValues<char> PathyChars = SearchValues.Create("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _-.:@\\/");
     private static readonly SearchValues<char> Numeric = SearchValues.Create("0123456789");
     private static readonly SearchValues<char> ExtensionChars = SearchValues.Create("abcdefghijklmnopqrstuvwxyz0123456789");
+    private static readonly SearchValues<char> Uppercase = SearchValues.Create("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
 
     private static bool IsPathyCharacter(char ch) => PathyChars.Contains(ch);
 

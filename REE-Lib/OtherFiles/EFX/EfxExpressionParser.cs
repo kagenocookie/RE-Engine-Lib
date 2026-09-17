@@ -221,34 +221,35 @@ public static partial class EfxExpressionStringParser
 	}
 
 	private static readonly Dictionary<EfxExpressionFunction, int> FunctionArgCounts = new() {
-		[EfxExpressionFunction.Unary0] = 1,
-		[EfxExpressionFunction.Unary1] = 1,
-		[EfxExpressionFunction.Unary2] = 1,
-		[EfxExpressionFunction.Unary4] = 1,
-		[EfxExpressionFunction.Unary5] = 1,
-		[EfxExpressionFunction.Unary6] = 1,
-		[EfxExpressionFunction.Unary7] = 1,
-		[EfxExpressionFunction.Unary8] = 1,
-		[EfxExpressionFunction.Unary9] = 1,
-		[EfxExpressionFunction.Unary10] = 1,
-		[EfxExpressionFunction.Unary11] = 1,
-		[EfxExpressionFunction.Unary12] = 1,
+		[EfxExpressionFunction.Sin] = 1,
+		[EfxExpressionFunction.Cos] = 1,
+		[EfxExpressionFunction.Asin] = 1,
+		[EfxExpressionFunction.Acos] = 1,
+		[EfxExpressionFunction.Floor] = 1,
+		[EfxExpressionFunction.Ceil] = 1,
+		[EfxExpressionFunction.Log] = 1,
+		[EfxExpressionFunction.Log10] = 1,
+		[EfxExpressionFunction.Exp] = 1,
+		[EfxExpressionFunction.Abs] = 1,
+		[EfxExpressionFunction.Saturate] = 1,
+		[EfxExpressionFunction.SinDeg] = 1,
+		[EfxExpressionFunction.CosDeg] = 1,
 
-		[EfxExpressionFunction.Func18] = 2,
-		[EfxExpressionFunction.Func19] = 2,
+		[EfxExpressionFunction.Min] = 2,
+		[EfxExpressionFunction.Max] = 2,
 		[EfxExpressionFunction.Lerp] = 3,
 		[EfxExpressionFunction.InvLerp] = 3,
-		[EfxExpressionFunction.Clamp] = 3,
-		[EfxExpressionFunction.Func20] = 2,
-		[EfxExpressionFunction.Func21] = 5,
+		[EfxExpressionFunction.SmoothStep] = 3,
+		[EfxExpressionFunction.Pow] = 2,
+		[EfxExpressionFunction.Remap] = 5,
 	};
 
 	public static int GetFunctionParameterCount(string functionName) => functionArgCount.GetValueOrDefault(functionName.GetSpanHash(), -1);
 	public static int GetFunctionParameterCount(EfxExpressionFunction functionId) => FunctionArgCounts.GetValueOrDefault(functionId, -1);
 
 	private static readonly Dictionary<int, int> functionArgCount = new(FunctionArgCounts.Select(x => new KeyValuePair<int, int>(x.Key.ToString().GetHashCode(), x.Value))) {
-		[nameof(BinaryExpressionOperator.Min).GetHashCode()] = 2,
-		[nameof(BinaryExpressionOperator.Max).GetHashCode()] = 2,
+		[nameof(BinaryExpressionOperator.Mod).GetHashCode()] = 2,
+		[nameof(BinaryExpressionOperator.Pow).GetHashCode()] = 2,
 	};
 
 	private static ExpressionAtom ParseFunction(ref ParseContext ctx, in Token idToken)

@@ -8,42 +8,38 @@ public enum UnaryExpressionOperator
 	Negation = 0,
 }
 
-/// <summary>
-/// Am not 100% sure on the exact operators for 1-4 but they seem reasonable.
-/// </summary>
 public enum BinaryExpressionOperator
 {
-	Max = 0,
-	Add = 1,
-	Sub = 2,
-	Mul = 3,
-	Div = 4,
-	Min = 5,
+	Pow = 0,
+	Mul = 1,
+	Div = 2,
+	Mod = 3,
+	Add = 4,
+	Sub = 5,
 }
 
 public enum EfxExpressionFunction
 {
-	// unary potential candidates: sin/cos/tan/atan2/inverse/reciprocial/sqrt/pow2/pow3/root3/exp/abs/ceil/floor/clamp01/log
-	// When changing any of these names, also add the previous name to EfxExpressionParser.functionArgCount for compatiblity
-	Unary0 = 0,
-	Unary1 = 1,
-	Unary2 = 2,
-	Unary4 = 4,
-	Unary5 = 5,
-	Unary6 = 6,
-	Unary7 = 7,
-	Unary8 = 8,
-	Unary9 = 9,
-	Unary10 = 10,
-	Unary11 = 11,
-	Unary12 = 12,
+	Sin = 0,
+	Cos = 1,
+	Asin = 2,
+	Acos = 3,
+	Floor = 4,
+	Ceil = 5,
+	Log = 6,
+	Log10 = 7,
+	Exp = 8,
+	Abs = 9,
+	Saturate = 10,
+	SinDeg = 11,
+	CosDeg = 12,
 	Lerp = 15,
 	InvLerp = 16,
-	Clamp = 17,
-	Func18 = 18,
-	Func19 = 19,
-	Func20 = 20,
-	Func21 = 21,
+	SmoothStep = 17,
+	Min = 18,
+	Max = 19,
+	Pow = 20,
+	Remap = 21,
 }
 
 public enum ExpressionParameterSource
@@ -156,11 +152,11 @@ public class ExpressionBinaryOperation : ExpressionAtom
 		return op switch {
 			BinaryExpressionOperator.Add => 1,
 			BinaryExpressionOperator.Sub => 1,
-			BinaryExpressionOperator.Mul => 2,
-			BinaryExpressionOperator.Div => 2,
-			BinaryExpressionOperator.Max => 3,
-			BinaryExpressionOperator.Min => 3,
-			_ => 4,
+			BinaryExpressionOperator.Mod => 2,
+			BinaryExpressionOperator.Div => 3,
+			BinaryExpressionOperator.Mul => 3,
+			BinaryExpressionOperator.Pow => 4,
+			_ => 5,
 		};
 	}
 
@@ -207,8 +203,8 @@ public class ExpressionBinaryOperation : ExpressionAtom
 				}
 
 				break;
-			case BinaryExpressionOperator.Min:
-			case BinaryExpressionOperator.Max:
+			case BinaryExpressionOperator.Pow:
+			case BinaryExpressionOperator.Mod:
 				sb.Append(oper);
 				sb.Append('(');
 				left.AppendString(sb);

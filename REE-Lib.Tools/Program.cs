@@ -26,6 +26,7 @@ internal sealed class Program
                 } else {
                     var folder = GetArgFolderPath(args, 1);
                     foreach (var ver in Enum.GetValues<EfxVersion>()) {
+                        if (ver == EfxVersion.Unknown) continue;
                         EfxTools.GenerateEFXStructsJson(ver, Path.Combine(folder, Enum.GetName<EfxVersion>(ver) + ".json"));
                     }
                 }

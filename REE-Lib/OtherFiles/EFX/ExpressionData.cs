@@ -266,6 +266,12 @@ public partial class EFXExpressionList : EFXExpressionContainer
 		clone.expressions.AddRange(expressions.Select(e => e.Clone()));
 		return clone;
     }
+
+    public override string ToString()
+    {
+		var exprs = ParsedExpressions ?? EfxExpressionTreeUtils.ReconstructExpressionTreeList(Expressions, new EfxFile(new FileHandler()));
+        return string.Join(" | ", exprs.Select(e => e.ToString()));
+    }
 }
 
 [RszGenerate]

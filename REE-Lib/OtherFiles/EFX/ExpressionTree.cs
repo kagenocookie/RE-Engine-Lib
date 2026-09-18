@@ -34,7 +34,7 @@ public enum EfxExpressionFunction
 	SinDeg = 11,
 	CosDeg = 12,
 	Lerp = 15,
-	InvLerp = 16,
+	Clamp = 16,
 	SmoothStep = 17,
 	Min = 18,
 	Max = 19,

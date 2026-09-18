@@ -238,7 +238,7 @@ public static partial class EfxExpressionStringParser
 		[EfxExpressionFunction.Min] = 2,
 		[EfxExpressionFunction.Max] = 2,
 		[EfxExpressionFunction.Lerp] = 3,
-		[EfxExpressionFunction.InvLerp] = 3,
+		[EfxExpressionFunction.Clamp] = 3,
 		[EfxExpressionFunction.SmoothStep] = 3,
 		[EfxExpressionFunction.Pow] = 2,
 		[EfxExpressionFunction.Remap] = 5,

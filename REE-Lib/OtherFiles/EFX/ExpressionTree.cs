@@ -144,6 +144,8 @@ public class ExpressionBinaryOperation : ExpressionAtom
         BinaryExpressionOperator.Sub => $"({left} - {right})",
         BinaryExpressionOperator.Mul => $"({left} * {right})",
         BinaryExpressionOperator.Div => $"({left} / {right})",
+        BinaryExpressionOperator.Mod => $"({left} % {right})",
+        BinaryExpressionOperator.Pow => $"({left} ^ {right})",
         _ => $"{oper}({left}, {right})",
     };
 
@@ -153,67 +155,51 @@ public class ExpressionBinaryOperation : ExpressionAtom
 			BinaryExpressionOperator.Add => 1,
 			BinaryExpressionOperator.Sub => 1,
 			BinaryExpressionOperator.Mod => 2,
-			BinaryExpressionOperator.Div => 3,
-			BinaryExpressionOperator.Mul => 3,
-			BinaryExpressionOperator.Pow => 4,
+			BinaryExpressionOperator.Div => 2,
+			BinaryExpressionOperator.Mul => 2,
+			BinaryExpressionOperator.Pow => 3,
 			_ => 5,
 		};
 	}
 
     internal override void AppendString(StringBuilder sb)
     {
-		switch (oper) {
-			case BinaryExpressionOperator.Add:
-			case BinaryExpressionOperator.Sub:
-			case BinaryExpressionOperator.Div:
-			case BinaryExpressionOperator.Mul:
-				var p0 = GetPrecedence(oper);
-				if (left is ExpressionBinaryOperation l) {
-					var p1 = GetPrecedence(l.oper);
-					if (p1 >= p0) {
-						l.AppendString(sb);
-					} else {
-						sb.Append('(');
-						l.AppendString(sb);
-						sb.Append(')');
-					}
-				} else {
-					left.AppendString(sb);
-				}
-				sb.Append(' ');
-				sb.Append(oper switch {
-					BinaryExpressionOperator.Add => "+",
-					BinaryExpressionOperator.Sub => "-",
-					BinaryExpressionOperator.Mul => "*",
-					BinaryExpressionOperator.Div => "/",
-					_ => "?"
-				});
-				sb.Append(' ');
-				if (right is ExpressionBinaryOperation r) {
-					var p2 = GetPrecedence(r.oper);
-					if (p2 >= p0) {
-						r.AppendString(sb);
-					} else {
-						sb.Append('(');
-						r.AppendString(sb);
-						sb.Append(')');
-					}
-				} else {
-					right.AppendString(sb);
-				}
-
-				break;
-			case BinaryExpressionOperator.Pow:
-			case BinaryExpressionOperator.Mod:
-				sb.Append(oper);
+		var p0 = GetPrecedence(oper);
+		if (left is ExpressionBinaryOperation l) {
+			var p1 = GetPrecedence(l.oper);
+			if (p1 >= p0) {
+				l.AppendString(sb);
+			} else {
 				sb.Append('(');
-				left.AppendString(sb);
-				sb.Append(", ");
-				right.AppendString(sb);
+				l.AppendString(sb);
 				sb.Append(')');
-				break;
-			default:
-				throw new Exception("Unsupported binary operator " + oper);
+			}
+		} else {
+			left.AppendString(sb);
+		}
+
+		sb.Append(' ');
+		sb.Append(oper switch {
+			BinaryExpressionOperator.Add => "+",
+			BinaryExpressionOperator.Sub => "-",
+			BinaryExpressionOperator.Mul => "*",
+			BinaryExpressionOperator.Div => "/",
+			BinaryExpressionOperator.Pow => "^",
+			BinaryExpressionOperator.Mod => "%",
+			_ => "?"
+		});
+		sb.Append(' ');
+		if (right is ExpressionBinaryOperation r) {
+			var p2 = GetPrecedence(r.oper);
+			if (p2 >= p0) {
+				r.AppendString(sb);
+			} else {
+				sb.Append('(');
+				r.AppendString(sb);
+				sb.Append(')');
+			}
+		} else {
+			right.AppendString(sb);
 		}
     }
 }

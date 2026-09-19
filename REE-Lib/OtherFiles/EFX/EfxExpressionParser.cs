@@ -40,8 +40,8 @@ public static partial class EfxExpressionStringParser
 	{
 		switch (item) {
 			case ExpressionBinaryOperation bin:
-				StoreNewParameters(ref ctx, bin.left, usedParams);
 				StoreNewParameters(ref ctx, bin.right, usedParams);
+				StoreNewParameters(ref ctx, bin.left, usedParams);
 				break;
 			case ExpressionUnaryOperation unary:
 				StoreNewParameters(ref ctx, unary.atom, usedParams);
@@ -104,9 +104,9 @@ public static partial class EfxExpressionStringParser
 
     private static ExpressionAtom ParseBinaryOperationMulDiv(ref ParseContext ctx)
     {
-		var left = ParseUnary(ref ctx);
+		var left = ParseBinaryOperationPow(ref ctx);
         var op = ctx.nextToken;
-		if (op is TokenType.OpMul or TokenType.OpDiv) {
+		if (op is TokenType.OpMul or TokenType.OpDiv or TokenType.OpMod) {
 			SkipToken(ref ctx);
         	var right = ParseBinaryOperationMulDiv(ref ctx);
 			return new ExpressionBinaryOperation() {
@@ -114,8 +114,26 @@ public static partial class EfxExpressionStringParser
 				oper = op switch {
 					TokenType.OpMul => BinaryExpressionOperator.Mul,
 					TokenType.OpDiv => BinaryExpressionOperator.Div,
+					TokenType.OpMod => BinaryExpressionOperator.Mod,
 					_ => throw new Exception("Unhandled token type " + op)
 				},
+				right = right,
+			};
+		} else {
+			return left;
+		}
+    }
+
+    private static ExpressionAtom ParseBinaryOperationPow(ref ParseContext ctx)
+    {
+		var left = ParseUnary(ref ctx);
+        var op = ctx.nextToken;
+		if (op is TokenType.OpPow) {
+			SkipToken(ref ctx);
+        	var right = ParseBinaryOperationPow(ref ctx);
+			return new ExpressionBinaryOperation() {
+				left = left,
+				oper = BinaryExpressionOperator.Pow,
 				right = right,
 			};
 		} else {
@@ -320,6 +338,8 @@ public static partial class EfxExpressionStringParser
 			case '-': return TokenType.OpSub;
 			case '/': return TokenType.OpDiv;
 			case '*': return TokenType.OpMul;
+			case '%': return TokenType.OpMod;
+			case '^': return TokenType.OpPow;
 			case ',': return TokenType.Comma;
 			case '|': return TokenType.RootValueOption;
 			case '0':
@@ -361,6 +381,8 @@ public static partial class EfxExpressionStringParser
 			case '-': return new Token(ctx.position, ++ctx.position, TokenType.OpSub);
 			case '/': return new Token(ctx.position, ++ctx.position, TokenType.OpDiv);
 			case '*': return new Token(ctx.position, ++ctx.position, TokenType.OpMul);
+			case '%': return new Token(ctx.position, ++ctx.position, TokenType.OpMod);
+			case '^': return new Token(ctx.position, ++ctx.position, TokenType.OpPow);
 			case ',': return new Token(ctx.position, ++ctx.position, TokenType.Comma);
 			case '|': return new Token(ctx.position, ++ctx.position, TokenType.RootValueOption);
 			case '0':
@@ -419,6 +441,8 @@ public static partial class EfxExpressionStringParser
 		OpSub,
 		OpMul,
 		OpDiv,
+		OpMod,
+		OpPow,
 		ParenOpen,
 		ParenClosed,
 		Comma,
@@ -495,13 +519,13 @@ public static class EfxExpressionTreeUtils
 			return;
 		}
 		if (item is ExpressionBinaryOperation binary) {
-			FlattenExpression(components, parameters, binary.right, tree, paramSource);
 			FlattenExpression(components, parameters, binary.left, tree, paramSource);
+			FlattenExpression(components, parameters, binary.right, tree, paramSource);
 			components.Add(new EFXExpressionData(new EFXExpressionDataBinaryOperator() { value = binary.oper }));
 			return;
 		}
 		if (item is ExpressionFuncOperation func) {
-			for (int i = func.args.Length - 1; i >= 0; i--) {
+			for (int i = 0; i < func.args.Length; i++) {
 				FlattenExpression(components, parameters, func.args[i], tree, paramSource);
 			}
 			components.Add(new EFXExpressionData(new EFXExpressionDataFunction() { value = func.func }));
@@ -584,8 +608,8 @@ public static class EfxExpressionTreeUtils
 		if (comp.data is EFXExpressionDataBinaryOperator binary) {
 			var item = new ExpressionBinaryOperation();
 			item.oper = binary.value;
-			item.left = UnflattenExpression(expression, paramSource, ref index);
 			item.right = UnflattenExpression(expression, paramSource, ref index);
+			item.left = UnflattenExpression(expression, paramSource, ref index);
 			return item;
 		}
 		if (comp.data is EFXExpressionDataFloat floatType) {
@@ -605,7 +629,7 @@ public static class EfxExpressionTreeUtils
 				var item = new ExpressionFuncOperation();
 				item.args = new ExpressionAtom[argCount];
 				item.func = intType.value;
-				for (int i = 0; i < argCount; i++) {
+				for (int i = argCount - 1; i >= 0; i--) {
 					item.args[i] = UnflattenExpression(expression, paramSource, ref index);
 				}
 				return item;

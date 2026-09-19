@@ -265,10 +265,7 @@ public static partial class EfxExpressionStringParser
 	public static int GetFunctionParameterCount(string functionName) => functionArgCount.GetValueOrDefault(functionName.GetSpanHash(), -1);
 	public static int GetFunctionParameterCount(EfxExpressionFunction functionId) => FunctionArgCounts.GetValueOrDefault(functionId, -1);
 
-	private static readonly Dictionary<int, int> functionArgCount = new(FunctionArgCounts.Select(x => new KeyValuePair<int, int>(x.Key.ToString().GetHashCode(), x.Value))) {
-		[nameof(BinaryExpressionOperator.Mod).GetHashCode()] = 2,
-		[nameof(BinaryExpressionOperator.Pow).GetHashCode()] = 2,
-	};
+	private static readonly Dictionary<int, int> functionArgCount = new(FunctionArgCounts.Select(x => new KeyValuePair<int, int>(x.Key.ToString().GetHashCode(), x.Value)));
 
 	private static ExpressionAtom ParseFunction(ref ParseContext ctx, in Token idToken)
 	{
@@ -287,20 +284,6 @@ public static partial class EfxExpressionStringParser
 				func = Enum.Parse<EfxExpressionFunction>(nameSpan, true),
 				atom = ParseExpression(ref ctx),
 			};
-		} else if (args == 2) {
-			var bin = new ExpressionBinaryOperation() { oper = Enum.Parse<BinaryExpressionOperator>(nameSpan, true) };
-			bin.left = ParseExpression(ref ctx);
-			SkipToken(ref ctx, TokenType.Comma);
-			bin.right = ParseExpression(ref ctx);
-			result = bin;
-		// } else if (args == 3) {
-		// 	var ter = new ExpressionTernaryOperation() { func = Enum.Parse<EfxExpressionFunction>(nameSpan, true) };
-		// 	ter.left = ParseExpression(ref ctx);
-		// 	SkipToken(ref ctx, TokenType.Comma);
-		// 	ter.arg2 = ParseExpression(ref ctx);
-		// 	SkipToken(ref ctx, TokenType.Comma);
-		// 	ter.arg3 = ParseExpression(ref ctx);
-		// 	result = ter;
 		} else {
 			var ter = new ExpressionFuncOperation() { func = Enum.Parse<EfxExpressionFunction>(nameSpan, true) };
 			ter.args = new ExpressionAtom[args];

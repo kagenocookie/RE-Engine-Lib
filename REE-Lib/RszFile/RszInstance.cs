@@ -961,14 +961,19 @@ namespace ReeLib
         /// </summary>
         public static object CreateNormalObject(RszField field)
         {
-            if (field.type == RszFieldType.Data)
-            {
-                return new byte[field.size];
+            switch (field.type) {
+                case RszFieldType.Data:
+                    return new byte[field.size];
+                case RszFieldType.String:
+                case RszFieldType.Resource:
+                case RszFieldType.RuntimeType:
+                    return "";
+                case RszFieldType.Quaternion:
+                    return Quaternion.Identity;
+                case RszFieldType.Mat4:
+                    return mat4.Identity;
             }
-            else if (field.IsString || field.type == RszFieldType.RuntimeType)
-            {
-                return "";
-            }
+
             var type = RszFieldTypeToCSharpType(field.type);
             return Activator.CreateInstance(type) ??
                 throw new NullReferenceException($"Can not create instance of type {type.Name}");

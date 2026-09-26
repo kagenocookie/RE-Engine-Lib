@@ -46,7 +46,7 @@ namespace ReeLib.Common
                 throw new Exception("Missing $type property in JSON for RSZ instance");
             }
             var cls = env.RszParser.GetRSZClass(classname!) ?? throw new Exception("Can't deserialize unknown RSZ class ");
-            var inst = RszInstance.CreateInstance(env.RszParser, cls, -1);
+            var inst = env.CreateRszInstance(cls);
             foreach (var (key, val) in dict) {
                 var fieldIdx = cls.IndexOfField(key);
                 if (fieldIdx == -1) {

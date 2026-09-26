@@ -485,6 +485,11 @@ namespace ReeLib
                 entryName = messageKey ?? GetUniqueNewKey(),
                 guid = guid,
             };
+            if (header.IsHash) {
+                header.hashOrIndex = MurMur3HashUtils.GetHash(header.entryName);
+            } else {
+                header.hashOrIndex = (uint)Entries.Count;
+            }
             var entry = new MessageEntry(header, AttributeItems)
             {
                 AttributeValues = new object[AttributeItems.Count]

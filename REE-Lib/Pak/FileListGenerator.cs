@@ -396,11 +396,11 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
 
         var newFiles = outputPaths.Count - previouslyKnownFilesCount;
         Log.Info($"Found {newFiles} new file paths");
-        // we can't reliably get just the list of new paths in this case because we're re-doing the whole list, so don't print when UpdateExistingListCasing
+        // we can't reliably get just the list of new paths in the UpdateExistingListCasing case because we're re-doing the whole list, so don't print then
         if (newFiles > 0 && previouslyKnownFilesCount > 0 && !Flags.HasFlag(ScanFlags.UpdateExistingListCasing)) {
             Log.Info(string.Join("\n", outputPaths[previouslyKnownFilesCount..]));
         }
-        if (!Flags.HasFlag(ScanFlags.UpdateExistingListCasing) && sourceFileList.Length > 0) {
+        if (Flags.HasFlag(ScanFlags.MaintainPreviousList) && sourceFileList.Length > 0) {
             outputPaths.AddRange(sourceFileList);
             outputPaths = outputPaths.Distinct().ToList();
         }

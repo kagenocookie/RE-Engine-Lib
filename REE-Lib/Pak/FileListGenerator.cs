@@ -138,14 +138,15 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
 
     private static readonly HashSet<string> IgnoredExtensions = ["json", "dll", "pdb", "ini", "cpp", "hpp", "h", "cs", "technology", "com", "com0", "com07", "com0N", "com0X", "com0C", "com0\\", "com0A", "ffff", "fffff", "0", "iconTagEvent", "iconTagReplace", "messageTagEvent", "ruleset", "jp", "htm0", "html", "dtd", "compositefont", "iccprofile", "xaml", "xml", "rels", "struct", "base64", "baml"];
     private static readonly HashSet<uint> IgnoreExtHashes = IgnoredExtensions.Select(x => MurMur3HashUtils.GetHash(x)).ToHashSet();
-    private static readonly string[] IncrementedVersionFileFormats = ["user","pfb","mdf2","msg","rtex","rtmr","star","scn","clip","ies","prb","lprb","pog","poglst","gpbf","jcns","chain2","motbank","motlist","jmap","jointlodgroup","mot","fbxskel","clsp","sfur","jntexprgraph","lod","rbs","hf","chf","fxct","efcsv","abcmesh","uvs","eem","uvar","vsdflist","dlgcf","fsmv2","rcol","mcamlist","clrp","cset","mov","ccbk","iklookat2","ainvm","ainvmmgr","chainwnd","psop","gcp","gcf","gsty","oft","fslt","ift","sss","motcam","mcambank","ikls","ikmulti","ikfs","fbik","iklizard","ikwagon","ikleg2","retargetrig","skeleton","ord","rcf","ncf","vsrc","amix","swms","ucurvelist","sbnk","spck","aimapattr","cdef","def","finf","sts","htex","rcfg","chain2lod","coco","lfa","psow","svgn","stdlod","refskel","sst","motfsm2","ikbodyrig","ikhd","iktrain2","clsm","cmat","aiwaypmgr"];
+    private static readonly string[] IncrementedVersionFileFormats = ["user","pfb","mdf2","msg","rtex","rtmr","star","scn","clip","ies","prb","lprb","pog","poglst","gpbf","jcns","chain2","motbank","motlist","jmap","jointlodgroup","mot","fbxskel","clsp","sfur","jntexprgraph","lod","rbs","hf","chf","fxct","efcsv","abcmesh","uvs","eem","uvar","vsdflist","dlgcf","fsmv2","rcol","mcamlist","clrp","cset","ccbk","iklookat2","ainvm","ainvmmgr","chainwnd","psop","gcp","gcf","gsty","oft","fslt","ift","sss","motcam","mcambank","ikls","ikmulti","ikfs","fbik","iklizard","ikwagon","ikleg2","retargetrig","skeleton","ord","rcf","ncf","vsrc","amix","swms","ucurvelist","aimapattr","cdef","def","finf","sts","htex","rcfg","chain2lod","coco","lfa","psow","svgn","stdlod","refskel","sst","motfsm2","ikbodyrig","ikhd","iktrain2","clsm","cmat","aiwaypmgr"];
     private static readonly string[] DateVersionFileFormats = ["sdf","vsdf","gpuc","mpci","tex","csdf","mmtr","mesh","sdftex","vmap","zivacomb","ziva","fol","stmesh","gml","grnd","gtl"];
     private static readonly string[] CombinedVersionFileFormats = ["rdd","tmlbld","gui","mcol","rmesh","dlgtml","dlglist","fpolygon","ucurve","dlg"];
-    private static readonly HashSet<string> AlwaysExpectLocaleSuffix = ["mov", "sbnk", "spck"];
+    private static readonly HashSet<string> AlwaysExpectLocaleSuffix = ["mov", "sbnk", "spck", "bnk", "pck"];
 
     private static readonly Dictionary<string, FileFormatData> FileFormatSettings = new Dictionary<string, FileFormatData>(
         IncrementedVersionFileFormats.Select(d => new KeyValuePair<string, FileFormatData>(d, new FileFormatData(0, 3000, 10)))
         .Concat(CombinedVersionFileFormats.Select(d => new KeyValuePair<string, FileFormatData>(d, new FileFormatData(0, 5000000, 6))))
+        .Concat(AlwaysExpectLocaleSuffix.Select(d => new KeyValuePair<string, FileFormatData>(d, new FileFormatData(1, 10, 25))))
         .Concat(DateVersionFileFormats.Select(d => new KeyValuePair<string, FileFormatData>(d, new FileFormatData(241000000, int.Parse(DateTime.UtcNow.ToString("yyMMdd") + "000"), 5))))
     );
 
@@ -268,8 +269,8 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
                     var sb = new StringBuilder();
                     sb.Append(attemptBase).Append('.');
                     var range = (long)extSettings.FileVersionMax - extSettings.FileVersionMin;
+                    var doSuffix = AlwaysExpectLocaleSuffix.Contains(ext);
                     if (range == 0 || range > int.MaxValue) {
-                        var doSuffix = AlwaysExpectLocaleSuffix.Contains(ext);
                         for (int i = 0; i <= 999; i++) {
                             sb.Length = attemptBase.Length + 1;
                             sb.Append(i);
@@ -282,7 +283,7 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
                                 Log.Info($"Found new file extension version: {ext}.{version}");
                                 break;
                             }
-                            if (doSuffix && TryPath(string.Concat(str, ".x64")) || TryPath(string.Concat(str, ".64.en")) || TryPath(string.Concat(str, ".64.ja"))) {
+                            if (doSuffix && TryPath(string.Concat(str, ".x64")) || TryPath(string.Concat(str, ".x64.en")) || TryPath(string.Concat(str, ".x64.ja"))) {
                                 version = i;
                                 extVersions[ext] = version;
                                 canContinue = true;
@@ -290,7 +291,7 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
                                 break;
                             }
                         }
-                        if (!canContinue && Flags.HasFlag(ScanFlags.BruteforceExtensions)) {
+                        if (!canContinue && Flags.HasFlag(ScanFlags.BruteforceExtensions) && !doSuffix) {
                             if (allowBruteforce || !FileFormatSettings.TryGetValue(ext, out var formatData)) {
                                 Log.Info($"Attempting to bruteforce version for extension {ext} based on filepath {attemptBase}");
                                 int bruteforceExt = TryBruteforceFileExtensionMultithread(attemptBase);
@@ -308,6 +309,13 @@ public class FileListGenerator(string gameDirectory, PlatformIdentifier platform
                             sb.CopyTo(0, extensionStringSpan, sb.Length);
                             var str = extensionStringSpan.Slice(0, sb.Length);
                             if (TryPath(str)) {
+                                version = i;
+                                extVersions[ext] = version;
+                                canContinue = true;
+                                Log.Info($"Found new file extension version: {ext}.{version}");
+                                break;
+                            }
+                            if (doSuffix && TryPath(string.Concat(str, ".x64")) || TryPath(string.Concat(str, ".x64.en")) || TryPath(string.Concat(str, ".x64.ja"))) {
                                 version = i;
                                 extVersions[ext] = version;
                                 canContinue = true;

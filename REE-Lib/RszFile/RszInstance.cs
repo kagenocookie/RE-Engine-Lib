@@ -480,7 +480,7 @@ namespace ReeLib
         {
             var sep = path.IndexOf('.');
             if (sep == -1) {
-                SetFieldValue(path, value);
+                SetFieldValueSafe(path, value);
                 return;
             }
 
@@ -533,11 +533,48 @@ namespace ReeLib
             // TODO ValueChangedEvent
         }
 
+        /// <summary>
+        /// Set a field value directly with no type safety guarantees.
+        /// </summary>
         public bool SetFieldValue(ReadOnlySpan<char> name, object value)
         {
             int index = RszClass.IndexOfField(name);
             if (index == -1) return false;
             Values[index] = value;
+            return true;
+        }
+
+        /// <summary>
+        /// Set the field value while also ensuring it's of the correct type.
+        /// </summary>
+        public bool SetFieldValueSafe(ReadOnlySpan<char> name, object value)
+        {
+            int index = RszClass.IndexOfField(name);
+            if (index == -1) return false;
+
+            var field = RszClass.fields[index];
+            switch (field.type) {
+                case RszFieldType.String:
+                case RszFieldType.Resource:
+                case RszFieldType.RuntimeType:
+                    Values[index] = value.ToString()!;
+                    break;
+                case RszFieldType.Object:
+                case RszFieldType.Struct:
+                case RszFieldType.UserData:
+                    Values[index] = (RszInstance)value;
+                    break;
+                default: {
+                        var targetType = RszFieldTypeToCSharpType(field.type);
+                        if (value.GetType() == targetType) {
+                            Values[index] = value;
+                        } else {
+                            Values[index] = Convert.ChangeType(value, targetType);
+                        }
+                    }
+                    break;
+            }
+
             return true;
         }
 

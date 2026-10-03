@@ -84,6 +84,17 @@ namespace ReeLib
         RszInstance? Instance { get; }
         IList<RszInstance> Components { get; }
 
+        public RszInstance? FindComponent(ReadOnlySpan<char> classname)
+        {
+            foreach (var comp in Components) {
+                if (classname.SequenceEqual(comp.RszClass.name)) {
+                    return comp;
+                }
+            }
+
+            return null;
+        }
+
         IEnumerable<IGameObject> GetChildren();
     }
 

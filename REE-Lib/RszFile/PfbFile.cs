@@ -121,6 +121,26 @@ namespace ReeLib.Pfb
             return path;
         }
 
+        public PfbGameObject? Find(ReadOnlySpan<char> path)
+        {
+            var part = path.IndexOf('/');
+            var nextChild = part == -1 ? path : path.Slice(0, part);
+
+            PfbGameObject? child = null;
+            foreach (var c in Children) {
+                if (path.SequenceEqual(c.Name)) {
+                    child = c;
+                    break;
+                }
+            }
+
+            if (part == -1 || child == null) {
+                return child;
+            }
+
+            return child.Find(path.Slice(part + 1));
+        }
+
         public PfbGameObject Clone()
         {
             PfbGameObject gameObject = new()

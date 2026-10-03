@@ -1,9 +1,9 @@
 namespace ReeLib.Il2cpp;
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using ReeLib;
-using ReeLib.Common;
 
 public abstract class EnumDescriptor
 {
@@ -38,6 +38,13 @@ public abstract class EnumDescriptor
     public abstract string[] GetLabels();
     public abstract string[] GetDisplayLabels();
     public abstract object[] GetValues();
+
+    public JsonElement? GetValueOrNull(string label)
+    {
+        var v = GetValue(label);
+        if (v.ValueKind == JsonValueKind.Undefined) return null;
+        return v;
+    }
 
     public abstract bool HasFlag(object number, object flag);
     public abstract object AddFlag(object number, object flag);
@@ -108,7 +115,7 @@ public abstract class EnumDescriptor
     }
 }
 
-public sealed class EnumDescriptor<T> : EnumDescriptor where T : struct, IBinaryInteger<T>, IBitwiseOperators<T, T, T>, IMinMaxValue<T>, ISubtractionOperators<T, T, T>
+public sealed class EnumDescriptor<T> : EnumDescriptor where T : unmanaged, IBinaryInteger<T>, IBitwiseOperators<T, T, T>, IMinMaxValue<T>, ISubtractionOperators<T, T, T>
 {
     public readonly Dictionary<T, string> ValueToLabels = new();
     public readonly Dictionary<T, string> ValueToDisplayLabels = new();
@@ -279,21 +286,21 @@ public sealed class EnumDescriptor<T> : EnumDescriptor where T : struct, IBinary
 
         // prioritize performance for normal runtime, no extra hacks needed
         if (typeof(T) == typeof(System.Int64)) {
-            converter = static (e) => (T)(object)(long)e.GetInt64();
+            converter = static (e) => Unsafe.BitCast<long, T>(e.GetInt64());
         } else if (typeof(T) == typeof(System.UInt64)) {
-            converter = static (e) => (T)(object)(ulong)e.GetUInt64();
+            converter = static (e) => Unsafe.BitCast<ulong, T>(e.GetUInt64());
         } else if (typeof(T) == typeof(System.Int32)) {
-            converter = static (e) => (T)(object)(int)e.GetInt64();
+            converter = static (e) => Unsafe.BitCast<int, T>((int)e.GetInt64());
         } else if (typeof(T) == typeof(System.UInt32)) {
-            converter = static (e) => (T)(object)(uint)e.GetUInt32();
+            converter = static (e) => Unsafe.BitCast<uint, T>((uint)e.GetUInt32());
         } else if (typeof(T) == typeof(System.Int16)) {
-            converter = static (e) => (T)(object)(short)e.GetInt32();
+            converter = static (e) => Unsafe.BitCast<short, T>((short)e.GetInt32());
         } else if (typeof(T) == typeof(System.UInt16)) {
-            converter = static (e) => (T)(object)(ushort)e.GetUInt16();
+            converter = static (e) => Unsafe.BitCast<ushort, T>((ushort)e.GetInt32());
         } else if (typeof(T) == typeof(System.SByte)) {
-            converter = static (e) => (T)(object)(sbyte)e.GetInt32();
+            converter = static (e) => Unsafe.BitCast<sbyte, T>((sbyte)e.GetInt32());
         } else if (typeof(T) == typeof(System.Byte)) {
-            converter = static (e) => (T)(object)(byte)e.GetInt32();
+            converter = static (e) => Unsafe.BitCast<byte, T>((byte)e.GetInt32());
         } else {
             converter = static (e) => default(T);
         }

@@ -340,6 +340,7 @@ public sealed class EnumDescriptor<T> : EnumDescriptor where T : unmanaged, IBin
             return;
         }
         ValueToDisplayLabels[value] = displayLabel;
+        _displayLabelsArray = null;
     }
 
     public override void SetDisplayLabels(IEnumerable<KeyValuePair<string, string>> labels)
@@ -350,5 +351,6 @@ public sealed class EnumDescriptor<T> : EnumDescriptor where T : unmanaged, IBin
             }
             ValueToDisplayLabels[value] = displayLabel;
         }
+        _displayLabelsArray = null;
     }
 }

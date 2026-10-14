@@ -1020,6 +1020,31 @@ namespace ReeLib.Mesh
 			return new ResolvedBlendShapeSegment(Buffer.BlendShapeData.AsSpan(start, end - start), start);
 		}
 
+		/// <param name="weightBuffer">0 = normal weights, 1 = extra weight buffer, 2 = shape key weights</param>
+		public int GetPerVertexMaxWeightCount(int weightBuffer)
+		{
+			int count = 0;
+			var buffer = weightBuffer switch {
+				0 => Weights,
+				1 => ExtraWeights,
+				2 => ShapeKeyWeights,
+				_ => throw new ArgumentException("weight buffer index must be 0-2", nameof(weightBuffer)),
+			};
+
+			var indices = buffer[0].IndexCount;
+			for (int i = 0; i < vertCount; i++) {
+				var w = buffer[i];
+				int k = count;
+				while (k < indices && w.GetWeight(k) > 0) {
+					count++;
+					k++;
+				}
+
+				if (k == indices) break;
+			}
+			return count;
+		}
+
         protected override bool ReadWrite<THandler>(THandler action)
         {
 			action.Do(ref materialIndex);

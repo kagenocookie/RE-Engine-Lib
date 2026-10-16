@@ -249,7 +249,10 @@ public class LocalResources : ICloneable
         return true;
     }
 
-    internal static bool SaveRSZTemplateFile(Stream file, string source, string outputPath, bool forceFixAttempt)
+    /// <summary>
+    /// Copy an RSZ JSON file and transform any unsupported features and edge cases so it's properly usable with REE-Lib tooling.
+    /// </summary>
+    public static bool SaveRSZTemplateFile(Stream file, string source, string outputPath, bool forceFixAttempt)
     {
         var jsondoc = JsonSerializer.Deserialize<JsonObject>(file);
         if (jsondoc == null) {

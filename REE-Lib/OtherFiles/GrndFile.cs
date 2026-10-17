@@ -3,7 +3,7 @@ using ReeLib.InternalAttributes;
 
 namespace ReeLib.Grnd
 {
-    [RszGenerate, RszAutoReadWrite]
+    [RszGenerate, RszAutoReadWrite, RszAssignVersion, RszVersionedObject(typeof(int))]
     public partial class Header : BaseModel
     {
         public uint magic = GrndFile.Magic;
@@ -20,6 +20,11 @@ namespace ReeLib.Grnd
         public int dataCount;
         public int ukn2;
         public int ukn3;
+
+        [RszVersion(251211558, EndAt = nameof(ukn5))]
+        public int ukn4;
+        public int ukn5;
+
         public float startX;
         public float startZ;
         public int x;
@@ -31,19 +36,23 @@ namespace ReeLib.Grnd
         public Vector3 Max => new Vector3(maxX, minY + height, maxZ);
     }
 
-    [RszGenerate, RszAutoReadWrite]
+    [RszGenerate, RszAutoReadWrite, RszAssignVersion, RszVersionedObject(typeof(int))]
     public partial class GroundDataHeaders : BaseModel
     {
         public int index;
         public int ukn1;
         public int ukn2;
-        public int ukn3;
+        public int tileMode;
         public int type;
         public int valueCount;
         public int totalBlocksize;
         public int strideBytes;
         public int uknIndex;
         public int ukn9;
+
+        [RszVersion(251211558, EndAt = nameof(ukn11))]
+        public int ukn10;
+        public int ukn11;
     }
 }
 

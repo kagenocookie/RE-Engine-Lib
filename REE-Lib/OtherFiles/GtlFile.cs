@@ -4,7 +4,7 @@ using ReeLib.InternalAttributes;
 
 namespace ReeLib.Gtl
 {
-    [RszGenerate, RszAutoReadWrite]
+    [RszGenerate, RszAutoReadWrite, RszAssignVersion, RszVersionedObject(typeof(int))]
     public partial class Header : BaseModel
     {
         public uint magic = GtlFile.Magic;
@@ -18,6 +18,8 @@ namespace ReeLib.Gtl
 
         public long indicesOffset;
         public long heightRangesOffset;
+        [RszVersion(251211576)]
+        public long uknBytesOffset;
         public long dataOffset;
     }
 
@@ -43,20 +45,9 @@ namespace ReeLib.Gtl
         public uint ukn1;
     }
 
-    [RszGenerate, RszAutoReadWrite]
-    public partial class GtlData : BaseModel
+    public class GtlData : BaseModel
     {
-        public byte index;
-        public byte a;
-        public byte b;
-        public byte c;
-        public int ukn1;
-        public int ukn2;
-        public int ukn3;
-        public int ukn4;
-        public int ukn5;
-        public int ukn6;
-        public int ukn7;
+        public byte[] bytes = [];
 
         /// <summary>
         /// [y][x] array of height values.
@@ -125,6 +116,20 @@ namespace ReeLib.Gtl
                 Indices[y] = handler.ReadArray<byte>(cols4);
             }
         }
+
+        protected override bool DoRead(FileHandler handler)
+        {
+            var byteCount = handler.Read<byte>();
+            bytes = handler.ReadBytes(byteCount - 1);
+            return true;
+        }
+
+        protected override bool DoWrite(FileHandler handler)
+        {
+            handler.Write(bytes.Length + 1);
+            handler.WriteArray(bytes);
+            return true;
+        }
     }
 }
 
@@ -136,6 +141,7 @@ namespace ReeLib
     {
         public readonly Header Header = new();
         public List<int> Indices { get; } = new();
+        public List<byte> UknBytes { get; } = new();
         public List<HeightmapRange> Ranges { get; } = new();
         public List<GtlData> DataItems { get; } = new();
 
@@ -154,6 +160,9 @@ namespace ReeLib
 
             handler.Seek(Header.indicesOffset);
             Indices.ReadStructList(handler, Header.indicesCount);
+
+            handler.Seek(Header.uknBytesOffset);
+            UknBytes.ReadStructList(handler, Header.count1);
 
             handler.Seek(Header.heightRangesOffset);
             Ranges.ReadStructList(handler, Header.count1);

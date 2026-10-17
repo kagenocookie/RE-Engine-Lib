@@ -1385,7 +1385,7 @@ namespace ReeLib.Mesh
 			}
 		}
 
-		public void RecalculateBoundingBox()
+		public void RecalculateBounds()
         {
             var bounds = AABB.MaxMin;
 			foreach (var pos in Buffer.Positions)
@@ -1393,8 +1393,20 @@ namespace ReeLib.Mesh
 				bounds = bounds.Extend(pos);
 			}
 			boundingBox = bounds;
-			// TODO not exactly correct
-        	boundingSphere = new Sphere(bounds.Center, Math.Max(bounds.Size.X, Math.Max(bounds.Size.Y, bounds.Size.Z)) / 2);
+			RecalculateBoundingSphere();
+        }
+
+		public void RecalculateBoundingSphere()
+        {
+        	var prevNative = new Sphere(boundingBox.Center, Math.Max(boundingBox.Size.X, Math.Max(boundingBox.Size.Y, boundingBox.Size.Z)) / 2);
+			// not "exactly" correct but good enough
+			var center = boundingBox.Center;
+			var maxdist = 0f;
+			foreach (var pos in Buffer.Positions)
+			{
+				maxdist = MathF.Max(maxdist, (pos - center).LengthSquared());
+			}
+        	boundingSphere = new Sphere(center, MathF.Sqrt(maxdist));
         }
 
         protected override bool DoRead(FileHandler handler)

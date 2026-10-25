@@ -1118,7 +1118,7 @@ namespace ReeLib.Clip
             }
             action.Do(ref speedPointOffset);
             action.Do(ref hermiteDataOffset);
-            action.Do(version != ClipVersion.RE4, ref bezier3DDataOffset);
+            action.Do(version is not ClipVersion.RE4 and not ClipVersion.SF6, ref bezier3DDataOffset);
             action.Do(version <= ClipVersion.RE2_DMC5, ref uknOffset);
             action.Do(ref clipInfoOffset);
             DataInterpretationException.DebugThrowIf(uknOffset != 0 && uknOffset != clipInfoOffset, "It's actually used??");

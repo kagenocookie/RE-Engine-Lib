@@ -93,6 +93,32 @@ namespace ReeLib
             handler.Align(RszClass.fields[0].array ? 4 : RszClass.fields[0].align);
         }
 
+        internal static RszInstanceInfo ReadInfo(FileHandler handler, GameName gameVersion)
+        {
+            var info = handler.Read<RszInstanceInfo>();
+
+            if (gameVersion == GameName.re7) {
+                // RE7 includes the hash of userdata instance asset paths in here, we have no use for them
+                handler.Skip(8);
+            }
+            return info;
+        }
+
+        internal void WriteInfo(FileHandler handler, GameName gameVersion)
+        {
+            handler.Write(RszClass.typeId);
+            handler.Write(RszClass.crc);
+
+            if (gameVersion == GameName.re7) {
+                if (Values.Length > 0 && Values[0] is string assetPath) {
+                    handler.Write(MurMur3HashUtils.GetHash(assetPath));
+                } else {
+                    handler.Write(0);
+                }
+                handler.Write(0);
+            }
+        }
+
         protected override bool DoRead(FileHandler handler)
         {
             // if has RSZUserData, it is external

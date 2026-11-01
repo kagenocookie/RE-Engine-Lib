@@ -26,7 +26,6 @@ namespace ReeLib
 
         public RszHeader Header { get; } = new();
         public List<ObjectTableEntry> ObjectTableList { get; } = new();
-        public List<InstanceInfo> InstanceInfoList { get; } = new();
         public List<IRSZUserDataInfo> RSZUserDataInfoList { get; } = new();
 
         /// <summary>
@@ -57,7 +56,6 @@ namespace ReeLib
         protected override bool DoRead()
         {
             ObjectTableList.Clear();
-            InstanceInfoList.Clear();
             RSZUserDataInfoList.Clear();
             InstanceList.Clear();
             ObjectList.Clear();
@@ -75,15 +73,6 @@ namespace ReeLib
 
             ObjectTableList.EnsureCapacity(Header.objectCount);
             for (int i = 0; i < Header.objectCount; ++i) ObjectTableList.Add(handler.Read<ObjectTableEntry>());
-
-            handler.Seek(Header.instanceOffset);
-            for (int i = 0; i < Header.instanceCount; i++)
-            {
-                InstanceInfo instanceInfo = new(Option.Version);
-                instanceInfo.Read(handler);
-                instanceInfo.ReadClassName(rszParser);
-                InstanceInfoList.Add(instanceInfo);
-            }
 
             handler.Seek(Header.userdataOffset);
             Dictionary<int, int> instanceIdToUserData = new();
@@ -120,11 +109,18 @@ namespace ReeLib
                 }
             }
 
+            handler.Seek(Header.instanceOffset);
+            List<RszInstanceInfo> instanceInfoList = new(Header.instanceCount);
+            for (int i = 0; i < Header.instanceCount; i++)
+            {
+                instanceInfoList.Add(RszInstance.ReadInfo(handler, Option.Version));
+            }
+
             // read instance data
             handler.Seek(Header.dataOffset);
-            for (int i = 0; i < InstanceInfoList.Count; i++)
+            for (int i = 0; i < instanceInfoList.Count; i++)
             {
-                var typeId = InstanceInfoList[i].typeId;
+                var typeId = instanceInfoList[i].typeId;
                 if (typeId == 0)
                 {
                     InstanceList.Add(RszInstance.NULL);
@@ -144,8 +140,8 @@ namespace ReeLib
                 {
                     instance.Read(handler);
                 }
-                if (rszClass.crc != InstanceInfoList[i].CRC && _warnedInvalidCrcs.Add(rszClass)) {
-                    Log.Warn($"CRC mismatch in RSZ class {rszClass.name}: File has {InstanceInfoList[i].CRC}, but we're expecting {rszClass.crc}. The file likely won't work ingame without an updated RSZ json.");
+                if (rszClass.crc != instanceInfoList[i].CRC && _warnedInvalidCrcs.Add(rszClass)) {
+                    Log.Warn($"CRC mismatch in RSZ class {rszClass.name}: File has {instanceInfoList[i].CRC}, but we're expecting {rszClass.crc}. The file likely won't work ingame without an updated RSZ json.");
                 }
                 InstanceList.Add(instance);
             }
@@ -176,7 +172,10 @@ namespace ReeLib
 
             handler.Align(8);
             header.instanceOffset = handler.Tell();
-            InstanceInfoList.Write(handler);
+            foreach (var instance in InstanceList)
+            {
+                instance.WriteInfo(handler, Option.Version);
+            }
 
             handler.Align(16);
             header.userdataOffset = handler.Tell();
@@ -446,15 +445,10 @@ namespace ReeLib
             {
                 RebuildInstanceList();
             }
-            InstanceInfoList.Clear();
+
             RSZUserDataInfoList.Clear();
             foreach (var instance in InstanceList)
             {
-                InstanceInfoList.Add(new InstanceInfo(Option.Version)
-                {
-                    typeId = instance.RszClass.typeId,
-                    CRC = instance.RszClass.crc
-                });
                 if (instance.RSZUserData != null)
                 {
                     RSZUserDataInfoList.Add(instance.RSZUserData);
@@ -522,58 +516,11 @@ namespace ReeLib
         }
     }
 
-
-    public class InstanceInfo : BaseModel
+    internal struct RszInstanceInfo
     {
         public uint typeId;
         public uint CRC;
-        public uint userPathHashRe7;
-        public string? ClassName { get; set; }
-
-        public GameName Version;
-
-        public InstanceInfo()
-        {
-            Version = GameName.unknown;
-        }
-
-        public InstanceInfo(GameName version)
-        {
-            Version = version;
-        }
-
-        protected override bool DoRead(FileHandler handler)
-        {
-            handler.Read(ref typeId);
-            handler.Read(ref CRC);
-
-            if (Version == GameName.re7) {
-                handler.Read(ref userPathHashRe7);
-                handler.Skip(4);
-            }
-            return true;
-        }
-
-        protected override bool DoWrite(FileHandler handler)
-        {
-            handler.Write(typeId);
-            handler.Write(CRC);
-
-            if (Version == GameName.re7) {
-                handler.Write(ref userPathHashRe7);
-                handler.Skip(4);
-            }
-            return true;
-        }
-
-        public void ReadClassName(RszParser parser)
-        {
-            ClassName = parser.GetRSZClassName(typeId);
-        }
-
-        public override string ToString() => ClassName ?? CRC.ToString();
     }
-
 
     public interface IRSZUserDataInfo : IModel, ICloneable
     {

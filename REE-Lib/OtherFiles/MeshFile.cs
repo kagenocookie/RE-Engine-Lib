@@ -2060,7 +2060,6 @@ namespace ReeLib
 		public static int GetWeightLimit(string exportConfig)
 		{
 			var cfg = Versions.GetValueOrDefault(exportConfig);
-			var extra = cfg.extraWeightBuffer;
 			return VertexBoneWeights.GetIndexCount(cfg.serializerVersion) * (cfg.extraWeightBuffer ? 2 : 1);
 		}
 
@@ -2457,6 +2456,7 @@ namespace ReeLib
 				}
 			}
 
+			DataInterpretationException.DebugWarnIf(MeshBuffer?.ExtraWeights?.Length > 0 && GetWeightLimit(CurrentVersionConfig ?? "") <= 8, "Mesh contains extra weight buffer even though we're assuming it's not supported.");
             return true;
         }
 

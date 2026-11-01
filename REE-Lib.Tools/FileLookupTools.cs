@@ -9,8 +9,6 @@ public class FileLookupTools
     public struct InstanceInfoStruct {
         public uint typeId;
         public uint CRC;
-
-        public InstanceInfo GetInstanceInfo() => new InstanceInfo(GameName.unknown) { typeId = typeId, CRC = CRC };
     }
 
     public static IEnumerable<InstanceInfoStruct>? GetRSZInstanceInfos(string filepath)

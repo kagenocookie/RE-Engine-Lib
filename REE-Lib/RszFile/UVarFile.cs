@@ -30,7 +30,7 @@ namespace ReeLib.UVar
         /// <summary>
         /// A nullable reference to a runtime object instance. Used for cases where parameters refer to objects outside of the UVar file (e.g. motfsm2 expression trees)
         /// </summary>
-        public object? ReferenceObject { get; set; }
+        public RszInstance? ReferenceObject { get; set; }
 
         public override NodeParameter Clone()
         {
@@ -70,6 +70,33 @@ namespace ReeLib.UVar
             Int32 = 7,
             Single = 10,
             Guid = 20,
+        }
+
+        public void ChangeType(NodeValueType newType)
+        {
+            if (newType == type) return;
+            type = newType;
+            if (value == null) {
+                ResetValue();
+                return;
+            }
+
+            try {
+                var t = newType switch {
+                    NodeValueType.UInt32 => typeof(uint),
+                    NodeValueType.Int32 => typeof(int),
+                    NodeValueType.Guid => typeof(Guid),
+                    NodeValueType.Single => typeof(float),
+                    _ => null,
+                };
+                if (t == null) {
+                    ResetValue();
+                    return;
+                }
+                value = Convert.ChangeType(value, t);
+            } catch (Exception) {
+                ResetValue();
+            }
         }
 
         public void ResetValue()

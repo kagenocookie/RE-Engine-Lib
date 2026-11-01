@@ -1595,6 +1595,8 @@ namespace ReeLib
                 rsz.RebuildInstanceList();
                 rsz.RebuildInstanceInfo();
             }
+            StaticExpressionTreeConditionsRsz.RebuildInstanceInfo(false);
+            ExpressionTreeConditionsRsz.RebuildInstanceInfo(false);
 
             if (ActionObjectTable.ActionsObjectTable.Length != ActionRsz.ObjectList.Count)
             {

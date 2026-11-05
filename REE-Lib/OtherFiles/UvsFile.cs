@@ -23,10 +23,10 @@ namespace ReeLib.Uvs
     public partial class TextureBlock : BaseModel
     {
         public long stateHolder;
-        public long pathStringOffset;
-        public long texHandle1;
-        public long texHandle2;
-        public long texHandle3;
+        internal long pathStringOffset;
+        public long texHandle1 = -1;
+        public long texHandle2 = -1;
+        public long texHandle3 = -1;
 
         [RszIgnore] public string path = string.Empty;
 
@@ -122,10 +122,6 @@ namespace ReeLib
 
             if (unreferenced.Count == 0) return;
 
-            foreach (var unref in unreferenced.OrderByDescending(a => a)) {
-                Textures.RemoveAt(unref);
-            }
-
             var remapDict = new Dictionary<int, int>();
             for (int i = 0; i < Textures.Count; i++) {
                 if (unreferenced.Contains(i)) continue;
@@ -133,6 +129,10 @@ namespace ReeLib
                 var tex = Textures[i];
                 var lowerCount = unreferenced.Count(r => r < i);
                 remapDict[i] = i - lowerCount;
+            }
+
+            foreach (var unref in unreferenced.OrderByDescending(a => a)) {
+                Textures.RemoveAt(unref);
             }
 
             foreach (var seq in Sequences) {
